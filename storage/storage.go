@@ -1,7 +1,17 @@
+/*
+ * Copyright 2016 Xiaomi Corporation. All rights reserved.
+ * Use of this source code is governed by a BSD-style
+ * license that can be found in the LICENSE file.
+ *
+ * Authors:    Yu Bo <yubo@xiaomi.com>
+ */
 package storage
 
 import (
+	"container/list"
+	"database/sql"
 	"log"
+	"net/rpc"
 	"os"
 	"os/signal"
 	"runtime"
@@ -9,41 +19,80 @@ import (
 	"syscall"
 	"unsafe"
 
-	"github.com/open-falcon/graph/api"
-	"github.com/open-falcon/graph/http"
-	"github.com/open-falcon/graph/index"
-	"github.com/open-falcon/graph/rrdtool"
+	"stathat.com/c/consistent"
+
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/yubo/falcon/specs"
-)
-
-const (
-	GAUGE           = "GAUGE"
-	DERIVE          = "DERIVE"
-	COUNTER         = "COUNTER"
-	CACHE_TIME      = 1800000 //ms
-	FLUSH_DISK_STEP = 1000    //ms
-	DEFAULT_STEP    = 60      //s
-	MIN_STEP        = 30      //s
-)
-
-const (
-	GRAPH_F_MISS uint32 = 1 << iota
-	GRAPH_F_ERR
-	GRAPH_F_SENDING
-	GRAPH_F_FETCHING
 )
 
 var (
 	configFile string
 	configPtr  unsafe.Pointer
 	configOpts Options = defaultOptions
-	doneChan   []chan chan error
-	mutex      sync.Mutex
+	exitChans  []chan chan error
+
+	/* db */
+	DB        *sql.DB
+	dbLock    sync.RWMutex
+	dbConnMap map[string]*sql.DB
+
+	/* history */
+	// mem:  front = = = back
+	// time: latest ...  old
+	//HistoryCache = tmap.NewSafeMap()
+
+	/* linkedlist */
+	Consistent  *consistent.Consistent
+	Net_task_ch map[string]chan *Net_task_t
+	clients     map[string][]*rpc.Client
+
+	/* rpc */
+	rpc_exit chan chan error
+	connects conn_list
+
+	/* http */
+	http_exit chan chan error
+
+	/* cache */
+	cache cache_t
+
+	/* rrdtool */
+	sync_exit    chan chan error
+	io_task_chan chan *io_task_t
 )
 
+func registerExitChans(e chan chan error) {
+	exitChans = append(exitChans, e)
+}
+
 func init() {
-	runtime.GOMAXPROCS(runtime.NumCPU())
 	//log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
+	// core
+	runtime.GOMAXPROCS(runtime.NumCPU())
+
+	// rpc
+	rpc_exit = make(chan chan error)
+	connects = conn_list{list: list.New()}
+
+	// http
+	http_exit = make(chan chan error)
+	httpRoutes()
+
+	// rrdtool/sync_disk/migrate
+	sync_exit = make(chan chan error)
+	io_task_chan = make(chan *io_task_t, 16)
+	Consistent = consistent.New()
+	Net_task_ch = make(map[string]chan *Net_task_t)
+	clients = make(map[string][]*rpc.Client)
+
+	// store
+	size := CACHE_TIME / FLUSH_DISK_STEP
+	if size < 0 {
+		log.Panicf("store.init, bad size %d\n", size)
+	}
+
+	// cache
+	cache.hash = make(map[string]*cacheEntry)
 }
 
 func start_signal(pid int, cfg *Options) {
@@ -58,45 +107,30 @@ func start_signal(pid int, cfg *Options) {
 		switch s {
 		case syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
 			log.Println("gracefull shut down")
-			if cfg.Http {
-				http.Close_chan <- 1
-				<-http.Close_done_chan
+			done := make(chan error)
+			for i := len(exitChans); i > 0; i-- {
+				exitChans[i-1] <- done
+				if err := <-done; err != nil {
+					log.Println(err)
+				}
 			}
-			log.Println("http stop ok")
+			commitCaches(true)
 
-			if cfg.Rpc {
-				api.Close_chan <- 1
-				<-api.Close_done_chan
-			}
-			log.Println("rpc stop ok")
-
-			rrdtool.Out_done_chan <- 1
-			rrdtool.FlushAll(true)
-			log.Println("rrdtool stop ok")
-
-			log.Println(pid, "exit")
+			log.Printf("rrd data commit complete\n")
+			log.Print("pid:%d exit\n", pid)
 			os.Exit(0)
 		}
 	}
 }
 
 func Handle(arg interface{}) {
-	config := arg.(*specs.CmdOptions).ConfigFile
+	parse(arg.(*specs.CmdOptions).ConfigFile)
 
-	parse(config)
+	dbInit()
+	rrdStart()
+	rpcStart()
+	//indexStart()
+	httpStart()
 
-	// init db
-	initDB()
-
-	// rrdtool before api for disable loopback connection
-	rrdtool.Start()
-
-	// start api
-	go api.Start()
-	// start indexing
-	index.Start()
-	// start http server
-	go http.Start()
-
-	start_signal(os.Getpid(), Config())
+	start_signal(os.Getpid(), config())
 }

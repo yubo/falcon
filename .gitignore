@@ -11,3 +11,4 @@
 var/
 build/
 tmp
+git.go

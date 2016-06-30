@@ -1,45 +1,71 @@
+/*
+ * Copyright 2016 Xiaomi Corporation. All rights reserved.
+ * Use of this source code is governed by a BSD-style
+ * license that can be found in the LICENSE file.
+ *
+ * Authors:    Yu Bo <yubo@xiaomi.com>
+ */
 package storage
 
 import (
 	"fmt"
-	"os"
-	"strconv"
+	"sort"
 	"strings"
 )
 
+func dictedTagstring(s string) map[string]string {
+	if s == "" {
+		return map[string]string{}
+	}
+	s = strings.Replace(s, " ", "", -1)
+
+	tag_dict := make(map[string]string)
+	tags := strings.Split(s, ",")
+	for _, tag := range tags {
+		tag_pair := strings.SplitN(tag, "=", 2)
+		if len(tag_pair) == 2 {
+			tag_dict[tag_pair[0]] = tag_pair[1]
+		}
+	}
+	return tag_dict
+}
+
 // RRDTOOL UTILS
 // 监控数据对应的rrd文件名称
-func RrdFileName(baseDir string, md5 string, dsType string, step int) string {
-	return fmt.Sprintf("%s/%s/%s_%s_%d.rrd", baseDir, md5[0:2], md5, dsType, step)
+func key2filename(baseDir string, key string) string {
+	return fmt.Sprintf("%s/%s/%s.rrd", baseDir, key[0:2], key)
 }
 
-// rrd文件是否存在
-func IsRrdFileExist(filename string) bool {
-	_, err := os.Stat(filename)
-	return !os.IsNotExist(err)
-}
-
-// 生成rrd缓存数据的key
-func FormRrdCacheKey(md5 string, dsType string, step int) string {
-	return fmt.Sprintf("%s_%s_%d", md5, dsType, step)
-}
-
-func SplitRrdCacheKey(ckey string) (md5 string, dsType string, step int, err error) {
-	ckey_slice := strings.Split(ckey, "_")
-	if len(ckey_slice) != 3 {
-		err = fmt.Errorf("bad rrd cache key: %s", ckey)
-		return
+func sortedTags(tags map[string]string) string {
+	if tags == nil {
+		return ""
 	}
 
-	md5 = ckey_slice[0]
-	dsType = ckey_slice[1]
-	stepInt64, err := strconv.ParseInt(ckey_slice[2], 10, 32)
-	if err != nil {
-		return
-	}
-	step = int(stepInt64)
+	size := len(tags)
 
-	// return
-	err = nil
-	return
+	if size == 0 {
+		return ""
+	}
+
+	if size == 1 {
+		for k, v := range tags {
+			return fmt.Sprintf("%s=%s", k, v)
+		}
+	}
+
+	keys := make([]string, size)
+	i := 0
+	for k := range tags {
+		keys[i] = k
+		i++
+	}
+
+	sort.Strings(keys)
+
+	ret := make([]string, size)
+	for j, key := range keys {
+		ret[j] = fmt.Sprintf("%s=%s", key, tags[key])
+	}
+
+	return strings.Join(ret, ",")
 }
