@@ -1,18 +1,25 @@
 /*
- * Copyright 2016 Xiaomi Corporation. All rights reserved.
+ * Copyright 2016 yubo. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
- *
- * Authors:    Yu Bo <yubo@xiaomi.com>
  */
 package storage
 
 import (
 	"database/sql"
-	"log"
+	"sync"
+
+	"github.com/golang/glog"
 )
 
-func GetDbConn(connName string) (c *sql.DB, e error) {
+var (
+	/* db */
+	appDb     *sql.DB
+	dbLock    sync.RWMutex
+	dbConnMap map[string]*sql.DB
+)
+
+func GetDbConn(connName, dsn string, maxIdle int) (c *sql.DB, e error) {
 	dbLock.Lock()
 	defer dbLock.Unlock()
 
@@ -20,7 +27,7 @@ func GetDbConn(connName string) (c *sql.DB, e error) {
 	var dbConn *sql.DB
 	dbConn = dbConnMap[connName]
 	if dbConn == nil {
-		dbConn, err = makeDbConn()
+		dbConn, err = makeDbConn(dsn, maxIdle)
 		if dbConn == nil || err != nil {
 			closeDbConn(dbConn)
 			return nil, err
@@ -39,13 +46,13 @@ func GetDbConn(connName string) (c *sql.DB, e error) {
 }
 
 // 创建一个新的mysql连接
-func makeDbConn() (conn *sql.DB, err error) {
-	conn, err = sql.Open("mysql", config().Dsn)
+func makeDbConn(dsn string, maxIdle int) (conn *sql.DB, err error) {
+	conn, err = sql.Open("mysql", dsn)
 	if err != nil {
 		return nil, err
 	}
 
-	conn.SetMaxIdleConns(config().DbMaxIdle)
+	conn.SetMaxIdleConns(maxIdle)
 	err = conn.Ping()
 
 	return conn, err
@@ -57,13 +64,13 @@ func closeDbConn(conn *sql.DB) {
 	}
 }
 
-func dbInit() {
+func dbStart(dsn string, maxIdle int) {
 	var err error
-	DB, err = makeDbConn()
-	if DB == nil || err != nil {
-		log.Fatalln("dbInit, get db conn fail", err)
+	appDb, err = makeDbConn(dsn, maxIdle)
+	if appDb == nil || err != nil {
+		glog.Fatal("dbInit, get db conn fail", err)
 	}
 
 	dbConnMap = make(map[string]*sql.DB)
-	log.Println("dbInit ok")
+	glog.Info("dbInit ok")
 }

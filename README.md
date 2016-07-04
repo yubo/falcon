@@ -10,15 +10,15 @@ make
 ```
 
 ## 特点
-- 还没法使用
-- 整合／精简了代码,去除了一些依赖包
-- 简化配置的文件
-- 简化的hashKey
+- 整合／精简了代码,依赖包
+- 简化配置
+
+## 模块对应关系
+- storage - graph
+- handoff - transfer
 
 ## TODO
 - test/benchmark
 - 多硬盘支持(单机多写)
-- 内存池管理
-- [rrddb](https://github.com/yubo/rrddb)支持
 
 

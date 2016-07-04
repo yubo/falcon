@@ -1,30 +1,33 @@
 /*
- * Copyright 2016 Xiaomi Corporation. All rights reserved.
+ * Copyright 2016 yubo. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
- *
- * Authors:    Yu Bo <yubo@xiaomi.com>
  */
 package storage
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"sync"
 	"time"
 
+	"github.com/golang/glog"
 	"github.com/yubo/falcon/specs"
 )
 
-type cache_t struct {
+var (
+	/* cache */
+	cache storageCache
+)
+
+type storageCache struct {
 	sync.RWMutex // hash lock
 	dataq        cacheq
 	idxq         cacheq
 	hash         map[string]*cacheEntry
 }
 
-func (c *cache_t) get(key string) *cacheEntry {
+func (c *storageCache) get(key string) *cacheEntry {
 	c.RLock()
 	defer c.RUnlock()
 
@@ -35,60 +38,67 @@ func (c *cache_t) get(key string) *cacheEntry {
 
 }
 
-func (c *cache_t) unlink(key string) *cacheEntry {
+func (c *storageCache) unlink(key string) *cacheEntry {
 	c.Lock()
 	defer c.Unlock()
 	e, ok := c.hash[key]
 	if !ok {
 		return nil
 	}
+
+	e.Lock()
+	defer e.Unlock()
+
 	delete(c.hash, key)
 
 	c.dataq.Lock()
-	if e.data_prev != nil {
-		e.data_prev.data_next = e.data_next
+	if e.prev != nil {
+		e.prev.next = e.next
 	}
-	if e.data_next != nil {
-		e.data_next.data_prev = e.data_prev
+	if e.next != nil {
+		e.next.prev = e.prev
 	}
-	e.data_prev = nil
-	e.data_next = nil
+	e.prev = nil
+	e.next = nil
 	c.dataq.Unlock()
 
 	c.idxq.Lock()
-	if e.idx_prev != nil {
-		e.idx_prev.idx_next = e.idx_next
+	if e.idxPrev != nil {
+		e.idxPrev.idxNext = e.idxNext
 	}
-	if e.idx_next != nil {
-		e.idx_next.idx_prev = e.idx_prev
+	if e.idxNext != nil {
+		e.idxNext.idxPrev = e.idxPrev
 	}
-	e.idx_prev = nil
-	e.idx_next = nil
+	e.idxPrev = nil
+	e.idxNext = nil
 	c.idxq.Unlock()
 
 	return e
 
 }
 
-func (c *cache_t) enqueue_data(e *cacheEntry) {
+func (c *storageCache) enqueue_data(e *cacheEntry) {
 	c.dataq.Lock()
 	defer c.dataq.Unlock()
 
-	e.data_next = nil
+	e.Lock()
+	defer e.Unlock()
+
+	e.next = nil
 	x := c.dataq.last
 	if x == nil {
-		e.data_prev = nil
+		e.prev = nil
 		c.dataq.first = e
 		c.dataq.last = e
 		return
 	}
-	e.data_prev = x
-	x.data_next = e
+	e.prev = x
+	x.next = e
 	c.dataq.last = e
 
 }
 
-func (c *cache_t) dequeue_data() *cacheEntry {
+func (c *storageCache) dequeue_data() *cacheEntry {
 	c.dataq.Lock()
 	defer c.dataq.Unlock()
 
@@ -97,37 +107,43 @@ func (c *cache_t) dequeue_data() *cacheEntry {
 		return nil
 	}
 
-	x := e.data_next
+	e.Lock()
+	defer e.Unlock()
+
+	x := e.next
 	if x == nil {
 		c.dataq.first = nil
 		c.dataq.last = nil
 	} else {
-		x.data_prev = nil
+		x.prev = nil
 		c.dataq.first = x
-		e.data_next = nil
+		e.next = nil
 	}
 	return e
 }
 
-func (c *cache_t) enqueue_idx(e *cacheEntry) {
+func (c *storageCache) enqueue_idx(e *cacheEntry) {
 	c.idxq.Lock()
 	defer c.idxq.Unlock()
 
-	e.idx_next = nil
+	e.Lock()
+	defer e.Unlock()
+
+	e.idxNext = nil
 	x := c.idxq.last
 	if x == nil {
-		e.idx_prev = nil
+		e.idxPrev = nil
 		c.idxq.first = e
 		c.idxq.last = e
 		return
 	}
-	e.idx_prev = x
-	x.idx_next = e
+	e.idxPrev = x
+	x.idxNext = e
 	c.idxq.last = e
 
 }
 
-func (c *cache_t) dequeue_idx() *cacheEntry {
+func (c *storageCache) dequeue_idx() *cacheEntry {
 	c.idxq.Lock()
 	defer c.idxq.Unlock()
 
@@ -136,23 +152,27 @@ func (c *cache_t) dequeue_idx() *cacheEntry {
 		return nil
 	}
 
-	x := e.idx_next
+	e.Lock()
+	defer e.Unlock()
+
+	x := e.idxNext
 	if x == nil {
 		c.idxq.first = nil
 		c.idxq.last = nil
 	} else {
-		x.idx_prev = nil
+		x.idxPrev = nil
 		c.idxq.first = x
-		e.idx_next = nil
+		e.idxNext = nil
 	}
 	return e
 }
 
-func (c *cache_t) put(key string, item *specs.GraphItem) (*cacheEntry, error) {
+// called by rpc
+func (c *storageCache) put(key string, item *specs.RrdItem) (*cacheEntry, error) {
 
 	c.Lock()
 	if e, ok := c.hash[key]; ok {
-		return e, ErrExist
+		return e, specs.ErrExist
 	}
 
 	e := &cacheEntry{
@@ -160,7 +180,7 @@ func (c *cache_t) put(key string, item *specs.GraphItem) (*cacheEntry, error) {
 		createTs:  time.Now().Unix(),
 		endpoint:  item.Endpoint,
 		metric:    item.Metric,
-		tags:      make(map[string]string, len(item.Tags)),
+		tags:      item.Tags,
 		dsType:    item.DsType,
 		step:      item.Step,
 		heartbeat: item.Heartbeat,
@@ -172,26 +192,23 @@ func (c *cache_t) put(key string, item *specs.GraphItem) (*cacheEntry, error) {
 	c.hash[key] = e
 	c.Unlock()
 
-	for k, v := range item.Tags {
-		e.tags[k] = v
-	}
-
 	c.enqueue_data(e)
 	c.enqueue_idx(e)
 
-	if config().Migrate.Enable {
-		_, err := os.Stat(e.filename(config().RrdStorage))
+	if rpcConfig.Migrate.Enable {
+		_, err := os.Stat(e.filename(rpcConfig.RrdStorage))
 		if os.IsNotExist(err) {
-			e.flag = GRAPH_F_MISS
+			e.flag = RRD_F_MISS
 		}
 	}
 	return e, nil
 }
 
-func (c *cacheEntry) put(item *specs.GraphItem) {
+// called by rpc
+func (c *cacheEntry) put(item *specs.RrdItem) {
 	c.Lock()
 	defer c.Unlock()
-	c.putTs = item.Timestamp
+	c.lastTs = item.Timestamp
 	c.cache = append(c.cache, &specs.RRDData{
 		Timestamp: item.Timestamp,
 		Value:     specs.JsonFloat(item.Value),
@@ -202,26 +219,26 @@ func (c *cacheEntry) put(item *specs.GraphItem) {
 func (e *cacheEntry) fetch() {
 	done := make(chan error)
 
-	node, err := Consistent.Get(e.key)
+	node, err := rrdMigrateConsistent.Get(e.key)
 	if err != nil {
 		return
 	}
 
-	Net_task_ch[node] <- &Net_task_t{
+	rrdNetTaskCh[node] <- &netTask{
 		Method: NET_TASK_M_FETCH,
 		e:      e,
 		Done:   done,
 	}
 
-	// net_task slow, shouldn't block syncDisk() or FlushAll()
+	// net_task slow, shouldn't block commitCache()
 	// warning: recev sigout when migrating, maybe lost memory data
 	go func() {
 		err := <-done
 		if err != nil {
-			log.Printf("get %s from remote err[%s]\n", e.key, err)
+			glog.Warning("get %s from remote err[%s]\n", e.key, err)
 			return
 		}
-		stat_inc(ST_NET_COUNTER, 1)
+		statInc(ST_NET_TASK_CNT, 1)
 		//todo: flushfile after getfile? not yet
 	}()
 }
@@ -229,14 +246,14 @@ func (e *cacheEntry) fetch() {
 func (e *cacheEntry) commit() error {
 	done := make(chan error, 1)
 
-	io_task_chan <- &io_task_t{
-		method: IO_TASK_M_COMMIT,
+	rrdIoTaskCh <- &ioTask{
+		method: IO_TASK_M_RRD_UPDATE,
 		args:   e,
 		done:   done,
 	}
 	err := <-done
 
-	stat_inc(ST_DISK_COUNTER, 1)
+	statInc(ST_DISK_TASK_CNT, 1)
 	e.commitTs = time.Now().Unix()
 
 	return err
@@ -259,17 +276,13 @@ func (e *cacheEntry) dequeueAll() []*specs.RRDData {
 	return e._dequeueAll()
 }
 
-func (e *cacheEntry) _getItems() (ret []*specs.GraphItem) {
-	tags := make(map[string]string, len(e.tags))
-	for k, v := range e.tags {
-		tags[k] = v
-	}
+func (e *cacheEntry) _getItems() (ret []*specs.RrdItem) {
 
 	for _, v := range e.cache {
-		ret = append(ret, &specs.GraphItem{
+		ret = append(ret, &specs.RrdItem{
 			Endpoint:  e.endpoint,
 			Metric:    e.metric,
-			Tags:      tags,
+			Tags:      e.tags,
 			Value:     float64(v.Value),
 			Timestamp: v.Timestamp,
 			DsType:    e.dsType,
@@ -280,27 +293,22 @@ func (e *cacheEntry) _getItems() (ret []*specs.GraphItem) {
 	return ret
 }
 
-func (e *cacheEntry) getItems() (ret []*specs.GraphItem) {
+func (e *cacheEntry) getItems() (ret []*specs.RrdItem) {
 	e.Lock()
 	defer e.Unlock()
 
 	return e._getItems()
 }
 
-func (e *cacheEntry) getItemsAll() (ret []*specs.GraphItem) {
+func (e *cacheEntry) getItemsAll() (ret []*specs.RrdItem) {
 	e.RLock()
 	defer e.RUnlock()
 
-	tags := make(map[string]string, len(e.tags))
-	for k, v := range e.tags {
-		tags[k] = v
-	}
-
 	for _, v := range e.history {
-		ret = append(ret, &specs.GraphItem{
+		ret = append(ret, &specs.RrdItem{
 			Endpoint:  e.endpoint,
 			Metric:    e.metric,
-			Tags:      tags,
+			Tags:      e.tags,
 			Value:     float64(v.Value),
 			Timestamp: v.Timestamp,
 			DsType:    e.dsType,
@@ -309,10 +317,10 @@ func (e *cacheEntry) getItemsAll() (ret []*specs.GraphItem) {
 	}
 
 	for _, v := range e.cache {
-		ret = append(ret, &specs.GraphItem{
+		ret = append(ret, &specs.RrdItem{
 			Endpoint:  e.endpoint,
 			Metric:    e.metric,
-			Tags:      tags,
+			Tags:      e.tags,
 			Value:     float64(v.Value),
 			Timestamp: v.Timestamp,
 			DsType:    e.dsType,
@@ -323,21 +331,16 @@ func (e *cacheEntry) getItemsAll() (ret []*specs.GraphItem) {
 }
 
 /* the last item(dequeue) */
-func (e *cacheEntry) getItem() (ret *specs.GraphItem) {
+func (e *cacheEntry) getItem() (ret *specs.RrdItem) {
 	e.RLock()
 	defer e.RUnlock()
 
-	tags := make(map[string]string, len(e.tags))
-	for k, v := range e.tags {
-		tags[k] = v
-	}
-
 	if len(e.cache) > 0 {
 		v := e.cache[len(e.cache)-1]
-		return &specs.GraphItem{
+		return &specs.RrdItem{
 			Endpoint:  e.endpoint,
 			Metric:    e.metric,
-			Tags:      tags,
+			Tags:      e.tags,
 			Value:     float64(v.Value),
 			Timestamp: v.Timestamp,
 			DsType:    e.dsType,
@@ -347,10 +350,10 @@ func (e *cacheEntry) getItem() (ret *specs.GraphItem) {
 
 	if len(e.history) > 0 {
 		v := e.history[len(e.history)-1]
-		return &specs.GraphItem{
+		return &specs.RrdItem{
 			Endpoint:  e.endpoint,
 			Metric:    e.metric,
-			Tags:      tags,
+			Tags:      e.tags,
 			Value:     float64(v.Value),
 			Timestamp: v.Timestamp,
 			DsType:    e.dsType,
@@ -360,7 +363,7 @@ func (e *cacheEntry) getItem() (ret *specs.GraphItem) {
 	return
 }
 
-func getAllItems(key string) (ret []*specs.GraphItem) {
+func getAllItems(key string) (ret []*specs.RrdItem) {
 	e := cache.get(key)
 	if e == nil {
 		return
@@ -368,7 +371,7 @@ func getAllItems(key string) (ret []*specs.GraphItem) {
 	return e.getItems()
 }
 
-func getLastItem(key string) (ret *specs.GraphItem) {
+func getLastItem(key string) (ret *specs.RrdItem) {
 	e := cache.get(key)
 	if e == nil {
 		return

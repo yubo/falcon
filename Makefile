@@ -1,19 +1,24 @@
-# 
-# Copyright 2016 Xiaomi Corporation. All rights reserved.
+# Copyright 2016 yubo. All rights reserved.
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
-# 
-# Authors:    Yu Bo <yubo@xiaomi.com>
-# 
-#all: git.go
-all: build/storage
-#build/falcon
+.PHONY: clean run
 
-build/storage: cmd/storage.go git.go *.go storage/*.go
-	go build -o build/storage cmd/storage.go
+all: bin/handoff bin/storage bin/falcon
 
-build/falcon: cmd/falcon.go git.go *.go
-	go build -o build/falcon cmd/falcon.go
+bin/storage: git.go *.go specs/*.go storage/*.go cmd/storage/*.go
+	go build -gcflags "-N -l" -o bin/storage cmd/storage/*
+
+bin/falcon: git.go *.go */*.go cmd/falcon/*.go
+	go build -o bin/falcon cmd/falcon/*
+
+bin/handoff: git.go *.go specs/*.go handoff/*.go cmd/handoff/*.go
+	go build -o bin/handoff cmd/handoff/*
 
 git.go:
 	/bin/sh scripts/git.sh
+
+clean:
+	rm -rf bin/* git.go
+
+run:
+	./bin/storage -config ./etc/storage.conf -logtostderr -v 3

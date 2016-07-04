@@ -9,6 +9,6 @@
 *.temp
 
 var/
-build/
+bin/
 tmp
 git.go
