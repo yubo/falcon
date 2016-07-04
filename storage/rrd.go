@@ -1,9 +1,7 @@
 /*
- * Copyright 2016 Xiaomi Corporation. All rights reserved.
+ * Copyright 2016 yubo. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
- *
- * Authors:    Yu Bo <yubo@xiaomi.com>
  */
 package storage
 
@@ -11,7 +9,6 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
-	"log"
 	"math"
 	"net"
 	"net/rpc"
@@ -20,6 +17,9 @@ import (
 	"sync/atomic"
 	"time"
 
+	"stathat.com/c/consistent"
+
+	"github.com/golang/glog"
 	"github.com/yubo/rrdlite"
 
 	"github.com/yubo/falcon/specs"
@@ -32,6 +32,15 @@ const (
 	RRA20PointCnt  = 504 // 20m一个点存7d
 	RRA180PointCnt = 766 // 3h一个点存3month
 	RRA720PointCnt = 730 // 12h一个点存1year
+)
+
+var (
+	rrdConfig            StorageOpts
+	rrdSyncEvent         *specs.RoutineEvent
+	rrdIoTaskCh          chan *ioTask
+	rrdNetTaskCh         map[string]chan *netTask
+	rrdMigrateClients    map[string][]*rpc.Client
+	rrdMigrateConsistent *consistent.Consistent
 )
 
 func rrdCreate(filename string, e *cacheEntry) error {
@@ -92,12 +101,30 @@ func rrdUpdate(filename string, dsType string, ds []*specs.RRDData) error {
 	return u.Update()
 }
 
+// WriteFile writes data to a file named by filename.
+// file must not exist
+func ioFileWrite(filename string, data []byte, perm os.FileMode) error {
+	f, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_EXCL, perm)
+	if err != nil {
+		return err
+	}
+	n, err := f.Write(data)
+	if err == nil && n < len(data) {
+		err = io.ErrShortWrite
+	}
+	if err1 := f.Close(); err == nil {
+		err = err1
+	}
+	return err
+}
+
 // flush to disk from cacheEntry
-func rrdCommit(e *cacheEntry) (err error) {
+// call by ioWorker
+func ioRrdUpdate(e *cacheEntry) (err error) {
 	if e == nil || len(e.cache) == 0 {
 		return errors.New("empty items")
 	}
-	filename := e.filename(config().RrdStorage)
+	filename := e.filename(rrdConfig.RrdStorage)
 	ds := e.dequeueAll()
 
 	err = rrdUpdate(filename, e.dsType, ds)
@@ -121,57 +148,9 @@ func rrdCommit(e *cacheEntry) (err error) {
 	return err
 }
 
-func taskReadFile(filename string) ([]byte, error) {
-	done := make(chan error, 1)
-	task := &io_task_t{
-		method: IO_TASK_M_READ,
-		args:   &readfile_t{filename: filename},
-		done:   done,
-	}
-
-	io_task_chan <- task
-	err := <-done
-	return task.args.(*readfile_t).data, err
-}
-
-/*
- * use  (*cacheEntry)->commit()
- *
-func taskFlushFile(filename string, items []*specs.GraphItem) error {
-	done := make(chan error, 1)
-	io_task_chan <- &io_task_t{
-		method: IO_TASK_M_COMMIT,
-		args: &flushfile_t{
-			filename: filename,
-			items:    items,
-		},
-		done: done,
-	}
-	stat_inc(ST_DISK_COUNTER, 1)
-	return <-done
-}
-*/
-
-// get local data
-func taskCheckout(filename string, cf string, start, end int64, step int) ([]*specs.RRDData, error) {
-	done := make(chan error, 1)
-	task := &io_task_t{
-		method: IO_TASK_M_CHECKOUT,
-		args: &rrdCheckout_t{
-			filename: filename,
-			cf:       cf,
-			start:    start,
-			end:      end,
-			step:     step,
-		},
-		done: done,
-	}
-	io_task_chan <- task
-	err := <-done
-	return task.args.(*rrdCheckout_t).data, err
-}
-
-func fetch(filename string, cf string, start, end int64, step int) ([]*specs.RRDData, error) {
+// call by  ioWorker
+func ioRrdFetch(filename string, cf string, start, end int64,
+	step int) ([]*specs.RRDData, error) {
 	start_t := time.Unix(start, 0)
 	end_t := time.Unix(end, 0)
 	step_t := time.Duration(step) * time.Second
@@ -202,72 +181,10 @@ func fetch(filename string, cf string, start, end int64, step int) ([]*specs.RRD
 	return ret, nil
 }
 
-/*
-func CommitByKey(key string) {
-
-	md5, dsType, step, err := SplitRrdCacheKey(key)
-	if err != nil {
-		return
-	}
-	filename := RrdFileName(Config().RRD.Storage, md5, dsType, step)
-
-	items := store.GraphItems.PopAll(key)
-	if len(items) == 0 {
-		return
-	}
-	FlushFile(filename, items)
-}
-
-func PullByKey(key string) {
-	done := make(chan error)
-
-	item := store.GraphItems.First(key)
-	if item == nil {
-		return
-	}
-	node, err := Consistent.Get(item.PrimaryKey())
-	if err != nil {
-		return
-	}
-	Net_task_ch[node] <- &Net_task_t{
-		Method: NET_TASK_M_FETCH,
-		Key:    key,
-		Done:   done,
-	}
-	// net_task slow, shouldn't block syncDisk() or FlushAll()
-	// warning: recev sigout when migrating, maybe lost memory data
-	go func() {
-		err := <-done
-		if err != nil {
-			log.Printf("get %s from remote err[%s]\n", key, err)
-			return
-		}
-		stat_inc(ST_NET_COUNTER, 1)
-		//todo: flushfile after getfile? not yet
-	}()
-}
-*/
-
-// WriteFile writes data to a file named by filename.
-// file must not exist
-func _writeFile(filename string, data []byte, perm os.FileMode) error {
-	f, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_EXCL, perm)
-	if err != nil {
-		return err
-	}
-	n, err := f.Write(data)
-	if err == nil && n < len(data) {
-		err = io.ErrShortWrite
-	}
-	if err1 := f.Close(); err == nil {
-		err = err1
-	}
-	return err
-}
-
 /* migrate */
-func dial(address string, timeout time.Duration) (*rpc.Client, error) {
-	d := net.Dialer{Timeout: timeout}
+func dial(address string, timeout int) (*rpc.Client, error) {
+	d := net.Dialer{Timeout: time.Millisecond *
+		time.Duration(timeout)}
 	conn, err := d.Dial("tcp", address)
 	if err != nil {
 		return nil, err
@@ -281,185 +198,60 @@ func dial(address string, timeout time.Duration) (*rpc.Client, error) {
 	return rpc.NewClient(conn), err
 }
 
-func taskWorker(idx int, ch chan *Net_task_t, client **rpc.Client, addr string) {
-	var err error
-	for {
-		select {
-		case task := <-ch:
-			if task.Method == NET_TASK_M_SEND {
-				if err = send_data(client, task.e, addr); err != nil {
-					stat_inc(ST_SEND_S_ERR, 1)
-				} else {
-					stat_inc(ST_SEND_S_SUCCESS, 1)
-				}
-			} else if task.Method == NET_TASK_M_QUERY {
-				if err = query_data(client, addr, task.Args, task.Reply); err != nil {
-					stat_inc(ST_QUERY_S_ERR, 1)
-				} else {
-					stat_inc(ST_QUERY_S_SUCCESS, 1)
-				}
-			} else if task.Method == NET_TASK_M_FETCH {
-				if err = taskFetchRrd(client, task.e, addr); err != nil {
-					if os.IsNotExist(err) {
-						//文件不存在时，直接将缓存数据刷入本地
-						stat_inc(ST_FETCH_S_ISNOTEXIST, 1)
-						//GraphItems.SetFlag(task.Key, 0)
-						atomic.StoreUint32(&task.e.flag, 0)
-						//CommitByKey(task.Key)
-						task.e.commit()
-					} else {
-						//warning:其他异常情况，缓存数据会堆积
-						stat_inc(ST_FETCH_S_ERR, 1)
-					}
-				} else {
-					stat_inc(ST_FETCH_S_SUCCESS, 1)
-				}
-			} else {
-				err = errors.New("error net task method")
-			}
-			if task.Done != nil {
-				task.Done <- err
-			}
-		}
-	}
-}
-
 // TODO addr to node
 func reconnection(client **rpc.Client, addr string) {
 	var err error
 
-	stat_inc(ST_CONN_S_ERR, 1)
+	statInc(ST_CONN_ERR, 1)
 	if *client != nil {
 		(*client).Close()
 	}
 
-	*client, err = dial(addr, time.Second)
-	stat_inc(ST_CONN_S_DIAL, 1)
+	*client, err = dial(addr, rrdConfig.Migrate.ConnTimeout)
+	statInc(ST_CONN_DIAL, 1)
 
 	for err != nil {
 		//danger!! block routine
 		time.Sleep(time.Millisecond * 500)
-		*client, err = dial(addr, time.Second)
-		stat_inc(ST_CONN_S_DIAL, 1)
+		*client, err = dial(addr, rrdConfig.Migrate.ConnTimeout)
+		statInc(ST_CONN_DIAL, 1)
 	}
 }
 
-func query_data(client **rpc.Client, addr string,
-	args interface{}, resp interface{}) error {
-	var (
-		err error
-		i   int
-	)
-
-	for i = 0; i < 3; i++ {
-		err = rpc_call(*client, "Graph.Query", args, resp,
-			time.Duration(config().CallTimeout)*time.Millisecond)
-
-		if err == nil {
-			break
-		}
-		if err == rpc.ErrShutdown {
-			reconnection(client, addr)
-		}
+func taskFileRead(filename string) ([]byte, error) {
+	done := make(chan error, 1)
+	task := &ioTask{
+		method: IO_TASK_M_FILE_READ,
+		args:   &specs.File{Filename: filename},
+		done:   done,
 	}
-	return err
+
+	rrdIoTaskCh <- task
+	err := <-done
+	return task.args.(*specs.File).Data, err
 }
 
-func send_data(client **rpc.Client, e *cacheEntry, addr string) error {
-	var (
-		err  error
-		flag uint32
-		resp *specs.SimpleRpcResponse
-		i    int
-	)
-
-	//remote
-	cfg := config()
-	flag = atomic.LoadUint32(&e.flag)
-
-	e.Lock()
-	defer e.Unlock()
-
-	items := e._getItems()
-	items_size := len(items)
-	if items_size == 0 {
-		goto out
+// get local data
+func taskRrdFetch(filename string, cf string, start, end int64,
+	step int) ([]*specs.RRDData, error) {
+	done := make(chan error, 1)
+	task := &ioTask{
+		method: IO_TASK_M_RRD_FETCH,
+		args: &rrdCheckout{
+			filename: filename,
+			cf:       cf,
+			start:    start,
+			end:      end,
+			step:     step,
+		},
+		done: done,
 	}
-	resp = &specs.SimpleRpcResponse{}
-
-	for i = 0; i < 3; i++ {
-		err = rpc_call(*client, "Graph.Send", items, resp,
-			time.Duration(cfg.CallTimeout)*time.Millisecond)
-
-		if err == nil {
-			e._dequeueAll()
-			goto out
-		}
-		if err == rpc.ErrShutdown {
-			reconnection(client, addr)
-		}
-	}
-out:
-	flag &= ^GRAPH_F_SENDING
-	atomic.StoreUint32(&e.flag, flag)
-	return err
-
+	rrdIoTaskCh <- task
+	err := <-done
+	return task.args.(*rrdCheckout).data, err
 }
 
-/*
- * get remote data to local disk
- */
-
-func taskFetchRrd(client **rpc.Client, e *cacheEntry, addr string) error {
-	var (
-		err     error
-		flag    uint32
-		i       int
-		rrdfile specs.File
-	)
-
-	cfg := config()
-
-	flag = atomic.LoadUint32(&e.flag)
-
-	//GraphItems.SetFlag(key, flag|GRAPH_F_FETCHING)
-	atomic.StoreUint32(&e.flag, flag|GRAPH_F_FETCHING)
-
-	for i = 0; i < 3; i++ {
-		err = rpc_call(*client, "Graph.GetRrd", e.key, &rrdfile,
-			time.Duration(cfg.CallTimeout)*time.Millisecond)
-
-		if err == nil {
-			done := make(chan error, 1)
-			io_task_chan <- &io_task_t{
-				method: IO_TASK_M_WRITE,
-				args: &specs.File{
-					Filename: e.filename(cfg.RrdStorage),
-					Body:     rrdfile.Body[:],
-				},
-				done: done,
-			}
-			if err = <-done; err != nil {
-				goto out
-			} else {
-				flag &= ^GRAPH_F_MISS
-				goto out
-			}
-		} else {
-			log.Println(err)
-		}
-		if err == rpc.ErrShutdown {
-			reconnection(client, addr)
-		}
-	}
-out:
-	flag &= ^GRAPH_F_FETCHING
-	//GraphItems.SetFlag(key, flag)
-	atomic.StoreUint32(&e.flag, flag)
-	return err
-}
-
-func rpc_call(client *rpc.Client, method string, args interface{},
+func netRpcCall(client *rpc.Client, method string, args interface{},
 	reply interface{}, timeout time.Duration) error {
 	done := make(chan *rpc.Call, 1)
 	client.Go(method, args, reply, done)
@@ -475,8 +267,198 @@ func rpc_call(client *rpc.Client, method string, args interface{},
 	}
 }
 
-/* called by  syncDiskWorker per FLUSH_DISK_STEP */
-func commitCaches(force bool) {
+/*
+ * get remote data to local disk
+ */
+func netRrdFetch(client **rpc.Client, e *cacheEntry, addr string) error {
+	var (
+		err     error
+		flag    uint32
+		i       int
+		rrdfile specs.File
+	)
+
+	flag = atomic.LoadUint32(&e.flag)
+
+	atomic.StoreUint32(&e.flag, flag|RRD_F_FETCHING)
+
+	for i = 0; i < CONN_RETRY; i++ {
+		err = netRpcCall(*client, "Storage.GetRrd", e.key, &rrdfile,
+			time.Duration(rrdConfig.Migrate.CallTimeout)*time.Millisecond)
+
+		if err == nil {
+			done := make(chan error, 1)
+			rrdIoTaskCh <- &ioTask{
+				method: IO_TASK_M_FILE_WRITE,
+				args: &specs.File{
+					Filename: e.filename(rrdConfig.RrdStorage),
+					Data:     rrdfile.Data[:],
+				},
+				done: done,
+			}
+			if err = <-done; err != nil {
+				goto out
+			} else {
+				flag &= ^RRD_F_MISS
+				goto out
+			}
+		} else {
+			glog.Warning(err)
+		}
+		if err == rpc.ErrShutdown {
+			reconnection(client, addr)
+		}
+	}
+out:
+	flag &= ^RRD_F_FETCHING
+	atomic.StoreUint32(&e.flag, flag)
+	return err
+}
+
+/* push cacheEntry data
+ * by
+ * call remote storage.send  */
+func netSendData(client **rpc.Client, e *cacheEntry, addr string) error {
+	var (
+		err  error
+		flag uint32
+		resp *specs.RpcResp
+		i    int
+	)
+
+	//remote
+	flag = atomic.LoadUint32(&e.flag)
+
+	e.Lock()
+	defer e.Unlock()
+
+	items := e._getItems()
+	items_size := len(items)
+	if items_size == 0 {
+		goto out
+	}
+	resp = &specs.RpcResp{}
+
+	for i = 0; i < CONN_RETRY; i++ {
+		err = netRpcCall(*client, "Storage.Send", items, resp,
+			time.Duration(rrdConfig.Migrate.CallTimeout)*time.Millisecond)
+
+		if err == nil {
+			e._dequeueAll()
+			goto out
+		}
+		if err == rpc.ErrShutdown {
+			reconnection(client, addr)
+		}
+	}
+out:
+	flag &= ^RRd_F_SENDING
+	atomic.StoreUint32(&e.flag, flag)
+	return err
+
+}
+
+// called by networker
+func netQueryData(client **rpc.Client, addr string,
+	args interface{}, resp interface{}) error {
+	var (
+		err error
+		i   int
+	)
+
+	for i = 0; i < CONN_RETRY; i++ {
+		err = netRpcCall(*client, "Storage.Query", args, resp,
+			time.Duration(rrdConfig.Migrate.CallTimeout)*time.Millisecond)
+
+		if err == nil {
+			break
+		}
+		if err == rpc.ErrShutdown {
+			reconnection(client, addr)
+		}
+	}
+	return err
+}
+
+func netWorker(idx int, ch chan *netTask, client **rpc.Client, addr string) {
+	var err error
+	for {
+		select {
+		case task := <-ch:
+			if task.Method == NET_TASK_M_SEND {
+				if err = netSendData(client, task.e, addr); err != nil {
+					statInc(ST_SEND_ERR, 1)
+				} else {
+					statInc(ST_SEND_SUCCESS, 1)
+				}
+			} else if task.Method == NET_TASK_M_QUERY {
+				if err = netQueryData(client, addr, task.Args,
+					task.Reply); err != nil {
+					statInc(ST_QUERY_ERR, 1)
+				} else {
+					statInc(ST_QUERY_SUCCESS, 1)
+				}
+			} else if task.Method == NET_TASK_M_FETCH {
+				if err = netRrdFetch(client, task.e, addr); err != nil {
+					if os.IsNotExist(err) {
+						//文件不存在时，直接将缓存数据刷入本地
+						statInc(ST_FETCH_ISNOTEXIST, 1)
+						atomic.StoreUint32(&task.e.flag, 0)
+						task.e.commit()
+					} else {
+						//warning:其他异常情况，缓存数据会堆积
+						statInc(ST_FETCH_ERR, 1)
+					}
+				} else {
+					statInc(ST_FETCH_SUCCESS, 1)
+				}
+			} else {
+				err = errors.New("error net task method")
+			}
+			if task.Done != nil {
+				task.Done <- err
+			}
+		}
+	}
+}
+
+func ioWorker() {
+	var err error
+	for {
+		select {
+		case task := <-rrdIoTaskCh:
+			if task.method == IO_TASK_M_FILE_READ {
+				if args, ok := task.args.(*specs.File); ok {
+					args.Data, err = ioutil.ReadFile(args.Filename)
+					task.done <- err
+				}
+			} else if task.method == IO_TASK_M_FILE_WRITE {
+				//filename must not exist
+				if args, ok := task.args.(*specs.File); ok {
+					_, err := os.Stat(path.Dir(args.Filename))
+					if os.IsNotExist(err) {
+						task.done <- err
+					}
+					task.done <- ioFileWrite(args.Filename,
+						args.Data, 0644)
+				}
+			} else if task.method == IO_TASK_M_RRD_UPDATE {
+				if args, ok := task.args.(*cacheEntry); ok {
+					task.done <- ioRrdUpdate(args)
+				}
+			} else if task.method == IO_TASK_M_RRD_FETCH {
+				if args, ok := task.args.(*rrdCheckout); ok {
+					args.data, err = ioRrdFetch(args.filename,
+						args.cf, args.start, args.end, args.step)
+					task.done <- err
+				}
+			}
+		}
+	}
+}
+
+/* called by  commitCacheWorker per FLUSH_DISK_STEP */
+func commitCache(migrate bool) {
 	expired := time.Now().Unix() - CACHE_TIME
 	nloop := len(cache.hash) / (CACHE_TIME / FLUSH_DISK_STEP)
 	n := 0
@@ -486,14 +468,22 @@ func commitCaches(force bool) {
 		if e == nil {
 			return
 		}
-		n++
 
-		cache.enqueue_data(e)
+		if atomic.LoadUint32(&appStatus) != specs.APP_STATUS_EXIT {
+			cache.enqueue_data(e)
+		} else {
+			if n&0x04ff == 0 {
+				glog.Infof("%d", n)
+			}
+		}
+
+		n++
+		glog.V(3).Info("%d", n)
 
 		flag := atomic.LoadUint32(&e.flag)
 
 		//write err data to local filename
-		if force == false && config().Migrate.Enable && flag&GRAPH_F_MISS != 0 {
+		if migrate && flag&RRD_F_MISS != 0 {
 			//PullByKey(key)
 			e.fetch()
 		}
@@ -501,90 +491,73 @@ func commitCaches(force bool) {
 		commitTs := e.commitTs
 		e.commit()
 
-		if !force && commitTs > expired && n > nloop {
+		if !migrate && commitTs > expired && n > nloop {
 			return
 		}
 	}
 }
 
-func syncDiskWorker() {
-	time.Sleep(time.Second * 300)
-	ticker := time.NewTicker(time.Millisecond * FLUSH_DISK_STEP).C
+func commitCacheWorker() {
+	var migrate, init bool
+
+	ticker := time.NewTicker(time.Second * FIRST_FLUSH_DISK).C
+
+	if rrdConfig.Migrate.Enable {
+		migrate = true
+	}
 
 	for {
 		select {
 		case <-ticker:
-			commitCaches(false)
-		case done := <-sync_exit:
-			log.Println("cron recv sigout and exit...")
-			done <- nil
-			return
-		}
-	}
-}
-
-func ioWorker() {
-	var err error
-	for {
-		select {
-		case task := <-io_task_chan:
-			if task.method == IO_TASK_M_READ {
-				if args, ok := task.args.(*readfile_t); ok {
-					args.data, err = ioutil.ReadFile(args.filename)
-					task.done <- err
-				}
-			} else if task.method == IO_TASK_M_WRITE {
-				//filename must not exist
-				if args, ok := task.args.(*specs.File); ok {
-					_, err := os.Stat(path.Dir(args.Filename))
-					if os.IsNotExist(err) {
-						task.done <- err
-					}
-					task.done <- _writeFile(args.Filename, args.Body, 0644)
-				}
-			} else if task.method == IO_TASK_M_COMMIT {
-				if args, ok := task.args.(*cacheEntry); ok {
-					task.done <- rrdCommit(args)
-				}
-			} else if task.method == IO_TASK_M_CHECKOUT {
-				if args, ok := task.args.(*rrdCheckout_t); ok {
-					args.data, err = fetch(args.filename, args.cf, args.start, args.end, args.step)
-					task.done <- err
-				}
+			if !init {
+				ticker = time.NewTicker(time.Second *
+					FLUSH_DISK_STEP).C
+				init = true
+			}
+			commitCache(migrate)
+		case e := <-rrdSyncEvent.E:
+			if e.Method == specs.ROUTINE_EVENT_M_EXIT {
+				e.Done <- nil
+				return
 			}
 		}
 	}
 }
 
-func rrdStart() {
-	cfg := config()
-	_, err := os.Stat(cfg.RrdStorage)
+func rrdStart(config StorageOpts) {
+	_, err := os.Stat(config.RrdStorage)
 	if os.IsNotExist(err) {
-		log.Printf("rrdtool.Start error, bad data dir %s %v\n",
-			cfg.RrdStorage, err)
-		os.Exit(2)
+		glog.Fatalf("rrdtool.Start error, bad data dir %s %v\n",
+			config.RrdStorage, err)
 	}
+	rrdConfig = config
 
-	if cfg.Migrate.Enable {
-		Consistent.NumberOfReplicas = cfg.Migrate.Replicas
+	if rrdConfig.Migrate.Enable {
+		rrdMigrateConsistent.NumberOfReplicas = rrdConfig.Migrate.Replicas
 
-		for node, addr := range cfg.Migrate.Cluster {
-			Consistent.Add(node)
-			Net_task_ch[node] = make(chan *Net_task_t, 16)
-			clients[node] = make([]*rpc.Client, cfg.Migrate.Concurrency)
+		for node, addr := range rrdConfig.Migrate.Upstream {
+			rrdMigrateConsistent.Add(node)
+			rrdNetTaskCh[node] = make(chan *netTask, 16)
+			rrdMigrateClients[node] = make([]*rpc.Client,
+				rrdConfig.Migrate.Concurrency)
 
-			for i := 0; i < cfg.Migrate.Concurrency; i++ {
-				if clients[node][i], err = dial(addr, time.Second); err != nil {
-					log.Fatalf("node:%s addr:%s err:%s\n", node, addr, err)
+			for i := 0; i < rrdConfig.Migrate.Concurrency; i++ {
+				rrdMigrateClients[node][i], err = dial(addr,
+					rrdConfig.Migrate.ConnTimeout)
+				if err != nil {
+					glog.Fatalf("node:%s addr:%s err:%s\n",
+						node, addr, err)
 				}
-				go taskWorker(i, Net_task_ch[node], &clients[node][i], addr)
+				go netWorker(i, rrdNetTaskCh[node],
+					&rrdMigrateClients[node][i], addr)
 			}
 		}
 	}
 
-	registerExitChans(sync_exit)
-	go syncDiskWorker()
 	go ioWorker()
 
-	log.Println("rrdStart ok")
+	registerEventChan(rrdSyncEvent)
+	go commitCacheWorker()
+
+	glog.Info("rrdStart ok")
 }

@@ -1,32 +1,24 @@
 /*
- * Copyright 2016 Xiaomi Corporation. All rights reserved.
+ * Copyright 2016 yubo. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
- *
- * Authors:    Yu Bo <yubo@xiaomi.com>
  */
 package storage
 
 import (
-	"errors"
+	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/yubo/falcon/specs"
 )
 
-var (
-	ErrUnsupported = errors.New("unsupported")
-	ErrExist       = errors.New("entry exists")
-	ErrNoent       = errors.New("entry not exists")
-	ErrParam       = errors.New("param error")
-)
-
 const (
 	_ = iota
-	IO_TASK_M_READ
-	IO_TASK_M_WRITE
-	IO_TASK_M_COMMIT
-	IO_TASK_M_CHECKOUT
+	IO_TASK_M_FILE_READ
+	IO_TASK_M_FILE_WRITE
+	IO_TASK_M_RRD_UPDATE
+	IO_TASK_M_RRD_FETCH
 )
 
 const (
@@ -37,10 +29,10 @@ const (
 )
 
 const (
-	GRAPH_F_MISS uint32 = 1 << iota
-	GRAPH_F_ERR
-	GRAPH_F_SENDING
-	GRAPH_F_FETCHING
+	RRD_F_MISS uint32 = 1 << iota
+	RRD_F_ERR
+	RRd_F_SENDING
+	RRD_F_FETCHING
 )
 
 /* cache queue */
@@ -54,18 +46,18 @@ type cacheq struct {
 type cacheEntry struct {
 	sync.RWMutex
 	flag      uint32
-	idx_prev  *cacheEntry
-	idx_next  *cacheEntry
-	data_prev *cacheEntry
-	data_next *cacheEntry
+	prev      *cacheEntry
+	next      *cacheEntry
+	idxPrev   *cacheEntry
+	idxNext   *cacheEntry
 	key       string
 	idxTs     int64
 	commitTs  int64
 	createTs  int64
-	putTs     int64
+	lastTs    int64
 	endpoint  string
 	metric    string
-	tags      map[string]string
+	tags      string
 	dsType    string
 	step      int
 	heartbeat int
@@ -75,34 +67,8 @@ type cacheEntry struct {
 	history   []*specs.RRDData
 }
 
-/* config */
-type Options struct {
-	Debug       bool       `hcl:"debug"`
-	Http        bool       `hcl:"http"`
-	HttpAddr    string     `hcl:"http_addr"`
-	Rpc         bool       `hcl:"rpc"`
-	RpcAddr     string     `hcl:"rpc_addr"`
-	RrdStorage  string     `hcl:"rrd_storage"`
-	Dsn         string     `hcl:"dsn"`
-	DbMaxIdle   int        `hcl:"db_max_idle"`
-	CallTimeout int        `hcl:"call_timeout"`
-	Migrate     MigrateOpt `hcl:"migrate"`
-}
-
-/* http */
-type Dto struct {
-	Msg  string      `json:"msg"`
-	Data interface{} `json:"data"`
-}
-
 /* rrdtool */
-type io_task_t struct {
-	method int
-	args   interface{}
-	done   chan error
-}
-
-type rrdCheckout_t struct {
+type rrdCheckout struct {
 	filename string
 	cf       string
 	start    int64
@@ -111,17 +77,13 @@ type rrdCheckout_t struct {
 	data     []*specs.RRDData
 }
 
-type flushfile_t struct {
-	filename string
-	items    []*specs.GraphItem
+type ioTask struct {
+	method int
+	args   interface{}
+	done   chan error
 }
 
-type readfile_t struct {
-	filename string
-	data     []byte
-}
-
-type Net_task_t struct {
+type netTask struct {
 	Method int
 	e      *cacheEntry
 	Done   chan error
@@ -129,9 +91,76 @@ type Net_task_t struct {
 	Reply  interface{}
 }
 
-type MigrateOpt struct {
+type MigrateOpts struct {
 	Enable      bool              `hcl:"enable"`
 	Concurrency int               `hcl:"concurrency"`
 	Replicas    int               `hcl:"replicas"`
-	Cluster     map[string]string `hcl:"cluster"`
+	CallTimeout int               `hcl:"call_timeout"`
+	ConnTimeout int               `hcl:"conn_timeout"`
+	Upstream    map[string]string `hcl:"upstream"`
+}
+
+func (o MigrateOpts) String() string {
+	indent := strings.Repeat(" ", specs.IndentSize)
+
+	ret := fmt.Sprintf(`enable      %v
+concurrency %d
+replicas    %d
+calltimeout %d
+conntimeout %d
+upstream (
+`, o.Enable, o.Concurrency, o.Replicas,
+		o.CallTimeout, o.ConnTimeout)
+	for k, v := range o.Upstream {
+		ret += fmt.Sprintf("%s%10s = %s\n", indent, k, v)
+	}
+	ret += ")"
+	return ret
+}
+
+/* config */
+type StorageOpts struct {
+	Debug           bool        `hcl:"debug"`
+	Http            bool        `hcl:"http"`
+	HttpAddr        string      `hcl:"http_addr"`
+	Rpc             bool        `hcl:"rpc"`
+	RpcAddr         string      `hcl:"rpc_addr"`
+	RrdStorage      string      `hcl:"rrd_storage"`
+	Idx             bool        `hcl:"idx"`
+	IdxInterval     int         `hcl:"idx_interval"`
+	IdxFullInterval int         `hcl:"idx_full_interval"`
+	Dsn             string      `hcl:"dsn"`
+	DbMaxIdle       int         `hcl:"db_max_idle"`
+	Migrate         MigrateOpts `hcl:"migrate"`
+}
+
+func IndentLines(i int, lines string) (ret string) {
+	ls := strings.Split(lines, "\n")
+	indent := strings.Repeat(" ", i*specs.IndentSize)
+	for _, l := range ls {
+		ret += fmt.Sprintf("%s%s\n", indent, l)
+	}
+	return strings.TrimRight(ret, "\n")
+}
+
+func (o *StorageOpts) String() string {
+	return strings.TrimSpace(fmt.Sprintf(`
+debug             %v
+http              %v
+httpaddr          %s
+rpc               %v
+rpcaddr           %s
+rrdstorage        %s
+idx               %v
+idx_interval      %d
+idx_full_interval %d
+dsn               %s
+dbmaxidle         %d
+migrage (
+%s
+)`,
+		o.Debug, o.Http, o.HttpAddr, o.Rpc,
+		o.RpcAddr, o.RrdStorage, o.Idx,
+		o.IdxInterval, o.IdxFullInterval, o.Dsn,
+		o.DbMaxIdle, IndentLines(1, o.Migrate.String())))
 }
