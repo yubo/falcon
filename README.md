@@ -14,8 +14,12 @@ make
 - 简化配置
 
 ## 模块对应关系
-- storage - graph
-- handoff - transfer
+
+| lite-falcon |   falcon   |
+|-------------|------------|
+|   storage   |   graph    |
+|   handoff   |   transfer |
+|   agent     |   agent    |
 
 ## TODO
 - test/benchmark

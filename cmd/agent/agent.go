@@ -11,8 +11,9 @@ import (
 	"os"
 
 	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/agent"
+	_ "github.com/yubo/falcon/agent/plugin"
 	"github.com/yubo/falcon/specs"
-	"github.com/yubo/falcon/storage"
 	"github.com/yubo/gotool/flags"
 )
 
@@ -48,7 +49,7 @@ func main() {
 		cmd.Action(&opts)
 	} else {
 		opts.Args = flag.Args()
-		storage.Handle(&opts)
+		agent.Handle(&opts)
 	}
 
 }

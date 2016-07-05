@@ -54,11 +54,11 @@ type cacheEntry struct {
 	idxTs     int64
 	commitTs  int64
 	createTs  int64
-	lastTs    int64
-	endpoint  string
-	metric    string
+	ts        int64
+	host      string
+	k         string
 	tags      string
-	dsType    string
+	typ       string
 	step      int
 	heartbeat int
 	min       string
@@ -134,15 +134,6 @@ type StorageOpts struct {
 	Migrate         MigrateOpts `hcl:"migrate"`
 }
 
-func IndentLines(i int, lines string) (ret string) {
-	ls := strings.Split(lines, "\n")
-	indent := strings.Repeat(" ", i*specs.IndentSize)
-	for _, l := range ls {
-		ret += fmt.Sprintf("%s%s\n", indent, l)
-	}
-	return strings.TrimRight(ret, "\n")
-}
-
 func (o *StorageOpts) String() string {
 	return strings.TrimSpace(fmt.Sprintf(`
 debug             %v
@@ -162,5 +153,5 @@ migrage (
 		o.Debug, o.Http, o.HttpAddr, o.Rpc,
 		o.RpcAddr, o.RrdStorage, o.Idx,
 		o.IdxInterval, o.IdxFullInterval, o.Dsn,
-		o.DbMaxIdle, IndentLines(1, o.Migrate.String())))
+		o.DbMaxIdle, specs.IndentLines(1, o.Migrate.String())))
 }

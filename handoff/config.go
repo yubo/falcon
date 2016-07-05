@@ -26,11 +26,11 @@ var (
 		RpcAddr:     "0.0.0.0:8433",
 		Replicas:    500,
 		Concurrency: 2,
-		Backends:    make(map[string]BackendOpt),
+		Backends:    make(map[string]BackendOpts),
 	}
 )
 
-type BackendOpt struct {
+type BackendOpts struct {
 	Enable      bool              `hcl:"enable"`
 	Type        string            `hcl:"type"`
 	Sched       string            `hcl:"sched"`
@@ -41,14 +41,14 @@ type BackendOpt struct {
 }
 
 type HandoffOpts struct {
-	Debug       bool                  `hcl:"debug"`
-	Http        bool                  `hcl:"http"`
-	HttpAddr    string                `hcl:"http_addr"`
-	Rpc         bool                  `hcl:"rpc"`
-	RpcAddr     string                `hcl:"rpc_addr"`
-	Replicas    int                   `hcl:"replicas"`
-	Concurrency int                   `hcl:"concurrency"`
-	Backends    map[string]BackendOpt `hcl:"backends"`
+	Debug       bool                   `hcl:"debug"`
+	Http        bool                   `hcl:"http"`
+	HttpAddr    string                 `hcl:"http_addr"`
+	Rpc         bool                   `hcl:"rpc"`
+	RpcAddr     string                 `hcl:"rpc_addr"`
+	Replicas    int                    `hcl:"replicas"`
+	Concurrency int                    `hcl:"concurrency"`
+	Backends    map[string]BackendOpts `hcl:"backends"`
 }
 
 func applyConfigFile(opts *HandoffOpts, filePath string) error {

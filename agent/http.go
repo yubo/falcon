@@ -3,9 +3,10 @@
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
-package handoff
+package agent
 
 import (
+	"encoding/json"
 	"net"
 	"net/http"
 	"time"
@@ -16,7 +17,7 @@ import (
 
 var (
 	httpEvent  *specs.RoutineEvent
-	httpConfig HandoffOpts
+	httpConfig AgentOpts
 )
 
 type tcpKeepAliveListener struct {
@@ -34,9 +35,26 @@ func (ln tcpKeepAliveListener) Accept() (c net.Conn, err error) {
 }
 
 func httpRoutes() {
+	http.HandleFunc("/push", func(w http.ResponseWriter, req *http.Request) {
+		if req.ContentLength == 0 {
+			http.Error(w, "body is blank", http.StatusBadRequest)
+			return
+		}
+
+		decoder := json.NewDecoder(req.Body)
+		var meta []*specs.MetaData
+		err := decoder.Decode(&meta)
+		if err != nil {
+			http.Error(w, "connot decode body", http.StatusBadRequest)
+			return
+		}
+
+		appUpdateChan <- &meta
+		w.Write([]byte("success"))
+	})
 }
 
-func httpStart(config HandoffOpts) {
+func httpStart(config AgentOpts) {
 	if !config.Http {
 		glog.Info("http.Start warning, not enabled")
 		return

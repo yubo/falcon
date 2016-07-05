@@ -3,7 +3,7 @@
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
-package handoff
+package agent
 
 import (
 	"fmt"
@@ -11,10 +11,7 @@ import (
 )
 
 const (
-	ST_FETCH_SUCCESS = iota
-	ST_RPC_UPDATE
-	ST_RPC_UPDATE_CNT
-	ST_RPC_UPDATE_ERR
+	ST_SUCCESS = iota
 	ST_CONN_ERR
 	ST_CONN_DIAL
 	ST_PUT_SUCCESS
@@ -24,7 +21,11 @@ const (
 
 var (
 	statName []string = []string{
-		"FETCH_S_SUCCESS",
+		"SUCCESS",
+		"conn error",
+		"conn dail",
+		"put success",
+		"put err",
 	}
 )
 

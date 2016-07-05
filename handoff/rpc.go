@@ -1,3 +1,8 @@
+/*
+ * Copyright 2016 yubo. All rights reserved.
+ * Use of this source code is governed by a BSD-style
+ * license that can be found in the LICENSE file.
+ */
 package handoff
 
 import (
@@ -34,13 +39,13 @@ func (l *connList) remove(e *list.Element) net.Conn {
 	return l.list.Remove(e).(net.Conn)
 }
 
-type falcon int
+type Falcon int
 
-func (this *falcon) Ping(req specs.Null, resp *specs.RpcResp) error {
+func (this *Falcon) Ping(req specs.Null, resp *specs.RpcResp) error {
 	return nil
 }
 
-func (t *falcon) Update(args []*specs.MetaData,
+func (t *Falcon) Update(args []*specs.MetaData,
 	reply *specs.HandoffResp) error {
 	reply.Invalid = 0
 	now := time.Now().Unix()
@@ -89,6 +94,7 @@ func (t *falcon) Update(args []*specs.MetaData,
 	}
 
 	appUpdateChan <- &items
+	glog.V(3).Infof("recv %d", len(items))
 
 	reply.Message = "ok"
 	reply.Total = len(args)
@@ -167,7 +173,7 @@ func _rpcStop(config *HandoffOpts,
 func rpcStart(config HandoffOpts) {
 	var rpcListener *net.TCPListener
 
-	rpc.Register(new(falcon))
+	rpc.Register(new(Falcon))
 	registerEventChan(rpcEvent)
 	rpcConfig = config
 
@@ -178,6 +184,7 @@ func rpcStart(config HandoffOpts) {
 		case event := <-rpcEvent.E:
 			if event.Method == specs.ROUTINE_EVENT_M_EXIT {
 				_rpcStop(&rpcConfig, rpcListener)
+				event.Done <- nil
 
 				return
 			} else if event.Method == specs.ROUTINE_EVENT_M_RELOAD {

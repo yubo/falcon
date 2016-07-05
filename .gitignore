@@ -12,3 +12,4 @@ var/
 bin/
 tmp
 git.go
+*.sh

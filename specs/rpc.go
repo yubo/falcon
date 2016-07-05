@@ -1,3 +1,8 @@
+/*
+ * Copyright 2016 yubo. All rights reserved.
+ * Use of this source code is governed by a BSD-style
+ * license that can be found in the LICENSE file.
+ */
 package specs
 
 import (
@@ -50,21 +55,18 @@ func (t *MetaData) String() string {
 		t.Host, t.K, t.Ts, t.Step, t.V, t.Tags)
 }
 
-func (p *MetaData) Key() string {
-	if p.Tags == "" {
-		return fmt.Sprintf("%s/%s", p.Host, p.K)
-	}
-	return fmt.Sprintf("%s/%s/%s", p.Host, p.K, p.Tags)
+func (p *MetaData) Id() string {
+	return fmt.Sprintf("%s/%s/%s/%s/%d", p.Host, p.K, p.Tags, p.Type, p.Step)
 }
 
 func (p *MetaData) Rrd() (*RrdItem, error) {
 	e := &RrdItem{}
 
-	e.Endpoint = p.Host
-	e.Metric = p.K
+	e.Host = p.Host
+	e.K = p.K
 	e.Tags = p.Tags
-	e.Timestamp = p.Ts
-	e.Value = p.V
+	e.Ts = p.Ts
+	e.V = p.V
 	e.Step = int(p.Step)
 	if e.Step < MIN_STEP {
 		e.Step = MIN_STEP
@@ -72,22 +74,22 @@ func (p *MetaData) Rrd() (*RrdItem, error) {
 	e.Heartbeat = e.Step * 2
 
 	if p.Type == GAUGE {
-		e.DsType = p.Type
+		e.Type = p.Type
 		e.Min = "U"
 		e.Max = "U"
 	} else if p.Type == COUNTER {
-		e.DsType = DERIVE
+		e.Type = DERIVE
 		e.Min = "0"
 		e.Max = "U"
 	} else if p.Type == DERIVE {
-		e.DsType = DERIVE
+		e.Type = DERIVE
 		e.Min = "0"
 		e.Max = "U"
 	} else {
 		return e, fmt.Errorf("not_supported_counter_type")
 	}
 
-	e.Timestamp = e.Timestamp - e.Timestamp%int64(e.Step)
+	e.Ts = e.Ts - e.Ts%int64(e.Step)
 
 	return e, nil
 }
@@ -141,15 +143,15 @@ func (this *TsdbItem) TsdbString() (s string) {
 }
 
 /* handoff/storage */
-// DsType 即RRD中的Datasource的类型：GAUGE|COUNTER|DERIVE
+// Type: GAUGE|COUNTER|DERIVE
 type RrdItem struct {
-	Endpoint  string  `json:"endpoint"`
-	Metric    string  `json:"metric"`
-	Tags      string  `json:"tags"`
-	Value     float64 `json:"value"`
-	Timestamp int64   `json:"timestamp"`
-	DsType    string  `json:"dstype"`
+	Host      string  `json:"host"`
+	K         string  `json:"k"`
+	V         float64 `json:"v"`
+	Ts        int64   `json:"ts"`
 	Step      int     `json:"step"`
+	Type      string  `json:"type"`
+	Tags      string  `json:"tags"`
 	Heartbeat int     `json:"heartbeat"`
 	Min       string  `json:"min"`
 	Max       string  `json:"max"`
@@ -157,14 +159,14 @@ type RrdItem struct {
 
 func (this *RrdItem) String() string {
 	return fmt.Sprintf(
-		"<Endpoint:%s, Metric:%s, Tags:%v, Value:%v, TS:%d %v DsType:%s, Step:%d, Heartbeat:%d, Min:%s, Max:%s>",
-		this.Endpoint,
-		this.Metric,
+		"<Host:%s, Key:%s, Tags:%v, Value:%v, TS:%d %v Type:%s, Step:%d, Heartbeat:%d, Min:%s, Max:%s>",
+		this.Host,
+		this.K,
 		this.Tags,
-		this.Value,
-		this.Timestamp,
-		fmtTs(this.Timestamp),
-		this.DsType,
+		this.V,
+		this.Ts,
+		fmtTs(this.Ts),
+		this.Type,
 		this.Step,
 		this.Heartbeat,
 		this.Min,
@@ -177,18 +179,18 @@ func (p *RrdItem) Csum() string {
 }
 
 func (p *RrdItem) Id() string {
-	return fmt.Sprintf("%s/%s/%s/%s/%d", p.Endpoint, p.Metric, p.Tags, p.DsType, p.Step)
+	return fmt.Sprintf("%s/%s/%s/%s/%d", p.Host, p.K, p.Tags, p.Type, p.Step)
 }
 
 // ConsolFun 是RRD中的概念，比如：MIN|MAX|AVERAGE
 type RrdQuery struct {
 	Start     int64  `json:"start"`
 	End       int64  `json:"end"`
-	ConsolFun string `json:"consolFuc"`
-	Endpoint  string `json:"endpoint"`
-	Counter   string `json:"counter"`
-	DsType    string `json:"dstype"`
+	Host      string `json:"host"`
+	K         string `json:"k"`
+	Type      string `json:"type"`
 	Step      int    `json:"step"`
+	ConsolFun string `json:"consolFuc"`
 }
 
 func (p *RrdQuery) Csum() string {
@@ -196,15 +198,15 @@ func (p *RrdQuery) Csum() string {
 }
 
 func (p *RrdQuery) Id() string {
-	return fmt.Sprintf("%s/%s/%s/%d", p.Endpoint, p.Counter, p.DsType, p.Step)
+	return fmt.Sprintf("%s/%s/%s/%d", p.Host, p.K, p.Type, p.Step)
 }
 
 type RrdResp struct {
-	Endpoint string     `json:"endpoint"`
-	Counter  string     `json:"counter"`
-	DsType   string     `json:"dstype"`
-	Step     int        `json:"step"`
-	Values   []*RRDData `json:"Values"` //大写为了兼容已经再用这个api的用户
+	Host string     `json:"host"`
+	K    string     `json:"k"`
+	Type string     `json:"type"`
+	Step int        `json:"step"`
+	Vs   []*RRDData `json:"Vs"` //大写为了兼容已经再用这个api的用户
 }
 
 func (p *RrdResp) Csum() string {
@@ -212,7 +214,7 @@ func (p *RrdResp) Csum() string {
 }
 
 func (p *RrdResp) Id() string {
-	return fmt.Sprintf("%s/%s/%s/%d", p.Endpoint, p.Counter, p.DsType, p.Step)
+	return fmt.Sprintf("%s/%s/%s/%d", p.Host, p.K, p.Type, p.Step)
 }
 
 type RrdQueryCsum struct {
@@ -238,16 +240,16 @@ func (v JsonFloat) MarshalJSON() ([]byte, error) {
 }
 
 type RRDData struct {
-	Timestamp int64     `json:"timestamp"`
-	Value     JsonFloat `json:"value"`
+	Ts int64     `json:"ts"`
+	V  JsonFloat `json:"v"`
 }
 
 func (this *RRDData) String() string {
 	return fmt.Sprintf(
 		"<RRDData:Value:%v TS:%d %v>",
-		this.Value,
-		this.Timestamp,
-		fmtTs(this.Timestamp),
+		this.V,
+		this.Ts,
+		fmtTs(this.Ts),
 	)
 }
 
