@@ -20,7 +20,7 @@ import (
 )
 
 var (
-	rpcEvent    *specs.RoutineEvent
+	rpcEvent    chan specs.ProcEvent
 	rpcConnects connList
 	rpcConfig   StorageOpts
 )
@@ -309,18 +309,18 @@ func handleItems(items []*specs.RrdItem) {
 		return
 	}
 
-	count := len(items)
-	if count == 0 {
+	n := len(items)
+	if n == 0 {
 		return
 	}
 
-	for i := 0; i < count; i++ {
+	glog.V(3).Infof("recv %d", n)
+
+	for i := 0; i < n; i++ {
 		if items[i] == nil {
 			continue
 		}
 		key := items[i].Csum()
-
-		glog.V(3).Infof("recv %s", items[i])
 
 		statInc(ST_STORAGE_RPC_RECV_CNT, 1)
 		e = cache.get(key)
@@ -491,18 +491,18 @@ func _rpcStop(config *StorageOpts, listener *net.TCPListener) (err error) {
 	return nil
 }
 
-func rpcStart(config StorageOpts) {
+func rpcStart(config StorageOpts, p *specs.Process) {
 	var rpcListener *net.TCPListener
 
 	rpc.Register(new(Storage))
-	registerEventChan(rpcEvent)
+	p.RegisterEvent("rpc", rpcEvent)
 	rpcConfig = config
 
 	_rpcStart(&rpcConfig, &rpcListener)
 
 	go func() {
 		select {
-		case event := <-rpcEvent.E:
+		case event := <-rpcEvent:
 			if event.Method == specs.ROUTINE_EVENT_M_EXIT {
 				_rpcStop(&rpcConfig, rpcListener)
 				event.Done <- nil

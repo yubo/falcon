@@ -30,7 +30,8 @@ func collect(step int, host string) {
 		<-t
 		vs := []*specs.MetaData{}
 		for _, c := range collectors {
-			if items, err := c.Collect(step, host); err == nil {
+			if items, err := c.Collect(step,
+				host); err == nil {
 				vs = append(vs, items...)
 			}
 		}
@@ -38,7 +39,7 @@ func collect(step int, host string) {
 	}
 }
 
-func collectStart(config AgentOpts) {
+func collectStart(config AgentOpts, p *specs.Process) {
 	collectConfig = config
 	go collect(collectConfig.Interval, collectConfig.Host)
 }

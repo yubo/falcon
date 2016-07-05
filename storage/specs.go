@@ -121,6 +121,7 @@ upstream (
 /* config */
 type StorageOpts struct {
 	Debug           bool        `hcl:"debug"`
+	PidFile         string      `hcl:"pid_file"`
 	Http            bool        `hcl:"http"`
 	HttpAddr        string      `hcl:"http_addr"`
 	Rpc             bool        `hcl:"rpc"`
