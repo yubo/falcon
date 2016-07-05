@@ -75,16 +75,16 @@ func (this *Storage) Send(items []*specs.RrdItem,
 func queryCheckParam(param *specs.RrdQuery,
 	resp *specs.RrdResp) (*cacheEntry, error) {
 	// form empty response
-	resp.Values = []*specs.RRDData{}
-	resp.Endpoint = param.Endpoint
-	resp.Counter = param.Counter
+	resp.Vs = []*specs.RRDData{}
+	resp.Host = param.Host
+	resp.K = param.K
 
 	e := cache.get(param.Csum())
 	if e == nil {
 		return nil, specs.ErrNoent
 	}
 
-	resp.DsType = e.dsType
+	resp.Type = e.typ
 	resp.Step = e.step
 
 	param.Start = param.Start - param.Start%int64(e.step)
@@ -126,13 +126,13 @@ func queryGetData(param *specs.RrdQuery, resp *specs.RrdResp,
 	// larger than rra1point range, skip merge
 	now := time.Now().Unix()
 	if param.Start < now-now%int64(e.step)-int64(RRA1PointCnt*e.step) {
-		resp.Values = rrds
+		resp.Vs = rrds
 		return nil, nil, errors.New("skip merge")
 	}
 
 	// no cached caches, do not merge
 	if len(caches) < 1 {
-		resp.Values = rrds
+		resp.Vs = rrds
 		return nil, nil, errors.New("no caches")
 	}
 	return rrds, caches, nil
@@ -144,17 +144,17 @@ func queryFmtCache(items []*specs.RRDData, e *cacheEntry,
 	// fmt cached items
 	var val specs.JsonFloat
 
-	ts := items[0].Timestamp
+	ts := items[0].Ts
 	n := len(items)
 
-	last := items[n-1].Timestamp
+	last := items[n-1].Ts
 	i := 0
-	if e.dsType == specs.DERIVE || e.dsType == specs.COUNTER {
+	if e.typ == specs.DERIVE || e.typ == specs.COUNTER {
 		for ts < last {
-			if i < n-1 && ts == items[i].Timestamp &&
-				ts == items[i+1].Timestamp-int64(e.step) {
-				val = specs.JsonFloat(items[i+1].Value-
-					items[i].Value) / specs.JsonFloat(e.step)
+			if i < n-1 && ts == items[i].Ts &&
+				ts == items[i+1].Ts-int64(e.step) {
+				val = specs.JsonFloat(items[i+1].V-
+					items[i].V) / specs.JsonFloat(e.step)
 				if val < 0 {
 					val = specs.JsonFloat(math.NaN())
 				}
@@ -166,14 +166,14 @@ func queryFmtCache(items []*specs.RRDData, e *cacheEntry,
 
 			if ts >= start && ts <= end {
 				ret = append(ret,
-					&specs.RRDData{Timestamp: ts, Value: val})
+					&specs.RRDData{Ts: ts, V: val})
 			}
 			ts = ts + int64(e.step)
 		}
-	} else if e.dsType == specs.GAUGE {
+	} else if e.typ == specs.GAUGE {
 		for ts <= last {
-			if i < n && ts == items[i].Timestamp {
-				val = specs.JsonFloat(items[i].Value)
+			if i < n && ts == items[i].Ts {
+				val = specs.JsonFloat(items[i].V)
 				i++
 			} else {
 				// missing
@@ -182,7 +182,7 @@ func queryFmtCache(items []*specs.RRDData, e *cacheEntry,
 
 			if ts >= start && ts <= end {
 				ret = append(ret,
-					&specs.RRDData{Timestamp: ts, Value: val})
+					&specs.RRDData{Ts: ts, V: val})
 			}
 			ts = ts + int64(e.step)
 		}
@@ -201,8 +201,8 @@ func queryMergeData(a, b []*specs.RRDData, start,
 	c := make([]*specs.RRDData, 0)
 	if len(a) > 0 {
 		for _, v := range a {
-			if v.Timestamp >= start &&
-				v.Timestamp <= end {
+			if v.Ts >= start &&
+				v.Ts <= end {
 				//rrdtool返回的数据,时间戳是连续的、不会有跳点的情况
 				c = append(c, v)
 			}
@@ -212,28 +212,28 @@ func queryMergeData(a, b []*specs.RRDData, start,
 	bl := len(b)
 	if bl > 0 {
 		cl := len(c)
-		lastTs := b[0].Timestamp
+		lastTs := b[0].Ts
 
 		// find junction
 		i := 0
 		for i = cl - 1; i >= 0; i-- {
-			if c[i].Timestamp < b[0].Timestamp {
-				lastTs = c[i].Timestamp
+			if c[i].Ts < b[0].Ts {
+				lastTs = c[i].Ts
 				break
 			}
 		}
 
 		// fix missing
-		for ts := lastTs + step; ts < b[0].Timestamp; ts += step {
-			c = append(c, &specs.RRDData{Timestamp: ts,
-				Value: specs.JsonFloat(math.NaN())})
+		for ts := lastTs + step; ts < b[0].Ts; ts += step {
+			c = append(c, &specs.RRDData{Ts: ts,
+				V: specs.JsonFloat(math.NaN())})
 		}
 
 		// merge cached items to result
 		i += 1
 		for j := 0; j < bl; j++ {
 			if i < cl {
-				if !math.IsNaN(float64(b[j].Value)) {
+				if !math.IsNaN(float64(b[j].V)) {
 					c[i] = b[j]
 				}
 			} else {
@@ -256,12 +256,12 @@ func queryFmtRet(a []*specs.RRDData,
 	al := len(a)
 
 	for i := 0; i < n; i++ {
-		if j < al && ts == a[j].Timestamp {
+		if j < al && ts == a[j].Ts {
 			ret[i] = a[j]
 			j++
 		} else {
-			ret[i] = &specs.RRDData{Timestamp: ts,
-				Value: specs.JsonFloat(math.NaN())}
+			ret[i] = &specs.RRDData{Ts: ts,
+				V: specs.JsonFloat(math.NaN())}
 		}
 		ts += step
 	}
@@ -285,7 +285,7 @@ func (this *Storage) Query(param specs.RrdQuery,
 
 	rrds, ret, err = queryGetData(&param, resp, e)
 	if err != nil {
-		statInc(ST_STORAGE_QUERY_ITEM_CNT, len(resp.Values))
+		statInc(ST_STORAGE_QUERY_ITEM_CNT, len(resp.Vs))
 		return err
 	}
 
@@ -293,9 +293,9 @@ func (this *Storage) Query(param specs.RrdQuery,
 
 	ret = queryMergeData(rrds, ret, param.Start, param.End, int64(e.step))
 
-	resp.Values = queryFmtRet(ret, param.Start, param.End, int64(e.step))
+	resp.Vs = queryFmtRet(ret, param.Start, param.End, int64(e.step))
 
-	statInc(ST_STORAGE_QUERY_ITEM_CNT, len(resp.Values))
+	statInc(ST_STORAGE_QUERY_ITEM_CNT, len(resp.Vs))
 	return nil
 }
 
@@ -320,8 +320,9 @@ func handleItems(items []*specs.RrdItem) {
 		}
 		key := items[i].Csum()
 
-		statInc(ST_STORAGE_RPC_RECV_CNT, 1)
+		glog.V(3).Infof("recv %s", items[i])
 
+		statInc(ST_STORAGE_RPC_RECV_CNT, 1)
 		e = cache.get(key)
 		if e == nil {
 			e, err = cache.put(key, items[i])
@@ -330,7 +331,7 @@ func handleItems(items []*specs.RrdItem) {
 			}
 		}
 
-		if items[i].Timestamp <= e.lastTs {
+		if items[i].Ts <= e.ts {
 			continue
 		}
 		e.put(items[i])
@@ -345,7 +346,7 @@ func handleItems(items []*specs.RrdItem) {
 
 // 非法值: ts=0,value无意义
 func getLast(csum string) *specs.RRDData {
-	nan := &specs.RRDData{Timestamp: 0, Value: specs.JsonFloat(0.0)}
+	nan := &specs.RRDData{Ts: 0, V: specs.JsonFloat(0.0)}
 
 	e := cache.get(csum)
 	if e == nil {
@@ -358,7 +359,7 @@ func getLast(csum string) *specs.RRDData {
 	cl := len(e.cache)
 	hl := len(e.history)
 
-	if e.dsType == specs.GAUGE {
+	if e.typ == specs.GAUGE {
 		if cl+hl < 1 {
 			return nan
 		}
@@ -369,7 +370,7 @@ func getLast(csum string) *specs.RRDData {
 		}
 	}
 
-	if e.dsType == specs.COUNTER || e.dsType == specs.DERIVE {
+	if e.typ == specs.COUNTER || e.typ == specs.DERIVE {
 		var f0, f1 *specs.RRDData
 
 		if cl+hl < 2 {
@@ -386,8 +387,8 @@ func getLast(csum string) *specs.RRDData {
 			f0 = e.history[cl-1]
 			f1 = e.history[hl-2]
 		}
-		delta_ts := f0.Timestamp - f1.Timestamp
-		delta_v := f0.Value - f1.Value
+		delta_ts := f0.Ts - f1.Ts
+		delta_v := f0.V - f1.V
 		if delta_ts != int64(e.step) || delta_ts <= 0 {
 			return nan
 		}
@@ -396,14 +397,14 @@ func getLast(csum string) *specs.RRDData {
 			delta_v = 0
 		}
 
-		return &specs.RRDData{Timestamp: f0.Timestamp,
-			Value: specs.JsonFloat(float64(delta_v) / float64(delta_ts))}
+		return &specs.RRDData{Ts: f0.Ts,
+			V: specs.JsonFloat(float64(delta_v) / float64(delta_ts))}
 	}
 	return nan
 }
 
 func getLastRaw(csum string) *specs.RRDData {
-	nan := &specs.RRDData{Timestamp: 0, Value: specs.JsonFloat(0.0)}
+	nan := &specs.RRDData{Ts: 0, V: specs.JsonFloat(0.0)}
 	e := cache.get(csum)
 	if e == nil {
 		return nan
@@ -415,7 +416,7 @@ func getLastRaw(csum string) *specs.RRDData {
 	cl := len(e.cache)
 	hl := len(e.history)
 
-	if e.dsType == specs.GAUGE {
+	if e.typ == specs.GAUGE {
 		if cl+hl < 1 {
 			return nan
 		}
@@ -504,6 +505,7 @@ func rpcStart(config StorageOpts) {
 		case event := <-rpcEvent.E:
 			if event.Method == specs.ROUTINE_EVENT_M_EXIT {
 				_rpcStop(&rpcConfig, rpcListener)
+				event.Done <- nil
 
 				return
 			} else if event.Method == specs.ROUTINE_EVENT_M_RELOAD {

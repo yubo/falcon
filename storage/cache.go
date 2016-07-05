@@ -178,10 +178,10 @@ func (c *storageCache) put(key string, item *specs.RrdItem) (*cacheEntry, error)
 	e := &cacheEntry{
 		key:       key,
 		createTs:  time.Now().Unix(),
-		endpoint:  item.Endpoint,
-		metric:    item.Metric,
+		host:      item.Host,
+		k:         item.K,
 		tags:      item.Tags,
-		dsType:    item.DsType,
+		typ:       item.Type,
 		step:      item.Step,
 		heartbeat: item.Heartbeat,
 		min:       item.Min,
@@ -208,10 +208,10 @@ func (c *storageCache) put(key string, item *specs.RrdItem) (*cacheEntry, error)
 func (c *cacheEntry) put(item *specs.RrdItem) {
 	c.Lock()
 	defer c.Unlock()
-	c.lastTs = item.Timestamp
+	c.ts = item.Ts
 	c.cache = append(c.cache, &specs.RRDData{
-		Timestamp: item.Timestamp,
-		Value:     specs.JsonFloat(item.Value),
+		Ts: item.Ts,
+		V:  specs.JsonFloat(item.V),
 	})
 }
 
@@ -280,13 +280,13 @@ func (e *cacheEntry) _getItems() (ret []*specs.RrdItem) {
 
 	for _, v := range e.cache {
 		ret = append(ret, &specs.RrdItem{
-			Endpoint:  e.endpoint,
-			Metric:    e.metric,
-			Tags:      e.tags,
-			Value:     float64(v.Value),
-			Timestamp: v.Timestamp,
-			DsType:    e.dsType,
-			Step:      e.step,
+			Host: e.host,
+			K:    e.k,
+			Tags: e.tags,
+			V:    float64(v.V),
+			Ts:   v.Ts,
+			Type: e.typ,
+			Step: e.step,
 		})
 	}
 
@@ -306,25 +306,25 @@ func (e *cacheEntry) getItemsAll() (ret []*specs.RrdItem) {
 
 	for _, v := range e.history {
 		ret = append(ret, &specs.RrdItem{
-			Endpoint:  e.endpoint,
-			Metric:    e.metric,
-			Tags:      e.tags,
-			Value:     float64(v.Value),
-			Timestamp: v.Timestamp,
-			DsType:    e.dsType,
-			Step:      e.step,
+			Host: e.host,
+			K:    e.k,
+			Tags: e.tags,
+			V:    float64(v.V),
+			Ts:   v.Ts,
+			Type: e.typ,
+			Step: e.step,
 		})
 	}
 
 	for _, v := range e.cache {
 		ret = append(ret, &specs.RrdItem{
-			Endpoint:  e.endpoint,
-			Metric:    e.metric,
-			Tags:      e.tags,
-			Value:     float64(v.Value),
-			Timestamp: v.Timestamp,
-			DsType:    e.dsType,
-			Step:      e.step,
+			Host: e.host,
+			K:    e.k,
+			Tags: e.tags,
+			V:    float64(v.V),
+			Ts:   v.Ts,
+			Type: e.typ,
+			Step: e.step,
 		})
 	}
 	return
@@ -338,26 +338,26 @@ func (e *cacheEntry) getItem() (ret *specs.RrdItem) {
 	if len(e.cache) > 0 {
 		v := e.cache[len(e.cache)-1]
 		return &specs.RrdItem{
-			Endpoint:  e.endpoint,
-			Metric:    e.metric,
-			Tags:      e.tags,
-			Value:     float64(v.Value),
-			Timestamp: v.Timestamp,
-			DsType:    e.dsType,
-			Step:      e.step,
+			Host: e.host,
+			K:    e.k,
+			Tags: e.tags,
+			V:    float64(v.V),
+			Ts:   v.Ts,
+			Type: e.typ,
+			Step: e.step,
 		}
 	}
 
 	if len(e.history) > 0 {
 		v := e.history[len(e.history)-1]
 		return &specs.RrdItem{
-			Endpoint:  e.endpoint,
-			Metric:    e.metric,
-			Tags:      e.tags,
-			Value:     float64(v.Value),
-			Timestamp: v.Timestamp,
-			DsType:    e.dsType,
-			Step:      e.step,
+			Host: e.host,
+			K:    e.k,
+			Tags: e.tags,
+			V:    float64(v.V),
+			Ts:   v.Ts,
+			Type: e.typ,
+			Step: e.step,
 		}
 	}
 	return

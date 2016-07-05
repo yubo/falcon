@@ -3,10 +3,9 @@
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
-package handoff
+package agent
 
 import (
-	"container/list"
 	"runtime"
 	"sync/atomic"
 
@@ -14,21 +13,17 @@ import (
 )
 
 var (
-	appConfig     HandoffOpts = defaultOptions
+	appConfig     AgentOpts = defaultOptions
 	appEvents     []*specs.RoutineEvent
 	appStatus     uint32
 	appConfigFile string
 	appUpdateChan chan *[]*specs.MetaData // upstreams
+	appHostname   string
 )
 
 func init() {
 	// core
 	runtime.GOMAXPROCS(runtime.NumCPU())
-
-	// rpc
-	rpcEvent = &specs.RoutineEvent{Name: "rpc",
-		E: make(chan specs.REvent)}
-	rpcConnects = connList{list: list.New()}
 
 	// http
 	httpEvent = &specs.RoutineEvent{Name: "http", E: make(chan specs.REvent)}
@@ -44,9 +39,10 @@ func Handle(arg interface{}) {
 	atomic.StoreUint32(&appStatus, specs.APP_STATUS_PENDING)
 	parse(&appConfig, arg.(*specs.CmdOpts).ConfigFile)
 
-	rpcStart(appConfig)
-	httpStart(appConfig)
+	//rpcStart(appConfig)
+	//httpStart(appConfig)
 	upstreamStart(appConfig)
+	collectStart(appConfig)
 
 	atomic.StoreUint32(&appStatus, specs.APP_STATUS_RUNING)
 	startSignal()

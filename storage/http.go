@@ -29,7 +29,7 @@ func count_handler(w http.ResponseWriter, r *http.Request) {
 	count := 0
 
 	for _, v := range cache.hash {
-		if v.lastTs > ts {
+		if v.ts > ts {
 			count++
 		}
 	}
@@ -46,11 +46,11 @@ func recv_hanlder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	endpoint := args[0]
-	metric := args[1]
+	host := args[0]
+	k := args[1]
 	ts, _ := strconv.ParseInt(args[2], 10, 64)
 	step, _ := strconv.ParseInt(args[3], 10, 32)
-	dstype := args[4]
+	typ := args[4]
 	value, _ := strconv.ParseFloat(args[5], 64)
 	tags := ""
 	if argsLen == 7 {
@@ -58,11 +58,11 @@ func recv_hanlder(w http.ResponseWriter, r *http.Request) {
 	}
 
 	item := &specs.MetaData{
-		Host: endpoint,
-		K:    metric,
+		Host: host,
+		K:    k,
 		Ts:   ts,
 		Step: step,
-		Type: dstype,
+		Type: typ,
 		V:    value,
 		Tags: tags,
 	}
@@ -85,21 +85,21 @@ func recv2_handler(w http.ResponseWriter, r *http.Request) {
 		renderDataJson(w, "bad args")
 		return
 	}
-	endpoint := r.Form["e"][0]
-	metric := r.Form["m"][0]
+	host := r.Form["e"][0]
+	k := r.Form["m"][0]
 	value, _ := strconv.ParseFloat(r.Form["v"][0], 64)
 	ts, _ := strconv.ParseInt(r.Form["ts"][0], 10, 64)
 	step, _ := strconv.ParseInt(r.Form["step"][0], 10, 32)
-	dstype := r.Form["type"][0]
+	typ := r.Form["type"][0]
 
 	tags := r.Form["t"][0]
 
 	item := &specs.MetaData{
-		Host: endpoint,
-		K:    metric,
+		Host: host,
+		K:    k,
 		Ts:   ts,
 		Step: step,
-		Type: dstype,
+		Type: typ,
 		V:    value,
 		Tags: tags,
 	}
@@ -123,142 +123,13 @@ func updateAll_concurrent_handler(w http.ResponseWriter, r *http.Request) {
 	renderDataJson(w, "ok")
 }
 
-/*
-func update_handler(w http.ResponseWriter, r *http.Request) {
-	urlParam := r.URL.Path[len("/index/update/"):]
-	args := strings.Split(urlParam, "/")
-
-	argsLen := len(args)
-	if !(argsLen == 4 || argsLen == 5) {
-		renderDataJson(w, "bad args")
-		return
-	}
-	endpoint := args[0]
-	metric := args[1]
-	step, _ := strconv.ParseInt(args[2], 10, 32)
-	dstype := args[3]
-	tags := make(map[string]string)
-	if argsLen == 5 {
-		tagVals := strings.Split(args[4], ",")
-		for _, tag := range tagVals {
-			tagPairs := strings.Split(tag, "=")
-			if len(tagPairs) == 2 {
-				tags[tagPairs[0]] = tagPairs[1]
-			}
-		}
-	}
-	err := UpdateIndexOne(endpoint, metric, tags, dstype, int(step))
-	if err != nil {
-		renderDataJson(w, fmt.Sprintf("%v", err))
-		return
-	}
-
-	renderDataJson(w, "ok")
-}
-*/
-
 func stat_handler(w http.ResponseWriter, r *http.Request) {
 	renderDataJson(w, statHandle())
 }
 
-/*
-func history_handler(w http.ResponseWriter, r *http.Request) {
-	urlParam := r.URL.Path[len("/history/"):]
-	args := strings.Split(urlParam, "/")
-
-	argsLen := len(args)
-	endpoint := args[0]
-	metric := args[1]
-	tags := make(map[string]string)
-	if argsLen > 2 {
-		tagVals := strings.Split(args[2], ",")
-		for _, tag := range tagVals {
-			tagPairs := strings.Split(tag, "=")
-			if len(tagPairs) == 2 {
-				tags[tagPairs[0]] = tagPairs[1]
-			}
-		}
-	}
-	renderDataJson(w, getAllItems(specs.Checksum(endpoint, metric, tags)))
-}
-
-func history2_handler(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
-
-	if !(len(r.Form["e"]) > 0 && len(r.Form["m"]) > 0) {
-		renderDataJson(w, "bad args")
-		return
-	}
-	endpoint := r.Form["e"][0]
-	metric := r.Form["m"][0]
-
-	tags := make(map[string]string)
-	if len(r.Form["t"]) > 0 {
-		tagstr := r.Form["t"][0]
-		tagVals := strings.Split(tagstr, ",")
-		for _, tag := range tagVals {
-			tagPairs := strings.Split(tag, "=")
-			if len(tagPairs) == 2 {
-				tags[tagPairs[0]] = tagPairs[1]
-			}
-		}
-	}
-
-	renderDataJson(w, getAllItems(specs.Checksum(endpoint, metric, tags)))
-}
-*/
-
-/*
-func last_handler(w http.ResponseWriter, r *http.Request) {
-	urlParam := r.URL.Path[len("/last/"):]
-	args := strings.Split(urlParam, "/")
-
-	argsLen := len(args)
-	endpoint := args[0]
-	metric := args[1]
-	tags := make(map[string]string)
-	if argsLen > 2 {
-		tagVals := strings.Split(args[2], ",")
-		for _, tag := range tagVals {
-			tagPairs := strings.Split(tag, "=")
-			if len(tagPairs) == 2 {
-				tags[tagPairs[0]] = tagPairs[1]
-			}
-		}
-	}
-	renderDataJson(w, getLastItem(specs.Checksum(endpoint, metric, tags)))
-}
-
-func last2_handler(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
-
-	if !(len(r.Form["e"]) > 0 && len(r.Form["m"]) > 0) {
-		renderDataJson(w, "bad args")
-		return
-	}
-	endpoint := r.Form["e"][0]
-	metric := r.Form["m"][0]
-
-	tags := make(map[string]string)
-	if len(r.Form["t"]) > 0 {
-		tagstr := r.Form["t"][0]
-		tagVals := strings.Split(tagstr, ",")
-		for _, tag := range tagVals {
-			tagPairs := strings.Split(tag, "=")
-			if len(tagPairs) == 2 {
-				tags[tagPairs[0]] = tagPairs[1]
-			}
-		}
-	}
-
-	renderDataJson(w, getLastItem(specs.Checksum(endpoint, metric, tags)))
-}
-*/
-
 func httpRoutes() {
 	http.HandleFunc("/count", count_handler)
 
-	// 接收数据 endpoint metric ts step dstype value [tags]
 	http.HandleFunc("/api/recv/", recv_hanlder)
 
 	http.HandleFunc("/v2/api/recv", recv2_handler)
@@ -267,9 +138,6 @@ func httpRoutes() {
 
 	// 获取索引全量更新的并行数
 	http.HandleFunc("/index/updateAll/concurrent", updateAll_concurrent_handler)
-
-	// 更新一条索引数据,用于手动建立索引 endpoint metric step dstype tags
-	//http.HandleFunc("/index/update/", update_handler)
 
 	http.HandleFunc("/health",
 		func(w http.ResponseWriter, r *http.Request) {
@@ -287,14 +155,6 @@ func httpRoutes() {
 		})
 
 	http.HandleFunc("/stat", stat_handler)
-
-	// items.history
-	//http.HandleFunc("/history/", history_handler)
-	//http.HandleFunc("/v2/history", history2_handler)
-
-	// items.last
-	//http.HandleFunc("/last/", last_handler)
-	//http.HandleFunc("/v2/last", last2_handler)
 
 }
 

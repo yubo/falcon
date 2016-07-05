@@ -1,3 +1,8 @@
+/*
+ * Copyright 2016 yubo. All rights reserved.
+ * Use of this source code is governed by a BSD-style
+ * license that can be found in the LICENSE file.
+ */
 package handoff
 
 import (
@@ -10,8 +15,6 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/yubo/falcon/specs"
-
-	"stathat.com/c/consistent"
 )
 
 var (
@@ -19,53 +22,23 @@ var (
 )
 
 type backend struct {
-	name    string
-	streams upstream
-	sched   scheduler
+	name      string
+	streams   upstream
+	scheduler handoffScheduler
 }
 
-func (b *backend) init(o BackendOpt) error {
+func (b *backend) String() string {
+	return fmt.Sprintf("%s", b.name)
+}
+
+func (b *backend) init(o BackendOpts) error {
 
 	for node, addr := range o.Upstream {
 		ch := make(chan *specs.MetaData)
-		b.sched.addChan(node, ch)
+		b.scheduler.addChan(node, ch)
 		b.streams.addClientChan(node, addr, ch)
 	}
 	return nil
-}
-
-/*   scheduler */
-type scheduler interface {
-	sched(string) chan *specs.MetaData
-	addChan(string, chan *specs.MetaData) error
-}
-
-type schedConsistent struct {
-	name    string
-	consist *consistent.Consistent
-	chans   map[string]chan *specs.MetaData
-}
-
-func newSchedConsistent(replicas int) *schedConsistent {
-	sched := &schedConsistent{
-		name:    "consistent",
-		consist: consistent.New(),
-		chans:   make(map[string]chan *specs.MetaData),
-	}
-	sched.consist.NumberOfReplicas = replicas
-	return sched
-}
-
-func (s *schedConsistent) addChan(key string,
-	ch chan *specs.MetaData) error {
-	s.consist.Add(key)
-	s.chans[key] = ch
-	return nil
-}
-
-func (s *schedConsistent) sched(key string) chan *specs.MetaData {
-	node, _ := s.consist.Get(key)
-	return s.chans[node]
 }
 
 /* upstream */
@@ -89,17 +62,19 @@ type upstreamFalcon struct {
 	concurrency int
 	connTimeout int
 	callTimeout int
+	batch       int
 	clients     map[string]rpcClients
 	chans       map[string]chan *specs.MetaData
 }
 
 func newUpstreamFalcon(concurrency int,
-	b BackendOpt) *upstreamFalcon {
+	b BackendOpts) *upstreamFalcon {
 	return &upstreamFalcon{
 		name:        "falcon",
 		concurrency: concurrency,
 		connTimeout: b.ConnTimeout,
 		callTimeout: b.CallTimeout,
+		batch:       b.Batch,
 		clients:     make(map[string]rpcClients),
 		chans:       make(map[string]chan *specs.MetaData),
 	}
@@ -133,7 +108,7 @@ func (p *upstreamFalcon) run(name string) error {
 			go falconUpstreamWorker(name, i,
 				ch, &p.clients[node].cli[i],
 				p.clients[node].addr,
-				p.connTimeout, p.callTimeout)
+				p.connTimeout, p.callTimeout, p.batch)
 		}
 	}
 	return nil
@@ -167,6 +142,7 @@ func reconnection(client **rpc.Client, addr string, connTimeout int) {
 
 	for err != nil {
 		//danger!! block routine
+		glog.Infof("reconnection to %s %s", addr, err)
 		time.Sleep(time.Millisecond * 500)
 		*client, err = rpcDial(addr,
 			time.Duration(connTimeout)*time.Millisecond)
@@ -190,7 +166,7 @@ func netRpcCall(client *rpc.Client, method string, args interface{},
 	}
 }
 
-func putRpcStorageData(client **rpc.Client, item *specs.MetaData,
+func putRpcStorageData(client **rpc.Client, items []*specs.RrdItem,
 	addr string, connTimeout, callTimeout int) error {
 	var (
 		err  error
@@ -201,12 +177,14 @@ func putRpcStorageData(client **rpc.Client, item *specs.MetaData,
 	resp = &specs.RpcResp{}
 
 	for i = 0; i < CONN_RETRY; i++ {
-		err = netRpcCall(*client, "Storage.Put", item, resp,
+		err = netRpcCall(*client, "Storage.Put", items, resp,
 			time.Duration(callTimeout)*time.Millisecond)
 
 		if err == nil {
+			glog.V(3).Infof("send to %s success", addr)
 			goto out
 		}
+		glog.V(3).Infof("send to %s %s", addr, err)
 		if err == rpc.ErrShutdown {
 			reconnection(client, addr, connTimeout)
 		}
@@ -216,16 +194,25 @@ out:
 }
 
 func falconUpstreamWorker(name string, idx int, ch chan *specs.MetaData,
-	client **rpc.Client, addr string, connTimeout, callTimeout int) {
+	client **rpc.Client, addr string, connTimeout, callTimeout, batch int) {
 	var err error
+	var i int
+	rrds := make([]*specs.RrdItem, batch)
 	for {
 		select {
 		case item := <-ch:
-			if err = putRpcStorageData(client, item,
-				addr, connTimeout, callTimeout); err != nil {
-				statInc(ST_PUT_ERR, 1)
-			} else {
-				statInc(ST_PUT_SUCCESS, 1)
+			if rrds[i], err = item.Rrd(); err != nil {
+				continue
+			}
+			i++
+			if i == batch {
+				if err = putRpcStorageData(client, rrds,
+					addr, connTimeout, callTimeout); err != nil {
+					statInc(ST_PUT_ERR, 1)
+				} else {
+					statInc(ST_PUT_SUCCESS, 1)
+				}
+				i = 0
 			}
 		}
 	}
@@ -242,7 +229,7 @@ type upstreamTsdb struct {
 	chans       map[string]chan *specs.MetaData
 }
 
-func newUpstreamTsdb(concurrency int, b BackendOpt) *upstreamTsdb {
+func newUpstreamTsdb(concurrency int, b BackendOpts) *upstreamTsdb {
 	return &upstreamTsdb{
 		name:        "tsdb",
 		concurrency: concurrency,
@@ -383,20 +370,21 @@ func tsdbReconnection(client *net.Conn, addr string, connTimeout int) {
 	}
 }
 
-func upstreamWorker(bs *[]*backend) error {
-	for _, b := range *bs {
+func upstreamWorker(bs []*backend) error {
+	for _, b := range bs {
 		b.streams.run(b.name)
 	}
 	return nil
 }
 
-func loadBalancerWorker(bs *[]*backend) {
+func loadBalancerWorker(bs []*backend) {
 	go func() {
 		for {
 			items := <-appUpdateChan
-			for _, b := range *bs {
+			glog.V(3).Infof("lb get %d", len(*items))
+			for _, b := range bs {
 				for _, item := range *items {
-					ch := b.sched.sched(item.Key())
+					ch := b.scheduler.sched(item.Id())
 					ch <- item
 				}
 			}
@@ -422,7 +410,7 @@ func upstreamStart(config HandoffOpts) {
 		}
 
 		if v.Sched == "consistent" {
-			b.sched = newSchedConsistent(upstreamConfig.Replicas)
+			b.scheduler = newSchedConsistent(upstreamConfig.Replicas)
 		} else {
 			glog.Fatal(specs.ErrUnsupported)
 		}
@@ -431,8 +419,8 @@ func upstreamStart(config HandoffOpts) {
 		bs = append(bs, b)
 	}
 
-	upstreamWorker(&bs)
+	glog.V(3).Infof("len(bs) %d", len(bs))
 
-	loadBalancerWorker(&bs)
-
+	upstreamWorker(bs)
+	loadBalancerWorker(bs)
 }

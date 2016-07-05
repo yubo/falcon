@@ -1,24 +1,21 @@
-CREATE DATABASE storage
-DEFAULT CHARACTER SET utf8
-DEFAULT COLLATE utf8_general_ci;
-USE storage;
+USE falcon;
 SET NAMES utf8;
 
-DROP TABLE if exists `storage`.`endpoint`;
-CREATE TABLE `storage`.`endpoint` (
+DROP TABLE if exists `falcon`.`host`;
+CREATE TABLE `falcon`.`host` (
 	`id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-	`endpoint` varchar(255) NOT NULL DEFAULT '',
+	`host` varchar(255) NOT NULL DEFAULT '',
 	`ts` int(11) DEFAULT NULL,
 	`t_create` DATETIME NOT NULL COMMENT 'create time',
 	`t_modify` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'last modify time',
 	PRIMARY KEY (`id`),
-	UNIQUE KEY `idx_endpoint` (`endpoint`)
+	UNIQUE KEY `idx_host` (`host`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-DROP TABLE if exists `storage`.`endpoint_counter`;
-CREATE TABLE `storage`.`endpoint_counter` (
+DROP TABLE if exists `falcon`.`host_counter`;
+CREATE TABLE `falcon`.`host_counter` (
 	`id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-	`endpoint_id` int(10) unsigned NOT NULL,
+	`host_id` int(10) unsigned NOT NULL,
 	`counter` varchar(255) NOT NULL DEFAULT '',
 	`step` int(11) not null default 60 comment 'in second',
 	`type` varchar(16) not null comment 'GAUGE|COUNTER|DERIVE',
@@ -26,17 +23,17 @@ CREATE TABLE `storage`.`endpoint_counter` (
 	`t_create` DATETIME NOT NULL COMMENT 'create time',
 	`t_modify` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'last modify time',
 	PRIMARY KEY (`id`),
-	UNIQUE KEY `idx_endpoint_id_counter` (`endpoint_id`, `counter`)
+	UNIQUE KEY `idx_host_id_counter` (`host_id`, `counter`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-DROP TABLE if exists `storage`.`tag_endpoint`;
-CREATE TABLE `storage`.`tag_endpoint` (
+DROP TABLE if exists `falcon`.`tag_host`;
+CREATE TABLE `falcon`.`tag_host` (
 	`id` int(10) unsigned NOT NULL AUTO_INCREMENT,
 	`tag` varchar(255) NOT NULL DEFAULT '' COMMENT 'srv=tv',
-	`endpoint_id` int(10) unsigned NOT NULL,
+	`host_id` int(10) unsigned NOT NULL,
 	`ts` int(11) DEFAULT NULL,
 	`t_create` DATETIME NOT NULL COMMENT 'create time',
 	`t_modify` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'last modify time',
 	PRIMARY KEY (`id`),
-	UNIQUE KEY `idx_tag_endpoint_id` (`tag`, `endpoint_id`)
+	UNIQUE KEY `idx_tag_host_id` (`tag`, `host_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;

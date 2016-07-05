@@ -49,7 +49,7 @@ func rrdCreate(filename string, e *cacheEntry) error {
 	step := uint(e.step)
 
 	c := rrdlite.NewCreator(filename, start, step)
-	c.DS("metric", e.dsType, e.heartbeat, e.min, e.max)
+	c.DS("metric", e.typ, e.heartbeat, e.min, e.max)
 
 	// 设置各种归档策略
 	// 1分钟一个点存 12小时
@@ -87,14 +87,14 @@ func rrdUpdate(filename string, dsType string, ds []*specs.RRDData) error {
 	}
 
 	for _, data := range ds {
-		v := math.Abs(float64(data.Value))
+		v := math.Abs(float64(data.V))
 		if v > 1e+300 || (v < 1e-300 && v > 0) {
 			continue
 		}
 		if i {
-			u.Cache(data.Timestamp, int(data.Value))
+			u.Cache(data.Ts, int(data.V))
 		} else {
-			u.Cache(data.Timestamp, float64(data.Value))
+			u.Cache(data.Ts, float64(data.V))
 		}
 	}
 
@@ -127,21 +127,22 @@ func ioRrdUpdate(e *cacheEntry) (err error) {
 	filename := e.filename(rrdConfig.RrdStorage)
 	ds := e.dequeueAll()
 
-	err = rrdUpdate(filename, e.dsType, ds)
+	err = rrdUpdate(filename, e.typ, ds)
 	if err != nil {
 
 		// unlikely
 		_, err := os.Stat(filename)
 		if os.IsNotExist(err) {
-			_, err = os.Stat(path.Dir(filename))
+			path := path.Dir(filename)
+			_, err = os.Stat(path)
 			if os.IsNotExist(err) {
-				os.MkdirAll(filename, os.ModePerm)
+				os.MkdirAll(path, os.ModePerm)
 			}
 
 			err = rrdCreate(filename, e)
 			if err == nil {
 				// retry
-				err = rrdUpdate(filename, e.dsType, ds)
+				err = rrdUpdate(filename, e.typ, ds)
 			}
 		}
 	}
@@ -172,8 +173,8 @@ func ioRrdFetch(filename string, cf string, start, end int64,
 	for i, val := range values {
 		ts := start_ts + int64(i+1)*int64(step_s)
 		d := &specs.RRDData{
-			Timestamp: ts,
-			Value:     specs.JsonFloat(val),
+			Ts: ts,
+			V:  specs.JsonFloat(val),
 		}
 		ret[i] = d
 	}
@@ -478,7 +479,7 @@ func commitCache(migrate bool) {
 		}
 
 		n++
-		glog.V(3).Info("%d", n)
+		glog.V(3).Infof("%d", n)
 
 		flag := atomic.LoadUint32(&e.flag)
 

@@ -1,3 +1,8 @@
+/*
+ * Copyright 2016 yubo. All rights reserved.
+ * Use of this source code is governed by a BSD-style
+ * license that can be found in the LICENSE file.
+ */
 package main
 
 import (
@@ -6,6 +11,8 @@ import (
 	"os"
 
 	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/agent"
+	_ "github.com/yubo/falcon/agent/plugin"
 	"github.com/yubo/falcon/handoff"
 	"github.com/yubo/falcon/specs"
 	"github.com/yubo/falcon/storage"
@@ -27,6 +34,9 @@ func init() {
 
 	flags.NewCommand("handoff", "handoff submodule",
 		handoff.Handle, flag.ExitOnError)
+
+	flags.NewCommand("agent", "agent submodule",
+		agent.Handle, flag.ExitOnError)
 
 	flags.NewCommand("version", "show falcon version information",
 		falcon.Version_handle, flag.ExitOnError)
