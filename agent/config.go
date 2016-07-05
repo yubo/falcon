@@ -18,7 +18,7 @@ const (
 )
 
 var (
-	defaultOptions = AgentOpts{
+	DefaultOptions = AgentOpts{
 		Debug:    false,
 		PidFile:  "/var/run/agent.pid",
 		Host:     "",

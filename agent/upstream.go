@@ -34,7 +34,9 @@ func (p *upstreamPool) get() string {
 	return p.pool[atomic.AddUint32(&p.idx, 1)%p.size]
 }
 
-func rpcDial(address string, timeout time.Duration) (*rpc.Client, error) {
+func rpcDial(address string,
+	timeout time.Duration) (*rpc.Client, error) {
+
 	d := net.Dialer{Timeout: timeout}
 	conn, err := d.Dial("tcp", address)
 	if err != nil {
@@ -58,7 +60,8 @@ func reconnection(client **rpc.Client, connTimeout int) {
 		(*client).Close()
 	}
 
-	*client, err = rpcDial(addr, time.Duration(connTimeout)*time.Millisecond)
+	*client, err = rpcDial(addr, time.Duration(connTimeout)*
+		time.Millisecond)
 	statInc(ST_CONN_DIAL, 1)
 
 	for err != nil {
@@ -116,7 +119,7 @@ out:
 	return err
 }
 
-func upstreamStart(config AgentOpts) {
+func upstreamStart(config AgentOpts, p *specs.Process) {
 	var (
 		client *rpc.Client
 		err    error
@@ -129,13 +132,15 @@ func upstreamStart(config AgentOpts) {
 	streamPool.pool = make([]string, int(streamPool.size))
 	copy(streamPool.pool, upstreamConfig.Handoff.Upstreams)
 
-	client, err = rpcDial(streamPool.get(),
-		time.Duration(upstreamConfig.Handoff.ConnTimeout)*time.Millisecond)
-	if err != nil {
-		reconnection(&client, upstreamConfig.Handoff.ConnTimeout)
-	}
-
 	go func() {
+
+		client, err = rpcDial(streamPool.get(),
+			time.Duration(upstreamConfig.Handoff.ConnTimeout)*
+				time.Millisecond)
+		if err != nil {
+			reconnection(&client, upstreamConfig.Handoff.ConnTimeout)
+		}
+
 		for {
 			items := <-appUpdateChan
 

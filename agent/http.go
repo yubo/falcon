@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	httpEvent  *specs.RoutineEvent
+	httpEvent  chan specs.ProcEvent
 	httpConfig AgentOpts
 )
 
@@ -54,7 +54,7 @@ func httpRoutes() {
 	})
 }
 
-func httpStart(config AgentOpts) {
+func httpStart(config AgentOpts, p *specs.Process) {
 	if !config.Http {
 		glog.Info("http.Start warning, not enabled")
 		return
@@ -78,13 +78,13 @@ func httpStart(config AgentOpts) {
 	}
 
 	l := ln.(*net.TCPListener)
-	registerEventChan(httpEvent)
+	p.RegisterEvent("http", httpEvent)
 
 	go s.Serve(tcpKeepAliveListener{l})
 
 	go func() {
 		select {
-		case event := <-httpEvent.E:
+		case event := <-httpEvent:
 			if event.Method == specs.ROUTINE_EVENT_M_EXIT {
 				l.Close()
 				event.Done <- nil

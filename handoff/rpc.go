@@ -18,7 +18,7 @@ import (
 )
 
 var (
-	rpcEvent    *specs.RoutineEvent
+	rpcEvent    chan specs.ProcEvent
 	rpcConnects connList
 	rpcConfig   HandoffOpts
 )
@@ -170,18 +170,18 @@ func _rpcStop(config *HandoffOpts,
 	return nil
 }
 
-func rpcStart(config HandoffOpts) {
+func rpcStart(config HandoffOpts, p *specs.Process) {
 	var rpcListener *net.TCPListener
 
 	rpc.Register(new(Falcon))
-	registerEventChan(rpcEvent)
+	p.RegisterEvent("rpc", rpcEvent)
 	rpcConfig = config
 
 	_rpcStart(&rpcConfig, &rpcListener)
 
 	go func() {
 		select {
-		case event := <-rpcEvent.E:
+		case event := <-rpcEvent:
 			if event.Method == specs.ROUTINE_EVENT_M_EXIT {
 				_rpcStop(&rpcConfig, rpcListener)
 				event.Done <- nil

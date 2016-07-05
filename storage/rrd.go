@@ -36,7 +36,7 @@ const (
 
 var (
 	rrdConfig            StorageOpts
-	rrdSyncEvent         *specs.RoutineEvent
+	rrdSyncEvent         chan specs.ProcEvent
 	rrdIoTaskCh          chan *ioTask
 	rrdNetTaskCh         map[string]chan *netTask
 	rrdMigrateClients    map[string][]*rpc.Client
@@ -458,8 +458,15 @@ func ioWorker() {
 	}
 }
 
+type commitCacheArg struct {
+	migrate bool
+	p       *specs.Process
+}
+
 /* called by  commitCacheWorker per FLUSH_DISK_STEP */
-func commitCache(migrate bool) {
+func commitCache(_arg interface{}) {
+	arg := _arg.(*commitCacheArg)
+
 	expired := time.Now().Unix() - CACHE_TIME
 	nloop := len(cache.hash) / (CACHE_TIME / FLUSH_DISK_STEP)
 	n := 0
@@ -470,7 +477,7 @@ func commitCache(migrate bool) {
 			return
 		}
 
-		if atomic.LoadUint32(&appStatus) != specs.APP_STATUS_EXIT {
+		if arg.p.Status() != specs.APP_STATUS_EXIT {
 			cache.enqueue_data(e)
 		} else {
 			if n&0x04ff == 0 {
@@ -484,7 +491,7 @@ func commitCache(migrate bool) {
 		flag := atomic.LoadUint32(&e.flag)
 
 		//write err data to local filename
-		if migrate && flag&RRD_F_MISS != 0 {
+		if arg.migrate && flag&RRD_F_MISS != 0 {
 			//PullByKey(key)
 			e.fetch()
 		}
@@ -492,19 +499,21 @@ func commitCache(migrate bool) {
 		commitTs := e.commitTs
 		e.commit()
 
-		if !migrate && commitTs > expired && n > nloop {
+		if !arg.migrate && commitTs > expired && n > nloop {
 			return
 		}
 	}
 }
 
-func commitCacheWorker() {
-	var migrate, init bool
+func commitCacheWorker(p *specs.Process) {
+	var init bool
+	var arg commitCacheArg
+	arg.p = p
 
 	ticker := time.NewTicker(time.Second * FIRST_FLUSH_DISK).C
 
 	if rrdConfig.Migrate.Enable {
-		migrate = true
+		arg.migrate = true
 	}
 
 	for {
@@ -515,8 +524,8 @@ func commitCacheWorker() {
 					FLUSH_DISK_STEP).C
 				init = true
 			}
-			commitCache(migrate)
-		case e := <-rrdSyncEvent.E:
+			commitCache(&arg)
+		case e := <-rrdSyncEvent:
 			if e.Method == specs.ROUTINE_EVENT_M_EXIT {
 				e.Done <- nil
 				return
@@ -525,7 +534,7 @@ func commitCacheWorker() {
 	}
 }
 
-func rrdStart(config StorageOpts) {
+func rrdStart(config StorageOpts, p *specs.Process) {
 	_, err := os.Stat(config.RrdStorage)
 	if os.IsNotExist(err) {
 		glog.Fatalf("rrdtool.Start error, bad data dir %s %v\n",
@@ -557,8 +566,10 @@ func rrdStart(config StorageOpts) {
 
 	go ioWorker()
 
-	registerEventChan(rrdSyncEvent)
-	go commitCacheWorker()
+	p.RegisterEvent("rrdSync", rrdSyncEvent)
+	p.RegisterPostHook("rrdSync", commitCache,
+		&commitCacheArg{migrate: false, p: p})
+	go commitCacheWorker(p)
 
 	glog.Info("rrdStart ok")
 }

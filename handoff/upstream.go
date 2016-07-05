@@ -392,7 +392,7 @@ func loadBalancerWorker(bs []*backend) {
 	}()
 }
 
-func upstreamStart(config HandoffOpts) {
+func upstreamStart(config HandoffOpts, p *specs.Process) {
 	upstreamConfig = config
 	bs := make([]*backend, 0)
 	for k, v := range upstreamConfig.Backends {

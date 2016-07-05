@@ -9,7 +9,7 @@ import (
 	"container/list"
 	"net/rpc"
 	"runtime"
-	"sync/atomic"
+	"syscall"
 
 	"stathat.com/c/consistent"
 
@@ -20,9 +20,8 @@ import (
 
 var (
 	appConfig     StorageOpts = defaultOptions
-	appEvents     []*specs.RoutineEvent
-	appStatus     uint32
 	appConfigfile string
+	appProcess    *specs.Process
 )
 
 func init() {
@@ -30,18 +29,15 @@ func init() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	// rpc
-	rpcEvent = &specs.RoutineEvent{Name: "rpc",
-		E: make(chan specs.REvent)}
+	rpcEvent = make(chan specs.ProcEvent)
 	rpcConnects = connList{list: list.New()}
 
 	// http
-	httpEvent = &specs.RoutineEvent{Name: "http",
-		E: make(chan specs.REvent)}
+	httpEvent = make(chan specs.ProcEvent)
 	httpRoutes()
 
 	// rrdtool/sync_disk/migrate
-	rrdSyncEvent = &specs.RoutineEvent{Name: "sync",
-		E: make(chan specs.REvent)}
+	rrdSyncEvent = make(chan specs.ProcEvent)
 	rrdIoTaskCh = make(chan *ioTask, 16)
 	rrdMigrateConsistent = consistent.New()
 	rrdNetTaskCh = make(map[string]chan *netTask)
@@ -59,15 +55,41 @@ func init() {
 
 func Handle(arg interface{}) {
 
-	atomic.StoreUint32(&appStatus, specs.APP_STATUS_PENDING)
-	parse(&appConfig, arg.(*specs.CmdOpts).ConfigFile)
+	//atomic.StoreUint32(&appStatus, specs.APP_STATUS_PENDING)
+	opts := arg.(*specs.CmdOpts)
+	parse(&appConfig, opts.ConfigFile)
+	appProcess = specs.NewProcess(appConfig.PidFile)
 
-	dbStart(appConfig.Dsn, appConfig.DbMaxIdle)
-	rrdStart(appConfig)
-	rpcStart(appConfig)
-	//indexStart()
-	httpStart(appConfig)
+	cmd := "start"
+	if len(opts.Args) > 0 {
+		cmd = opts.Args[0]
+	}
 
-	atomic.StoreUint32(&appStatus, specs.APP_STATUS_RUNING)
-	startSignal()
+	if cmd == "stop" {
+
+		if err := appProcess.Kill(syscall.SIGTERM); err != nil {
+			glog.Fatal(err)
+		}
+	} else if cmd == "reload" {
+		if err := appProcess.Kill(syscall.SIGUSR1); err != nil {
+			glog.Fatal(err)
+		}
+	} else if cmd == "start" {
+		if err := appProcess.Check(); err != nil {
+			glog.Fatal(err)
+		}
+		if err := appProcess.Save(); err != nil {
+			glog.Fatal(err)
+		}
+		dbStart(appConfig.Dsn, appConfig.DbMaxIdle)
+		rrdStart(appConfig, appProcess)
+		rpcStart(appConfig, appProcess)
+		//indexStart()
+		httpStart(appConfig, appProcess)
+
+		appProcess.StartSignal()
+	} else {
+		glog.Fatal(specs.ErrUnsupported)
+	}
+
 }

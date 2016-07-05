@@ -46,13 +46,3 @@ type Dto struct {
 	Msg  string      `json:"msg"`
 	Data interface{} `json:"data"`
 }
-
-type REvent struct {
-	Method int
-	Done   chan error
-}
-
-type RoutineEvent struct {
-	Name string
-	E    chan REvent
-}
