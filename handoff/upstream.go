@@ -115,9 +115,11 @@ func (p *upstreamFalcon) run(name string) error {
 }
 
 func rpcDial(address string, timeout time.Duration) (*rpc.Client, error) {
+	statInc(ST_UPSTREAM_DIAL, 1)
 	d := net.Dialer{Timeout: timeout}
 	conn, err := d.Dial("tcp", address)
 	if err != nil {
+		statInc(ST_UPSTREAM_DIAL_ERR, 1)
 		return nil, err
 	}
 	if tc, ok := conn.(*net.TCPConn); ok {
@@ -132,13 +134,12 @@ func rpcDial(address string, timeout time.Duration) (*rpc.Client, error) {
 func reconnection(client **rpc.Client, addr string, connTimeout int) {
 	var err error
 
-	statInc(ST_CONN_ERR, 1)
+	statInc(ST_UPSTREAM_RECONNECT, 1)
 	if *client != nil {
 		(*client).Close()
 	}
 
 	*client, err = rpcDial(addr, time.Duration(connTimeout)*time.Millisecond)
-	statInc(ST_CONN_DIAL, 1)
 
 	for err != nil {
 		//danger!! block routine
@@ -146,7 +147,6 @@ func reconnection(client **rpc.Client, addr string, connTimeout int) {
 		time.Sleep(time.Millisecond * 500)
 		*client, err = rpcDial(addr,
 			time.Duration(connTimeout)*time.Millisecond)
-		statInc(ST_CONN_DIAL, 1)
 	}
 }
 
@@ -166,7 +166,7 @@ func netRpcCall(client *rpc.Client, method string, args interface{},
 	}
 }
 
-func putRpcStorageData(client **rpc.Client, items []*specs.RrdItem,
+func putRpcBackendData(client **rpc.Client, items []*specs.RrdItem,
 	addr string, connTimeout, callTimeout int) error {
 	var (
 		err  error
@@ -177,11 +177,11 @@ func putRpcStorageData(client **rpc.Client, items []*specs.RrdItem,
 	resp = &specs.RpcResp{}
 
 	for i = 0; i < CONN_RETRY; i++ {
-		err = netRpcCall(*client, "Storage.Put", items, resp,
+		err = netRpcCall(*client, "Backend.Put", items, resp,
 			time.Duration(callTimeout)*time.Millisecond)
 
 		if err == nil {
-			glog.V(3).Infof("send to %s success", addr)
+			glog.V(3).Infof("send %d %s", len(items), addr)
 			goto out
 		}
 		glog.V(3).Infof("send to %s %s", addr, err)
@@ -206,11 +206,11 @@ func falconUpstreamWorker(name string, idx int, ch chan *specs.MetaData,
 			}
 			i++
 			if i == batch {
-				if err = putRpcStorageData(client, rrds,
+				statInc(ST_UPSTREAM_PUT, 1)
+				statInc(ST_UPSTREAM_PUT_ITEM, batch)
+				if err = putRpcBackendData(client, rrds,
 					addr, connTimeout, callTimeout); err != nil {
-					statInc(ST_PUT_ERR, 1)
-				} else {
-					statInc(ST_PUT_SUCCESS, 1)
+					statInc(ST_UPSTREAM_PUT_ERR, 1)
 				}
 				i = 0
 			}
@@ -242,9 +242,11 @@ func newUpstreamTsdb(concurrency int, b BackendOpts) *upstreamTsdb {
 }
 
 func netDial(address string, timeout time.Duration) (net.Conn, error) {
+	statInc(ST_UPSTREAM_DIAL, 1)
 	d := net.Dialer{Timeout: timeout}
 	conn, err := d.Dial("tcp", address)
 	if err != nil {
+		statInc(ST_UPSTREAM_DIAL_ERR, 1)
 		return nil, err
 	}
 	if tc, ok := conn.(*net.TCPConn); ok {
@@ -283,7 +285,8 @@ func (p *upstreamTsdb) run(name string) error {
 				&p.clients[node].cli[i],
 				p.clients[node].addr,
 				p.connTimeout,
-				p.callTimeout)
+				p.callTimeout,
+				p.batch)
 		}
 	}
 	return nil
@@ -291,30 +294,38 @@ func (p *upstreamTsdb) run(name string) error {
 
 func tsdbUpstreamWorker(name string, idx int,
 	ch chan *specs.MetaData, client *net.Conn,
-	addr string, connTimeout, callTimeout int) {
+	addr string, connTimeout, callTimeout, batch int) {
 	var err error
+	var i int
+	items := make([]*specs.MetaData, batch)
 	for {
 		select {
 		case item := <-ch:
-			if err = putTsdbData(client, item,
-				addr, connTimeout, callTimeout); err != nil {
-				statInc(ST_PUT_ERR, 1)
-			} else {
-				statInc(ST_PUT_SUCCESS, 1)
+			items[i] = item
+			i++
+			if i == batch {
+				statInc(ST_UPSTREAM_PUT, 1)
+				statInc(ST_UPSTREAM_PUT_ITEM, batch)
+				if err = putTsdbData(client, items,
+					addr, connTimeout, callTimeout); err != nil {
+					statInc(ST_UPSTREAM_PUT_ERR, 1)
+				}
 			}
 		}
 	}
 }
 
-func putTsdbData(client *net.Conn, item *specs.MetaData,
+func putTsdbData(client *net.Conn, items []*specs.MetaData,
 	addr string, connTimeout, callTimeout int) (err error) {
 	var (
 		i          int
 		tsdbBuffer bytes.Buffer
 	)
 
-	tsdbBuffer.WriteString(item.Tsdb().TsdbString())
-	tsdbBuffer.WriteString("\n")
+	for _, item := range items {
+		tsdbBuffer.WriteString(item.Tsdb().TsdbString())
+		tsdbBuffer.WriteString("\n")
+	}
 
 	for i = 0; i < CONN_RETRY; i++ {
 		err = tsdbSend(*client, tsdbBuffer.Bytes(),
@@ -352,21 +363,19 @@ func tsdbSend(client net.Conn, data []byte, timeout time.Duration) (err error) {
 func tsdbReconnection(client *net.Conn, addr string, connTimeout int) {
 	var err error
 
-	statInc(ST_CONN_ERR, 1)
+	statInc(ST_UPSTREAM_RECONNECT, 1)
 	if *client != nil {
 		(*client).Close()
 	}
 
 	*client, err = netDial(addr,
 		time.Duration(connTimeout)*time.Millisecond)
-	statInc(ST_CONN_DIAL, 1)
 
 	for err != nil {
 		//danger!! block routine
 		time.Sleep(time.Millisecond * 500)
 		*client, err = netDial(addr,
 			time.Duration(connTimeout)*time.Millisecond)
-		statInc(ST_CONN_DIAL, 1)
 	}
 }
 
@@ -381,7 +390,6 @@ func loadBalancerWorker(bs []*backend) {
 	go func() {
 		for {
 			items := <-appUpdateChan
-			glog.V(3).Infof("lb get %d", len(*items))
 			for _, b := range bs {
 				for _, item := range *items {
 					ch := b.scheduler.sched(item.Id())

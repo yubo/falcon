@@ -3,16 +3,25 @@
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
-package storage
+package backend
 
 import (
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/yubo/falcon/specs"
 )
+
+func falconTicker(t time.Duration, debug int) <-chan time.Time {
+	if debug > 1 {
+		return time.NewTicker(t / DEBUG_MULTIPLES).C
+	} else {
+		return time.NewTicker(t).C
+	}
+}
 
 func renderJson(w http.ResponseWriter, v interface{}) {
 	bs, err := json.Marshal(v)

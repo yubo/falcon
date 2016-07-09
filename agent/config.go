@@ -14,12 +14,13 @@ import (
 )
 
 const (
-	CONN_RETRY = 2
+	CONN_RETRY      = 2
+	DEBUG_STAT_STEP = 60
 )
 
 var (
 	DefaultOptions = AgentOpts{
-		Debug:    false,
+		Debug:    0,
 		PidFile:  "/var/run/agent.pid",
 		Host:     "",
 		Http:     true,
@@ -28,6 +29,7 @@ var (
 		Interval: 60,
 		Handoff: HandoffOpts{
 			Enable:      true,
+			Batch:       16,
 			ConnTimeout: 1000,
 			CallTimeout: 5000,
 			Upstreams:   []string{},
@@ -37,13 +39,14 @@ var (
 
 type HandoffOpts struct {
 	Enable      bool     `hcl:"enable"`
+	Batch       int      `hcl:"batch"`
 	ConnTimeout int      `hcl:"conn_timeout"`
 	CallTimeout int      `hcl:"call_timeout"`
 	Upstreams   []string `hcl:"upstreams"`
 }
 
 type AgentOpts struct {
-	Debug    bool        `hcl:"debug"`
+	Debug    int         `hcl:"debug"`
 	PidFile  string      `hcl:"pid_file"`
 	Host     string      `hcl:"host"`
 	Http     bool        `hcl:"http"`

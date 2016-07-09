@@ -8,33 +8,39 @@ package agent
 import (
 	"fmt"
 	"sync/atomic"
+	"time"
+
+	"github.com/golang/glog"
+	"github.com/yubo/falcon/specs"
 )
 
 const (
-	ST_SUCCESS = iota
-	ST_CONN_ERR
-	ST_CONN_DIAL
-	ST_PUT_SUCCESS
-	ST_PUT_ERR
-	ST_STAT_SIZE
+	ST_UPSTREAM_RECONNECT = iota
+	ST_UPSTREAM_DIAL
+	ST_UPSTREAM_DIAL_ERR
+	ST_UPSTREAM_UPDATE
+	ST_UPSTREAM_UPDATE_ITEM
+	ST_UPSTREAM_UPDATE_ERR
+	ST_ARRAY_SIZE
 )
 
 var (
-	statName []string = []string{
-		"SUCCESS",
-		"conn error",
-		"conn dail",
-		"put success",
-		"put err",
+	statName [ST_ARRAY_SIZE]string = [ST_ARRAY_SIZE]string{
+		"ST_UPSTREAM_RECONNECT",
+		"ST_UPSTREAM_DIAL",
+		"ST_UPSTREAM_DIAL_ERR",
+		"ST_UPSTREAM_UPDATE",
+		"ST_UPSTREAM_UPDATE_ITEM",
+		"ST_UPSTREAM_UPDATE_ERR",
 	}
 )
 
 var (
-	statCnt [ST_STAT_SIZE]uint64
+	statCnt [ST_ARRAY_SIZE]uint64
 )
 
 func statHandle() (ret string) {
-	for i := 0; i < ST_STAT_SIZE; i++ {
+	for i := 0; i < ST_ARRAY_SIZE; i++ {
 		ret += fmt.Sprintf("%s %d\n", statName[i],
 			atomic.LoadUint64(&statCnt[i]))
 	}
@@ -51,4 +57,18 @@ func statSet(idx, n int) {
 
 func statGet(idx int) uint64 {
 	return atomic.LoadUint64(&statCnt[idx])
+}
+
+func statStart(config AgentOpts, p *specs.Process) {
+	if config.Debug > 0 {
+		ticker := time.NewTicker(time.Second * DEBUG_STAT_STEP).C
+		go func() {
+			for {
+				select {
+				case <-ticker:
+					glog.V(3).Info(statHandle())
+				}
+			}
+		}()
+	}
 }

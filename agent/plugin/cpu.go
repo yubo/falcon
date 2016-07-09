@@ -16,6 +16,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/golang/glog"
 	"github.com/yubo/falcon/agent"
 	"github.com/yubo/falcon/specs"
 )
@@ -56,19 +57,19 @@ type cpuCoreSample struct {
 	data [PROC_STAT_SIZE]uint64
 }
 
-func (this *cpuCoreSample) String() string {
+func (p *cpuCoreSample) String() string {
 	return fmt.Sprintf("<User:%d, Nice:%d, System:%d, Idle:%d, Iowait:%d,"+
 		" Irq:%d, SoftIrq:%d, Steal:%d, Guest:%d, Total:%d>",
-		this.data[PROC_STAT_USER],
-		this.data[PROC_STAT_NICE],
-		this.data[PROC_STAT_SYSTEM],
-		this.data[PROC_STAT_IDLE],
-		this.data[PROC_STAT_IOWAIT],
-		this.data[PROC_STAT_IRQ],
-		this.data[PROC_STAT_SOFTIRQ],
-		this.data[PROC_STAT_STEAL],
-		this.data[PROC_STAT_GUEST],
-		this.data[PROC_STAT_TOTAL])
+		p.data[PROC_STAT_USER],
+		p.data[PROC_STAT_NICE],
+		p.data[PROC_STAT_SYSTEM],
+		p.data[PROC_STAT_IDLE],
+		p.data[PROC_STAT_IOWAIT],
+		p.data[PROC_STAT_IRQ],
+		p.data[PROC_STAT_SOFTIRQ],
+		p.data[PROC_STAT_STEAL],
+		p.data[PROC_STAT_GUEST],
+		p.data[PROC_STAT_TOTAL])
 }
 
 type cpuStatSample struct {
@@ -80,15 +81,15 @@ type cpuStatSample struct {
 	procsBlocked uint64
 }
 
-func (this *cpuStatSample) String() string {
+func (p *cpuStatSample) String() string {
 	return fmt.Sprintf("<Cpu:%v, Cpus:%v, Ctxt:%d,"+
 		" Processes:%d, ProcsRunning:%d, ProcsBlocking:%d>",
-		this.cpu,
-		this.cpus,
-		this.ctxt,
-		this.processes,
-		this.procsRunning,
-		this.procsBlocked)
+		p.cpu,
+		p.cpus,
+		p.ctxt,
+		p.processes,
+		p.procsRunning,
+		p.procsBlocked)
 }
 
 var (
@@ -112,6 +113,7 @@ func (p *cpuCollector) Collect(step int,
 	if err != nil {
 		return nil, err
 	}
+	glog.V(4).Infof("%v", p.cur)
 	return p.stat(step, host)
 }
 
@@ -157,11 +159,11 @@ func (p *cpuCollector) stat(step int,
 			float64(p.cur.cpu.data[i]-p.last.cpu.data[i])*n))
 	}
 	ret = append(ret, GaugeValue(step, host, "cpu.busy",
-		float64(100.0-(p.cur.cpu.data[PROC_STAT_IDLE]-
-			p.last.cpu.data[PROC_STAT_IDLE]))))
+		float64(100.0-float64(p.cur.cpu.data[PROC_STAT_IDLE]-
+			p.last.cpu.data[PROC_STAT_IDLE])*n)))
 
 	ret = append(ret, GaugeValue(step, host, "cpu.switches",
-		float64(p.cur.ctxt)))
+		float64(p.cur.ctxt-p.last.ctxt)))
 
 	return ret, nil
 }
@@ -211,8 +213,7 @@ func _cpuParseLine(line string, ps *cpuStatSample) {
 
 func cpuParseFields(fields []string) *cpuCoreSample {
 	cu := cpuCoreSample{}
-	sz := len(fields)
-	for i := 1; i < sz; i++ {
+	for i := 1; i < PROC_STAT_TOTAL; i++ {
 		val, err := strconv.ParseUint(fields[i], 10, 64)
 		if err != nil {
 			continue

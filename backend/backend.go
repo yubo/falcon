@@ -3,13 +3,15 @@
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
-package storage
+package backend
 
 import (
 	"container/list"
 	"net/rpc"
 	"runtime"
+	"sync/atomic"
 	"syscall"
+	"time"
 
 	"stathat.com/c/consistent"
 
@@ -19,9 +21,10 @@ import (
 )
 
 var (
-	appConfig     StorageOpts = defaultOptions
+	appConfig     BackendOpts = defaultOptions
 	appConfigfile string
 	appProcess    *specs.Process
+	appTs         int64
 )
 
 func init() {
@@ -50,7 +53,30 @@ func init() {
 	}
 
 	// cache
-	cache.hash = make(map[string]*cacheEntry)
+	appCache.init()
+}
+
+func timeStart(config BackendOpts, ts *int64) {
+	start := time.Now().Unix()
+	ticker := time.NewTicker(time.Second).C
+	go func() {
+		for {
+			select {
+			case <-ticker:
+				now := time.Now().Unix()
+				if config.Debug > 1 {
+					atomic.StoreInt64(ts,
+						start+(now-start)*DEBUG_MULTIPLES)
+				} else {
+					atomic.StoreInt64(ts, now)
+				}
+			}
+		}
+	}()
+}
+
+func timeNow() int64 {
+	return atomic.LoadInt64(&appTs)
 }
 
 func Handle(arg interface{}) {
@@ -81,11 +107,12 @@ func Handle(arg interface{}) {
 		if err := appProcess.Save(); err != nil {
 			glog.Fatal(err)
 		}
-		dbStart(appConfig.Dsn, appConfig.DbMaxIdle)
+		timeStart(appConfig, &appTs)
 		rrdStart(appConfig, appProcess)
 		rpcStart(appConfig, appProcess)
-		//indexStart()
+		indexStart(appConfig, appProcess)
 		httpStart(appConfig, appProcess)
+		statStart(appConfig, appProcess)
 
 		appProcess.StartSignal()
 	} else {

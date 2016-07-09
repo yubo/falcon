@@ -13,9 +13,9 @@ import (
 	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/agent"
 	_ "github.com/yubo/falcon/agent/plugin"
+	"github.com/yubo/falcon/backend"
 	"github.com/yubo/falcon/handoff"
 	"github.com/yubo/falcon/specs"
-	"github.com/yubo/falcon/storage"
 	"github.com/yubo/gotool/flags"
 )
 
@@ -29,8 +29,8 @@ func init() {
 	flag.StringVar(&opts.ConfigFile, "config",
 		"/etc/falcon/falcon.conf", "falcon config file")
 
-	flags.NewCommand("storage", "storage submodule",
-		storage.Handle, flag.ExitOnError)
+	flags.NewCommand("backend", "backend submodule",
+		backend.Handle, flag.ExitOnError)
 
 	flags.NewCommand("handoff", "handoff submodule",
 		handoff.Handle, flag.ExitOnError)

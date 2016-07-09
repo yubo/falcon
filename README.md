@@ -15,11 +15,12 @@ make
 
 ## 模块对应关系
 
-| lite-falcon |   falcon   |
-|-------------|------------|
-|   storage   |   graph    |
-|   handoff   |   transfer |
-|   agent     |   agent    |
+| lite-falcon |   falcon                            |
+|-------------|-------------------------------------|
+|   agent     |   agent, _aggregator, nodata, task_ |
+|   handoff   |   transfer, _query_                 |
+|   backend   |   graph, _judge, sender_            |
+|   _no plan_ |   _gateway,  hbs_                   |
 
 ## TODO
 - test/benchmark
