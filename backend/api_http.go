@@ -3,7 +3,7 @@
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
-package storage
+package backend
 
 import (
 	"fmt"
@@ -21,15 +21,15 @@ import (
 
 var (
 	httpEvent  chan specs.ProcEvent
-	httpConfig StorageOpts
+	httpConfig BackendOpts
 )
 
 func count_handler(w http.ResponseWriter, r *http.Request) {
-	ts := time.Now().Unix() - 3600
+	ts := timeNow() - 3600
 	count := 0
 
-	for _, v := range cache.hash {
-		if v.ts > ts {
+	for _, v := range appCache.hash {
+		if v.lastTs > ts {
 			count++
 		}
 	}
@@ -58,13 +58,13 @@ func recv_hanlder(w http.ResponseWriter, r *http.Request) {
 	}
 
 	item := &specs.MetaData{
-		Host: host,
-		K:    k,
-		Ts:   ts,
-		Step: step,
-		Type: typ,
-		V:    value,
-		Tags: tags,
+		Host:  host,
+		Name:  k,
+		Ts:    ts,
+		Step:  step,
+		Type:  typ,
+		Value: value,
+		Tags:  tags,
 	}
 	gitem, err := item.Rrd()
 	if err != nil {
@@ -95,13 +95,13 @@ func recv2_handler(w http.ResponseWriter, r *http.Request) {
 	tags := r.Form["t"][0]
 
 	item := &specs.MetaData{
-		Host: host,
-		K:    k,
-		Ts:   ts,
-		Step: step,
-		Type: typ,
-		V:    value,
-		Tags: tags,
+		Host:  host,
+		Name:  k,
+		Ts:    ts,
+		Step:  step,
+		Type:  typ,
+		Value: value,
+		Tags:  tags,
 	}
 	gitem, err := item.Rrd()
 	if err != nil {
@@ -172,7 +172,7 @@ func (ln tcpKeepAliveListener) Accept() (c net.Conn, err error) {
 	return tc, nil
 }
 
-func httpStart(config StorageOpts, p *specs.Process) {
+func httpStart(config BackendOpts, p *specs.Process) {
 	if !config.Http {
 		glog.Info("http.Start warning, not enabled")
 		return

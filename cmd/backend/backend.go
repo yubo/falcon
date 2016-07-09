@@ -11,8 +11,8 @@ import (
 	"os"
 
 	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/backend"
 	"github.com/yubo/falcon/specs"
-	"github.com/yubo/falcon/storage"
 	"github.com/yubo/gotool/flags"
 )
 
@@ -24,7 +24,7 @@ func init() {
 		os.Args[0])
 
 	flag.StringVar(&opts.ConfigFile, "config",
-		"/etc/falcon/storage.conf", "storage config file")
+		"/etc/falcon/backend.conf", "backend config file")
 
 	flags.NewCommand("version", "show falcon version information",
 		falcon.Version_handle, flag.ExitOnError)
@@ -48,7 +48,7 @@ func main() {
 		cmd.Action(&opts)
 	} else {
 		opts.Args = flag.Args()
-		storage.Handle(&opts)
+		backend.Handle(&opts)
 	}
 
 }

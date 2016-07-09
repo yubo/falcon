@@ -7,6 +7,7 @@ package plugin
 
 import (
 	"strings"
+	"time"
 
 	"github.com/yubo/falcon/specs"
 )
@@ -15,11 +16,12 @@ func NewMetricValue(step int, host, metric string,
 	val float64, dataType string, tags ...string) *specs.MetaData {
 
 	mv := &specs.MetaData{
-		Host: host,
-		K:    metric,
-		V:    val,
-		Step: int64(step),
-		Type: dataType,
+		Host:  host,
+		Name:  metric,
+		Value: val,
+		Ts:    time.Now().Unix(),
+		Step:  int64(step),
+		Type:  dataType,
 	}
 
 	if len(tags) > 0 {

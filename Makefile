@@ -3,10 +3,10 @@
 # license that can be found in the LICENSE file.
 .PHONY: clean run
 
-all: bin/agent bin/handoff bin/storage bin/falcon
+all: bin/agent bin/handoff bin/backend bin/falcon
 
-bin/storage: git.go *.go specs/*.go storage/*.go cmd/storage/*.go
-	go build -gcflags "-N -l" -o bin/storage cmd/storage/*
+bin/backend: git.go *.go specs/*.go backend/*.go cmd/backend/*.go
+	go build -gcflags "-N -l" -o bin/backend cmd/backend/*
 
 bin/falcon: git.go *.go */*.go cmd/falcon/*.go
 	go build -o bin/falcon cmd/falcon/*
@@ -24,5 +24,6 @@ clean:
 	rm -rf bin/* git.go
 
 run:
-	./bin/agent -config ./etc/agent.conf -logtostderr -v 3
-	#./bin/storage -config ./etc/storage.conf -logtostderr -v 3
+	./bin/backend -config ./etc/backend.conf -logtostderr -v 3
+#./bin/agent -config ./etc/agent.conf -logtostderr -v 3
+#./bin/backend -config ./etc/backend.conf -logtostderr -v 3

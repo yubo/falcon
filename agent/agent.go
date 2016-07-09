@@ -65,6 +65,7 @@ func Handle(arg interface{}) {
 		httpStart(appConfig, appProcess)
 		upstreamStart(appConfig, appProcess)
 		collectStart(appConfig, appProcess)
+		statStart(appConfig, appProcess)
 
 		appProcess.StartSignal()
 	} else {

@@ -17,8 +17,8 @@ type RpcResp struct {
 	Code int `json:"code"`
 }
 
-func (this *RpcResp) String() string {
-	return fmt.Sprintf("<Code: %d>", this.Code)
+func (p *RpcResp) String() string {
+	return fmt.Sprintf("<Code: %d>", p.Code)
 }
 
 type Null struct {
@@ -31,42 +31,42 @@ type HandoffResp struct {
 	Invalid int
 }
 
-func (this *HandoffResp) String() string {
+func (p *HandoffResp) String() string {
 	return fmt.Sprintf(
 		"<Total=%v, Invalid:%v, Latency=%vms, Message:%s>",
-		this.Total,
-		this.Invalid,
-		this.Message,
+		p.Total,
+		p.Invalid,
+		p.Message,
 	)
 }
 
 type MetaData struct {
-	Host string  `json:"host"`
-	K    string  `json:"k"`
-	V    float64 `json:"v"`
-	Ts   int64   `json:"ts"`
-	Step int64   `json:"step"`
-	Type string  `json:"type"`
-	Tags string  `json:"tags"`
+	Host  string  `json:"host"`
+	Name  string  `json:"name"`
+	Value float64 `json:"value"`
+	Ts    int64   `json:"ts"`
+	Step  int64   `json:"step"`
+	Type  string  `json:"type"`
+	Tags  string  `json:"tags"`
 }
 
 func (t *MetaData) String() string {
-	return fmt.Sprintf("<MetaData host:%s, metric:%s, Timestamp:%d, Step:%d, Value:%f, Tags:%v>",
-		t.Host, t.K, t.Ts, t.Step, t.V, t.Tags)
+	return fmt.Sprintf("MetaData host:%s metric:%s Timestamp:%d Step:%d Value:%f type:%s Tags:%v",
+		t.Host, t.Name, t.Ts, t.Step, t.Value, t.Type, t.Tags)
 }
 
 func (p *MetaData) Id() string {
-	return fmt.Sprintf("%s/%s/%s/%s/%d", p.Host, p.K, p.Tags, p.Type, p.Step)
+	return fmt.Sprintf("%s/%s/%s/%s/%d", p.Host, p.Name, p.Tags, p.Type, p.Step)
 }
 
 func (p *MetaData) Rrd() (*RrdItem, error) {
 	e := &RrdItem{}
 
 	e.Host = p.Host
-	e.K = p.K
+	e.Name = p.Name
 	e.Tags = p.Tags
-	e.Ts = p.Ts
-	e.V = p.V
+	e.TimeStemp = p.Ts
+	e.Value = p.Value
 	e.Step = int(p.Step)
 	if e.Step < MIN_STEP {
 		e.Step = MIN_STEP
@@ -89,7 +89,7 @@ func (p *MetaData) Rrd() (*RrdItem, error) {
 		return e, fmt.Errorf("not_supported_counter_type")
 	}
 
-	e.Ts = e.Ts - e.Ts%int64(e.Step)
+	e.TimeStemp = e.TimeStemp - e.TimeStemp%int64(e.Step)
 
 	return e, nil
 }
@@ -107,9 +107,9 @@ func (p *MetaData) Tsdb() *TsdbItem {
 		}
 	}
 	t.Tags["host"] = p.Host
-	t.Metric = p.K
+	t.Metric = p.Name
 	t.Timestamp = p.Ts
-	t.Value = p.V
+	t.Value = p.Value
 	return &t
 }
 
@@ -120,20 +120,20 @@ type TsdbItem struct {
 	Timestamp int64             `json:"timestamp"`
 }
 
-func (this *TsdbItem) String() string {
+func (p *TsdbItem) String() string {
 	return fmt.Sprintf(
 		"<Metric:%s, Tags:%v, Value:%v, TS:%d>",
-		this.Metric,
-		this.Tags,
-		this.Value,
-		this.Timestamp,
+		p.Metric,
+		p.Tags,
+		p.Value,
+		p.Timestamp,
 	)
 }
 
-func (this *TsdbItem) TsdbString() (s string) {
-	s = fmt.Sprintf("put %s %d %.3f ", this.Metric, this.Timestamp, this.Value)
+func (p *TsdbItem) TsdbString() (s string) {
+	s = fmt.Sprintf("put %s %d %.3f ", p.Metric, p.Timestamp, p.Value)
 
-	for k, v := range this.Tags {
+	for k, v := range p.Tags {
 		key := strings.ToLower(strings.Replace(k, " ", "_", -1))
 		value := strings.Replace(v, " ", "_", -1)
 		s += key + "=" + value + " "
@@ -146,31 +146,31 @@ func (this *TsdbItem) TsdbString() (s string) {
 // Type: GAUGE|COUNTER|DERIVE
 type RrdItem struct {
 	Host      string  `json:"host"`
-	K         string  `json:"k"`
-	V         float64 `json:"v"`
-	Ts        int64   `json:"ts"`
+	Name      string  `json:"name"`
+	Value     float64 `json:"value"`
+	TimeStemp int64   `json:"ts"`
 	Step      int     `json:"step"`
 	Type      string  `json:"type"`
 	Tags      string  `json:"tags"`
-	Heartbeat int     `json:"heartbeat"`
+	Heartbeat int     `json:"hb"`
 	Min       string  `json:"min"`
 	Max       string  `json:"max"`
 }
 
-func (this *RrdItem) String() string {
+func (p *RrdItem) String() string {
 	return fmt.Sprintf(
 		"<Host:%s, Key:%s, Tags:%v, Value:%v, TS:%d %v Type:%s, Step:%d, Heartbeat:%d, Min:%s, Max:%s>",
-		this.Host,
-		this.K,
-		this.Tags,
-		this.V,
-		this.Ts,
-		fmtTs(this.Ts),
-		this.Type,
-		this.Step,
-		this.Heartbeat,
-		this.Min,
-		this.Max,
+		p.Host,
+		p.Name,
+		p.Tags,
+		p.Value,
+		p.TimeStemp,
+		fmtTs(p.TimeStemp),
+		p.Type,
+		p.Step,
+		p.Heartbeat,
+		p.Min,
+		p.Max,
 	)
 }
 
@@ -179,7 +179,7 @@ func (p *RrdItem) Csum() string {
 }
 
 func (p *RrdItem) Id() string {
-	return fmt.Sprintf("%s/%s/%s/%s/%d", p.Host, p.K, p.Tags, p.Type, p.Step)
+	return fmt.Sprintf("%s/%s/%s/%s/%d", p.Host, p.Name, p.Tags, p.Type, p.Step)
 }
 
 // ConsolFun 是RRD中的概念，比如：MIN|MAX|AVERAGE
@@ -187,7 +187,7 @@ type RrdQuery struct {
 	Start     int64  `json:"start"`
 	End       int64  `json:"end"`
 	Host      string `json:"host"`
-	K         string `json:"k"`
+	Name      string `json:"name"`
 	Type      string `json:"type"`
 	Step      int    `json:"step"`
 	ConsolFun string `json:"consolFuc"`
@@ -198,12 +198,12 @@ func (p *RrdQuery) Csum() string {
 }
 
 func (p *RrdQuery) Id() string {
-	return fmt.Sprintf("%s/%s/%s/%d", p.Host, p.K, p.Type, p.Step)
+	return fmt.Sprintf("%s/%s/%s/%d", p.Host, p.Name, p.Type, p.Step)
 }
 
 type RrdResp struct {
 	Host string     `json:"host"`
-	K    string     `json:"k"`
+	Name string     `json:"name"`
 	Type string     `json:"type"`
 	Step int        `json:"step"`
 	Vs   []*RRDData `json:"Vs"` //大写为了兼容已经再用这个api的用户
@@ -214,7 +214,7 @@ func (p *RrdResp) Csum() string {
 }
 
 func (p *RrdResp) Id() string {
-	return fmt.Sprintf("%s/%s/%s/%d", p.Host, p.K, p.Type, p.Step)
+	return fmt.Sprintf("%s/%s/%s/%d", p.Host, p.Name, p.Type, p.Step)
 }
 
 type RrdQueryCsum struct {
@@ -244,14 +244,28 @@ type RRDData struct {
 	V  JsonFloat `json:"v"`
 }
 
-func (this *RRDData) String() string {
+func (p *RRDData) String() string {
 	return fmt.Sprintf(
 		"<RRDData:Value:%v TS:%d %v>",
-		this.V,
-		this.Ts,
-		fmtTs(this.Ts),
+		p.V,
+		p.Ts,
+		fmtTs(p.Ts),
 	)
 }
+
+/*
+func (p *RRDData) Rrd() *RrdItem {
+	return &RrdItem{
+		Host: p.host,
+		K:    p.k,
+		Tags: p.tags,
+		V:    float64(p.V),
+		Ts:   v.Ts,
+		Type: p.typ,
+		Step: p.step,
+	}
+}
+*/
 
 type File struct {
 	Filename string

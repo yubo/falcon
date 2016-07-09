@@ -3,11 +3,12 @@
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
-package storage
+package backend
 
 import (
 	"container/list"
 	"errors"
+	"fmt"
 	"math"
 	"net"
 	"net/rpc"
@@ -22,7 +23,7 @@ import (
 var (
 	rpcEvent    chan specs.ProcEvent
 	rpcConnects connList
-	rpcConfig   StorageOpts
+	rpcConfig   BackendOpts
 )
 
 type connList struct {
@@ -41,45 +42,83 @@ func (l *connList) remove(e *list.Element) net.Conn {
 	return l.list.Remove(e).(net.Conn)
 }
 
-type Storage int
+type Backend int
 
-func (this *Storage) GetRrd(key string, rrdfile *specs.File) (err error) {
+func (p *Backend) GetRrd(key string, rrdfile *specs.File) (err error) {
 
-	e := cache.get(key)
+	statInc(ST_RPC_SERV_GETRRD, 1)
+	e := appCache.get(key)
 	if e != nil {
 		e.commit()
 	}
 
 	rrdfile.Data, err = taskFileRead(key2filename(rpcConfig.RrdStorage, key))
+	if err != nil {
+		statInc(ST_RPC_SERV_GETRRD_ERR, 1)
+	}
+
 	return
 }
 
-func (this *Storage) Ping(req specs.Null,
+func (p *Backend) Ping(req specs.Null,
 	resp *specs.RpcResp) error {
 	return nil
+}
+
+func demoValue(idx int64, i int) float64 {
+	return math.Sin(float64(idx+int64(i)) * math.Pi / 40.0)
+}
+
+func (p *Backend) demo() {
+	items := make([]*specs.RrdItem, DEBUG_SAMPLE_NB)
+	ticker := falconTicker(time.Second*DEBUG_STEP, rpcConfig.Debug)
+	step := DEBUG_STEP
+	j := 0
+	for {
+		select {
+		case <-ticker:
+			for i := 0; i < DEBUG_SAMPLE_NB; i++ {
+				ts := timeNow()
+				items[i] = &specs.RrdItem{
+					Host:      "demo",
+					Name:      fmt.Sprintf("%d", i),
+					Value:     demoValue(ts/int64(step), i),
+					TimeStemp: ts,
+					Step:      step,
+					Type:      specs.GAUGE,
+					Heartbeat: step * 2,
+					Min:       "U",
+					Max:       "U",
+				}
+			}
+			p.Put(items, nil)
+			j++
+		}
+	}
+
 }
 
 /* "Put" maybe better than "Send" */
-func (this *Storage) Put(items []*specs.RrdItem,
+func (p *Backend) Put(items []*specs.RrdItem,
 	resp *specs.RpcResp) error {
 	go handleItems(items)
 	return nil
 }
 
-func (this *Storage) Send(items []*specs.RrdItem,
+func (p *Backend) Send(items []*specs.RrdItem,
 	resp *specs.RpcResp) error {
 	go handleItems(items)
 	return nil
 }
 
-func queryCheckParam(param *specs.RrdQuery,
+func queryGetCacheEntry(param *specs.RrdQuery,
 	resp *specs.RrdResp) (*cacheEntry, error) {
 	// form empty response
 	resp.Vs = []*specs.RRDData{}
 	resp.Host = param.Host
-	resp.K = param.K
+	resp.Name = param.Name
 
-	e := cache.get(param.Csum())
+	e := appCache.get(param.Csum())
 	if e == nil {
 		return nil, specs.ErrNoent
 	}
@@ -101,8 +140,7 @@ func queryGetData(param *specs.RrdQuery, resp *specs.RrdResp,
 	filename := e.filename(rpcConfig.RrdStorage)
 
 	flag := atomic.LoadUint32(&e.flag)
-	caches = make([]*specs.RRDData, len(e.cache))
-	copy(caches, e.cache)
+	caches, _ = e._getData(e.commitId, e.dataId)
 
 	if rpcConfig.Migrate.Enable && flag&RRD_F_MISS != 0 {
 		node, _ := rrdMigrateConsistent.Get(param.Id())
@@ -124,7 +162,7 @@ func queryGetData(param *specs.RrdQuery, resp *specs.RrdResp,
 	}
 
 	// larger than rra1point range, skip merge
-	now := time.Now().Unix()
+	now := timeNow()
 	if param.Start < now-now%int64(e.step)-int64(RRA1PointCnt*e.step) {
 		resp.Vs = rrds
 		return nil, nil, errors.New("skip merge")
@@ -268,7 +306,7 @@ func queryFmtRet(a []*specs.RRDData,
 	return ret
 }
 
-func (this *Storage) Query(param specs.RrdQuery,
+func (p *Backend) Query(param specs.RrdQuery,
 	resp *specs.RrdResp) (err error) {
 	var (
 		e    *cacheEntry
@@ -276,16 +314,16 @@ func (this *Storage) Query(param specs.RrdQuery,
 		ret  []*specs.RRDData
 	)
 
-	statInc(ST_STORAGE_QUERY_CNT, 1)
+	statInc(ST_RPC_SERV_QUERY, 1)
 
-	e, err = queryCheckParam(&param, resp)
+	e, err = queryGetCacheEntry(&param, resp)
 	if err != nil {
 		return err
 	}
 
 	rrds, ret, err = queryGetData(&param, resp, e)
 	if err != nil {
-		statInc(ST_STORAGE_QUERY_ITEM_CNT, len(resp.Vs))
+		statInc(ST_RPC_SERV_QUERY_ITEM, len(resp.Vs))
 		return err
 	}
 
@@ -295,7 +333,7 @@ func (this *Storage) Query(param specs.RrdQuery,
 
 	resp.Vs = queryFmtRet(ret, param.Start, param.End, int64(e.step))
 
-	statInc(ST_STORAGE_QUERY_ITEM_CNT, len(resp.Vs))
+	statInc(ST_RPC_SERV_QUERY_ITEM, len(resp.Vs))
 	return nil
 }
 
@@ -314,7 +352,9 @@ func handleItems(items []*specs.RrdItem) {
 		return
 	}
 
-	glog.V(3).Infof("recv %d", n)
+	glog.V(4).Infof("recv %d", n)
+	statInc(ST_RPC_SERV_RECV, 1)
+	statInc(ST_RPC_SERV_RECV_ITEM, n)
 
 	for i := 0; i < n; i++ {
 		if items[i] == nil {
@@ -322,16 +362,15 @@ func handleItems(items []*specs.RrdItem) {
 		}
 		key := items[i].Csum()
 
-		statInc(ST_STORAGE_RPC_RECV_CNT, 1)
-		e = cache.get(key)
+		e = appCache.get(key)
 		if e == nil {
-			e, err = cache.put(key, items[i])
+			e, err = appCache.createEntry(key, items[i])
 			if err == nil {
 				continue
 			}
 		}
 
-		if items[i].Ts <= e.ts {
+		if items[i].TimeStemp <= e.lastTs {
 			continue
 		}
 		e.put(items[i])
@@ -348,7 +387,7 @@ func handleItems(items []*specs.RrdItem) {
 func getLast(csum string) *specs.RRDData {
 	nan := &specs.RRDData{Ts: 0, V: specs.JsonFloat(0.0)}
 
-	e := cache.get(csum)
+	e := appCache.get(csum)
 	if e == nil {
 		return nan
 	}
@@ -356,39 +395,25 @@ func getLast(csum string) *specs.RRDData {
 	e.RLock()
 	defer e.RUnlock()
 
-	cl := len(e.cache)
-	hl := len(e.history)
-
 	if e.typ == specs.GAUGE {
-		if cl+hl < 1 {
+		if e.dataId == 0 {
 			return nan
 		}
-		if cl > 0 {
-			return e.cache[cl-1]
-		} else {
-			return e.history[hl-1]
-		}
+
+		return e.data[(e.dataId-1)&CACHE_SIZE_MASK]
+
 	}
 
 	if e.typ == specs.COUNTER || e.typ == specs.DERIVE {
-		var f0, f1 *specs.RRDData
 
-		if cl+hl < 2 {
+		if e.dataId < 2 {
 			return nan
 		}
 
-		if cl > 1 {
-			f0 = e.cache[cl-1]
-			f1 = e.cache[cl-2]
-		} else if cl > 0 {
-			f0 = e.cache[cl-1]
-			f1 = e.history[hl-1]
-		} else {
-			f0 = e.history[cl-1]
-			f1 = e.history[hl-2]
-		}
-		delta_ts := f0.Ts - f1.Ts
-		delta_v := f0.V - f1.V
+		data, _ := e._getData(e.dataId-2, e.dataId)
+
+		delta_ts := data[0].Ts - data[1].Ts
+		delta_v := data[0].V - data[1].V
 		if delta_ts != int64(e.step) || delta_ts <= 0 {
 			return nan
 		}
@@ -397,7 +422,7 @@ func getLast(csum string) *specs.RRDData {
 			delta_v = 0
 		}
 
-		return &specs.RRDData{Ts: f0.Ts,
+		return &specs.RRDData{Ts: data[0].Ts,
 			V: specs.JsonFloat(float64(delta_v) / float64(delta_ts))}
 	}
 	return nan
@@ -405,7 +430,7 @@ func getLast(csum string) *specs.RRDData {
 
 func getLastRaw(csum string) *specs.RRDData {
 	nan := &specs.RRDData{Ts: 0, V: specs.JsonFloat(0.0)}
-	e := cache.get(csum)
+	e := appCache.get(csum)
 	if e == nil {
 		return nan
 	}
@@ -413,23 +438,16 @@ func getLastRaw(csum string) *specs.RRDData {
 	e.RLock()
 	defer e.RUnlock()
 
-	cl := len(e.cache)
-	hl := len(e.history)
-
 	if e.typ == specs.GAUGE {
-		if cl+hl < 1 {
+		if e.dataId == 0 {
 			return nan
 		}
-		if cl > 0 {
-			return e.cache[cl-1]
-		} else {
-			return e.history[hl-1]
-		}
+		return e.data[(e.dataId-1)&CACHE_SIZE_MASK]
 	}
 	return nan
 }
 
-func _rpcStart(config *StorageOpts, listener **net.TCPListener) (err error) {
+func _rpcStart(config *BackendOpts, listener **net.TCPListener) (err error) {
 	var addr *net.TCPAddr
 
 	if !config.Rpc {
@@ -476,7 +494,7 @@ func _rpcStart(config *StorageOpts, listener **net.TCPListener) (err error) {
 	return err
 }
 
-func _rpcStop(config *StorageOpts, listener *net.TCPListener) (err error) {
+func _rpcStop(config *BackendOpts, listener *net.TCPListener) (err error) {
 	if listener == nil {
 		return specs.ErrNoent
 	}
@@ -491,14 +509,19 @@ func _rpcStop(config *StorageOpts, listener *net.TCPListener) (err error) {
 	return nil
 }
 
-func rpcStart(config StorageOpts, p *specs.Process) {
+func rpcStart(config BackendOpts, p *specs.Process) {
 	var rpcListener *net.TCPListener
 
-	rpc.Register(new(Storage))
+	s := new(Backend)
+	rpc.Register(s)
 	p.RegisterEvent("rpc", rpcEvent)
 	rpcConfig = config
 
 	_rpcStart(&rpcConfig, &rpcListener)
+
+	if rpcConfig.Debug > 1 {
+		go s.demo()
+	}
 
 	go func() {
 		select {

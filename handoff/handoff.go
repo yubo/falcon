@@ -68,6 +68,7 @@ func Handle(arg interface{}) {
 		rpcStart(appConfig, appProcess)
 		httpStart(appConfig, appProcess)
 		upstreamStart(appConfig, appProcess)
+		statStart(appConfig, appProcess)
 
 		appProcess.StartSignal()
 	} else {

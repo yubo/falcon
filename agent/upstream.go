@@ -37,9 +37,11 @@ func (p *upstreamPool) get() string {
 func rpcDial(address string,
 	timeout time.Duration) (*rpc.Client, error) {
 
+	statInc(ST_UPSTREAM_DIAL, 1)
 	d := net.Dialer{Timeout: timeout}
 	conn, err := d.Dial("tcp", address)
 	if err != nil {
+		statInc(ST_UPSTREAM_DIAL_ERR, 1)
 		return nil, err
 	}
 	if tc, ok := conn.(*net.TCPConn); ok {
@@ -54,15 +56,14 @@ func rpcDial(address string,
 func reconnection(client **rpc.Client, connTimeout int) {
 	var err error
 
+	statInc(ST_UPSTREAM_RECONNECT, 1)
 	addr := streamPool.get()
-	statInc(ST_CONN_ERR, 1)
 	if *client != nil {
 		(*client).Close()
 	}
 
 	*client, err = rpcDial(addr, time.Duration(connTimeout)*
 		time.Millisecond)
-	statInc(ST_CONN_DIAL, 1)
 
 	for err != nil {
 		//danger!! block routine
@@ -72,7 +73,6 @@ func reconnection(client **rpc.Client, connTimeout int) {
 		addr = streamPool.get()
 		*client, err = rpcDial(addr,
 			time.Duration(connTimeout)*time.Millisecond)
-		statInc(ST_CONN_DIAL, 1)
 	}
 }
 
@@ -100,6 +100,8 @@ func putRpcStorageData(client **rpc.Client, items *[]*specs.MetaData,
 		i    int
 	)
 
+	statInc(ST_UPSTREAM_UPDATE, 1)
+	statInc(ST_UPSTREAM_UPDATE_ITEM, len(*items))
 	resp = &specs.RpcResp{}
 
 	for i = 0; i < CONN_RETRY; i++ {
@@ -116,6 +118,9 @@ func putRpcStorageData(client **rpc.Client, items *[]*specs.MetaData,
 		}
 	}
 out:
+	if err != nil {
+		statInc(ST_UPSTREAM_UPDATE_ERR, 1)
+	}
 	return err
 }
 
@@ -123,6 +128,7 @@ func upstreamStart(config AgentOpts, p *specs.Process) {
 	var (
 		client *rpc.Client
 		err    error
+		i      int
 	)
 	upstreamConfig = config
 
@@ -131,6 +137,18 @@ func upstreamStart(config AgentOpts, p *specs.Process) {
 	streamPool.idx = rand.Uint32() % streamPool.size
 	streamPool.pool = make([]string, int(streamPool.size))
 	copy(streamPool.pool, upstreamConfig.Handoff.Upstreams)
+
+	if upstreamConfig.Debug > 1 {
+		go func() {
+			for {
+				items := <-appUpdateChan
+				for k, v := range *items {
+					glog.V(3).Infof("%d %s", k, v)
+				}
+			}
+		}()
+		return
+	}
 
 	go func() {
 
@@ -144,13 +162,20 @@ func upstreamStart(config AgentOpts, p *specs.Process) {
 		for {
 			items := <-appUpdateChan
 
-			if err = putRpcStorageData(&client, items,
-				upstreamConfig.Handoff.ConnTimeout,
-				upstreamConfig.Handoff.CallTimeout); err != nil {
-				statInc(ST_PUT_ERR, 1)
-			} else {
-				statInc(ST_PUT_SUCCESS, 1)
+			n := upstreamConfig.Handoff.Batch
+			for i = 0; i < len(*items)-n; i += n {
+				_items := (*items)[i : i+n]
+				putRpcStorageData(&client, &_items,
+					upstreamConfig.Handoff.ConnTimeout,
+					upstreamConfig.Handoff.CallTimeout)
 			}
+			if i < len(*items) {
+				_items := (*items)[i:]
+				putRpcStorageData(&client, &_items,
+					upstreamConfig.Handoff.ConnTimeout,
+					upstreamConfig.Handoff.CallTimeout)
+			}
+
 		}
 	}()
 

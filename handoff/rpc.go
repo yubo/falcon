@@ -41,7 +41,7 @@ func (l *connList) remove(e *list.Element) net.Conn {
 
 type Falcon int
 
-func (this *Falcon) Ping(req specs.Null, resp *specs.RpcResp) error {
+func (p *Falcon) Ping(req specs.Null, resp *specs.RpcResp) error {
 	return nil
 }
 
@@ -57,7 +57,7 @@ func (t *Falcon) Update(args []*specs.MetaData,
 			continue
 		}
 
-		if v.K == "" || v.Host == "" {
+		if v.Name == "" || v.Host == "" {
 			reply.Invalid += 1
 			continue
 		}
@@ -74,7 +74,7 @@ func (t *Falcon) Update(args []*specs.MetaData,
 			continue
 		}
 
-		if len(v.K)+len(v.Tags) > 510 {
+		if len(v.Name)+len(v.Tags) > 510 {
 			reply.Invalid += 1
 			continue
 		}
@@ -84,7 +84,7 @@ func (t *Falcon) Update(args []*specs.MetaData,
 		}
 
 		items = append(items, &specs.MetaData{
-			K:    v.K,
+			Name: v.Name,
 			Host: v.Host,
 			Ts:   v.Ts,
 			Step: v.Step,
