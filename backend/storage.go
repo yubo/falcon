@@ -31,6 +31,7 @@ const (
 	_ = iota
 	IO_TASK_M_FILE_READ
 	IO_TASK_M_FILE_WRITE
+	IO_TASK_M_RRD_ADD
 	IO_TASK_M_RRD_UPDATE
 	IO_TASK_M_RRD_FETCH
 )
@@ -184,6 +185,29 @@ func ioFileWrite(filename string, data []byte, perm os.FileMode) error {
 
 // flush to disk from cacheEntry
 // call by ioWorker
+func ioRrdAdd(e *cacheEntry) (err error) {
+	filename := e.filename()
+
+	// unlikely
+	_, err = os.Stat(filename)
+	if !os.IsNotExist(err) {
+		return specs.ErrExist
+	}
+
+	path := path.Dir(filename)
+	_, err = os.Stat(path)
+	if os.IsNotExist(err) {
+		os.MkdirAll(path, os.ModePerm)
+	}
+
+	statInc(ST_RRD_CREAT, 1)
+	if err = rrdCreate(filename, e); err != nil {
+		statInc(ST_RRD_CREAT_ERR, 1)
+	}
+
+	return err
+}
+
 func ioRrdUpdate(e *cacheEntry) (err error) {
 	if e == nil || e.dataId == 0 {
 		return specs.ErrEmpty
@@ -514,6 +538,10 @@ func ioWorker(ch chan *ioTask) {
 					task.done <- ioFileWrite(args.Filename,
 						args.Data, 0644)
 				}
+			} else if task.method == IO_TASK_M_RRD_ADD {
+				if args, ok := task.args.(*cacheEntry); ok {
+					task.done <- ioRrdAdd(args)
+				}
 			} else if task.method == IO_TASK_M_RRD_UPDATE {
 				if args, ok := task.args.(*cacheEntry); ok {
 					task.done <- ioRrdUpdate(args)
@@ -634,11 +662,11 @@ func commitCacheWorker(p *specs.Process) {
 	}
 }
 
-func storageCheckHds(c StorageOpts) error {
-	if len(c.Hdisks) == 0 {
+func storageCheckHds(hds []string) error {
+	if len(hds) == 0 {
 		return specs.ErrEmpty
 	}
-	for _, dir := range c.Hdisks {
+	for _, dir := range hds {
 		if _, err := os.Stat(dir); err != nil {
 			return err
 		}
@@ -650,7 +678,7 @@ func rrdStart(config BackendOpts, p *specs.Process) {
 
 	storageConfig = config
 
-	err := storageCheckHds(storageConfig.Storage)
+	err := storageCheckHds(storageConfig.Storage.Hdisks)
 	if err != nil {
 		glog.Fatalf("rrdtool.Start error, bad data dir %v\n", err)
 	}

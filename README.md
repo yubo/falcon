@@ -11,6 +11,14 @@
 make
 ```
 
+## benchmark
+```
+cd backend
+go test -bench=Add -benchtime=20s
+go test -bench=.
+```
+
+
 ## 特点
 - 整合／精简了代码,依赖包
 - 简化配置
@@ -25,7 +33,5 @@ make
 |   backend   |   graph, _judge, sender_            |
 |   _no plan_ |   _gateway,  hbs_                   |
 
-## TODO
-- test/benchmark
 
 [lite_falcon_img]:https://cdn.rawgit.com/yubo/falcon/master/doc/img/lite-falcon.svg
