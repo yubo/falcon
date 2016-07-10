@@ -52,7 +52,7 @@ func (p *Backend) GetRrd(key string, rrdfile *specs.File) (err error) {
 		e.commit()
 	}
 
-	rrdfile.Data, err = taskFileRead(key2filename(rpcConfig.RrdStorage, key))
+	rrdfile.Data, err = taskFileRead(key)
 	if err != nil {
 		statInc(ST_RPC_SERV_GETRRD_ERR, 1)
 	}
@@ -137,16 +137,14 @@ func queryGetCacheEntry(param *specs.RrdQuery,
 func queryGetData(param *specs.RrdQuery, resp *specs.RrdResp,
 	e *cacheEntry) (rrds, caches []*specs.RRDData, err error) {
 
-	filename := e.filename(rpcConfig.RrdStorage)
-
 	flag := atomic.LoadUint32(&e.flag)
 	caches, _ = e._getData(e.commitId, e.dataId)
 
 	if rpcConfig.Migrate.Enable && flag&RRD_F_MISS != 0 {
-		node, _ := rrdMigrateConsistent.Get(param.Id())
+		node, _ := storageMigrateConsistent.Get(param.Id())
 		done := make(chan error, 1)
 		res := &specs.RrdRespCsum{}
-		rrdNetTaskCh[node] <- &netTask{
+		storageNetTaskCh[node] <- &netTask{
 			Method: NET_TASK_M_QUERY,
 			Done:   done,
 			Args:   param,
@@ -157,7 +155,7 @@ func queryGetData(param *specs.RrdQuery, resp *specs.RrdResp,
 		rrds = res.Values
 	} else {
 		// read data from local rrd file
-		rrds, _ = taskRrdFetch(filename, param.ConsolFun,
+		rrds, _ = taskRrdFetch(e.hashkey, param.ConsolFun,
 			param.Start, param.End, e.step)
 	}
 
@@ -365,21 +363,21 @@ func handleItems(items []*specs.RrdItem) {
 		e = appCache.get(key)
 		if e == nil {
 			e, err = appCache.createEntry(key, items[i])
-			if err == nil {
+			if err != nil {
 				continue
 			}
 		}
 
-		if items[i].TimeStemp <= e.lastTs {
+		if DATA_TIMESTAMP_REGULATE {
+			items[i].TimeStemp = items[i].TimeStemp -
+				items[i].TimeStemp%int64(items[i].Step)
+		}
+
+		if items[i].TimeStemp <= e.lastTs || items[i].TimeStemp <= 0 {
 			continue
 		}
+
 		e.put(items[i])
-
-		// To Index
-		//ReceiveItem(items[i], checksum)
-
-		// To History
-		//AddItem(checksum, items[i])
 	}
 }
 

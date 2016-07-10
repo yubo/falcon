@@ -40,11 +40,10 @@ func init() {
 	httpRoutes()
 
 	// rrdtool/sync_disk/migrate
-	rrdSyncEvent = make(chan specs.ProcEvent)
-	rrdIoTaskCh = make(chan *ioTask, 16)
-	rrdMigrateConsistent = consistent.New()
-	rrdNetTaskCh = make(map[string]chan *netTask)
-	rrdMigrateClients = make(map[string][]*rpc.Client)
+	storageSyncEvent = make(chan specs.ProcEvent)
+	storageMigrateConsistent = consistent.New()
+	storageNetTaskCh = make(map[string]chan *netTask)
+	storageMigrateClients = make(map[string][]*rpc.Client)
 
 	// store
 	size := CACHE_TIME / FLUSH_DISK_STEP

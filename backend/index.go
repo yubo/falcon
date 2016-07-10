@@ -250,12 +250,12 @@ func indexStart(config BackendOpts, p *specs.Process) {
 
 	indexConfig = config
 
-	indexDb, err = sql.Open("mysql", rrdConfig.Dsn)
+	indexDb, err = sql.Open("mysql", storageConfig.Dsn)
 	if err != nil {
 		glog.Fatal(err)
 	}
 
-	indexDb.SetMaxIdleConns(rrdConfig.DbMaxIdle)
+	indexDb.SetMaxIdleConns(storageConfig.DbMaxIdle)
 	indexDb.SetMaxOpenConns(0)
 
 	err = indexDb.Ping()
