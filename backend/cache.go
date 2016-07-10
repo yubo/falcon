@@ -45,8 +45,12 @@ type cacheEntry struct {
 }
 
 // should === specs.RrdItem.Id()
-func (p *cacheEntry) Id() string {
+func (p *cacheEntry) id() string {
 	return fmt.Sprintf("%s/%s/%s/%s/%d", p.host, p.name, p.tags, p.typ, p.step)
+}
+
+func (p *cacheEntry) csum() string {
+	return specs.Md5sum(p.id())
 }
 
 type cacheq struct {
@@ -233,6 +237,21 @@ func (p *cacheEntry) fetchCommit() {
 		}
 		//todo: flushfile after getfile? not yet
 	}()
+}
+
+func (p *cacheEntry) createRrd() error {
+	done := make(chan error, 1)
+
+	ktoch(p.hashkey) <- &ioTask{
+		method: IO_TASK_M_RRD_ADD,
+		args:   p,
+		done:   done,
+	}
+	err := <-done
+
+	p.commitTs = timeNow()
+
+	return err
 }
 
 func (p *cacheEntry) commit() error {

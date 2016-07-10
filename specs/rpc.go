@@ -166,7 +166,7 @@ func (p *RrdItem) String() string {
 		p.Tags,
 		p.Value,
 		p.TimeStemp,
-		fmtTs(p.TimeStemp),
+		FmtTs(p.TimeStemp),
 		p.Type,
 		p.Step,
 		p.Heartbeat,
@@ -176,7 +176,7 @@ func (p *RrdItem) String() string {
 }
 
 func (p *RrdItem) Csum() string {
-	return md5sum(p.Id())
+	return Md5sum(p.Id())
 }
 
 func (p *RrdItem) Id() string {
@@ -195,7 +195,7 @@ type RrdQuery struct {
 }
 
 func (p *RrdQuery) Csum() string {
-	return md5sum(p.Id())
+	return Md5sum(p.Id())
 }
 
 func (p *RrdQuery) Id() string {
@@ -211,7 +211,7 @@ type RrdResp struct {
 }
 
 func (p *RrdResp) Csum() string {
-	return md5sum(p.Id())
+	return Md5sum(p.Id())
 }
 
 func (p *RrdResp) Id() string {
@@ -250,7 +250,7 @@ func (p *RRDData) String() string {
 		"<RRDData:Value:%v TS:%d %v>",
 		p.V,
 		p.Ts,
-		fmtTs(p.Ts),
+		FmtTs(p.Ts),
 	)
 }
 

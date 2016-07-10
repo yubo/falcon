@@ -96,7 +96,7 @@ func indexUpdate(e *cacheEntry) {
 	}
 
 	// host_id
-	counter := e.Id()
+	counter := e.id()
 
 	cid = -1
 	step = 0
