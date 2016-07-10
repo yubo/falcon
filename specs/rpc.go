@@ -89,7 +89,8 @@ func (p *MetaData) Rrd() (*RrdItem, error) {
 		return e, fmt.Errorf("not_supported_counter_type")
 	}
 
-	e.TimeStemp = e.TimeStemp - e.TimeStemp%int64(e.Step)
+	//move to backend
+	//e.TimeStemp = e.TimeStemp - e.TimeStemp%int64(e.Step)
 
 	return e, nil
 }

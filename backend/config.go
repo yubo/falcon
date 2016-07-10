@@ -24,6 +24,7 @@ const (
 	CONN_RETRY              = 2
 	CACHE_SIZE              = 1 << 5   // must pow(2,n)
 	CACHE_SIZE_MASK         = 1<<5 - 1 //
+	DATA_TIMESTAMP_REGULATE = true
 	INDEX_QPS               = 100
 	INDEX_UPDATE_CYCLE_TIME = 86400
 	INDEX_TIMEOUT           = 86400
@@ -43,7 +44,6 @@ var (
 		HttpAddr:        "0.0.0.0:7021",
 		Rpc:             true,
 		RpcAddr:         "0.0.0.0:7020",
-		RrdStorage:      "/home/work/data/7020",
 		Idx:             true,
 		IdxInterval:     30,
 		IdxFullInterval: 86400,
@@ -56,6 +56,9 @@ var (
 			ConnTimeout: 1000,
 			CallTimeout: 5000,
 			Upstream:    map[string]string{},
+		},
+		Storage: StorageOpts{
+			Type: "rrdlite",
 		},
 	}
 )
@@ -70,21 +73,35 @@ type MigrateOpts struct {
 }
 
 func (o MigrateOpts) String() string {
+	var upstream string
 	indent := strings.Repeat(" ", specs.IndentSize)
 
-	ret := fmt.Sprintf(`enable      %v
-concurrency %d
-replicas    %d
-calltimeout %d
-conntimeout %d
-upstream (
-`, o.Enable, o.Concurrency, o.Replicas,
-		o.CallTimeout, o.ConnTimeout)
 	for k, v := range o.Upstream {
-		ret += fmt.Sprintf("%s%10s = %s\n", indent, k, v)
+		upstream += fmt.Sprintf("%s%-10s = %s\n", indent, k, v)
 	}
-	ret += ")"
-	return ret
+
+	return fmt.Sprintf("%-12s %v\n%-12s %d\n%-12s %d\n"+
+		"%-12s %d\n%-12s %d\n%s (\n%s\n)",
+		"enable", o.Enable, "concurrency", o.Concurrency,
+		"replicas", o.Replicas, "callTimeout", o.CallTimeout,
+		"conntimeout", o.ConnTimeout, "upstream", strings.TrimRight(upstream, "\n"))
+}
+
+type StorageOpts struct {
+	Type   string   `hcl:"type"`
+	Hdisks []string `hcl:"hdisks"`
+}
+
+func (o StorageOpts) String() string {
+	var hds string
+	indent := strings.Repeat(" ", specs.IndentSize)
+
+	for _, v := range o.Hdisks {
+		hds += fmt.Sprintf("%s%s\n", indent, v)
+	}
+
+	return fmt.Sprintf("%-12s %s\n%s (\n%s\n)",
+		"type", o.Type, "hdisks", strings.TrimRight(hds, "\n"))
 }
 
 /* config */
@@ -95,35 +112,33 @@ type BackendOpts struct {
 	HttpAddr        string      `hcl:"http_addr"`
 	Rpc             bool        `hcl:"rpc"`
 	RpcAddr         string      `hcl:"rpc_addr"`
-	RrdStorage      string      `hcl:"rrd_storage"`
 	Idx             bool        `hcl:"idx"`
 	IdxInterval     int         `hcl:"idx_interval"`
 	IdxFullInterval int         `hcl:"idx_full_interval"`
 	Dsn             string      `hcl:"dsn"`
 	DbMaxIdle       int         `hcl:"db_max_idle"`
 	Migrate         MigrateOpts `hcl:"migrate"`
+	Storage         StorageOpts `hcl:"storage"`
 }
 
 func (o *BackendOpts) String() string {
-	return strings.TrimSpace(fmt.Sprintf(`
-debug             %d
-http              %v
-httpaddr          %s
-rpc               %v
-rpcaddr           %s
-rrdstorage        %s
-idx               %v
-idx_interval      %d
-idx_full_interval %d
-dsn               %s
-dbmaxidle         %d
-migrage (
-%s
-)`,
-		o.Debug, o.Http, o.HttpAddr, o.Rpc,
-		o.RpcAddr, o.RrdStorage, o.Idx,
-		o.IdxInterval, o.IdxFullInterval, o.Dsn,
-		o.DbMaxIdle, specs.IndentLines(1, o.Migrate.String())))
+	return fmt.Sprintf("%-17s %d\n"+
+		"%-17s %s\n%-17s %v\n%-17s %s\n%-17s %v\n"+
+		"%-17s %s\n%-17s %v\n%-17s %d\n%-17s %d\n"+
+		"%-17s %s\n%-17s %d\n%s (\n%s\n)\n%s (\n%s\n)",
+		"debug", o.Debug,
+		"pid file", o.PidFile,
+		"http", o.Http,
+		"httpaddr", o.HttpAddr,
+		"rpc", o.Rpc,
+		"rpcaddr", o.RpcAddr,
+		"idx", o.Idx,
+		"idx_interval", o.IdxInterval,
+		"idx_full_interval", o.IdxFullInterval,
+		"dsn", o.Dsn,
+		"dbmaxidle", o.DbMaxIdle,
+		"migrate", specs.IndentLines(1, o.Migrate.String()),
+		"storage", specs.IndentLines(1, o.Storage.String()))
 }
 
 func applyConfigFile(opts *BackendOpts, filePath string) error {

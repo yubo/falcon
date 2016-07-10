@@ -90,7 +90,7 @@ func TestCacheQueue(t *testing.T) {
 	rrdItem = newRrdItem(0)
 	entry, _ = cache.createEntry(rrdItem.Csum(), rrdItem)
 
-	fmt.Printf("cacheEtnry filename: %s\n", entry.filename("."))
+	//fmt.Printf("cacheEtnry filename: %s\n", entry.filename())
 
 	for i := 1; i < 2*CACHE_SIZE; i++ {
 		entry.put(newRrdItem(i))

@@ -7,7 +7,6 @@ package backend
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -64,10 +63,4 @@ func dictedTagstring(s string) map[string]string {
 		}
 	}
 	return tag_dict
-}
-
-// RRDTOOL UTILS
-// 监控数据对应的rrd文件名称
-func key2filename(baseDir string, key string) string {
-	return fmt.Sprintf("%s/%s/%s.rrd", baseDir, key[0:2], key)
 }

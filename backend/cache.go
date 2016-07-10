@@ -188,7 +188,7 @@ func (p *backendCache) createEntry(key string, item *specs.RrdItem) (*cacheEntry
 	p.idx0q.addHead(&e.list_idx)
 
 	if rpcConfig.Migrate.Enable {
-		_, err := os.Stat(e.filename(rpcConfig.RrdStorage))
+		_, err := os.Stat(e.filename())
 		if os.IsNotExist(err) {
 			e.flag = RRD_F_MISS
 		}
@@ -201,8 +201,7 @@ func (p *cacheEntry) put(item *specs.RrdItem) {
 	p.Lock()
 	defer p.Unlock()
 	p.lastTs = item.TimeStemp
-	id := p.dataId & CACHE_SIZE_MASK
-	p.data[id] = &specs.RRDData{
+	p.data[p.dataId&CACHE_SIZE_MASK] = &specs.RRDData{
 		Ts: item.TimeStemp,
 		V:  specs.JsonFloat(item.Value),
 	}
@@ -213,12 +212,12 @@ func (p *cacheEntry) put(item *specs.RrdItem) {
 func (p *cacheEntry) fetchCommit() {
 	done := make(chan error)
 
-	node, err := rrdMigrateConsistent.Get(p.hashkey)
+	node, err := storageMigrateConsistent.Get(p.hashkey)
 	if err != nil {
 		return
 	}
 
-	rrdNetTaskCh[node] <- &netTask{
+	storageNetTaskCh[node] <- &netTask{
 		Method: NET_TASK_M_FETCH_COMMIT,
 		e:      p,
 		Done:   done,
@@ -239,7 +238,7 @@ func (p *cacheEntry) fetchCommit() {
 func (p *cacheEntry) commit() error {
 	done := make(chan error, 1)
 
-	rrdIoTaskCh <- &ioTask{
+	ktoch(p.hashkey) <- &ioTask{
 		method: IO_TASK_M_RRD_UPDATE,
 		args:   p,
 		done:   done,
@@ -251,8 +250,8 @@ func (p *cacheEntry) commit() error {
 	return err
 }
 
-func (p *cacheEntry) filename(dir string) string {
-	return fmt.Sprintf("%s/%s/%s.rrd", dir, p.hashkey[0:2], p.hashkey)
+func (p *cacheEntry) filename() string {
+	return ktofname(p.hashkey)
 }
 
 // return [l, h)
@@ -333,6 +332,7 @@ func (p *cacheEntry) getItem() (ret *specs.RrdItem) {
 	p.RLock()
 	defer p.RUnlock()
 
+	//p.dataId always > 0
 	v := p.data[(p.dataId-1)&CACHE_SIZE_MASK]
 	return &specs.RrdItem{
 		Host:      p.host,
