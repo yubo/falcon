@@ -8,7 +8,6 @@ package backend
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"runtime"
 	"sync"
 	"sync/atomic"
@@ -20,10 +19,10 @@ import (
 )
 
 const (
-	test_dir      = "/tmp/test"
+	test_dir      = "/home/work/yubo"
 	b_size        = 10000
-	work_nb       = 10
-	MAX_HD_NUMBER = 12
+	work_nb       = 48
+	MAX_HD_NUMBER = 4
 )
 
 var (
@@ -45,7 +44,7 @@ func init() {
 	test_dirs = make([]string, MAX_HD_NUMBER)
 
 	for i := 0; i < MAX_HD_NUMBER; i++ {
-		test_dirs[i] = fmt.Sprintf("%s/hd%02d", test_dir, i)
+		test_dirs[i] = fmt.Sprintf("%s/hdd%d", test_dir, i)
 	}
 
 	err := storageCheckHds(test_dirs)
@@ -55,7 +54,7 @@ func init() {
 
 	storageIoTaskCh = make([]chan *ioTask, MAX_HD_NUMBER)
 	for i := 0; i < MAX_HD_NUMBER; i++ {
-		storageIoTaskCh[i] = make(chan *ioTask, 16)
+		storageIoTaskCh[i] = make(chan *ioTask, 32)
 		removeContents(test_dirs[i])
 		go ioWorker(storageIoTaskCh[i])
 	}
@@ -84,7 +83,7 @@ func rrdToEntry(item *specs.RrdItem) *cacheEntry {
 }
 
 func benchmarkAdd(n int, b *testing.B) {
-	var err_cnt uint64
+	var err_cnt, cnt uint64
 	b.StopTimer()
 	hds := &storageConfig.Storage.Hdisks
 	*hds = make([]string, n)
@@ -103,8 +102,8 @@ func benchmarkAdd(n int, b *testing.B) {
 			defer wg.Done()
 
 			item := newRrdItem(i)
-			e := rrdToEntry(item)
 			for j := 0; j < m; j++ {
+				e := rrdToEntry(item)
 				e.name = fmt.Sprintf("key_%d_%d", i, j)
 				e.hashkey = e.csum()
 				if err := e.createRrd(); err != nil {
@@ -113,11 +112,13 @@ func benchmarkAdd(n int, b *testing.B) {
 					}
 					atomic.AddUint64(&err_cnt, 1)
 				}
+				atomic.AddUint64(&cnt, 1)
 			}
 		}(i)
 	}
 	wg.Wait()
 	//fmt.Printf("add_err %d\n", err_cnt)
+	fmt.Printf("add number: %d\n", cnt)
 }
 
 func benchmarkUpdate(n int, b *testing.B) {
@@ -194,58 +195,62 @@ func benchmarkFetch(n int, b *testing.B) {
 	//fmt.Printf("fetch_err %d\n", err_cnt)
 }
 
-func BenchmarkAdd1(b *testing.B)     { benchmarkAdd(1, b) }
-func BenchmarkUpdate1(b *testing.B)  { benchmarkUpdate(1, b) }
-func BenchmarkFetch1(b *testing.B)   { benchmarkFetch(1, b) }
-func BenchmarkAdd2(b *testing.B)     { benchmarkAdd(2, b) }
-func BenchmarkUpdate2(b *testing.B)  { benchmarkUpdate(2, b) }
-func BenchmarkFetch2(b *testing.B)   { benchmarkFetch(2, b) }
-func BenchmarkAdd3(b *testing.B)     { benchmarkAdd(3, b) }
-func BenchmarkUpdate3(b *testing.B)  { benchmarkUpdate(3, b) }
-func BenchmarkFetch3(b *testing.B)   { benchmarkFetch(3, b) }
-func BenchmarkAdd4(b *testing.B)     { benchmarkAdd(4, b) }
-func BenchmarkUpdate4(b *testing.B)  { benchmarkUpdate(4, b) }
-func BenchmarkFetch4(b *testing.B)   { benchmarkFetch(4, b) }
-func BenchmarkAdd5(b *testing.B)     { benchmarkAdd(5, b) }
-func BenchmarkUpdate5(b *testing.B)  { benchmarkUpdate(5, b) }
-func BenchmarkFetch5(b *testing.B)   { benchmarkFetch(5, b) }
-func BenchmarkAdd6(b *testing.B)     { benchmarkAdd(6, b) }
-func BenchmarkUpdate6(b *testing.B)  { benchmarkUpdate(6, b) }
-func BenchmarkFetch6(b *testing.B)   { benchmarkFetch(6, b) }
-func BenchmarkAdd7(b *testing.B)     { benchmarkAdd(7, b) }
-func BenchmarkUpdate7(b *testing.B)  { benchmarkUpdate(7, b) }
-func BenchmarkFetch7(b *testing.B)   { benchmarkFetch(7, b) }
-func BenchmarkAdd8(b *testing.B)     { benchmarkAdd(8, b) }
-func BenchmarkUpdate8(b *testing.B)  { benchmarkUpdate(8, b) }
-func BenchmarkFetch8(b *testing.B)   { benchmarkFetch(8, b) }
-func BenchmarkAdd9(b *testing.B)     { benchmarkAdd(9, b) }
-func BenchmarkUpdate9(b *testing.B)  { benchmarkUpdate(9, b) }
-func BenchmarkFetch9(b *testing.B)   { benchmarkFetch(9, b) }
-func BenchmarkAdd10(b *testing.B)    { benchmarkAdd(10, b) }
-func BenchmarkUpdate10(b *testing.B) { benchmarkUpdate(10, b) }
-func BenchmarkFetch10(b *testing.B)  { benchmarkFetch(10, b) }
-func BenchmarkAdd11(b *testing.B)    { benchmarkAdd(11, b) }
-func BenchmarkUpdate11(b *testing.B) { benchmarkUpdate(11, b) }
-func BenchmarkFetch11(b *testing.B)  { benchmarkFetch(11, b) }
-func BenchmarkAdd12(b *testing.B)    { benchmarkAdd(12, b) }
-func BenchmarkUpdate12(b *testing.B) { benchmarkUpdate(12, b) }
-func BenchmarkFetch12(b *testing.B)  { benchmarkFetch(12, b) }
+func BenchmarkAdd01(b *testing.B) { benchmarkAdd(1, b) }
+func BenchmarkAdd02(b *testing.B) { benchmarkAdd(2, b) }
+func BenchmarkAdd03(b *testing.B) { benchmarkAdd(3, b) }
+func BenchmarkAdd04(b *testing.B) { benchmarkAdd(4, b) }
 
-func removeContents(dir string) error {
-	d, err := os.Open(dir)
-	if err != nil {
-		return err
-	}
-	defer d.Close()
-	names, err := d.Readdirnames(-1)
-	if err != nil {
-		return err
-	}
-	for _, name := range names {
-		err = os.RemoveAll(filepath.Join(dir, name))
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
+//func BenchmarkAdd05(b *testing.B) { benchmarkAdd(5, b) }
+//func BenchmarkAdd06(b *testing.B) { benchmarkAdd(6, b) }
+//func BenchmarkAdd07(b *testing.B) { benchmarkAdd(7, b) }
+//func BenchmarkAdd08(b *testing.B) { benchmarkAdd(8, b) }
+//func BenchmarkAdd09(b *testing.B) { benchmarkAdd(9, b) }
+//func BenchmarkAdd10(b *testing.B) { benchmarkAdd(10, b) }
+//func BenchmarkAdd11(b *testing.B) { benchmarkAdd(11, b) }
+//func BenchmarkAdd12(b *testing.B) { benchmarkAdd(12, b) }
+//
+//func BenchmarkFetch01(b *testing.B) { benchmarkFetch(1, b) }
+//func BenchmarkFetch02(b *testing.B) { benchmarkFetch(2, b) }
+//func BenchmarkFetch03(b *testing.B) { benchmarkFetch(3, b) }
+//func BenchmarkFetch04(b *testing.B) { benchmarkFetch(4, b) }
+//func BenchmarkFetch05(b *testing.B) { benchmarkFetch(5, b) }
+//func BenchmarkFetch06(b *testing.B) { benchmarkFetch(6, b) }
+//func BenchmarkFetch07(b *testing.B) { benchmarkFetch(7, b) }
+//func BenchmarkFetch08(b *testing.B) { benchmarkFetch(8, b) }
+//func BenchmarkFetch09(b *testing.B) { benchmarkFetch(9, b) }
+//func BenchmarkFetch10(b *testing.B) { benchmarkFetch(10, b) }
+//func BenchmarkFetch11(b *testing.B) { benchmarkFetch(11, b) }
+//func BenchmarkFetch12(b *testing.B) { benchmarkFetch(12, b) }
+//
+//func BenchmarkUpdate01(b *testing.B) { benchmarkUpdate(1, b) }
+//func BenchmarkUpdate02(b *testing.B) { benchmarkUpdate(2, b) }
+//func BenchmarkUpdate03(b *testing.B) { benchmarkUpdate(3, b) }
+//func BenchmarkUpdate04(b *testing.B) { benchmarkUpdate(4, b) }
+//func BenchmarkUpdate05(b *testing.B) { benchmarkUpdate(5, b) }
+//func BenchmarkUpdate06(b *testing.B) { benchmarkUpdate(6, b) }
+//func BenchmarkUpdate07(b *testing.B) { benchmarkUpdate(7, b) }
+//func BenchmarkUpdate08(b *testing.B) { benchmarkUpdate(8, b) }
+//func BenchmarkUpdate09(b *testing.B) { benchmarkUpdate(9, b) }
+//func BenchmarkUpdate10(b *testing.B) { benchmarkUpdate(10, b) }
+//func BenchmarkUpdate11(b *testing.B) { benchmarkUpdate(11, b) }
+//func BenchmarkUpdate12(b *testing.B) { benchmarkUpdate(12, b) }
+/*
+[work@lg-hadoop-prc-st31 backend]$ go test -bench=.
+4805404 /home/work/yubo/gopath/src/github.com/yubo/falcon/backend/cache_test.go 47 true
+c.createEntry success
+
+c.get success
+c.unlink success
+all c.unlink success
+e.getItems() success
+PASS
+BenchmarkAdd01-24       add number: 9984
+   10000           2417394 ns/op
+BenchmarkAdd02-24       add number: 9984
+   10000           2341798 ns/op
+BenchmarkAdd03-24       add number: 9984
+   10000           2426143 ns/op
+BenchmarkAdd04-24       add number: 9984
+   10000           2628815 ns/op
+ok      github.com/yubo/falcon/backend  100.488s
+*/
