@@ -189,10 +189,12 @@ func ioRrdAdd(e *cacheEntry) (err error) {
 	filename := e.filename()
 
 	// unlikely
-	_, err = os.Stat(filename)
-	if !os.IsNotExist(err) {
-		return specs.ErrExist
-	}
+	/*
+		_, err = os.Stat(filename)
+		if !os.IsNotExist(err) {
+			return specs.ErrExist
+		}
+	*/
 
 	path := path.Dir(filename)
 	_, err = os.Stat(path)
