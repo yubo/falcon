@@ -29,7 +29,7 @@ func count_handler(w http.ResponseWriter, r *http.Request) {
 	count := 0
 
 	for _, v := range appCache.hash {
-		if v.lastTs > ts {
+		if int64(v.e.lastTs) > ts {
 			count++
 		}
 	}

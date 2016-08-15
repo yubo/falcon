@@ -123,12 +123,12 @@ func queryGetCacheEntry(param *specs.RrdQuery,
 		return nil, specs.ErrNoent
 	}
 
-	resp.Type = e.typ
-	resp.Step = e.step
+	resp.Type = e.typ()
+	resp.Step = int(e.e.step)
 
-	param.Start = param.Start - param.Start%int64(e.step)
-	param.End = param.End - param.End%int64(e.step) + int64(e.step)
-	if param.End-param.Start-int64(e.step) < 1 {
+	param.Start = param.Start - param.Start%int64(resp.Step)
+	param.End = param.End - param.End%int64(resp.Step) + int64(resp.Step)
+	if param.End-param.Start-int64(resp.Step) < 1 {
 		return nil, specs.ErrParam
 	}
 	return e, nil
@@ -138,7 +138,7 @@ func queryGetData(param *specs.RrdQuery, resp *specs.RrdResp,
 	e *cacheEntry) (rrds, caches []*specs.RRDData, err error) {
 
 	flag := atomic.LoadUint32(&e.flag)
-	caches, _ = e._getData(e.commitId, e.dataId)
+	caches, _ = e._getData(uint32(e.e.commitId), uint32(e.e.dataId))
 
 	if rpcConfig.Migrate.Enable && flag&RRD_F_MISS != 0 {
 		node, _ := storageMigrateConsistent.Get(param.Id())
@@ -155,13 +155,13 @@ func queryGetData(param *specs.RrdQuery, resp *specs.RrdResp,
 		rrds = res.Values
 	} else {
 		// read data from local rrd file
-		rrds, _ = taskRrdFetch(e.hashkey, param.ConsolFun,
-			param.Start, param.End, e.step)
+		rrds, _ = taskRrdFetch(e.hashkey(), param.ConsolFun,
+			param.Start, param.End, int(e.e.step))
 	}
 
 	// larger than rra1point range, skip merge
 	now := timeNow()
-	if param.Start < now-now%int64(e.step)-int64(RRA1PointCnt*e.step) {
+	if param.Start < now-now%int64(e.e.step)-RRA1PointCnt*int64(e.e.step) {
 		resp.Vs = rrds
 		return nil, nil, errors.New("skip merge")
 	}
@@ -174,10 +174,10 @@ func queryGetData(param *specs.RrdQuery, resp *specs.RrdResp,
 	return rrds, caches, nil
 }
 
-func queryFmtCache(items []*specs.RRDData, e *cacheEntry,
+func queryPruneCache(items []*specs.RRDData, e *cacheEntry,
 	start, end int64) (ret []*specs.RRDData) {
 
-	// fmt cached items
+	// prune cached items
 	var val specs.JsonFloat
 
 	ts := items[0].Ts
@@ -185,12 +185,13 @@ func queryFmtCache(items []*specs.RRDData, e *cacheEntry,
 
 	last := items[n-1].Ts
 	i := 0
-	if e.typ == specs.DERIVE || e.typ == specs.COUNTER {
+	typ := e.typ()
+	if typ == specs.DERIVE || typ == specs.COUNTER {
 		for ts < last {
 			if i < n-1 && ts == items[i].Ts &&
-				ts == items[i+1].Ts-int64(e.step) {
+				ts == items[i+1].Ts-int64(e.e.step) {
 				val = specs.JsonFloat(items[i+1].V-
-					items[i].V) / specs.JsonFloat(e.step)
+					items[i].V) / specs.JsonFloat(e.e.step)
 				if val < 0 {
 					val = specs.JsonFloat(math.NaN())
 				}
@@ -204,9 +205,9 @@ func queryFmtCache(items []*specs.RRDData, e *cacheEntry,
 				ret = append(ret,
 					&specs.RRDData{Ts: ts, V: val})
 			}
-			ts = ts + int64(e.step)
+			ts = ts + int64(e.e.step)
 		}
-	} else if e.typ == specs.GAUGE {
+	} else if typ == specs.GAUGE {
 		for ts <= last {
 			if i < n && ts == items[i].Ts {
 				val = specs.JsonFloat(items[i].V)
@@ -220,7 +221,7 @@ func queryFmtCache(items []*specs.RRDData, e *cacheEntry,
 				ret = append(ret,
 					&specs.RRDData{Ts: ts, V: val})
 			}
-			ts = ts + int64(e.step)
+			ts = ts + int64(e.e.step)
 		}
 	}
 	return ret
@@ -281,10 +282,10 @@ func queryMergeData(a, b []*specs.RRDData, start,
 	return c
 }
 
-func queryFmtRet(a []*specs.RRDData,
+func queryPruneRet(a []*specs.RRDData,
 	start, end, step int64) []*specs.RRDData {
 
-	// fmt result
+	// prune result
 	n := int((end - start) / step)
 	ret := make([]*specs.RRDData, n)
 	j := 0
@@ -325,11 +326,11 @@ func (p *Backend) Query(param specs.RrdQuery,
 		return err
 	}
 
-	ret = queryFmtCache(ret, e, param.Start, param.End)
+	ret = queryPruneCache(ret, e, param.Start, param.End)
 
-	ret = queryMergeData(rrds, ret, param.Start, param.End, int64(e.step))
+	ret = queryMergeData(rrds, ret, param.Start, param.End, int64(e.e.step))
 
-	resp.Vs = queryFmtRet(ret, param.Start, param.End, int64(e.step))
+	resp.Vs = queryPruneRet(ret, param.Start, param.End, int64(e.e.step))
 
 	statInc(ST_RPC_SERV_QUERY_ITEM, len(resp.Vs))
 	return nil
@@ -373,7 +374,7 @@ func handleItems(items []*specs.RrdItem) {
 				items[i].TimeStemp%int64(items[i].Step)
 		}
 
-		if items[i].TimeStemp <= e.lastTs || items[i].TimeStemp <= 0 {
+		if items[i].TimeStemp <= int64(e.e.lastTs) || items[i].TimeStemp <= 0 {
 			continue
 		}
 
@@ -393,26 +394,30 @@ func getLast(csum string) *specs.RRDData {
 	e.RLock()
 	defer e.RUnlock()
 
-	if e.typ == specs.GAUGE {
-		if e.dataId == 0 {
+	typ := e.typ()
+	if typ == specs.GAUGE {
+		if e.e.dataId == 0 {
 			return nan
 		}
 
-		return e.data[(e.dataId-1)&CACHE_SIZE_MASK]
-
+		idx := uint32(e.e.dataId-1) & CACHE_SIZE_MASK
+		return &specs.RRDData{
+			Ts: int64(e.e.time[idx]),
+			V:  specs.JsonFloat(e.e.value[idx]),
+		}
 	}
 
-	if e.typ == specs.COUNTER || e.typ == specs.DERIVE {
+	if typ == specs.COUNTER || typ == specs.DERIVE {
 
-		if e.dataId < 2 {
+		if e.e.dataId < 2 {
 			return nan
 		}
 
-		data, _ := e._getData(e.dataId-2, e.dataId)
+		data, _ := e._getData(uint32(e.e.dataId)-2, uint32(e.e.dataId))
 
 		delta_ts := data[0].Ts - data[1].Ts
 		delta_v := data[0].V - data[1].V
-		if delta_ts != int64(e.step) || delta_ts <= 0 {
+		if delta_ts != int64(e.e.step) || delta_ts <= 0 {
 			return nan
 		}
 		if delta_v < 0 {
@@ -436,11 +441,15 @@ func getLastRaw(csum string) *specs.RRDData {
 	e.RLock()
 	defer e.RUnlock()
 
-	if e.typ == specs.GAUGE {
-		if e.dataId == 0 {
+	if e.typ() == specs.GAUGE {
+		if e.e.dataId == 0 {
 			return nan
 		}
-		return e.data[(e.dataId-1)&CACHE_SIZE_MASK]
+		idx := uint32(e.e.dataId-1) & CACHE_SIZE_MASK
+		return &specs.RRDData{
+			Ts: int64(e.e.time[idx]),
+			V:  specs.JsonFloat(e.e.value[idx]),
+		}
 	}
 	return nan
 }

@@ -19,10 +19,10 @@ import (
 )
 
 const (
-	test_dir      = "/home/work/yubo"
-	b_size        = 10000
-	work_nb       = 48
-	MAX_HD_NUMBER = 4
+	test_dir      = "/home/work/var"
+	b_size        = 100
+	work_nb       = 4
+	MAX_HD_NUMBER = 2
 )
 
 var (
@@ -65,21 +65,14 @@ func init() {
 	end = now + 1800
 }
 
-func rrdToEntry(item *specs.RrdItem) *cacheEntry {
-	return &cacheEntry{
-		createTs:  now,
-		host:      item.Host,
-		name:      item.Name,
-		tags:      item.Tags,
-		typ:       item.Type,
-		step:      item.Step,
-		heartbeat: item.Heartbeat,
-		min:       item.Min,
-		max:       item.Max,
-		dataId:    0,
-		commitId:  0,
+func rrdToEntry(item *specs.RrdItem) (*cacheEntry, error) {
+	e, _ := appCache.getPoolEntry()
+	if err := e.reset(now, item.Host, item.Name, item.Tags, item.Type,
+		item.Step, item.Heartbeat, item.Min[0], item.Max[0]); err != nil {
+		appCache.putPoolEntry(e)
+		return nil, err
 	}
-
+	return e, nil
 }
 
 func benchmarkAdd(n int, b *testing.B) {
@@ -103,9 +96,9 @@ func benchmarkAdd(n int, b *testing.B) {
 
 			item := newRrdItem(i)
 			for j := 0; j < m; j++ {
-				e := rrdToEntry(item)
-				e.name = fmt.Sprintf("key_%d_%d", i, j)
-				e.hashkey = e.csum()
+				e, _ := rrdToEntry(item)
+				e.setName(fmt.Sprintf("key_%d_%d", i, j))
+				e.setHashkey(e.csum())
 				if err := e.createRrd(); err != nil {
 					if err_cnt < 10 {
 						fmt.Println(err)
@@ -141,12 +134,12 @@ func benchmarkUpdate(n int, b *testing.B) {
 			defer wg.Done()
 
 			item := newRrdItem(i)
-			e := rrdToEntry(item)
+			e, _ := rrdToEntry(item)
 			e.put(item)
 
 			for j := 0; j < m; j++ {
-				e.name = fmt.Sprintf("key_%d_%d", i, j)
-				e.hashkey = e.csum()
+				e.setName(fmt.Sprintf("key_%d_%d", i, j))
+				e.setHashkey(e.csum())
 				if err := e.commit(); err != nil {
 					atomic.AddUint64(&err_cnt, 1)
 				}
@@ -178,14 +171,14 @@ func benchmarkFetch(n int, b *testing.B) {
 			defer wg.Done()
 
 			item := newRrdItem(i)
-			e := rrdToEntry(item)
+			e, _ := rrdToEntry(item)
 			e.put(item)
 
 			for j := 0; j < m; j++ {
-				e.name = fmt.Sprintf("key_%d_%d", i, j)
-				e.hashkey = e.csum()
-				if _, err := taskRrdFetch(e.hashkey, "AVERAGE",
-					start, end, e.step); err != nil {
+				e.setName(fmt.Sprintf("key_%d_%d", i, j))
+				e.setHashkey(e.csum())
+				if _, err := taskRrdFetch(e.hashkey(), "AVERAGE",
+					start, end, int(e.e.step)); err != nil {
 					atomic.AddUint64(&err_cnt, 1)
 				}
 			}

@@ -5,6 +5,11 @@
  */
 package backend
 
+/*
+#include "cache.h"
+*/
+import "C"
+
 import (
 	"fmt"
 	"io/ioutil"
@@ -22,8 +27,8 @@ const (
 	FLUSH_DISK_STEP         = 1    //s
 	DEFAULT_HISTORY_SIZE    = 3
 	CONN_RETRY              = 2
-	CACHE_SIZE              = 1 << 5   // must pow(2,n)
-	CACHE_SIZE_MASK         = 1<<5 - 1 //
+	CACHE_SIZE              = C.CACHE_SIZE     // must pow(2,n)
+	CACHE_SIZE_MASK         = C.CACHE_SIZE - 1 //
 	DATA_TIMESTAMP_REGULATE = true
 	INDEX_QPS               = 100
 	INDEX_UPDATE_CYCLE_TIME = 86400
@@ -93,15 +98,32 @@ type StorageOpts struct {
 }
 
 func (o StorageOpts) String() string {
-	var hds string
+	var ret string
 	indent := strings.Repeat(" ", specs.IndentSize)
 
 	for _, v := range o.Hdisks {
-		hds += fmt.Sprintf("%s%s\n", indent, v)
+		ret += fmt.Sprintf("%s%s\n", indent, v)
 	}
 
 	return fmt.Sprintf("%-12s %s\n%s (\n%s\n)",
-		"type", o.Type, "hdisks", strings.TrimRight(hds, "\n"))
+		"type", o.Type, "hdisks", strings.TrimRight(ret, "\n"))
+}
+
+type ShmOpts struct {
+	Magic uint32 `hcl:"magic_code"`
+	Key   int    `hcl:"key_start_id"`
+	Size  int    `hcl:"segment_size"`
+}
+
+func (o ShmOpts) String() string {
+	var ret string
+	indent := strings.Repeat(" ", specs.IndentSize)
+
+	ret += fmt.Sprintf("%s%-14s 0x%x\n", indent, "magic_code", o.Magic)
+	ret += fmt.Sprintf("%s%-14s 0x%x\n", indent, "key_start_id", o.Key)
+	ret += fmt.Sprintf("%s%-14s %v\n", indent, "segment_size", o.Size)
+
+	return ret
 }
 
 /* config */
@@ -119,13 +141,15 @@ type BackendOpts struct {
 	DbMaxIdle       int         `hcl:"db_max_idle"`
 	Migrate         MigrateOpts `hcl:"migrate"`
 	Storage         StorageOpts `hcl:"storage"`
+	Shm             ShmOpts     `hcl:"shm"`
 }
 
 func (o *BackendOpts) String() string {
 	return fmt.Sprintf("%-17s %d\n"+
 		"%-17s %s\n%-17s %v\n%-17s %s\n%-17s %v\n"+
 		"%-17s %s\n%-17s %v\n%-17s %d\n%-17s %d\n"+
-		"%-17s %s\n%-17s %d\n%s (\n%s\n)\n%s (\n%s\n)",
+		"%-17s %s\n%-17s %d\n%s (\n%s\n)\n%s "+
+		"(\n%s\n)\n%s (\n%s\n)",
 		"debug", o.Debug,
 		"pid file", o.PidFile,
 		"http", o.Http,
@@ -138,7 +162,8 @@ func (o *BackendOpts) String() string {
 		"dsn", o.Dsn,
 		"dbmaxidle", o.DbMaxIdle,
 		"migrate", specs.IndentLines(1, o.Migrate.String()),
-		"storage", specs.IndentLines(1, o.Storage.String()))
+		"storage", specs.IndentLines(1, o.Storage.String()),
+		"shm", specs.IndentLines(1, o.Shm.String()))
 }
 
 func applyConfigFile(opts *BackendOpts, filePath string) error {
@@ -177,5 +202,6 @@ func parse(config *BackendOpts, filename string) {
 	//atomic.StorePointer(&configPtr, unsafe.Pointer(&configOpts))
 
 	glog.V(3).Infof("ParseConfig ok, file %s", filename)
+	glog.V(3).Infof("cache_size %d", CACHE_SIZE)
 	appConfigfile = filename
 }

@@ -5,6 +5,11 @@
  */
 package backend
 
+/*
+#include "cache.h"
+*/
+import "C"
+
 import (
 	"fmt"
 	"os"
@@ -18,9 +23,73 @@ import (
 
 var (
 	/* cache */
-	appCache backendCache
+	appCache    backendCache
+	cacheEvent  chan specs.ProcEvent
+	cacheConfig BackendOpts
 )
 
+/* used for share memory modle */
+type cacheEntry struct {
+	sync.RWMutex
+	flag uint32
+	// point to dataq/poolq
+	list_data list.ListHead
+	// point to idx0q/idx1q
+	list_idx list.ListHead // no init queue
+	e        *C.struct_cache_entry
+}
+
+func (p *cacheEntry) setHashkey(s string) int {
+	cs := C.CString(s)
+	defer C.free(unsafe.Pointer(cs))
+	return int(C.set_hashkey(p.e, cs))
+}
+
+func (p *cacheEntry) setHost(s string) int {
+	cs := C.CString(s)
+	defer C.free(cs)
+	return int(C.set_host(p.e, cs))
+}
+
+func (p *cacheEntry) setName(s string) int {
+	cs := C.CString(s)
+	defer C.free(cs)
+	return int(C.set_name(p.e, cs))
+}
+
+func (p *cacheEntry) setTags(s string) int {
+	cs := C.CString(s)
+	defer C.free(cs)
+	return int(C.set_tags(p.e, cs))
+}
+
+func (p *cacheEntry) setTyp(s string) int {
+	cs := C.CString(s)
+	defer C.free(cs)
+	return int(C.set_typ(p.e, cs))
+}
+
+func (p *cacheEntry) hashkey() string {
+	return C.GoString((*C.char)(unsafe.Pointer(&p.e.hashkey[0])))
+}
+
+func (p *cacheEntry) host() string {
+	return C.GoString((*C.char)(unsafe.Pointer(&p.e.host[0])))
+}
+
+func (p *cacheEntry) name() string {
+	return C.GoString((*C.char)(unsafe.Pointer(&p.e.name[0])))
+}
+
+func (p *cacheEntry) tags() string {
+	return C.GoString((*C.char)(unsafe.Pointer(&p.e.tags[0])))
+}
+
+func (p *cacheEntry) typ() string {
+	return C.GoString((*C.char)(unsafe.Pointer(&p.e.typ[0])))
+}
+
+/*
 type cacheEntry struct {
 	sync.RWMutex
 	flag      uint32
@@ -43,10 +112,16 @@ type cacheEntry struct {
 	commitId  uint32
 	data      [CACHE_SIZE]*specs.RRDData
 }
+*/
 
 // should === specs.RrdItem.Id()
 func (p *cacheEntry) id() string {
-	return fmt.Sprintf("%s/%s/%s/%s/%d", p.host, p.name, p.tags, p.typ, p.step)
+	return fmt.Sprintf("%s/%s/%s/%s/%d",
+		p.host(),
+		p.name(),
+		p.tags(),
+		p.typ(),
+		int(p.e.step))
 }
 
 func (p *cacheEntry) csum() string {
@@ -55,23 +130,154 @@ func (p *cacheEntry) csum() string {
 
 type cacheq struct {
 	sync.RWMutex
-	size int
+	//size int
 	head list.ListHead
 }
 
 type backendCache struct {
-	sync.RWMutex // hash lock
-	dataq        cacheq
-	idx0q        cacheq //index queue
-	idx1q        cacheq //timeout queue
-	hash         map[string]*cacheEntry
+	sync.RWMutex   // hash lock
+	magic          uint32
+	block_size     int //segment size(bytes)
+	cache_entry_nb int
+	startkey       int
+	endkey         int    //[startkey, endkey), endkey not used
+	dataq          cacheq //for flush rrddate to disk fifo
+	poolq          cacheq //free entry lifo
+	idx0q          cacheq //immediate queue
+	idx1q          cacheq //lru queue
+	idx2q          cacheq //timeout queue
+	hash           map[string]*cacheEntry
+	shmaddrs       []uintptr
+	shmids         []int
 }
 
-func (p *backendCache) init() {
+func (p *backendCache) importBlocks(magic uint32) (int, error) {
+	var (
+		shm_id int
+		size   int
+		addr   uintptr
+		block  *C.struct_cache_block
+		err    error
+	)
+
+	for {
+		shm_id, size, err = Shmget(p.endkey, p.block_size, C.IPC_CREAT|0600)
+		if err != nil {
+			return p.endkey - p.startkey, err
+		}
+
+		if size != p.block_size {
+			glog.Errorf("segment size error, remove "+
+				"segment from 0x%x and retry", p.endkey)
+			cleanBlocks(p.endkey)
+			continue
+		}
+
+		addr, err = Shmat(shm_id, 0, 0)
+		if err != nil {
+			return p.endkey - p.startkey, err
+		}
+
+		block = (*C.struct_cache_block)(unsafe.Pointer(addr))
+
+		for uint32(block.magic) != p.magic {
+			glog.Infof("set magic head at 0x%x",
+				shm_id)
+			block.magic = C.uint32_t(p.magic)
+			return p.endkey - p.startkey, specs.EFMT
+		}
+
+		p.shmaddrs = append(p.shmaddrs, addr)
+		p.shmids = append(p.shmids, shm_id)
+		list := &p.poolq
+
+		for i := 0; i < int(block.cache_entry_nb); i++ {
+			e := &cacheEntry{
+				e: (*C.struct_cache_entry)(unsafe.Pointer(addr +
+					uintptr(C.sizeof_struct_cache_block) +
+					uintptr(i*C.sizeof_struct_cache_entry))),
+			}
+			key := e.hashkey()
+			if key == "" {
+				// add to pool
+				list.head.AddTail(&e.list_data)
+			} else {
+				// restore to cacheEntry
+				p.hash[key] = e
+				p.dataq.enqueue(&e.list_data)
+				p.idx0q.enqueue(&e.list_idx)
+			}
+		}
+		p.endkey++
+	}
+	return p.endkey - p.startkey, nil
+}
+
+func cleanBlocks(start int) int {
+	var (
+		shm_id int
+		err    error
+	)
+
+	for i := start; ; i++ {
+		shm_id, _, err = Shmget(i, 0, 0600)
+		if err != nil {
+			return i - start
+		}
+		Shmrm(shm_id)
+	}
+}
+
+func (p *backendCache) init(config BackendOpts) error {
+
 	p.hash = make(map[string]*cacheEntry)
+	p.shmaddrs = make([]uintptr, 0)
+	p.shmids = make([]int, 0)
 	p.dataq.init()
+	p.poolq.init()
 	p.idx0q.init()
 	p.idx1q.init()
+	p.idx2q.init()
+	p.magic = config.Shm.Magic
+	p.startkey = config.Shm.Key
+	p.endkey = config.Shm.Key
+	p.block_size = config.Shm.Size
+	p.cache_entry_nb = (config.Shm.Size - C.sizeof_struct_cache_block) /
+		C.sizeof_struct_cache_entry
+
+	n, err := p.importBlocks(config.Shm.Magic)
+
+	if err != specs.EFMT {
+		return err
+	}
+	glog.V(3).Infof("import %d \n", n)
+	return nil
+}
+
+func (p *backendCache) reset(config BackendOpts) error {
+	p.hash = make(map[string]*cacheEntry)
+	p.shmaddrs = make([]uintptr, 0)
+	p.shmids = make([]int, 0)
+	p.dataq.init()
+	p.poolq.init()
+	p.idx0q.init()
+	p.idx1q.init()
+	p.idx2q.init()
+	p.magic = config.Shm.Magic
+	p.startkey = config.Shm.Key
+	p.endkey = config.Shm.Key
+	p.block_size = config.Shm.Size
+	p.cache_entry_nb = (config.Shm.Size - C.sizeof_struct_cache_block) /
+		C.sizeof_struct_cache_entry
+	cleanBlocks(p.startkey)
+	return nil
+}
+
+func (p *backendCache) close() {
+	for _, addr := range p.shmaddrs {
+		Shmdt(addr)
+	}
+	glog.V(3).Infof("shmdt %d", len(p.shmaddrs))
 }
 
 func (p *backendCache) get(key string) *cacheEntry {
@@ -86,6 +292,9 @@ func (p *backendCache) get(key string) *cacheEntry {
 
 }
 
+/*
+ * not idxq.size --
+ */
 func (p *backendCache) unlink(key string) *cacheEntry {
 	p.Lock()
 	defer p.Unlock()
@@ -100,19 +309,12 @@ func (p *backendCache) unlink(key string) *cacheEntry {
 
 	p.dataq.Lock()
 	e.list_data.Del()
-	p.dataq.size--
+	//p.dataq.size--
 	p.dataq.Unlock()
-
-	if e.idxTs == 0 {
-		p.idx0q.Lock()
-		defer p.idx0q.Unlock()
-		p.idx0q.size--
-	} else {
-		p.idx1q.Lock()
-		defer p.idx1q.Unlock()
-		p.idx1q.size--
-	}
 	e.list_idx.Del()
+
+	p.poolq.addHead(&e.list_data)
+	e.setHashkey("")
 
 	return e
 }
@@ -128,7 +330,7 @@ func list_idx_entry(l *list.ListHead) *cacheEntry {
 }
 
 func (p *cacheq) init() {
-	p.size = 0
+	//p.size = 0
 	p.head.Init()
 }
 
@@ -137,7 +339,7 @@ func (p *cacheq) addHead(entry *list.ListHead) {
 	defer p.Unlock()
 
 	p.head.Add(entry)
-	p.size++
+	//p.size++
 }
 
 func (p *cacheq) enqueue(entry *list.ListHead) {
@@ -145,51 +347,132 @@ func (p *cacheq) enqueue(entry *list.ListHead) {
 	defer p.Unlock()
 
 	p.head.AddTail(entry)
-	p.size++
+	//p.size++
 }
 
 func (p *cacheq) dequeue() *list.ListHead {
 	p.Lock()
 	defer p.Unlock()
 
-	if p.size == 0 {
+	if p.head.Empty() {
 		return nil
 	}
 
 	entry := p.head.Next
 	entry.Del()
-	p.size--
+	//p.size--
 	return entry
+}
+
+func (p *backendCache) allocPool() (err error) {
+	var (
+		shm_id int
+		size   int
+		addr   uintptr
+		block  *C.struct_cache_block
+	)
+
+	shm_id, size, err = Shmget(p.endkey, p.block_size, C.IPC_CREAT|0700)
+	if err != nil {
+		return err
+	}
+
+	if size != p.block_size {
+		glog.Errorf("alloc shm size %d want %d, remove and try again",
+			size, p.block_size)
+		cleanBlocks(p.endkey)
+		shm_id, _, err = Shmget(p.endkey, p.block_size, C.IPC_CREAT|0700)
+		if err != nil {
+			return err
+		}
+	}
+
+	addr, err = Shmat(shm_id, 0, 0)
+	if err != nil {
+		return err
+	}
+	block = (*C.struct_cache_block)(unsafe.Pointer(addr))
+
+	if uint32(block.magic) == p.magic {
+		Shmdt(addr)
+		return specs.ErrExist
+	}
+
+	p.Lock()
+	p.shmaddrs = append(p.shmaddrs, addr)
+	p.shmids = append(p.shmids, shm_id)
+	p.endkey++
+	glog.V(3).Infof("alloc shm segment, endkey %d len(shmaddr) %d",
+		p.endkey, len(p.shmaddrs))
+	p.Unlock()
+
+	block.magic = C.uint32_t(p.magic)
+	block.block_size = C.int(p.block_size)
+	block.cache_entry_nb = C.int(p.cache_entry_nb)
+
+	list := &p.poolq
+	list.Lock()
+	defer list.Unlock()
+	for i := 0; i < int(block.cache_entry_nb); i++ {
+		e := &cacheEntry{
+			e: (*C.struct_cache_entry)(unsafe.Pointer(addr +
+				uintptr(C.sizeof_struct_cache_block) +
+				uintptr(i*C.sizeof_struct_cache_entry))),
+		}
+		list.head.AddTail(&e.list_data)
+	}
+	//list.size += int(block.cache_entry_nb)
+
+	//fmt.Printf("poolq.size %d \n", list.size)
+	return nil
+}
+
+func (p *backendCache) getPoolEntry() (*cacheEntry, error) {
+	var e *list.ListHead
+	if e = p.poolq.dequeue(); e == nil {
+		if err := p.allocPool(); err != nil {
+			return nil, fmt.Errorf("%s(%s)", specs.ENOSPC, err)
+		}
+		e = p.poolq.dequeue()
+	}
+
+	return list_data_entry(e), nil
+}
+
+func (p *backendCache) putPoolEntry(e *cacheEntry) error {
+	e.e.hashkey[0] = C.char(0)
+	p.poolq.enqueue(&e.list_data)
+	return nil
 }
 
 // called by rpc
 func (p *backendCache) createEntry(key string, item *specs.RrdItem) (*cacheEntry, error) {
+	var (
+		e   *cacheEntry
+		ok  bool
+		err error
+	)
 
 	statInc(ST_CACHE_CREATE, 1)
-	p.Lock()
-	if e, ok := p.hash[key]; ok {
+	if e, ok = p.hash[key]; ok {
 		return e, specs.ErrExist
 	}
 
-	e := &cacheEntry{
-		hashkey:   key,
-		createTs:  timeNow(),
-		host:      item.Host,
-		name:      item.Name,
-		tags:      item.Tags,
-		typ:       item.Type,
-		step:      item.Step,
-		heartbeat: item.Heartbeat,
-		min:       item.Min,
-		max:       item.Max,
-		dataId:    0,
-		commitId:  0,
+	e, err = p.getPoolEntry()
+	if err != nil {
+		return nil, err
 	}
+
+	e.reset(timeNow(), item.Host, item.Name, item.Tags, item.Type, item.Step,
+		item.Heartbeat, item.Min[0], item.Max[0])
+	e.setHashkey(key)
+
+	p.Lock()
 	p.hash[key] = e
 	p.Unlock()
 
 	p.dataq.enqueue(&e.list_data)
-	p.idx0q.addHead(&e.list_idx)
+	p.idx0q.enqueue(&e.list_idx)
 
 	if rpcConfig.Migrate.Enable {
 		_, err := os.Stat(e.filename())
@@ -204,19 +487,43 @@ func (p *backendCache) createEntry(key string, item *specs.RrdItem) (*cacheEntry
 func (p *cacheEntry) put(item *specs.RrdItem) {
 	p.Lock()
 	defer p.Unlock()
-	p.lastTs = item.TimeStemp
-	p.data[p.dataId&CACHE_SIZE_MASK] = &specs.RRDData{
-		Ts: item.TimeStemp,
-		V:  specs.JsonFloat(item.Value),
+	p.e.lastTs = C.int64_t(item.TimeStemp)
+	idx := p.e.dataId & CACHE_SIZE_MASK
+	p.e.time[idx] = C.int64_t(item.TimeStemp)
+	p.e.value[idx] = C.double(item.Value)
+	p.e.dataId += 1
+}
+
+func (p *cacheEntry) reset(createTs int64, _host, _name, _tags, _typ string,
+	step, heartbeat int, min, max byte) error {
+	p.Lock()
+	defer p.Unlock()
+
+	host := C.CString(_host)
+	name := C.CString(_name)
+	tags := C.CString(_tags)
+	typ := C.CString(_typ)
+
+	ret := int(C.cache_entry_reset(p.e, C.int64_t(createTs),
+		host, name, tags, typ, C.int(step),
+		C.int(heartbeat), C.char(min), C.char(max)))
+
+	C.free(unsafe.Pointer(host))
+	C.free(unsafe.Pointer(name))
+	C.free(unsafe.Pointer(tags))
+	C.free(unsafe.Pointer(typ))
+
+	if ret != 0 {
+		return specs.EINVAL
 	}
-	p.dataId += 1
+	return nil
 }
 
 // fetch remote ds
 func (p *cacheEntry) fetchCommit() {
 	done := make(chan error)
 
-	node, err := storageMigrateConsistent.Get(p.hashkey)
+	node, err := storageMigrateConsistent.Get(p.hashkey())
 	if err != nil {
 		return
 	}
@@ -242,14 +549,14 @@ func (p *cacheEntry) fetchCommit() {
 func (p *cacheEntry) createRrd() error {
 	done := make(chan error, 1)
 
-	ktoch(p.hashkey) <- &ioTask{
+	ktoch(p.hashkey()) <- &ioTask{
 		method: IO_TASK_M_RRD_ADD,
 		args:   p,
 		done:   done,
 	}
 	err := <-done
 
-	p.commitTs = timeNow()
+	p.e.commitTs = C.int64_t(timeNow())
 
 	return err
 }
@@ -257,20 +564,20 @@ func (p *cacheEntry) createRrd() error {
 func (p *cacheEntry) commit() error {
 	done := make(chan error, 1)
 
-	ktoch(p.hashkey) <- &ioTask{
+	ktoch(p.hashkey()) <- &ioTask{
 		method: IO_TASK_M_RRD_UPDATE,
 		args:   p,
 		done:   done,
 	}
 	err := <-done
 
-	p.commitTs = timeNow()
+	p.e.commitTs = C.int64_t(timeNow())
 
 	return err
 }
 
 func (p *cacheEntry) filename() string {
-	return ktofname(p.hashkey)
+	return ktofname(p.hashkey())
 }
 
 // return [l, h)
@@ -291,21 +598,30 @@ func (p *cacheEntry) _getData(l, h uint32) (ret []*specs.RRDData,
 
 	ret = make([]*specs.RRDData, size)
 
-	H := h & CACHE_SIZE_MASK
+	//H := h & CACHE_SIZE_MASK
 	L := l & CACHE_SIZE_MASK
 
-	if H > L {
-		copy(ret, p.data[L:H])
-	} else {
-		copy(ret[:CACHE_SIZE-L], p.data[L:])
-		copy(ret[CACHE_SIZE-L:], p.data[:H])
+	for i := uint32(0); i < size; i++ {
+		idx := (L + i) & CACHE_SIZE_MASK
+		ret[i] = &specs.RRDData{
+			Ts: int64(p.e.time[idx]),
+			V:  specs.JsonFloat(p.e.value[idx]),
+		}
 	}
+	/*
+		if H > L {
+			copy(ret, p.data[L:H])
+		} else {
+			copy(ret[:CACHE_SIZE-L], p.data[L:])
+			copy(ret[CACHE_SIZE-L:], p.data[:H])
+		}
+	*/
 	return
 }
 
 func (p *cacheEntry) _dequeueAll() []*specs.RRDData {
-	ret, over := p._getData(p.commitId, p.dataId)
-	p.commitId = p.dataId
+	ret, over := p._getData(uint32(p.e.commitId), uint32(p.e.dataId))
+	p.e.commitId = p.e.dataId
 	if over > 0 {
 		statInc(ST_CACHE_OVERRUN, over)
 	}
@@ -322,17 +638,17 @@ func (p *cacheEntry) dequeueAll() []*specs.RRDData {
 
 func (p *cacheEntry) _getItems() (ret []*specs.RrdItem) {
 
-	rrds, _ := p._getData(0, p.dataId)
+	rrds, _ := p._getData(0, uint32(p.e.dataId))
 
 	for _, v := range rrds {
 		ret = append(ret, &specs.RrdItem{
-			Host:      p.host,
-			Name:      p.name,
-			Tags:      p.tags,
+			Host:      p.host(),
+			Name:      p.name(),
+			Tags:      p.tags(),
 			Value:     float64(v.V),
 			TimeStemp: v.Ts,
-			Type:      p.typ,
-			Step:      p.step,
+			Type:      p.typ(),
+			Step:      int(p.e.step),
 		})
 	}
 
@@ -352,17 +668,24 @@ func (p *cacheEntry) getItem() (ret *specs.RrdItem) {
 	defer p.RUnlock()
 
 	//p.dataId always > 0
-	v := p.data[(p.dataId-1)&CACHE_SIZE_MASK]
+	idx := uint32(p.e.dataId-1) & CACHE_SIZE_MASK
 	return &specs.RrdItem{
-		Host:      p.host,
-		Name:      p.name,
-		Tags:      p.tags,
-		Value:     float64(v.V),
-		TimeStemp: v.Ts,
-		Type:      p.typ,
-		Step:      p.step,
+		Host:      p.host(),
+		Name:      p.name(),
+		Tags:      p.tags(),
+		Value:     float64(p.e.value[idx]),
+		TimeStemp: int64(p.e.time[idx]),
+		Type:      p.typ(),
+		Step:      int(p.e.step),
 	}
 	return
+}
+
+func (p *cacheEntry) String() string {
+	return fmt.Sprintf("key:%s host:%s name:%s "+
+		"tags:%s type:%s step:%d\n",
+		p.hashkey(), p.host(), p.name(),
+		p.tags(), p.typ(), int(p.e.step))
 }
 
 func getItems(key string) (ret []*specs.RrdItem) {
@@ -379,4 +702,24 @@ func getLastItem(key string) (ret *specs.RrdItem) {
 		return
 	}
 	return e.getItem()
+}
+
+func cacheStart(config BackendOpts, p *specs.Process) {
+
+	cacheConfig = config
+
+	p.RegisterEvent("cache", cacheEvent)
+	appCache.init(config)
+
+	go func() {
+		select {
+		case event := <-cacheEvent:
+			if event.Method == specs.ROUTINE_EVENT_M_EXIT {
+				appCache.close()
+				event.Done <- nil
+				return
+			}
+		}
+	}()
+
 }
