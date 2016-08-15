@@ -108,10 +108,10 @@ func ktoch(key string) chan *ioTask {
 func rrdCreate(filename string, e *cacheEntry) error {
 	now := time.Unix(timeNow(), 0)
 	start := now.Add(time.Duration(-24) * time.Hour)
-	step := uint(e.step)
+	step := uint(e.e.step)
 
 	c := rrdlite.NewCreator(filename, start, step)
-	c.DS("metric", e.typ, e.heartbeat, e.min, e.max)
+	c.DS("metric", e.typ(), int(e.e.heartbeat), byte(e.e.min), byte(e.e.max))
 
 	// 设置各种归档策略
 	// 1分钟一个点存 12小时
@@ -211,14 +211,14 @@ func ioRrdAdd(e *cacheEntry) (err error) {
 }
 
 func ioRrdUpdate(e *cacheEntry) (err error) {
-	if e == nil || e.dataId == 0 {
+	if e == nil || e.e.dataId == 0 {
 		return specs.ErrEmpty
 	}
 	filename := e.filename()
 	ds := e.dequeueAll()
 
 	statInc(ST_RRD_UPDATE, 1)
-	err = rrdUpdate(filename, e.typ, ds)
+	err = rrdUpdate(filename, e.typ(), ds)
 	if err != nil {
 		statInc(ST_RRD_UPDATE_ERR, 1)
 
@@ -237,7 +237,7 @@ func ioRrdUpdate(e *cacheEntry) (err error) {
 			} else {
 				// retry
 				statInc(ST_RRD_UPDATE, 1)
-				err = rrdUpdate(filename, e.typ, ds)
+				err = rrdUpdate(filename, e.typ(), ds)
 				if err != nil {
 					statInc(ST_RRD_UPDATE_ERR, 1)
 				}
@@ -395,7 +395,7 @@ func netRrdFetch(client **rpc.Client, e *cacheEntry, addr string) error {
 
 		if err == nil {
 			done := make(chan error, 1)
-			ktoch(e.hashkey) <- &ioTask{
+			ktoch(e.hashkey()) <- &ioTask{
 				method: IO_TASK_M_FILE_WRITE,
 				args: &specs.File{
 					Filename: e.filename(),
@@ -574,11 +574,11 @@ func commitCache(_arg interface{}) {
 
 	now := timeNow()
 	expired := now - CACHE_TIME
-	nloop := appCache.dataq.size / (CACHE_TIME / FLUSH_DISK_STEP)
+	nloop := len(appCache.hash) / (CACHE_TIME / FLUSH_DISK_STEP)
 	n := 0
 
 	if arg.p.Status() == specs.APP_STATUS_EXIT {
-		percent = appCache.dataq.size / 100
+		percent = len(appCache.hash) / 100
 		exit = true
 	}
 
@@ -604,16 +604,16 @@ func commitCache(_arg interface{}) {
 		//write err data to local filename
 		if arg.migrate && flag&RRD_F_MISS != 0 {
 			//PullByKey(key)
-			lastTs = e.commitTs
+			lastTs = int64(e.e.commitTs)
 			if lastTs == 0 {
-				lastTs = e.createTs
+				lastTs = int64(e.e.createTs)
 			}
 			e.fetchCommit()
 		} else {
 			//CommitByKey(key)
-			lastTs = e.commitTs
+			lastTs = int64(e.e.commitTs)
 			if lastTs == 0 {
-				lastTs = e.createTs
+				lastTs = int64(e.e.createTs)
 			}
 			if err := e.commit(); err != nil {
 				if err != specs.ErrEmpty {
@@ -629,7 +629,7 @@ func commitCache(_arg interface{}) {
 
 		if lastTs > expired && n > nloop {
 			glog.V(4).Infof("last %d expired %d now %d n %d/%d nloop %d",
-				lastTs, expired, now, n, appCache.dataq.size, nloop)
+				lastTs, expired, now, n, len(appCache.hash), nloop)
 			return
 		}
 	}

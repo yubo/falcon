@@ -5,6 +5,10 @@
  */
 package backend
 
+/*
+#include "cache.h"
+*/
+import "C"
 import (
 	"strings"
 	"time"
@@ -41,7 +45,7 @@ func indexUpdate(e *cacheEntry) {
 			ret, err := indexDb.Exec("INSERT INTO host(host, ts, t_create) "+
 				"VALUES (?, ?, now()) ON DUPLICATE KEY "+
 				"UPDATE id=LAST_INSERT_ID(id), ts=VALUES(ts)",
-				e.host, e.lastTs)
+				e.host(), int64(e.e.lastTs))
 			if err != nil {
 				statInc(ST_INDEX_HOST_INSERT_ERR, 1)
 				glog.Warning(err)
@@ -54,13 +58,13 @@ func indexUpdate(e *cacheEntry) {
 				return
 			}
 		} else {
-			glog.Warning(e.host, err)
+			glog.Warning(e.host(), err)
 			return
 		}
 	}
 
 	// tag
-	tags := strings.Split(e.tags, ",")
+	tags := strings.Split(e.tags(), ",")
 	for _, tag := range tags {
 
 		tid = -1
@@ -75,7 +79,7 @@ func indexUpdate(e *cacheEntry) {
 					"VALUES (?, ?, ?, now()) "+
 					"ON DUPLICATE KEY "+
 					"UPDATE id=LAST_INSERT_ID(id), ts=VALUES(ts)",
-					tag, hid, e.lastTs)
+					tag, hid, int64(e.e.lastTs))
 				if err != nil {
 					statInc(ST_INDEX_TAG_INSERT_ERR, 1)
 					glog.Warning(err)
@@ -115,7 +119,8 @@ func indexUpdate(e *cacheEntry) {
 				"ON DUPLICATE KEY "+
 				"UPDATE id=LAST_INSERT_ID(id),ts=VALUES(ts),"+
 				"step=VALUES(step),type=VALUES(type)",
-				hid, counter, e.step, e.typ, e.lastTs)
+				hid, counter, int(e.e.step), e.typ(),
+				int64(e.e.lastTs))
 			if err != nil {
 				statInc(ST_INDEX_COUNTER_INSERT_ERR, 1)
 				glog.Warning(err)
@@ -145,30 +150,30 @@ func indexUpdate(e *cacheEntry) {
 	return
 }
 
-func index1Worker() {
+func indexTrashWorker() {
 	var (
-		entry *cacheEntry
+		e     *cacheEntry
 		p, _p *list.ListHead
 	)
 	ticker := falconTicker(time.Second*INDEX_TRASH_LOOPTIME,
 		indexConfig.Debug)
 	q0 := &appCache.idx0q
-	q1 := &appCache.idx1q
+	q2 := &appCache.idx2q
 	for {
 		select {
 		case <-ticker:
-			for p = q1.head.Next; p != &q1.head; p = p.Next {
+			for p = q2.head.Next; p != &q2.head; p = p.Next {
 				_p = p.Next
-				entry = list_idx_entry(p)
-				if timeNow()-entry.lastTs < INDEX_TIMEOUT {
-					q1.Lock()
+				e = list_idx_entry(p)
+				if timeNow()-int64(e.e.lastTs) < INDEX_TIMEOUT {
+					q2.Lock()
 					p.Del()
-					q1.size--
-					q1.Unlock()
+					//q2.size--
+					q2.Unlock()
 
-					entry.idxTs = 0
+					e.e.idxTs = 0
 					statInc(ST_INDEX_TRASH_PICKUP, 1)
-					q0.addHead(p)
+					q0.enqueue(p)
 				}
 				p = _p
 			}
@@ -176,62 +181,48 @@ func index1Worker() {
 	}
 }
 
-func index0Worker() {
+func indexWorker() {
 	var (
-		entry   *cacheEntry
-		pending *list.ListHead
-		p       *list.ListHead
+		e *cacheEntry
+		p *list.ListHead
 	)
 	ticker := falconTicker(time.Second/INDEX_QPS, indexConfig.Debug)
 	q0 := &appCache.idx0q
 	q1 := &appCache.idx1q
-	pending = &q0.head
+	q2 := &appCache.idx2q
 
 	for {
 		select {
 		case <-ticker:
 			statInc(ST_INDEX_TICK, 1)
-			if q0.size == 0 {
+
+			p = q0.dequeue()
+			if p != nil {
+				// immediate update , enqueue q1
+				e = list_idx_entry(p)
+				goto out
+			}
+
+			if p = q1.dequeue(); p == nil {
 				continue
 			}
 
-			q0.Lock()
-			if pending == &q0.head {
-				for p = q0.head.Next; p != &q0.head; p = p.Next {
-					entry = list_idx_entry(p)
-					if entry.idxTs == 0 {
-						pending = p
-					} else {
-						break
-					}
-				}
-			}
+			e = list_idx_entry(p)
 
-			if pending != &q0.head {
-				p = pending
-				pending = p.Prev
-			}
-
-			entry = list_idx_entry(p)
-
-			if timeNow()-entry.idxTs > INDEX_UPDATE_CYCLE_TIME {
-				p.Del()
-				q0.size--
-				q0.Unlock()
-			} else {
-				q0.Unlock()
+			if timeNow()-int64(e.e.idxTs) < INDEX_UPDATE_CYCLE_TIME {
+				q1.addHead(p)
 				continue
 			}
 
-			if timeNow()-entry.lastTs > INDEX_TIMEOUT {
-				statInc(ST_INDEX_TIMEOUT, 1)
-				q1.enqueue(p)
+			if timeNow()-int64(e.e.lastTs) > INDEX_TIMEOUT {
+				// timeout entry move to q2
+				q2.enqueue(p)
 				continue
 			}
-
-			entry.idxTs = timeNow()
-			q0.enqueue(p)
-			indexUpdateCh <- entry
+		out:
+			e.e.idxTs = C.int64_t(timeNow())
+			q1.enqueue(p)
+			indexUpdateCh <- e
 		}
 	}
 }
@@ -265,8 +256,8 @@ func indexStart(config BackendOpts, p *specs.Process) {
 
 	indexUpdateCh = make(chan *cacheEntry, INDEX_MAX_OPEN_CONNS)
 
-	go index0Worker()
-	go index1Worker()
+	go indexWorker()
+	go indexTrashWorker()
 	go updateWorker(indexDb)
 
 	glog.Info("indexStart ok")

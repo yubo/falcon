@@ -6,8 +6,8 @@
 package backend
 
 import (
+	"flag"
 	"fmt"
-	"runtime"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -35,16 +35,25 @@ func newRrdItem(i int) *specs.RrdItem {
 		Min:       "U",
 		Max:       "U",
 	}
-
 }
 
 func init() {
+	flag.Set("alsologtostderr", "true")
+	flag.Set("v", "5")
+
 	atomic.StoreInt64(&appTs, time.Now().Unix())
-	cache.init()
+	cacheConfig = BackendOpts{
+		Shm: ShmOpts{
+			Magic: 0x80386,
+			Key:   0x6020,
+			Size:  4096,
+		},
+	}
 }
 
-func TestBackendCache(t *testing.T) {
-	fmt.Println(runtime.Caller(0))
+func TestCache(t *testing.T) {
+	//fmt.Println(runtime.Caller(0))
+	cache.reset(cacheConfig)
 	rrdItem = newRrdItem(1)
 	key := rrdItem.Csum()
 
@@ -87,8 +96,13 @@ func TestBackendCache(t *testing.T) {
 }
 
 func TestCacheQueue(t *testing.T) {
+	cache.reset(cacheConfig)
+
 	rrdItem = newRrdItem(0)
-	entry, _ = cache.createEntry(rrdItem.Csum(), rrdItem)
+	entry, err = cache.createEntry(rrdItem.Csum(), rrdItem)
+	if err != nil {
+		t.Error(err)
+	}
 
 	//fmt.Printf("cacheEtnry filename: %s\n", entry.filename())
 
@@ -107,7 +121,34 @@ func TestCacheQueue(t *testing.T) {
 	fmt.Printf("e.getItems() success\n")
 
 	entry.dequeueAll()
-	if entry.commitId != entry.dataId {
-		t.Errorf("len(cache) %d want %d", entry.dataId-entry.commitId, 0)
+	if entry.e.commitId != entry.e.dataId {
+		t.Errorf("len(cache) %d want %d", int(entry.e.dataId-entry.e.commitId), 0)
 	}
+}
+
+func TestCacheShm(t *testing.T) {
+	var (
+		block_nb int = 3
+		entry_nb int
+	)
+
+	cacheConfig.Shm.Size = 268435456
+	cache.reset(cacheConfig)
+	entry_nb = block_nb * cache.cache_entry_nb
+	fmt.Printf("entry_nb %d block_nb %d block_entry_nb %d\n",
+		entry_nb, block_nb, cache.cache_entry_nb)
+
+	for i := 0; i < entry_nb; i++ {
+		rrdItem = newRrdItem(i)
+		entry, err = cache.createEntry(rrdItem.Csum(), rrdItem)
+		if err != nil {
+			t.Error(err)
+		}
+	}
+
+	cache.close()
+
+	cache.init(cacheConfig)
+
+	cleanBlocks(cache.startkey)
 }

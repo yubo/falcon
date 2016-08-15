@@ -50,9 +50,6 @@ func init() {
 	if size < 0 {
 		glog.Fatalf("store.init, bad size %d\n", size)
 	}
-
-	// cache
-	appCache.init()
 }
 
 func timeStart(config BackendOpts, ts *int64) {
@@ -112,6 +109,7 @@ func Handle(arg interface{}) {
 		indexStart(appConfig, appProcess)
 		httpStart(appConfig, appProcess)
 		statStart(appConfig, appProcess)
+		cacheStart(appConfig, appProcess)
 
 		appProcess.StartSignal()
 	} else {

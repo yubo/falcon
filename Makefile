@@ -5,7 +5,7 @@
 
 all: bin/agent bin/handoff bin/backend bin/falcon
 
-bin/backend: git.go *.go specs/*.go backend/*.go cmd/backend/*.go
+bin/backend: git.go *.go specs/*.go backend/*.go cmd/backend/*.go backend/*.c backend/*.h
 	go build -gcflags "-N -l" -o bin/backend cmd/backend/*
 
 bin/falcon: git.go *.go */*.go cmd/falcon/*.go
