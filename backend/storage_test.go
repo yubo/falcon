@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	test_dir      = "/home/work/var"
+	test_dir      = "/tmp/falcon"
 	b_size        = 100
 	work_nb       = 4
 	MAX_HD_NUMBER = 2
@@ -41,10 +41,12 @@ func init() {
 		},
 	}
 
+	os.RemoveAll(test_dir)
 	test_dirs = make([]string, MAX_HD_NUMBER)
 
 	for i := 0; i < MAX_HD_NUMBER; i++ {
 		test_dirs[i] = fmt.Sprintf("%s/hdd%d", test_dir, i)
+		os.MkdirAll(test_dirs[i], 0755)
 	}
 
 	err := storageCheckHds(test_dirs)

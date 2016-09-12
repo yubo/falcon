@@ -26,7 +26,25 @@ clean:
 run:
 	./bin/backend -config ./etc/backend.conf -logtostderr -v 3
 
-toos:
-	go get github.com/yubo/gotool/flags
+prepare: git.go
+	go get ./...
+	go get github.com/tcnksm/ghr
+
+test:
+	go test ./...
+
+compile:
+	make
+
+targz:
+	mkdir -p ${OUTPUT_DIR}/dist
+	cd ${OUTPUT_DIR}/bin; tar czvf ../dist/falcon_linux_amd64.tar.gz ./*
+
+shasums:
+	cd ${OUTPUT_DIR}/dist; shasum * > ./SHASUMS
+
+release:
+	ghr --delete --prerelease -u yubo -r falcon pre-release ${OUTPUT_DIR}/dist
 #./bin/agent -config ./etc/agent.conf -logtostderr -v 3
 #./bin/backend -config ./etc/backend.conf -logtostderr -v 3
+
