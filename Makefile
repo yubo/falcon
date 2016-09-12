@@ -25,5 +25,8 @@ clean:
 
 run:
 	./bin/backend -config ./etc/backend.conf -logtostderr -v 3
+
+toos:
+	go get github.com/yubo/gotool/flags
 #./bin/agent -config ./etc/agent.conf -logtostderr -v 3
 #./bin/backend -config ./etc/backend.conf -logtostderr -v 3
