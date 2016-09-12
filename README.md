@@ -1,5 +1,5 @@
 # lite-falcon
-[![wercker status](https://app.wercker.com/status/fff04a43b1cdb0ea190ab9578eceeb17/s/master "wercker status")](https://app.wercker.com/project/bykey/fff04a43b1cdb0ea190ab9578eceeb17)
+[![wercker status](https://app.wercker.com/status/264bf495c340505f479d787192a213f4/s/master "wercker status")](https://app.wercker.com/project/byKey/264bf495c340505f479d787192a213f4)
 [![License (3-Clause BSD)](https://img.shields.io/badge/license-BSD%203--Clause-blue.svg?style=flat-square)](http://opensource.org/licenses/BSD-3-Clause)
 
 简化版本的falcon

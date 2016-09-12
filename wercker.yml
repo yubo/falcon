@@ -10,23 +10,23 @@ build:
         name: test
         code: make test
     - script:
-        name: cross compile
-        code: make compile OUTPUT_DIR=$WERCKER_OUTPUT_DIR
+        name: compile
+        code: make compile OUTPUT_DIR=$WERCKER_CACHE_DIR
     - script:
         name: store Makefile
-        code: cp Makefile $WERCKER_OUTPUT_DIR/
+        code: cp Makefile $WERCKER_CACHE_DIR/
 
-deploy:        
+deploy:
   steps:      
     - script:     
-        name: prepare       
-        code: make prepare      
+        name: tools       
+        code: make tools
     - script:     
         name: targz       
-        code: make targz OUTPUT_DIR=.     
+        code: make targz OUTPUT_DIR=$WERCKER_CACHE_DIR
     - script:     
         name: shasums     
-        code: make shasums OUTPUT_DIR=.       
+        code: make shasums OUTPUT_DIR=$WERCKER_CACHE_DIR
     - script:     
         name: release     
-        code: make release OUTPUT_DIR=.
+        code: make release OUTPUT_DIR=$WERCKER_CACHE_DIR

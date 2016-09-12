@@ -3,19 +3,24 @@
 # license that can be found in the LICENSE file.
 .PHONY: clean run
 
-all: bin/agent bin/handoff bin/backend bin/falcon
+ifeq ($(strip $(OUTPUT_DIR)),)
+  OUTPUT_DIR = .
+endif
 
-bin/backend: git.go *.go specs/*.go backend/*.go cmd/backend/*.go backend/*.c backend/*.h
-	go build -gcflags "-N -l" -o bin/backend cmd/backend/*
+all: $(OUTPUT_DIR)/bin/agent $(OUTPUT_DIR)/bin/handoff $(OUTPUT_DIR)/bin/backend $(OUTPUT_DIR)/bin/falcon
 
-bin/falcon: git.go *.go */*.go cmd/falcon/*.go
-	go build -o bin/falcon cmd/falcon/*
 
-bin/handoff: git.go *.go specs/*.go handoff/*.go cmd/handoff/*.go
-	go build -o bin/handoff cmd/handoff/*
+$(OUTPUT_DIR)/bin/backend: git.go *.go specs/*.go backend/*.go cmd/backend/*.go backend/*.c backend/*.h
+	go build -gcflags "-N -l" -o "${OUTPUT_DIR}/bin/backend" cmd/backend/*
 
-bin/agent: git.go *.go specs/*.go agent/*.go agent/plugin/*.go cmd/agent/*.go
-	go build -o bin/agent cmd/agent/*
+$(OUTPUT_DIR)/bin/falcon: git.go *.go */*.go cmd/falcon/*.go
+	go build -o "${OUTPUT_DIR}/bin/falcon" cmd/falcon/*
+
+$(OUTPUT_DIR)/bin/handoff: git.go *.go specs/*.go handoff/*.go cmd/handoff/*.go
+	go build -o "${OUTPUT_DIR}/bin/handoff" cmd/handoff/*
+
+$(OUTPUT_DIR)/bin/agent: git.go *.go specs/*.go agent/*.go agent/plugin/*.go cmd/agent/*.go
+	go build -o "${OUTPUT_DIR}/bin/agent" cmd/agent/*
 
 git.go:
 	/bin/sh scripts/git.sh
@@ -28,17 +33,20 @@ run:
 
 prepare: git.go
 	go get ./...
+
+tools:
 	go get github.com/tcnksm/ghr
 
 test:
 	go test ./...
 
 compile:
+	mkdir -p "${OUTPUT_DIR}/bin"
 	make
 
 targz:
 	mkdir -p ${OUTPUT_DIR}/dist
-	cd ${OUTPUT_DIR}/bin; tar czvf ../dist/falcon_linux_amd64.tar.gz ./*
+	cd ${OUTPUT_DIR}/bin; tar czvf ../dist/falcon_single_linux_amd64.tar.gz ./falcon ; tar czvf ../dist/falcon_multi_linux_amd64.tar.gz ./backend ./handoff ./agent
 
 shasums:
 	cd ${OUTPUT_DIR}/dist; shasum * > ./SHASUMS
