@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/yubo/falcon/specs"
 )
 
 const (
@@ -65,16 +64,23 @@ func statGet(idx int) uint64 {
 	return atomic.LoadUint64(&statCnt[idx])
 }
 
-func statStart(config HandoffOpts, p *specs.Process) {
-	if config.Debug > 0 {
-		ticker := time.NewTicker(time.Second * DEBUG_STAT_STEP).C
+func (p *Handoff) statStart() {
+	if p.Debug > 0 {
+		statTicker := time.NewTicker(time.Second * DEBUG_STAT_STEP).C
 		go func() {
 			for {
 				select {
-				case <-ticker:
+				case _, ok := <-p.running:
+					if !ok {
+						return
+					}
+				case <-statTicker:
 					glog.V(3).Info(statHandle())
 				}
 			}
 		}()
 	}
+}
+
+func (p *Handoff) statStop() {
 }

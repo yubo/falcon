@@ -20,12 +20,6 @@ import (
 	"github.com/yubo/falcon/specs"
 )
 
-var (
-	rpcEvent    chan specs.ProcEvent
-	rpcConnects connList
-	rpcConfig   BackendOpts
-)
-
 type connList struct {
 	sync.RWMutex
 	list *list.List
@@ -42,17 +36,19 @@ func (l *connList) remove(e *list.Element) net.Conn {
 	return l.list.Remove(e).(net.Conn)
 }
 
-type Backend int
+type Bkd struct {
+	backend *Backend
+}
 
-func (p *Backend) GetRrd(key string, rrdfile *specs.File) (err error) {
+func (p *Bkd) GetRrd(key string, rrdfile *specs.File) (err error) {
 
 	statInc(ST_RPC_SERV_GETRRD, 1)
-	e := appCache.get(key)
+	e := p.backend.cache.get(key)
 	if e != nil {
-		e.commit()
+		e.commit(p.backend)
 	}
 
-	rrdfile.Data, err = taskFileRead(key)
+	rrdfile.Data, err = p.backend.taskFileRead(key)
 	if err != nil {
 		statInc(ST_RPC_SERV_GETRRD_ERR, 1)
 	}
@@ -60,7 +56,7 @@ func (p *Backend) GetRrd(key string, rrdfile *specs.File) (err error) {
 	return
 }
 
-func (p *Backend) Ping(req specs.Null,
+func (p *Bkd) Ping(req specs.Null,
 	resp *specs.RpcResp) error {
 	return nil
 }
@@ -69,16 +65,21 @@ func demoValue(idx int64, i int) float64 {
 	return math.Sin(float64(idx+int64(i)) * math.Pi / 40.0)
 }
 
-func (p *Backend) demo() {
+func (p *Bkd) demoStart() {
 	items := make([]*specs.RrdItem, DEBUG_SAMPLE_NB)
-	ticker := falconTicker(time.Second*DEBUG_STEP, rpcConfig.Debug)
+	ticker := falconTicker(time.Second*DEBUG_STEP, p.backend.Debug)
 	step := DEBUG_STEP
 	j := 0
 	for {
 		select {
+		case _, ok := <-p.backend.running:
+			if !ok {
+				return
+			}
+
 		case <-ticker:
 			for i := 0; i < DEBUG_SAMPLE_NB; i++ {
-				ts := timeNow()
+				ts := p.backend.timeNow()
 				items[i] = &specs.RrdItem{
 					Host:      "demo",
 					Name:      fmt.Sprintf("%d", i),
@@ -98,27 +99,30 @@ func (p *Backend) demo() {
 
 }
 
+func (p *Bkd) demoStop() {
+}
+
 /* "Put" maybe better than "Send" */
-func (p *Backend) Put(items []*specs.RrdItem,
+func (p *Bkd) Put(items []*specs.RrdItem,
 	resp *specs.RpcResp) error {
-	go handleItems(items)
+	go p.backend.handleItems(items)
 	return nil
 }
 
-func (p *Backend) Send(items []*specs.RrdItem,
+func (p *Bkd) Send(items []*specs.RrdItem,
 	resp *specs.RpcResp) error {
-	go handleItems(items)
+	go p.backend.handleItems(items)
 	return nil
 }
 
-func queryGetCacheEntry(param *specs.RrdQuery,
+func (p *Backend) queryGetCacheEntry(param *specs.RrdQuery,
 	resp *specs.RrdResp) (*cacheEntry, error) {
 	// form empty response
 	resp.Vs = []*specs.RRDData{}
 	resp.Host = param.Host
 	resp.Name = param.Name
 
-	e := appCache.get(param.Csum())
+	e := p.cache.get(param.Csum())
 	if e == nil {
 		return nil, specs.ErrNoent
 	}
@@ -134,17 +138,17 @@ func queryGetCacheEntry(param *specs.RrdQuery,
 	return e, nil
 }
 
-func queryGetData(param *specs.RrdQuery, resp *specs.RrdResp,
+func (p *Backend) queryGetData(param *specs.RrdQuery, resp *specs.RrdResp,
 	e *cacheEntry) (rrds, caches []*specs.RRDData, err error) {
 
 	flag := atomic.LoadUint32(&e.flag)
 	caches, _ = e._getData(uint32(e.e.commitId), uint32(e.e.dataId))
 
-	if rpcConfig.Migrate.Enable && flag&RRD_F_MISS != 0 {
-		node, _ := storageMigrateConsistent.Get(param.Id())
+	if !p.Migrate.Disabled && flag&RRD_F_MISS != 0 {
+		node, _ := p.storageMigrateConsistent.Get(param.Id())
 		done := make(chan error, 1)
 		res := &specs.RrdRespCsum{}
-		storageNetTaskCh[node] <- &netTask{
+		p.storageNetTaskCh[node] <- &netTask{
 			Method: NET_TASK_M_QUERY,
 			Done:   done,
 			Args:   param,
@@ -155,12 +159,12 @@ func queryGetData(param *specs.RrdQuery, resp *specs.RrdResp,
 		rrds = res.Values
 	} else {
 		// read data from local rrd file
-		rrds, _ = taskRrdFetch(e.hashkey(), param.ConsolFun,
+		rrds, _ = p.taskRrdFetch(e.hashkey(), param.ConsolFun,
 			param.Start, param.End, int(e.e.step))
 	}
 
 	// larger than rra1point range, skip merge
-	now := timeNow()
+	now := p.timeNow()
 	if param.Start < now-now%int64(e.e.step)-RRA1PointCnt*int64(e.e.step) {
 		resp.Vs = rrds
 		return nil, nil, errors.New("skip merge")
@@ -315,12 +319,12 @@ func (p *Backend) Query(param specs.RrdQuery,
 
 	statInc(ST_RPC_SERV_QUERY, 1)
 
-	e, err = queryGetCacheEntry(&param, resp)
+	e, err = p.queryGetCacheEntry(&param, resp)
 	if err != nil {
 		return err
 	}
 
-	rrds, ret, err = queryGetData(&param, resp, e)
+	rrds, ret, err = p.queryGetData(&param, resp, e)
 	if err != nil {
 		statInc(ST_RPC_SERV_QUERY_ITEM, len(resp.Vs))
 		return err
@@ -336,7 +340,7 @@ func (p *Backend) Query(param specs.RrdQuery,
 	return nil
 }
 
-func handleItems(items []*specs.RrdItem) {
+func (p *Backend) handleItems(items []*specs.RrdItem) {
 	var (
 		err error
 		e   *cacheEntry
@@ -361,9 +365,9 @@ func handleItems(items []*specs.RrdItem) {
 		}
 		key := items[i].Csum()
 
-		e = appCache.get(key)
+		e = p.cache.get(key)
 		if e == nil {
-			e, err = appCache.createEntry(key, items[i])
+			e, err = p.createEntry(key, items[i])
 			if err != nil {
 				continue
 			}
@@ -383,10 +387,10 @@ func handleItems(items []*specs.RrdItem) {
 }
 
 // 非法值: ts=0,value无意义
-func getLast(csum string) *specs.RRDData {
+func (p *Backend) getLast(csum string) *specs.RRDData {
 	nan := &specs.RRDData{Ts: 0, V: specs.JsonFloat(0.0)}
 
-	e := appCache.get(csum)
+	e := p.cache.get(csum)
 	if e == nil {
 		return nan
 	}
@@ -431,9 +435,9 @@ func getLast(csum string) *specs.RRDData {
 	return nan
 }
 
-func getLastRaw(csum string) *specs.RRDData {
+func (p *Backend) getLastRaw(csum string) *specs.RRDData {
 	nan := &specs.RRDData{Ts: 0, V: specs.JsonFloat(0.0)}
-	e := appCache.get(csum)
+	e := p.cache.get(csum)
 	if e == nil {
 		return nan
 	}
@@ -454,30 +458,36 @@ func getLastRaw(csum string) *specs.RRDData {
 	return nan
 }
 
-func _rpcStart(config *BackendOpts, listener **net.TCPListener) (err error) {
+func (p *Backend) rpcStart() (err error) {
 	var addr *net.TCPAddr
 
-	if !config.Rpc {
+	if !p.Rpc {
 		return nil
 	}
 
-	addr, err = net.ResolveTCPAddr("tcp", config.RpcAddr)
+	addr, err = net.ResolveTCPAddr("tcp", p.RpcAddr)
 	if err != nil {
 		glog.Fatalf("rpc.Start error, net.ResolveTCPAddr failed, %s", err)
 	}
 
-	*listener, err = net.ListenTCP("tcp", addr)
+	p.rpcBkd = &Bkd{
+		backend: p,
+	}
+	rpcServer := rpc.NewServer()
+	rpcServer.Register(p.rpcBkd)
+
+	p.rpcListener, err = net.ListenTCP("tcp", addr)
 	if err != nil {
 		glog.Fatalf("rpc.Start error, listen %s failed, %s",
-			config.RpcAddr, err)
+			p.RpcAddr, err)
 	} else {
-		glog.Infof("rpc.Start ok, listening on %s", config.RpcAddr)
+		glog.Infof("%s rpcStart ok, listening on %s", p.Name, p.RpcAddr)
 	}
 
 	go func() {
 		var tempDelay time.Duration // how long to sleep on accept failure
 		for {
-			conn, err := (*listener).Accept()
+			conn, err := p.rpcListener.Accept()
 			if err != nil {
 				if tempDelay == 0 {
 					tempDelay = 5 * time.Millisecond
@@ -492,31 +502,41 @@ func _rpcStart(config *BackendOpts, listener **net.TCPListener) (err error) {
 			}
 			tempDelay = 0
 			go func() {
-				e := rpcConnects.insert(conn)
-				defer rpcConnects.remove(e)
-				rpc.ServeConn(conn)
+				e := p.rpcConnects.insert(conn)
+				defer p.rpcConnects.remove(e)
+				rpcServer.ServeConn(conn)
 			}()
 		}
 	}()
+
+	if p.Debug > 1 {
+		go p.rpcBkd.demoStart()
+	}
+
 	return err
 }
 
-func _rpcStop(config *BackendOpts, listener *net.TCPListener) (err error) {
-	if listener == nil {
+func (p *Backend) rpcStop() (err error) {
+	if p.rpcListener == nil {
 		return specs.ErrNoent
 	}
 
-	listener.Close()
-	rpcConnects.Lock()
-	for e := rpcConnects.list.Front(); e != nil; e = e.Next() {
+	if p.Debug > 1 {
+		p.rpcBkd.demoStop()
+	}
+
+	p.rpcListener.Close()
+	p.rpcConnects.Lock()
+	for e := p.rpcConnects.list.Front(); e != nil; e = e.Next() {
 		e.Value.(net.Conn).Close()
 	}
-	rpcConnects.Unlock()
+	p.rpcConnects.Unlock()
 
 	return nil
 }
 
-func rpcStart(config BackendOpts, p *specs.Process) {
+/*
+func (p *Backend) rpcStart() {
 	var rpcListener *net.TCPListener
 
 	s := new(Backend)
@@ -550,3 +570,4 @@ func rpcStart(config BackendOpts, p *specs.Process) {
 	}()
 
 }
+*/

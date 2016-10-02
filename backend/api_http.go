@@ -15,20 +15,14 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/specs"
 )
 
-var (
-	httpEvent  chan specs.ProcEvent
-	httpConfig BackendOpts
-)
-
-func count_handler(w http.ResponseWriter, r *http.Request) {
-	ts := timeNow() - 3600
+func (p *Backend) count_handler(w http.ResponseWriter, r *http.Request) {
+	ts := p.timeNow() - 3600
 	count := 0
 
-	for _, v := range appCache.hash {
+	for _, v := range p.cache.hash {
 		if int64(v.e.lastTs) > ts {
 			count++
 		}
@@ -36,7 +30,7 @@ func count_handler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(fmt.Sprintf("%d\n", count)))
 }
 
-func recv_hanlder(w http.ResponseWriter, r *http.Request) {
+func (p *Backend) recv_hanlder(w http.ResponseWriter, r *http.Request) {
 	urlParam := r.URL.Path[len("/api/recv/"):]
 	args := strings.Split(urlParam, "/")
 
@@ -72,11 +66,11 @@ func recv_hanlder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	handleItems([]*specs.RrdItem{gitem})
+	p.handleItems([]*specs.RrdItem{gitem})
 	renderDataJson(w, "ok")
 }
 
-func recv2_handler(w http.ResponseWriter, r *http.Request) {
+func (p *Backend) recv2_handler(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 
 	if !(len(r.Form["e"]) > 0 && len(r.Form["m"]) > 0 &&
@@ -109,7 +103,7 @@ func recv2_handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	handleItems([]*specs.RrdItem{gitem})
+	p.handleItems([]*specs.RrdItem{gitem})
 	renderDataJson(w, "ok")
 }
 
@@ -127,34 +121,34 @@ func stat_handler(w http.ResponseWriter, r *http.Request) {
 	renderDataJson(w, statHandle())
 }
 
-func httpRoutes() {
-	http.HandleFunc("/count", count_handler)
+func (p *Backend) httpRoutes() {
+	p.httpMux.HandleFunc("/count", p.count_handler)
 
-	http.HandleFunc("/api/recv/", recv_hanlder)
+	p.httpMux.HandleFunc("/api/recv/", p.recv_hanlder)
 
-	http.HandleFunc("/v2/api/recv", recv2_handler)
+	p.httpMux.HandleFunc("/v2/api/recv", p.recv2_handler)
 
-	http.HandleFunc("/index/updateAll", updateAll_handler)
+	p.httpMux.HandleFunc("/index/updateAll", updateAll_handler)
 
 	// 获取索引全量更新的并行数
-	http.HandleFunc("/index/updateAll/concurrent", updateAll_concurrent_handler)
+	p.httpMux.HandleFunc("/index/updateAll/concurrent", updateAll_concurrent_handler)
 
-	http.HandleFunc("/health",
+	p.httpMux.HandleFunc("/health",
 		func(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte("ok"))
 		})
 
-	http.HandleFunc("/version",
+	p.httpMux.HandleFunc("/version",
 		func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte(falcon.VERSION))
+			w.Write([]byte(specs.VERSION))
 		})
 
-	http.HandleFunc("/config",
+	p.httpMux.HandleFunc("/config",
 		func(w http.ResponseWriter, r *http.Request) {
-			renderDataJson(w, appConfig)
+			renderDataJson(w, p)
 		})
 
-	http.HandleFunc("/stat", stat_handler)
+	p.httpMux.HandleFunc("/stat", stat_handler)
 
 }
 
@@ -172,15 +166,13 @@ func (ln tcpKeepAliveListener) Accept() (c net.Conn, err error) {
 	return tc, nil
 }
 
-func httpStart(config BackendOpts, p *specs.Process) {
-	if !config.Http {
+func (p *Backend) httpStart() {
+	if !p.Http {
 		glog.Info("http.Start warning, not enabled")
 		return
 	}
 
-	httpConfig = config
-
-	addr := httpConfig.HttpAddr
+	addr := p.HttpAddr
 	if addr == "" {
 		return
 	}
@@ -188,27 +180,18 @@ func httpStart(config BackendOpts, p *specs.Process) {
 		Addr:           addr,
 		MaxHeaderBytes: 1 << 30,
 	}
-	glog.Infof("http listening %s", addr)
+	glog.Infof("%s httpStart listening %s", p.Name, addr)
 
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
 		glog.Fatal(err)
 	}
 
-	l := ln.(*net.TCPListener)
-	p.RegisterEvent("http", httpEvent)
+	p.httpListener = ln.(*net.TCPListener)
+	go s.Serve(tcpKeepAliveListener{p.httpListener})
+}
 
-	go s.Serve(tcpKeepAliveListener{l})
-
-	go func() {
-		select {
-		case event := <-httpEvent:
-			if event.Method == specs.ROUTINE_EVENT_M_EXIT {
-				l.Close()
-				event.Done <- nil
-				return
-			}
-		}
-	}()
-
+func (p *Backend) httpStop() error {
+	p.httpListener.Close()
+	return nil
 }

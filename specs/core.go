@@ -5,7 +5,13 @@
  */
 package specs
 
-import "errors"
+import (
+	"errors"
+	"flag"
+	"fmt"
+
+	"github.com/yubo/gotool/flags"
+)
 
 const (
 	_ = iota
@@ -28,6 +34,7 @@ const (
 	GAUGE        = "GAUGE"
 	DERIVE       = "DERIVE"
 	COUNTER      = "COUNTER"
+	VERSION      = "0.0.2"
 )
 
 type CmdOpts struct {
@@ -81,4 +88,27 @@ var (
 type Dto struct {
 	Msg  string      `json:"msg"`
 	Data interface{} `json:"data"`
+}
+
+func init() {
+	flags.NewCommand("version", "show falcon version information",
+		Version, flag.ExitOnError)
+
+	flags.NewCommand("git", "show falcon git version information",
+		Git, flag.ExitOnError)
+
+	flags.NewCommand("changelog", "show falcon changelog information",
+		Changelog, flag.ExitOnError)
+}
+
+func Version(arg interface{}) {
+	fmt.Println(VERSION)
+}
+
+func Git(arg interface{}) {
+	fmt.Println(COMMIT)
+}
+
+func Changelog(arg interface{}) {
+	fmt.Println(CHANGELOG)
 }

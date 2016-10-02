@@ -19,14 +19,7 @@ import (
 	"github.com/golang/glog"
 )
 
-type ProcEvent struct {
-	Method int
-	Done   chan error
-}
-
 type procEvent struct {
-	name  string
-	event chan ProcEvent
 }
 
 type hookFunc struct {
@@ -35,22 +28,33 @@ type hookFunc struct {
 	arg  interface{}
 }
 
+type Module interface {
+	Init() error
+	Start() error
+	Stop() error
+	Reload() error
+	Signal(os.Signal) error
+	String() string
+	Desc() string
+}
 type Process struct {
 	PidFile   string
 	Pid       int
 	status    uint32
 	events    []*procEvent
 	postHooks []hookFunc
+	modules   []Module
 }
 
-func NewProcess(pidfile string) *Process {
-	return &Process{
-		PidFile:   pidfile,
-		Pid:       os.Getpid(),
-		status:    APP_STATUS_PENDING,
-		events:    []*procEvent{},
-		postHooks: []hookFunc{},
+func NewProcess(pidfile string, modules []Module) *Process {
+	p := &Process{
+		PidFile: pidfile,
+		Pid:     os.Getpid(),
+		status:  APP_STATUS_PENDING,
 	}
+	p.modules = make([]Module, len(modules))
+	copy(p.modules, modules)
+	return p
 }
 
 func (p *Process) Status() uint32 {
@@ -95,21 +99,24 @@ func (p *Process) Save() error {
 		[]byte(fmt.Sprintf("%d", p.Pid)), 0644)
 }
 
-func (p *Process) RegisterEvent(name string, ch chan ProcEvent) {
-	glog.V(3).Infof("register process event chan '%s'", name)
-	p.events = append(p.events, &procEvent{name: name, event: ch})
+func (p *Process) Init() {
+	atomic.StoreUint32(&p.status, APP_STATUS_INIT)
+
+	for _, m := range p.modules {
+		m.Init()
+	}
 }
 
-func (p *Process) RegisterPostHook(name string, fun func(interface{}), arg interface{}) {
-	glog.V(3).Infof("register post hook '%s'", name)
-	p.postHooks = append(p.postHooks, hookFunc{name: name, fun: fun, arg: arg})
-}
-
-func (p *Process) StartSignal() {
+func (p *Process) Start() {
 	sigs := make(chan os.Signal, 1)
-	glog.Infof("[%d] register signal notify", p.Pid)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	atomic.StoreUint32(&p.status, APP_STATUS_RUNING)
+
+	for _, m := range p.modules {
+		m.Start()
+	}
+
+	glog.Infof("[%d] register signal notify", p.Pid)
 
 	for {
 		s := <-sigs
@@ -117,48 +124,29 @@ func (p *Process) StartSignal() {
 
 		switch s {
 		case syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
-			glog.Info("gracefull shut down")
+			pidfile := fmt.Sprintf("%s.%d", p.PidFile, p.Pid)
+			glog.Info("exiting")
 			atomic.StoreUint32(&p.status, APP_STATUS_EXIT)
-			event := ProcEvent{
-				Method: ROUTINE_EVENT_M_EXIT,
-				Done:   make(chan error),
-			}
-			for i := len(p.events) - 1; i >= 0; i-- {
-				glog.V(3).Infof("send exit signal to %s",
-					p.events[i].name)
-				p.events[i].event <- event
-				if err := <-event.Done; err != nil {
-					glog.Info(err)
-				}
-				glog.V(3).Infof("%s done", p.events[i].name)
-			}
-			glog.V(3).Infof("begin post hooks start")
+			os.Rename(p.PidFile, pidfile)
 
-			for i := len(p.postHooks) - 1; i >= 0; i-- {
-				glog.V(3).Infof("call hook %d %s", i, p.postHooks[i].name)
-				p.postHooks[i].fun(p.postHooks[i].arg)
+			for _, m := range p.modules {
+				m.Stop()
 			}
 
 			glog.Infof("pid:%d exit", p.Pid)
-			os.Remove(p.PidFile)
+			os.Remove(pidfile)
 			os.Exit(0)
 		case syscall.SIGUSR1:
-			glog.Info("relod shut down")
+			glog.Info("reload")
 			atomic.StoreUint32(&p.status, APP_STATUS_RELOAD)
-			event := ProcEvent{
-				Method: ROUTINE_EVENT_M_RELOAD,
-				Done:   make(chan error),
-			}
-			for i := len(p.events) - 1; i >= 0; i-- {
-				glog.V(3).Infof("send reload signal to %s",
-					p.events[i].name)
-				p.events[i].event <- event
-				if err := <-event.Done; err != nil {
-					glog.Info(err)
-				}
-				glog.V(3).Infof("%s done", p.events[i].name)
+			for _, m := range p.modules {
+				m.Reload()
 			}
 			atomic.StoreUint32(&p.status, APP_STATUS_RUNING)
+		default:
+			for _, m := range p.modules {
+				m.Signal(s)
+			}
 		}
 	}
 }

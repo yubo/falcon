@@ -21,13 +21,6 @@ import (
 	"github.com/yubo/gotool/list"
 )
 
-var (
-	/* cache */
-	appCache    backendCache
-	cacheEvent  chan specs.ProcEvent
-	cacheConfig BackendOpts
-)
-
 /* used for share memory modle */
 type cacheEntry struct {
 	sync.RWMutex
@@ -89,31 +82,6 @@ func (p *cacheEntry) typ() string {
 	return C.GoString((*C.char)(unsafe.Pointer(&p.e.typ[0])))
 }
 
-/*
-type cacheEntry struct {
-	sync.RWMutex
-	flag      uint32
-	list_data list.ListHead
-	list_idx  list.ListHead // no init queue
-	hashkey   string
-	idxTs     int64
-	commitTs  int64
-	createTs  int64
-	lastTs    int64
-	host      string
-	name      string
-	tags      string
-	typ       string
-	step      int
-	heartbeat int
-	min       string
-	max       string
-	dataId    uint32
-	commitId  uint32
-	data      [CACHE_SIZE]*specs.RRDData
-}
-*/
-
 // should === specs.RrdItem.Id()
 func (p *cacheEntry) id() string {
 	return fmt.Sprintf("%s/%s/%s/%s/%d",
@@ -136,8 +104,6 @@ type cacheq struct {
 
 type backendCache struct {
 	sync.RWMutex   // hash lock
-	magic          uint32
-	block_size     int //segment size(bytes)
 	cache_entry_nb int
 	startkey       int
 	endkey         int    //[startkey, endkey), endkey not used
@@ -149,128 +115,6 @@ type backendCache struct {
 	hash           map[string]*cacheEntry
 	shmaddrs       []uintptr
 	shmids         []int
-}
-
-func (p *backendCache) importBlocks(magic uint32) (int, error) {
-	var (
-		shm_id int
-		size   int
-		addr   uintptr
-		block  *C.struct_cache_block
-		err    error
-	)
-
-	for {
-		shm_id, size, err = Shmget(p.endkey, p.block_size, C.IPC_CREAT|0600)
-		if err != nil {
-			return p.endkey - p.startkey, err
-		}
-
-		if size != p.block_size {
-			glog.Errorf("segment size error, remove "+
-				"segment from 0x%x and retry", p.endkey)
-			cleanBlocks(p.endkey)
-			continue
-		}
-
-		addr, err = Shmat(shm_id, 0, 0)
-		if err != nil {
-			return p.endkey - p.startkey, err
-		}
-
-		block = (*C.struct_cache_block)(unsafe.Pointer(addr))
-
-		for uint32(block.magic) != p.magic {
-			glog.Infof("set magic head at 0x%x",
-				shm_id)
-			block.magic = C.uint32_t(p.magic)
-			return p.endkey - p.startkey, specs.EFMT
-		}
-
-		p.shmaddrs = append(p.shmaddrs, addr)
-		p.shmids = append(p.shmids, shm_id)
-		list := &p.poolq
-
-		for i := 0; i < int(block.cache_entry_nb); i++ {
-			e := &cacheEntry{
-				e: (*C.struct_cache_entry)(unsafe.Pointer(addr +
-					uintptr(C.sizeof_struct_cache_block) +
-					uintptr(i*C.sizeof_struct_cache_entry))),
-			}
-			key := e.hashkey()
-			if key == "" {
-				// add to pool
-				list.head.AddTail(&e.list_data)
-			} else {
-				// restore to cacheEntry
-				p.hash[key] = e
-				p.dataq.enqueue(&e.list_data)
-				p.idx0q.enqueue(&e.list_idx)
-			}
-		}
-		p.endkey++
-	}
-	return p.endkey - p.startkey, nil
-}
-
-func cleanBlocks(start int) int {
-	var (
-		shm_id int
-		err    error
-	)
-
-	for i := start; ; i++ {
-		shm_id, _, err = Shmget(i, 0, 0600)
-		if err != nil {
-			return i - start
-		}
-		Shmrm(shm_id)
-	}
-}
-
-func (p *backendCache) init(config BackendOpts) error {
-
-	p.hash = make(map[string]*cacheEntry)
-	p.shmaddrs = make([]uintptr, 0)
-	p.shmids = make([]int, 0)
-	p.dataq.init()
-	p.poolq.init()
-	p.idx0q.init()
-	p.idx1q.init()
-	p.idx2q.init()
-	p.magic = config.Shm.Magic
-	p.startkey = config.Shm.Key
-	p.endkey = config.Shm.Key
-	p.block_size = config.Shm.Size
-	p.cache_entry_nb = (config.Shm.Size - C.sizeof_struct_cache_block) /
-		C.sizeof_struct_cache_entry
-
-	n, err := p.importBlocks(config.Shm.Magic)
-
-	if err != specs.EFMT {
-		return err
-	}
-	glog.V(3).Infof("import %d \n", n)
-	return nil
-}
-
-func (p *backendCache) reset(config BackendOpts) error {
-	p.hash = make(map[string]*cacheEntry)
-	p.shmaddrs = make([]uintptr, 0)
-	p.shmids = make([]int, 0)
-	p.dataq.init()
-	p.poolq.init()
-	p.idx0q.init()
-	p.idx1q.init()
-	p.idx2q.init()
-	p.magic = config.Shm.Magic
-	p.startkey = config.Shm.Key
-	p.endkey = config.Shm.Key
-	p.block_size = config.Shm.Size
-	p.cache_entry_nb = (config.Shm.Size - C.sizeof_struct_cache_block) /
-		C.sizeof_struct_cache_entry
-	cleanBlocks(p.startkey)
-	return nil
 }
 
 func (p *backendCache) close() {
@@ -319,6 +163,103 @@ func (p *backendCache) unlink(key string) *cacheEntry {
 	return e
 }
 
+func (p *Backend) importBlocks() (int, error) {
+	var (
+		shm_id int
+		size   int
+		addr   uintptr
+		block  *C.struct_cache_block
+		err    error
+		cache  *backendCache
+	)
+	cache = p.cache
+
+	for {
+		shm_id, size, err = Shmget(cache.endkey, p.Shm.Size, C.IPC_CREAT|0600)
+		if err != nil {
+			return cache.endkey - cache.startkey, err
+		}
+
+		if size != p.Shm.Size {
+			glog.Errorf("segment size error, remove "+
+				"segment from 0x%x and retry", cache.endkey)
+			cleanBlocks(cache.endkey)
+			continue
+		}
+
+		addr, err = Shmat(shm_id, 0, 0)
+		if err != nil {
+			return cache.endkey - cache.startkey, err
+		}
+
+		block = (*C.struct_cache_block)(unsafe.Pointer(addr))
+
+		for uint32(block.magic) != p.Shm.Magic {
+			glog.Infof("set magic head at 0x%x",
+				shm_id)
+			block.magic = C.uint32_t(p.Shm.Magic)
+			return cache.endkey - cache.startkey, specs.EFMT
+		}
+
+		cache.shmaddrs = append(cache.shmaddrs, addr)
+		cache.shmids = append(cache.shmids, shm_id)
+		list := &cache.poolq
+
+		for i := 0; i < int(block.cache_entry_nb); i++ {
+			e := &cacheEntry{
+				e: (*C.struct_cache_entry)(unsafe.Pointer(addr +
+					uintptr(C.sizeof_struct_cache_block) +
+					uintptr(i*C.sizeof_struct_cache_entry))),
+			}
+			key := e.hashkey()
+			if key == "" {
+				// add to pool
+				list.head.AddTail(&e.list_data)
+			} else {
+				// restore to cacheEntry
+				cache.hash[key] = e
+				cache.dataq.enqueue(&e.list_data)
+				cache.idx0q.enqueue(&e.list_idx)
+			}
+		}
+		cache.endkey++
+	}
+	return cache.endkey - cache.startkey, nil
+}
+
+func cleanBlocks(start int) int {
+	var (
+		shm_id int
+		err    error
+	)
+
+	for i := start; ; i++ {
+		shm_id, _, err = Shmget(i, 0, 0600)
+		if err != nil {
+			return i - start
+		}
+		Shmrm(shm_id)
+	}
+}
+
+func (p *Backend) cacheReset() error {
+	cache := p.cache
+	cache.hash = make(map[string]*cacheEntry)
+	cache.shmaddrs = make([]uintptr, 0)
+	cache.shmids = make([]int, 0)
+	cache.dataq.init()
+	cache.poolq.init()
+	cache.idx0q.init()
+	cache.idx1q.init()
+	cache.idx2q.init()
+	cache.startkey = p.Shm.Key
+	cache.endkey = p.Shm.Key
+	cache.cache_entry_nb = (p.Shm.Size - C.sizeof_struct_cache_block) /
+		C.sizeof_struct_cache_entry
+	cleanBlocks(cache.startkey)
+	return nil
+}
+
 func list_data_entry(l *list.ListHead) *cacheEntry {
 	return (*cacheEntry)(unsafe.Pointer((uintptr(unsafe.Pointer(l)) -
 		unsafe.Offsetof(((*cacheEntry)(nil)).list_data))))
@@ -364,24 +305,26 @@ func (p *cacheq) dequeue() *list.ListHead {
 	return entry
 }
 
-func (p *backendCache) allocPool() (err error) {
+func (p *Backend) allocPool() (err error) {
 	var (
 		shm_id int
 		size   int
 		addr   uintptr
 		block  *C.struct_cache_block
+		cache  *backendCache
 	)
+	cache = p.cache
 
-	shm_id, size, err = Shmget(p.endkey, p.block_size, C.IPC_CREAT|0700)
+	shm_id, size, err = Shmget(cache.endkey, p.Shm.Size, C.IPC_CREAT|0700)
 	if err != nil {
 		return err
 	}
 
-	if size != p.block_size {
+	if size != p.Shm.Size {
 		glog.Errorf("alloc shm size %d want %d, remove and try again",
-			size, p.block_size)
-		cleanBlocks(p.endkey)
-		shm_id, _, err = Shmget(p.endkey, p.block_size, C.IPC_CREAT|0700)
+			size, p.Shm.Size)
+		cleanBlocks(cache.endkey)
+		shm_id, _, err = Shmget(cache.endkey, p.Shm.Size, C.IPC_CREAT|0700)
 		if err != nil {
 			return err
 		}
@@ -393,24 +336,24 @@ func (p *backendCache) allocPool() (err error) {
 	}
 	block = (*C.struct_cache_block)(unsafe.Pointer(addr))
 
-	if uint32(block.magic) == p.magic {
+	if uint32(block.magic) == p.Shm.Magic {
 		Shmdt(addr)
 		return specs.ErrExist
 	}
 
-	p.Lock()
-	p.shmaddrs = append(p.shmaddrs, addr)
-	p.shmids = append(p.shmids, shm_id)
-	p.endkey++
+	cache.Lock()
+	cache.shmaddrs = append(cache.shmaddrs, addr)
+	cache.shmids = append(cache.shmids, shm_id)
+	cache.endkey++
 	glog.V(3).Infof("alloc shm segment, endkey %d len(shmaddr) %d",
-		p.endkey, len(p.shmaddrs))
-	p.Unlock()
+		cache.endkey, len(cache.shmaddrs))
+	cache.Unlock()
 
-	block.magic = C.uint32_t(p.magic)
-	block.block_size = C.int(p.block_size)
-	block.cache_entry_nb = C.int(p.cache_entry_nb)
+	block.magic = C.uint32_t(p.Shm.Magic)
+	block.block_size = C.int(p.Shm.Size)
+	block.cache_entry_nb = C.int(cache.cache_entry_nb)
 
-	list := &p.poolq
+	list := &cache.poolq
 	list.Lock()
 	defer list.Unlock()
 	for i := 0; i < int(block.cache_entry_nb); i++ {
@@ -427,34 +370,37 @@ func (p *backendCache) allocPool() (err error) {
 	return nil
 }
 
-func (p *backendCache) getPoolEntry() (*cacheEntry, error) {
+func (p *Backend) getPoolEntry() (*cacheEntry, error) {
 	var e *list.ListHead
-	if e = p.poolq.dequeue(); e == nil {
+	if e = p.cache.poolq.dequeue(); e == nil {
 		if err := p.allocPool(); err != nil {
 			return nil, fmt.Errorf("%s(%s)", specs.ENOSPC, err)
 		}
-		e = p.poolq.dequeue()
+		e = p.cache.poolq.dequeue()
 	}
 
 	return list_data_entry(e), nil
 }
 
-func (p *backendCache) putPoolEntry(e *cacheEntry) error {
+func (p *Backend) putPoolEntry(e *cacheEntry) error {
 	e.e.hashkey[0] = C.char(0)
-	p.poolq.enqueue(&e.list_data)
+	p.cache.poolq.enqueue(&e.list_data)
 	return nil
 }
 
 // called by rpc
-func (p *backendCache) createEntry(key string, item *specs.RrdItem) (*cacheEntry, error) {
+func (p *Backend) createEntry(key string, item *specs.RrdItem) (*cacheEntry, error) {
 	var (
-		e   *cacheEntry
-		ok  bool
-		err error
+		e     *cacheEntry
+		ok    bool
+		err   error
+		cache *backendCache
 	)
 
+	cache = p.cache
+
 	statInc(ST_CACHE_CREATE, 1)
-	if e, ok = p.hash[key]; ok {
+	if e, ok = cache.hash[key]; ok {
 		return e, specs.ErrExist
 	}
 
@@ -463,19 +409,19 @@ func (p *backendCache) createEntry(key string, item *specs.RrdItem) (*cacheEntry
 		return nil, err
 	}
 
-	e.reset(timeNow(), item.Host, item.Name, item.Tags, item.Type, item.Step,
+	e.reset(p.timeNow(), item.Host, item.Name, item.Tags, item.Type, item.Step,
 		item.Heartbeat, item.Min[0], item.Max[0])
 	e.setHashkey(key)
 
-	p.Lock()
-	p.hash[key] = e
-	p.Unlock()
+	cache.Lock()
+	cache.hash[key] = e
+	cache.Unlock()
 
-	p.dataq.enqueue(&e.list_data)
-	p.idx0q.enqueue(&e.list_idx)
+	cache.dataq.enqueue(&e.list_data)
+	cache.idx0q.enqueue(&e.list_idx)
 
-	if rpcConfig.Migrate.Enable {
-		_, err := os.Stat(e.filename())
+	if !p.Migrate.Disabled {
+		_, err := os.Stat(e.filename(p))
 		if os.IsNotExist(err) {
 			e.flag = RRD_F_MISS
 		}
@@ -520,15 +466,15 @@ func (p *cacheEntry) reset(createTs int64, _host, _name, _tags, _typ string,
 }
 
 // fetch remote ds
-func (p *cacheEntry) fetchCommit() {
+func (p *cacheEntry) fetchCommit(backend *Backend) {
 	done := make(chan error)
 
-	node, err := storageMigrateConsistent.Get(p.hashkey())
+	node, err := backend.storageMigrateConsistent.Get(p.hashkey())
 	if err != nil {
 		return
 	}
 
-	storageNetTaskCh[node] <- &netTask{
+	backend.storageNetTaskCh[node] <- &netTask{
 		Method: NET_TASK_M_FETCH_COMMIT,
 		e:      p,
 		Done:   done,
@@ -546,38 +492,38 @@ func (p *cacheEntry) fetchCommit() {
 	}()
 }
 
-func (p *cacheEntry) createRrd() error {
+func (p *cacheEntry) createRrd(backend *Backend) error {
 	done := make(chan error, 1)
 
-	ktoch(p.hashkey()) <- &ioTask{
+	backend.ktoch(p.hashkey()) <- &ioTask{
 		method: IO_TASK_M_RRD_ADD,
 		args:   p,
 		done:   done,
 	}
 	err := <-done
 
-	p.e.commitTs = C.int64_t(timeNow())
+	p.e.commitTs = C.int64_t(backend.timeNow())
 
 	return err
 }
 
-func (p *cacheEntry) commit() error {
+func (p *cacheEntry) commit(backend *Backend) error {
 	done := make(chan error, 1)
 
-	ktoch(p.hashkey()) <- &ioTask{
+	backend.ktoch(p.hashkey()) <- &ioTask{
 		method: IO_TASK_M_RRD_UPDATE,
 		args:   p,
 		done:   done,
 	}
 	err := <-done
 
-	p.e.commitTs = C.int64_t(timeNow())
+	p.e.commitTs = C.int64_t(backend.timeNow())
 
 	return err
 }
 
-func (p *cacheEntry) filename() string {
-	return ktofname(p.hashkey())
+func (p *cacheEntry) filename(backend *Backend) string {
+	return backend.ktofname(p.hashkey())
 }
 
 // return [l, h)
@@ -688,38 +634,54 @@ func (p *cacheEntry) String() string {
 		p.tags(), p.typ(), int(p.e.step))
 }
 
-func getItems(key string) (ret []*specs.RrdItem) {
-	e := appCache.get(key)
+func (p *Backend) getItems(key string) (ret []*specs.RrdItem) {
+	e := p.cache.get(key)
 	if e == nil {
 		return
 	}
 	return e.getItems()
 }
 
-func getLastItem(key string) (ret *specs.RrdItem) {
-	e := appCache.get(key)
+func (p *Backend) getLastItem(key string) (ret *specs.RrdItem) {
+	e := p.cache.get(key)
 	if e == nil {
 		return
 	}
 	return e.getItem()
 }
 
-func cacheStart(config BackendOpts, p *specs.Process) {
+func (p *Backend) cacheInit() error {
+	cache := &backendCache{
+		hash:     make(map[string]*cacheEntry),
+		shmaddrs: make([]uintptr, 0),
+		shmids:   make([]int, 0),
+		startkey: p.Shm.Key,
+		endkey:   p.Shm.Key,
+		cache_entry_nb: (p.Shm.Size -
+			C.sizeof_struct_cache_block) /
+			C.sizeof_struct_cache_entry,
+	}
+	cache.dataq.init()
+	cache.poolq.init()
+	cache.idx0q.init()
+	cache.idx1q.init()
+	cache.idx2q.init()
+	p.cache = cache
+	return nil
+}
 
-	cacheConfig = config
+func (p *Backend) cacheStart() error {
+	//p.cache.start(p)
 
-	p.RegisterEvent("cache", cacheEvent)
-	appCache.init(config)
+	n, err := p.importBlocks()
 
-	go func() {
-		select {
-		case event := <-cacheEvent:
-			if event.Method == specs.ROUTINE_EVENT_M_EXIT {
-				appCache.close()
-				event.Done <- nil
-				return
-			}
-		}
-	}()
+	if err != specs.EFMT {
+		return err
+	}
+	glog.V(3).Infof("import %d \n", n)
+	return nil
+}
 
+func (p *Backend) cacheStop() {
+	p.cache.close()
 }

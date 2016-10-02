@@ -11,12 +11,6 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/yubo/falcon/specs"
-)
-
-var (
-	httpEvent  chan specs.ProcEvent
-	httpConfig HandoffOpts
 )
 
 type tcpKeepAliveListener struct {
@@ -33,46 +27,38 @@ func (ln tcpKeepAliveListener) Accept() (c net.Conn, err error) {
 	return tc, nil
 }
 
-func httpRoutes() {
+func (p *Handoff) httpRoutes() {
 }
 
-func httpStart(config HandoffOpts, p *specs.Process) {
-	if !config.Http {
-		glog.Info("http.Start warning, not enabled")
+func (p *Handoff) httpStart() {
+	if !p.Http {
 		return
 	}
 
-	httpConfig = config
-
-	addr := httpConfig.HttpAddr
+	addr := p.HttpAddr
 	if addr == "" {
 		return
 	}
+
 	s := &http.Server{
 		Addr:           addr,
 		MaxHeaderBytes: 1 << 30,
 	}
-	glog.Infof("http listening %s", addr)
+	glog.Infof("%s httpStart listening %s", p.Name, addr)
 
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
 		glog.Fatal(err)
 	}
 
-	l := ln.(*net.TCPListener)
-	p.RegisterEvent("http", httpEvent)
+	p.httpListener = ln.(*net.TCPListener)
 
-	go s.Serve(tcpKeepAliveListener{l})
+	p.httpRoutes()
 
-	go func() {
-		select {
-		case event := <-httpEvent:
-			if event.Method == specs.ROUTINE_EVENT_M_EXIT {
-				l.Close()
-				event.Done <- nil
-				return
-			}
-		}
-	}()
+	go s.Serve(tcpKeepAliveListener{p.httpListener})
+}
 
+func (p *Handoff) httpStop() error {
+	p.httpListener.Close()
+	return nil
 }

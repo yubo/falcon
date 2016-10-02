@@ -6,33 +6,131 @@
 package agent
 
 import (
-	"runtime"
-	"syscall"
+	"fmt"
+	"net"
+	"net/http"
+	"os"
+	"strings"
 
 	"github.com/golang/glog"
 	"github.com/yubo/falcon/specs"
 )
 
 var (
-	appConfig     AgentOpts = DefaultOptions
-	appConfigFile string
-	appUpdateChan chan *[]*specs.MetaData // upstreams
-	appProcess    *specs.Process
+	appAgent Agent = DefaultAgent
 )
 
-func init() {
-	// core
-	runtime.GOMAXPROCS(runtime.NumCPU())
+type Handoff struct {
+	Batch       int
+	ConnTimeout int
+	CallTimeout int
+	Upstreams   []string
+}
 
-	// http
-	httpEvent = make(chan specs.ProcEvent)
-	httpRoutes()
+func (p Handoff) String() string {
+	return fmt.Sprintf("%-14s %d\n"+
+		"%-14s %d\n%-14s %d\n"+
+		"%-14s %s ",
+		"batch", p.Batch,
+		"conntimeout", p.ConnTimeout, "callTimeout", p.CallTimeout,
+		"upstreams", strings.Join(p.Upstreams, ", "))
+}
 
-	// upstreams
-	appUpdateChan = make(chan *[]*specs.MetaData, 16)
+type Agent struct {
+	Debug    int
+	Disabled bool
+	Name     string
+	Host     string
+	Rpc      bool
+	RpcAddr  string
+	Http     bool
+	HttpAddr string
+	IfPre    []string
+	Interval int
+	Handoff  Handoff
+	// runtime
+	appUpdateChan chan *[]*specs.MetaData // upstreams
+	httpListener  *net.TCPListener
+	httpMux       *http.ServeMux
+	running       chan struct{}
+}
+
+func (p Agent) Desc() string {
+	if p.Disabled {
+		return fmt.Sprintf("%s(Disabled)", p.Name)
+	} else {
+		return fmt.Sprintf("%s", p.Name)
+	}
 
 }
 
+func (p Agent) String() string {
+	http := p.HttpAddr
+	rpc := p.RpcAddr
+
+	if !p.Http {
+		http += "(disabled)"
+	}
+	if !p.Rpc {
+		rpc += "(disabled)"
+	}
+
+	return fmt.Sprintf("%-17s %s\n%-17s %s\n"+
+		"%-17s %d\n%-17s %v\n"+
+		"%-17s %s\n%-17s %s\n"+
+		"%-17s %s\n%-17s %d\n"+
+		"%s (\n%s\n)",
+		"Name", p.Name, "Host", p.Host,
+		"debug", p.Debug, "disabled", p.Disabled,
+		"http", http, "rpc", rpc,
+		"ifprefix", strings.Join(p.IfPre, ", "),
+		"interval", p.Interval,
+		"Handoff", specs.IndentLines(1, p.Handoff.String()))
+}
+
+func (p *Agent) Init() error {
+	glog.V(3).Infof("%s Init()", p.Name)
+	// core
+	//runtime.GOMAXPROCS(runtime.NumCPU())
+
+	// http
+	p.httpMux = http.NewServeMux()
+	p.httpRoutes()
+
+	return nil
+}
+
+func (p *Agent) Start() error {
+	glog.V(3).Infof("%s Start()", p.Name)
+	p.running = make(chan struct{}, 0)
+	p.statStart()
+	p.upstreamStart()
+	p.httpStart()
+	p.collectStart()
+	return nil
+}
+
+func (p *Agent) Stop() error {
+	glog.V(3).Infof("%s Stop()", p.Name)
+	close(p.running)
+	p.collectStop()
+	p.httpStop()
+	p.upstreamStop()
+	p.statStop()
+	return nil
+}
+
+func (p *Agent) Reload() error {
+	glog.V(3).Infof("%s Reload()", p.Name)
+	return nil
+}
+
+func (p *Agent) Signal(sig os.Signal) error {
+	glog.V(3).Infof("%s signal %v", p.Name, sig)
+	return nil
+}
+
+/*
 func Handle(arg interface{}) {
 
 	opts := arg.(*specs.CmdOpts)
@@ -72,3 +170,4 @@ func Handle(arg interface{}) {
 		glog.Fatal(specs.ErrUnsupported)
 	}
 }
+*/

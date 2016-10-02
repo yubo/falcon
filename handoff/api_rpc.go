@@ -17,11 +17,7 @@ import (
 	"github.com/yubo/falcon/specs"
 )
 
-var (
-	rpcEvent    chan specs.ProcEvent
-	rpcConnects connList
-	rpcConfig   HandoffOpts
-)
+var ()
 
 type connList struct {
 	sync.RWMutex
@@ -39,13 +35,15 @@ func (l *connList) remove(e *list.Element) net.Conn {
 	return l.list.Remove(e).(net.Conn)
 }
 
-type Falcon int
+type Falcon struct {
+	handoff *Handoff
+}
 
 func (p *Falcon) Ping(req specs.Null, resp *specs.RpcResp) error {
 	return nil
 }
 
-func (t *Falcon) Update(args []*specs.MetaData,
+func (p *Falcon) Update(args []*specs.MetaData,
 	reply *specs.HandoffResp) error {
 	reply.Invalid = 0
 	now := time.Now().Unix()
@@ -93,7 +91,7 @@ func (t *Falcon) Update(args []*specs.MetaData,
 		})
 	}
 
-	appUpdateChan <- &items
+	p.handoff.appUpdateChan <- &items
 	glog.V(3).Infof("recv %d", len(items))
 
 	reply.Message = "ok"
@@ -106,31 +104,32 @@ func (t *Falcon) Update(args []*specs.MetaData,
 	return nil
 }
 
-func _rpcStart(config *HandoffOpts,
-	listener **net.TCPListener) (err error) {
-	var addr *net.TCPAddr
+func (p *Handoff) rpcStart() (err error) {
 
-	if !config.Rpc {
+	var addr *net.TCPAddr
+	if !p.Rpc {
 		return nil
 	}
+	falcon := &Falcon{handoff: p}
+	rpc.Register(falcon)
 
-	addr, err = net.ResolveTCPAddr("tcp", config.RpcAddr)
+	addr, err = net.ResolveTCPAddr("tcp", p.RpcAddr)
 	if err != nil {
 		glog.Fatalf("rpc.Start error, net.ResolveTCPAddr failed, %s", err)
 	}
 
-	*listener, err = net.ListenTCP("tcp", addr)
+	p.rpcListener, err = net.ListenTCP("tcp", addr)
 	if err != nil {
 		glog.Fatalf("rpc.Start error, listen %s failed, %s",
-			config.RpcAddr, err)
+			p.RpcAddr, err)
 	} else {
-		glog.Infof("rpc.Start ok, listening on %s", config.RpcAddr)
+		glog.Infof("%s rpcStart ok, listening on %s", p.Name, p.RpcAddr)
 	}
 
 	go func() {
 		var tempDelay time.Duration // how long to sleep on accept failure
 		for {
-			conn, err := (*listener).Accept()
+			conn, err := p.rpcListener.Accept()
 			if err != nil {
 				if tempDelay == 0 {
 					tempDelay = 5 * time.Millisecond
@@ -145,8 +144,8 @@ func _rpcStart(config *HandoffOpts,
 			}
 			tempDelay = 0
 			go func() {
-				e := rpcConnects.insert(conn)
-				defer rpcConnects.remove(e)
+				e := p.rpcConnects.insert(conn)
+				defer p.rpcConnects.remove(e)
 				jsonrpc.ServeConn(conn)
 			}()
 		}
@@ -154,22 +153,22 @@ func _rpcStart(config *HandoffOpts,
 	return err
 }
 
-func _rpcStop(config *HandoffOpts,
-	listener *net.TCPListener) (err error) {
-	if listener == nil {
+func (p *Handoff) rpcStop() (err error) {
+	if p.rpcListener == nil {
 		return specs.ErrNoent
 	}
 
-	listener.Close()
-	rpcConnects.Lock()
-	for e := rpcConnects.list.Front(); e != nil; e = e.Next() {
+	p.rpcListener.Close()
+	p.rpcConnects.Lock()
+	for e := p.rpcConnects.list.Front(); e != nil; e = e.Next() {
 		e.Value.(net.Conn).Close()
 	}
-	rpcConnects.Unlock()
+	p.rpcConnects.Unlock()
 
 	return nil
 }
 
+/*
 func rpcStart(config HandoffOpts, p *specs.Process) {
 	var rpcListener *net.TCPListener
 
@@ -177,18 +176,18 @@ func rpcStart(config HandoffOpts, p *specs.Process) {
 	p.RegisterEvent("rpc", rpcEvent)
 	rpcConfig = config
 
-	_rpcStart(&rpcConfig, &rpcListener)
+	rpcStart(&rpcConfig, &rpcListener)
 
 	go func() {
 		select {
 		case event := <-rpcEvent:
 			if event.Method == specs.ROUTINE_EVENT_M_EXIT {
-				_rpcStop(&rpcConfig, rpcListener)
+				rpcStop(&rpcConfig, rpcListener)
 				event.Done <- nil
 
 				return
 			} else if event.Method == specs.ROUTINE_EVENT_M_RELOAD {
-				_rpcStop(&rpcConfig, rpcListener)
+				rpcStop(&rpcConfig, rpcListener)
 
 				glog.V(3).Infof("old:\n%s\n new:\n%s",
 					rpcConfig, appConfig)
@@ -198,3 +197,4 @@ func rpcStart(config HandoffOpts, p *specs.Process) {
 		}
 	}()
 }
+*/

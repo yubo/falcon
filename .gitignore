@@ -6,6 +6,7 @@
 *.swo
 *.log
 *.temp
+*.output
 
 var/
 bin/
@@ -13,3 +14,5 @@ tmp
 git.go
 *.sh
 .gdbinit
+
+yyparse.go

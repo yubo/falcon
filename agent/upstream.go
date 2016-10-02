@@ -19,9 +19,8 @@ import (
 )
 
 var (
-	upstreamConfig AgentOpts
-	streamPool     upstreamPool
-	idxClient      int
+	streamPool upstreamPool
+	idxClient  int
 )
 
 type upstreamPool struct {
@@ -124,24 +123,27 @@ out:
 	return err
 }
 
-func upstreamStart(config AgentOpts, p *specs.Process) {
+func (p *Agent) upstreamStart() {
 	var (
 		client *rpc.Client
 		err    error
 		i      int
 	)
-	upstreamConfig = config
+	p.appUpdateChan = make(chan *[]*specs.MetaData, 16)
 
 	streamPool = upstreamPool{}
-	streamPool.size = uint32(len(upstreamConfig.Handoff.Upstreams))
+	streamPool.size = uint32(len(p.Handoff.Upstreams))
 	streamPool.idx = rand.Uint32() % streamPool.size
 	streamPool.pool = make([]string, int(streamPool.size))
-	copy(streamPool.pool, upstreamConfig.Handoff.Upstreams)
+	copy(streamPool.pool, p.Handoff.Upstreams)
 
-	if upstreamConfig.Debug > 1 {
+	if p.Debug > 1 {
 		go func() {
 			for {
-				items := <-appUpdateChan
+				items, ok := <-p.appUpdateChan
+				if !ok {
+					return
+				}
 				for k, v := range *items {
 					glog.V(3).Infof("%d %s", k, v)
 				}
@@ -153,30 +155,38 @@ func upstreamStart(config AgentOpts, p *specs.Process) {
 	go func() {
 
 		client, err = rpcDial(streamPool.get(),
-			time.Duration(upstreamConfig.Handoff.ConnTimeout)*
+			time.Duration(p.Handoff.ConnTimeout)*
 				time.Millisecond)
 		if err != nil {
-			reconnection(&client, upstreamConfig.Handoff.ConnTimeout)
+			reconnection(&client, p.Handoff.ConnTimeout)
 		}
 
 		for {
-			items := <-appUpdateChan
+			items, ok := <-p.appUpdateChan
+			if !ok {
+				client.Close()
+				return
+			}
 
-			n := upstreamConfig.Handoff.Batch
+			n := p.Handoff.Batch
 			for i = 0; i < len(*items)-n; i += n {
 				_items := (*items)[i : i+n]
 				putRpcStorageData(&client, &_items,
-					upstreamConfig.Handoff.ConnTimeout,
-					upstreamConfig.Handoff.CallTimeout)
+					p.Handoff.ConnTimeout,
+					p.Handoff.CallTimeout)
 			}
 			if i < len(*items) {
 				_items := (*items)[i:]
 				putRpcStorageData(&client, &_items,
-					upstreamConfig.Handoff.ConnTimeout,
-					upstreamConfig.Handoff.CallTimeout)
+					p.Handoff.ConnTimeout,
+					p.Handoff.CallTimeout)
 			}
 
 		}
 	}()
 
+}
+
+func (p *Agent) upstreamStop() {
+	close(p.appUpdateChan)
 }

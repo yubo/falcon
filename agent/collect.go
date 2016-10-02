@@ -16,30 +16,36 @@ type Collector interface {
 }
 
 var (
-	collectConfig AgentOpts
-	collectors    []Collector
+	collectors []Collector
 )
 
 func Collector_Register(c Collector) {
 	collectors = append(collectors, c)
 }
 
-func collect(step int, host string) {
-	t := time.NewTicker(time.Second * time.Duration(step)).C
-	for {
-		<-t
-		vs := []*specs.MetaData{}
-		for _, c := range collectors {
-			if items, err := c.Collect(step,
-				host); err == nil {
-				vs = append(vs, items...)
+func (p *Agent) collectStart() {
+	ticker := time.NewTicker(time.Second *
+		time.Duration(p.Interval)).C
+	go func() {
+		for {
+			select {
+			case _, ok := <-p.running:
+				if !ok {
+					return
+				}
+			case <-ticker:
+				vs := []*specs.MetaData{}
+				for _, c := range collectors {
+					if items, err := c.Collect(p.Interval,
+						p.Host); err == nil {
+						vs = append(vs, items...)
+					}
+				}
+				p.appUpdateChan <- &vs
 			}
 		}
-		appUpdateChan <- &vs
-	}
+	}()
 }
 
-func collectStart(config AgentOpts, p *specs.Process) {
-	collectConfig = config
-	go collect(collectConfig.Interval, collectConfig.Host)
+func (p *Agent) collectStop() {
 }

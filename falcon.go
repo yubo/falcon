@@ -6,27 +6,74 @@
 package falcon
 
 import (
-	"fmt"
+	"flag"
+	"os"
+	"runtime"
+	"syscall"
 
+	"github.com/golang/glog"
+	"github.com/yubo/falcon/conf"
+	"github.com/yubo/falcon/specs"
 	"github.com/yubo/gotool/flags"
 )
 
-const (
-	VERSION = "0.0.1"
-)
+func init() {
+	flags.NewCommand("start", "start falcon",
+		start, flag.ExitOnError)
 
-func Version_handle(arg interface{}) {
-	fmt.Println(VERSION)
+	flags.NewCommand("stop", "stop falcon",
+		stop, flag.ExitOnError)
+
+	flags.NewCommand("parse", "just parse falcon ConfigFile",
+		parse, flag.ExitOnError)
+
+	flags.NewCommand("reload", "reload falcon",
+		reload, flag.ExitOnError)
+
 }
 
-func Git_handle(arg interface{}) {
-	fmt.Println(COMMIT)
+func start(arg interface{}) {
+	opts := arg.(*specs.CmdOpts)
+	conf := conf.Parse(opts.ConfigFile)
+	app := specs.NewProcess(conf.PidFile, conf.Modules)
+
+	if err := app.Check(); err != nil {
+		glog.Fatal(err)
+	}
+	if err := app.Save(); err != nil {
+		glog.Fatal(err)
+	}
+
+	runtime.GOMAXPROCS(runtime.NumCPU())
+
+	app.Init()
+	app.Start()
 }
 
-func Changelog_handle(arg interface{}) {
-	fmt.Println(CHANGELOG)
+func stop(arg interface{}) {
+	opts := arg.(*specs.CmdOpts)
+	conf := conf.Parse(opts.ConfigFile)
+	app := specs.NewProcess(conf.PidFile, conf.Modules)
+
+	if err := app.Kill(syscall.SIGTERM); err != nil {
+		glog.Fatal(err)
+	}
 }
 
-func Help_handle(arg interface{}) {
-	flags.Usage()
+func parse(arg interface{}) {
+	opts := arg.(*specs.CmdOpts)
+	conf := conf.Parse(opts.ConfigFile)
+	dir, _ := os.Getwd()
+	glog.Infof("work dir :%s", dir)
+	glog.Infof("\n%s", conf)
+}
+
+func reload(arg interface{}) {
+	opts := arg.(*specs.CmdOpts)
+	conf := conf.Parse(opts.ConfigFile)
+	app := specs.NewProcess(conf.PidFile, conf.Modules)
+
+	if err := app.Kill(syscall.SIGUSR1); err != nil {
+		glog.Fatal(err)
+	}
 }

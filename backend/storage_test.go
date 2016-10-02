@@ -19,14 +19,15 @@ import (
 )
 
 const (
-	test_dir      = "/tmp/falcon"
-	b_size        = 100
-	work_nb       = 4
+	testDir       = "/tmp/falcon"
+	benchSize     = 100
+	workNb        = 4
 	MAX_HD_NUMBER = 2
 )
 
 var (
-	test_dirs       []string
+	storageApp      *Backend
+	testDirs        []string
 	wg              sync.WaitGroup
 	lock            sync.RWMutex
 	start, end, now int64
@@ -35,43 +36,43 @@ var (
 func init() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	storageConfig = BackendOpts{
-		Storage: StorageOpts{
+	storageApp = &Backend{
+		Storage: Storage{
 			Type: "rrdlite",
 		},
 	}
 
-	os.RemoveAll(test_dir)
-	test_dirs = make([]string, MAX_HD_NUMBER)
+	os.RemoveAll(testDir)
+	testDirs = make([]string, MAX_HD_NUMBER)
 
 	for i := 0; i < MAX_HD_NUMBER; i++ {
-		test_dirs[i] = fmt.Sprintf("%s/hdd%d", test_dir, i)
-		os.MkdirAll(test_dirs[i], 0755)
+		testDirs[i] = fmt.Sprintf("%s/hdd%d", testDir, i)
+		os.MkdirAll(testDirs[i], 0755)
 	}
 
-	err := storageCheckHds(test_dirs)
+	err := storageCheckHds(testDirs)
 	if err != nil {
 		glog.Fatalf("rrdtool.Start error, bad data dir %v\n", err)
 	}
 
-	storageIoTaskCh = make([]chan *ioTask, MAX_HD_NUMBER)
+	storageApp.storageIoTaskCh = make([]chan *ioTask, MAX_HD_NUMBER)
 	for i := 0; i < MAX_HD_NUMBER; i++ {
-		storageIoTaskCh[i] = make(chan *ioTask, 32)
-		removeContents(test_dirs[i])
-		go ioWorker(storageIoTaskCh[i])
+		storageApp.storageIoTaskCh[i] = make(chan *ioTask, 32)
+		removeContents(testDirs[i])
+		go storageApp.ioWorker(storageApp.storageIoTaskCh[i])
 	}
 
-	timeStart(storageConfig, &appTs)
+	storageApp.timeStart()
 	now = time.Now().Unix()
 	start = now - 120
 	end = now + 1800
 }
 
-func rrdToEntry(item *specs.RrdItem) (*cacheEntry, error) {
-	e, _ := appCache.getPoolEntry()
+func (p *Backend) rrdToEntry(item *specs.RrdItem) (*cacheEntry, error) {
+	e, _ := p.getPoolEntry()
 	if err := e.reset(now, item.Host, item.Name, item.Tags, item.Type,
 		item.Step, item.Heartbeat, item.Min[0], item.Max[0]); err != nil {
-		appCache.putPoolEntry(e)
+		p.putPoolEntry(e)
 		return nil, err
 	}
 	return e, nil
@@ -80,28 +81,28 @@ func rrdToEntry(item *specs.RrdItem) (*cacheEntry, error) {
 func benchmarkAdd(n int, b *testing.B) {
 	var err_cnt, cnt uint64
 	b.StopTimer()
-	hds := &storageConfig.Storage.Hdisks
+	hds := &storageApp.Storage.Hdisks
 	*hds = make([]string, n)
 	for i := 0; i < n; i++ {
-		(*hds)[i] = fmt.Sprintf("%s/%d", test_dirs[i], n)
+		(*hds)[i] = fmt.Sprintf("%s/%d", testDirs[i], n)
 		os.MkdirAll((*hds)[i], os.ModePerm)
 	}
 
-	b.N = b_size
-	m := b.N / work_nb
+	b.N = benchSize
+	m := b.N / workNb
 	b.StartTimer()
 
-	for i := 0; i < work_nb; i++ {
+	for i := 0; i < workNb; i++ {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
 
 			item := newRrdItem(i)
 			for j := 0; j < m; j++ {
-				e, _ := rrdToEntry(item)
+				e, _ := storageApp.rrdToEntry(item)
 				e.setName(fmt.Sprintf("key_%d_%d", i, j))
 				e.setHashkey(e.csum())
-				if err := e.createRrd(); err != nil {
+				if err := e.createRrd(storageApp); err != nil {
 					if err_cnt < 10 {
 						fmt.Println(err)
 					}
@@ -119,30 +120,30 @@ func benchmarkAdd(n int, b *testing.B) {
 func benchmarkUpdate(n int, b *testing.B) {
 	var err_cnt uint64
 	b.StopTimer()
-	hds := &storageConfig.Storage.Hdisks
+	hds := &storageApp.Storage.Hdisks
 	*hds = make([]string, n)
 	for i := 0; i < n; i++ {
-		(*hds)[i] = fmt.Sprintf("%s/%d", test_dirs[i], i)
+		(*hds)[i] = fmt.Sprintf("%s/%d", testDirs[i], i)
 		os.MkdirAll((*hds)[i], os.ModePerm)
 	}
 
-	b.N = b_size
-	m := b.N / work_nb
+	b.N = benchSize
+	m := b.N / workNb
 	b.StartTimer()
 
-	for i := 0; i < work_nb; i++ {
+	for i := 0; i < workNb; i++ {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
 
 			item := newRrdItem(i)
-			e, _ := rrdToEntry(item)
+			e, _ := storageApp.rrdToEntry(item)
 			e.put(item)
 
 			for j := 0; j < m; j++ {
 				e.setName(fmt.Sprintf("key_%d_%d", i, j))
 				e.setHashkey(e.csum())
-				if err := e.commit(); err != nil {
+				if err := e.commit(storageApp); err != nil {
 					atomic.AddUint64(&err_cnt, 1)
 				}
 			}
@@ -155,31 +156,31 @@ func benchmarkUpdate(n int, b *testing.B) {
 func benchmarkFetch(n int, b *testing.B) {
 	var err_cnt uint64
 	b.StopTimer()
-	hds := &storageConfig.Storage.Hdisks
+	hds := &storageApp.Storage.Hdisks
 	*hds = make([]string, n)
 	for i := 0; i < n; i++ {
-		(*hds)[i] = fmt.Sprintf("%s/%d", test_dirs[i], i)
+		(*hds)[i] = fmt.Sprintf("%s/%d", testDirs[i], i)
 		os.MkdirAll((*hds)[i], os.ModePerm)
 	}
 
-	b.N = b_size
-	m := b.N / work_nb
+	b.N = benchSize
+	m := b.N / workNb
 
 	b.StartTimer()
 
-	for i := 0; i < work_nb; i++ {
+	for i := 0; i < workNb; i++ {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
 
 			item := newRrdItem(i)
-			e, _ := rrdToEntry(item)
+			e, _ := storageApp.rrdToEntry(item)
 			e.put(item)
 
 			for j := 0; j < m; j++ {
 				e.setName(fmt.Sprintf("key_%d_%d", i, j))
 				e.setHashkey(e.csum())
-				if _, err := taskRrdFetch(e.hashkey(), "AVERAGE",
+				if _, err := storageApp.taskRrdFetch(e.hashkey(), "AVERAGE",
 					start, end, int(e.e.step)); err != nil {
 					atomic.AddUint64(&err_cnt, 1)
 				}

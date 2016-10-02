@@ -19,8 +19,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"stathat.com/c/consistent"
-
 	"github.com/golang/glog"
 	"github.com/yubo/rrdlite"
 
@@ -59,15 +57,6 @@ const (
 	RRA720PointCnt = 730 // 12h一个点存1year
 )
 
-var (
-	storageConfig            BackendOpts
-	storageSyncEvent         chan specs.ProcEvent
-	storageIoTaskCh          []chan *ioTask
-	storageNetTaskCh         map[string]chan *netTask
-	storageMigrateClients    map[string][]*rpc.Client
-	storageMigrateConsistent *consistent.Consistent
-)
-
 type rrdCheckout struct {
 	filename string
 	cf       string
@@ -93,20 +82,20 @@ type netTask struct {
 
 // RRDTOOL UTILS
 // 监控数据对应的rrd文件名称
-func ktofname(key string) string {
+func (p *Backend) ktofname(key string) string {
 	csum, _ := strconv.ParseUint(key[0:2], 16, 64)
 	return fmt.Sprintf("%s/%s/%s.rrd",
-		storageConfig.Storage.Hdisks[int(csum)%len(storageConfig.Storage.Hdisks)],
+		p.Storage.Hdisks[int(csum)%len(p.Storage.Hdisks)],
 		key[0:2], key)
 }
 
-func ktoch(key string) chan *ioTask {
+func (p *Backend) ktoch(key string) chan *ioTask {
 	csum, _ := strconv.ParseUint(key[0:2], 16, 64)
-	return storageIoTaskCh[int(csum)%len(storageConfig.Storage.Hdisks)]
+	return p.storageIoTaskCh[int(csum)%len(p.Storage.Hdisks)]
 }
 
-func rrdCreate(filename string, e *cacheEntry) error {
-	now := time.Unix(timeNow(), 0)
+func (p *Backend) rrdCreate(filename string, e *cacheEntry) error {
+	now := time.Unix(p.timeNow(), 0)
 	start := now.Add(time.Duration(-24) * time.Hour)
 	step := uint(e.e.step)
 
@@ -185,8 +174,8 @@ func ioFileWrite(filename string, data []byte, perm os.FileMode) error {
 
 // flush to disk from cacheEntry
 // call by ioWorker
-func ioRrdAdd(e *cacheEntry) (err error) {
-	filename := e.filename()
+func (p *Backend) ioRrdAdd(e *cacheEntry) (err error) {
+	filename := e.filename(p)
 
 	// unlikely
 	/*
@@ -203,18 +192,18 @@ func ioRrdAdd(e *cacheEntry) (err error) {
 	}
 
 	statInc(ST_RRD_CREAT, 1)
-	if err = rrdCreate(filename, e); err != nil {
+	if err = p.rrdCreate(filename, e); err != nil {
 		statInc(ST_RRD_CREAT_ERR, 1)
 	}
 
 	return err
 }
 
-func ioRrdUpdate(e *cacheEntry) (err error) {
+func (p *Backend) ioRrdUpdate(e *cacheEntry) (err error) {
 	if e == nil || e.e.dataId == 0 {
 		return specs.ErrEmpty
 	}
-	filename := e.filename()
+	filename := e.filename(p)
 	ds := e.dequeueAll()
 
 	statInc(ST_RRD_UPDATE, 1)
@@ -232,7 +221,7 @@ func ioRrdUpdate(e *cacheEntry) (err error) {
 			}
 
 			statInc(ST_RRD_CREAT, 1)
-			if err = rrdCreate(filename, e); err != nil {
+			if err = p.rrdCreate(filename, e); err != nil {
 				statInc(ST_RRD_CREAT_ERR, 1)
 			} else {
 				// retry
@@ -308,7 +297,7 @@ func dial(address string, timeout int) (*rpc.Client, error) {
 }
 
 // TODO addr to node
-func reconnection(client **rpc.Client, addr string) {
+func (p *Backend) reconnection(client **rpc.Client, addr string) {
 	var err error
 
 	statInc(ST_RPC_CLI_RECONNECT, 1)
@@ -316,36 +305,36 @@ func reconnection(client **rpc.Client, addr string) {
 		(*client).Close()
 	}
 
-	*client, err = dial(addr, storageConfig.Migrate.ConnTimeout)
+	*client, err = dial(addr, p.Migrate.ConnTimeout)
 
 	for err != nil {
 		//danger!! block routine
 		time.Sleep(time.Millisecond * 500)
-		*client, err = dial(addr, storageConfig.Migrate.ConnTimeout)
+		*client, err = dial(addr, p.Migrate.ConnTimeout)
 	}
 }
 
-func taskFileRead(key string) ([]byte, error) {
+func (p *Backend) taskFileRead(key string) ([]byte, error) {
 	done := make(chan error, 1)
 	task := &ioTask{
 		method: IO_TASK_M_FILE_READ,
-		args:   &specs.File{Filename: ktofname(key)},
+		args:   &specs.File{Filename: p.ktofname(key)},
 		done:   done,
 	}
 
-	ktoch(key) <- task
+	p.ktoch(key) <- task
 	err := <-done
 	return task.args.(*specs.File).Data, err
 }
 
 // get local data
-func taskRrdFetch(key string, cf string, start, end int64,
+func (p *Backend) taskRrdFetch(key string, cf string, start, end int64,
 	step int) ([]*specs.RRDData, error) {
 	done := make(chan error, 1)
 	task := &ioTask{
 		method: IO_TASK_M_RRD_FETCH,
 		args: &rrdCheckout{
-			filename: ktofname(key),
+			filename: p.ktofname(key),
 			cf:       cf,
 			start:    start,
 			end:      end,
@@ -353,12 +342,12 @@ func taskRrdFetch(key string, cf string, start, end int64,
 		},
 		done: done,
 	}
-	ktoch(key) <- task
+	p.ktoch(key) <- task
 	err := <-done
 	return task.args.(*rrdCheckout).data, err
 }
 
-func netRpcCall(client *rpc.Client, method string, args interface{},
+func (p *Backend) netRpcCall(client *rpc.Client, method string, args interface{},
 	reply interface{}, timeout time.Duration) error {
 	done := make(chan *rpc.Call, 1)
 	client.Go(method, args, reply, done)
@@ -377,7 +366,7 @@ func netRpcCall(client *rpc.Client, method string, args interface{},
 /*
  * get remote data to local disk
  */
-func netRrdFetch(client **rpc.Client, e *cacheEntry, addr string) error {
+func (p *Backend) netRrdFetch(client **rpc.Client, e *cacheEntry, addr string) error {
 	var (
 		err     error
 		flag    uint32
@@ -390,15 +379,15 @@ func netRrdFetch(client **rpc.Client, e *cacheEntry, addr string) error {
 	atomic.StoreUint32(&e.flag, flag|RRD_F_FETCHING)
 
 	for i = 0; i < CONN_RETRY; i++ {
-		err = netRpcCall(*client, "Storage.GetRrd", e.hashkey, &rrdfile,
-			time.Duration(storageConfig.Migrate.CallTimeout)*time.Millisecond)
+		err = p.netRpcCall(*client, "Storage.GetRrd", e.hashkey, &rrdfile,
+			time.Duration(p.Migrate.CallTimeout)*time.Millisecond)
 
 		if err == nil {
 			done := make(chan error, 1)
-			ktoch(e.hashkey()) <- &ioTask{
+			p.ktoch(e.hashkey()) <- &ioTask{
 				method: IO_TASK_M_FILE_WRITE,
 				args: &specs.File{
-					Filename: e.filename(),
+					Filename: e.filename(p),
 					Data:     rrdfile.Data[:],
 				},
 				done: done,
@@ -413,7 +402,7 @@ func netRrdFetch(client **rpc.Client, e *cacheEntry, addr string) error {
 			glog.Warning(err)
 		}
 		if err == rpc.ErrShutdown {
-			reconnection(client, addr)
+			p.reconnection(client, addr)
 		}
 	}
 out:
@@ -425,7 +414,7 @@ out:
 /* push cacheEntry data
  * by
  * call remote storage.send  */
-func netSendData(client **rpc.Client, e *cacheEntry, addr string) error {
+func (p *Backend) netSendData(client **rpc.Client, e *cacheEntry, addr string) error {
 	var (
 		err  error
 		flag uint32
@@ -447,15 +436,15 @@ func netSendData(client **rpc.Client, e *cacheEntry, addr string) error {
 	resp = &specs.RpcResp{}
 
 	for i = 0; i < CONN_RETRY; i++ {
-		err = netRpcCall(*client, "Storage.Send", items, resp,
-			time.Duration(storageConfig.Migrate.CallTimeout)*time.Millisecond)
+		err = p.netRpcCall(*client, "Storage.Send", items, resp,
+			time.Duration(p.Migrate.CallTimeout)*time.Millisecond)
 
 		if err == nil {
 			e._dequeueAll()
 			goto out
 		}
 		if err == rpc.ErrShutdown {
-			reconnection(client, addr)
+			p.reconnection(client, addr)
 		}
 	}
 out:
@@ -466,42 +455,42 @@ out:
 }
 
 // called by networker
-func netQueryData(client **rpc.Client, addr string,
+func (p *Backend) netQueryData(client **rpc.Client, addr string,
 	args interface{}, resp interface{}) (err error) {
 
 	for i := 0; i < CONN_RETRY; i++ {
-		err = netRpcCall(*client, "Storage.Query", args, resp,
-			time.Duration(storageConfig.Migrate.CallTimeout)*time.Millisecond)
+		err = p.netRpcCall(*client, "Storage.Query", args, resp,
+			time.Duration(p.Migrate.CallTimeout)*time.Millisecond)
 
 		if err == nil {
 			break
 		}
 		if err == rpc.ErrShutdown {
-			reconnection(client, addr)
+			p.reconnection(client, addr)
 		}
 	}
 	return err
 }
 
-func netWorker(idx int, ch chan *netTask, client **rpc.Client, addr string) {
+func (p *Backend) netWorker(idx int, ch chan *netTask, client **rpc.Client, addr string) {
 	var err error
 	for {
 		select {
 		case task := <-ch:
 			if task.Method == NET_TASK_M_SEND {
 				statInc(ST_RPC_CLI_SEND, 1)
-				if err = netSendData(client, task.e, addr); err != nil {
+				if err = p.netSendData(client, task.e, addr); err != nil {
 					statInc(ST_RPC_CLI_SEND_ERR, 1)
 				}
 			} else if task.Method == NET_TASK_M_QUERY {
 				statInc(ST_RPC_CLI_QUERY, 1)
-				if err = netQueryData(client, addr, task.Args,
+				if err = p.netQueryData(client, addr, task.Args,
 					task.Reply); err != nil {
 					statInc(ST_RPC_CLI_QUERY_ERR, 1)
 				}
 			} else if task.Method == NET_TASK_M_FETCH_COMMIT {
 				statInc(ST_RPC_CLI_FETCH, 1)
-				if err = netRrdFetch(client, task.e, addr); err != nil {
+				if err = p.netRrdFetch(client, task.e, addr); err != nil {
 					statInc(ST_RPC_CLI_FETCH_ERR, 1)
 					if os.IsNotExist(err) {
 						statInc(ST_RPC_CLI_FETCH_ERR_NOEXIST, 1)
@@ -509,7 +498,7 @@ func netWorker(idx int, ch chan *netTask, client **rpc.Client, addr string) {
 					}
 				}
 				//warning:异常情况，也写入本地存储
-				task.e.commit()
+				task.e.commit(p)
 			} else {
 				err = errors.New("error net task method")
 			}
@@ -520,11 +509,14 @@ func netWorker(idx int, ch chan *netTask, client **rpc.Client, addr string) {
 	}
 }
 
-func ioWorker(ch chan *ioTask) {
+func (p *Backend) ioWorker(ch chan *ioTask) {
 	var err error
 	for {
 		select {
-		case task := <-ch:
+		case task, ok := <-ch:
+			if !ok {
+				return
+			}
 			if task.method == IO_TASK_M_FILE_READ {
 				if args, ok := task.args.(*specs.File); ok {
 					args.Data, err = ioutil.ReadFile(args.Filename)
@@ -542,11 +534,11 @@ func ioWorker(ch chan *ioTask) {
 				}
 			} else if task.method == IO_TASK_M_RRD_ADD {
 				if args, ok := task.args.(*cacheEntry); ok {
-					task.done <- ioRrdAdd(args)
+					task.done <- p.ioRrdAdd(args)
 				}
 			} else if task.method == IO_TASK_M_RRD_UPDATE {
 				if args, ok := task.args.(*cacheEntry); ok {
-					task.done <- ioRrdUpdate(args)
+					task.done <- p.ioRrdUpdate(args)
 				}
 			} else if task.method == IO_TASK_M_RRD_FETCH {
 				if args, ok := task.args.(*rrdCheckout); ok {
@@ -564,27 +556,27 @@ type commitCacheArg struct {
 	p       *specs.Process
 }
 
-/* called by  commitCacheWorker per FLUSH_DISK_STEP */
-func commitCache(_arg interface{}) {
+/* called by  commitCacheWorker per FLUSH_DISK_STEP
+ * or called after stop
+ */
+func (p *Backend) commitCache() {
 	var lastTs int64
 	var percent int
 	var exit bool
 
-	arg := _arg.(*commitCacheArg)
-
-	now := timeNow()
+	now := p.timeNow()
 	expired := now - CACHE_TIME
-	nloop := len(appCache.hash) / (CACHE_TIME / FLUSH_DISK_STEP)
+	nloop := len(p.cache.hash) / (CACHE_TIME / FLUSH_DISK_STEP)
 	n := 0
 
-	if arg.p.Status() == specs.APP_STATUS_EXIT {
-		percent = len(appCache.hash) / 100
+	if p.status == specs.APP_STATUS_EXIT {
+		percent = len(p.cache.hash) / 100
 		exit = true
 	}
 
 	for {
-		//e := appCache.dequeue_data()
-		l := appCache.dataq.dequeue()
+		//e := p.cache.dequeue_data()
+		l := p.cache.dataq.dequeue()
 		if l == nil {
 			return
 		}
@@ -594,7 +586,7 @@ func commitCache(_arg interface{}) {
 				glog.Infof("%d %d%%", n, n/percent)
 			}
 		} else {
-			appCache.dataq.enqueue(l)
+			p.cache.dataq.enqueue(l)
 		}
 
 		n++
@@ -602,20 +594,20 @@ func commitCache(_arg interface{}) {
 		flag := atomic.LoadUint32(&e.flag)
 
 		//write err data to local filename
-		if arg.migrate && flag&RRD_F_MISS != 0 {
+		if !p.Migrate.Disabled && flag&RRD_F_MISS != 0 {
 			//PullByKey(key)
 			lastTs = int64(e.e.commitTs)
 			if lastTs == 0 {
 				lastTs = int64(e.e.createTs)
 			}
-			e.fetchCommit()
+			e.fetchCommit(p)
 		} else {
 			//CommitByKey(key)
 			lastTs = int64(e.e.commitTs)
 			if lastTs == 0 {
 				lastTs = int64(e.e.createTs)
 			}
-			if err := e.commit(); err != nil {
+			if err := e.commit(p); err != nil {
 				if err != specs.ErrEmpty {
 					glog.Warning(err)
 				}
@@ -629,37 +621,30 @@ func commitCache(_arg interface{}) {
 
 		if lastTs > expired && n > nloop {
 			glog.V(4).Infof("last %d expired %d now %d n %d/%d nloop %d",
-				lastTs, expired, now, n, len(appCache.hash), nloop)
+				lastTs, expired, now, n, len(p.cache.hash), nloop)
 			return
 		}
 	}
 }
 
-func commitCacheWorker(p *specs.Process) {
+func (p *Backend) commitCacheWorker() {
 	var init bool
-	var arg commitCacheArg
-	arg.p = p
 
-	ticker := falconTicker(time.Second*FIRST_FLUSH_DISK, storageConfig.Debug)
-
-	if storageConfig.Migrate.Enable {
-		arg.migrate = true
-	}
+	ticker := falconTicker(time.Second*FIRST_FLUSH_DISK, p.Debug)
 
 	for {
 		select {
+		case _, ok := <-p.running:
+			if !ok {
+				return
+			}
 		case <-ticker:
 			if !init {
 				ticker = falconTicker(time.Second*
-					FLUSH_DISK_STEP, storageConfig.Debug)
+					FLUSH_DISK_STEP, p.Debug)
 				init = true
 			}
-			commitCache(&arg)
-		case e := <-storageSyncEvent:
-			if e.Method == specs.ROUTINE_EVENT_M_EXIT {
-				e.Done <- nil
-				return
-			}
+			p.commitCache()
 		}
 	}
 }
@@ -676,51 +661,59 @@ func storageCheckHds(hds []string) error {
 	return nil
 }
 
-func rrdStart(config BackendOpts, p *specs.Process) {
+func (p *Backend) rrdStart() {
+	glog.V(3).Infof("%s rrdStart", p.Name)
 
-	storageConfig = config
+	hds := p.Storage.Hdisks
 
-	err := storageCheckHds(storageConfig.Storage.Hdisks)
+	err := storageCheckHds(hds)
 	if err != nil {
 		glog.Fatalf("rrdtool.Start error, bad data dir %v\n", err)
 	}
 
-	hds := &storageConfig.Storage.Hdisks
-	storageIoTaskCh = make([]chan *ioTask, len(*hds))
-	for i, _ := range *hds {
-		storageIoTaskCh[i] = make(chan *ioTask, 16)
+	p.storageIoTaskCh = make([]chan *ioTask, len(hds))
+	for i, _ := range hds {
+		p.storageIoTaskCh[i] = make(chan *ioTask, 16)
 	}
 
-	if storageConfig.Migrate.Enable {
-		storageMigrateConsistent.NumberOfReplicas = storageConfig.Migrate.Replicas
+	if !p.Migrate.Disabled {
+		p.storageMigrateConsistent.NumberOfReplicas = p.Migrate.Replicas
 
-		for node, addr := range storageConfig.Migrate.Upstream {
-			storageMigrateConsistent.Add(node)
-			storageNetTaskCh[node] = make(chan *netTask, 16)
-			storageMigrateClients[node] = make([]*rpc.Client,
-				storageConfig.Migrate.Concurrency)
+		for node, addr := range p.Migrate.Upstreams {
+			p.storageMigrateConsistent.Add(node)
+			p.storageNetTaskCh[node] = make(chan *netTask, 16)
+			p.storageMigrateClients[node] = make([]*rpc.Client,
+				p.Migrate.Concurrency)
 
-			for i := 0; i < storageConfig.Migrate.Concurrency; i++ {
-				storageMigrateClients[node][i], err = dial(addr,
-					storageConfig.Migrate.ConnTimeout)
+			for i := 0; i < p.Migrate.Concurrency; i++ {
+				p.storageMigrateClients[node][i], err = dial(addr,
+					p.Migrate.ConnTimeout)
 				if err != nil {
 					glog.Fatalf("node:%s addr:%s err:%s\n",
 						node, addr, err)
 				}
-				go netWorker(i, storageNetTaskCh[node],
-					&storageMigrateClients[node][i], addr)
+				go p.netWorker(i, p.storageNetTaskCh[node],
+					&p.storageMigrateClients[node][i], addr)
 			}
 		}
 	}
 
-	for i, _ := range *hds {
-		go ioWorker(storageIoTaskCh[i])
+	for i, _ := range hds {
+		go p.ioWorker(p.storageIoTaskCh[i])
 	}
 
-	p.RegisterEvent("rrdSync", storageSyncEvent)
-	p.RegisterPostHook("rrdSync", commitCache,
-		&commitCacheArg{migrate: false, p: p})
-	go commitCacheWorker(p)
+	/*
+		todo
+		RegisterEvent("rrdSync", storageSyncEvent)
+		RegisterPostHook("rrdSync", commitCache,
+			&commitCacheArg{migrate: false, p: p})
+	*/
+	go p.commitCacheWorker()
 
-	glog.Info("rrdStart ok")
+}
+
+func (p *Backend) rrdStop() {
+	for i, _ := range p.Storage.Hdisks {
+		close(p.storageIoTaskCh[i])
+	}
 }

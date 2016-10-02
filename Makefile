@@ -7,31 +7,28 @@ ifeq ($(strip $(OUTPUT_DIR)),)
   OUTPUT_DIR = .
 endif
 
-all: $(OUTPUT_DIR)/bin/agent $(OUTPUT_DIR)/bin/handoff $(OUTPUT_DIR)/bin/backend $(OUTPUT_DIR)/bin/falcon
+all: $(OUTPUT_DIR)/bin/falcon $(OUTPUT_DIR)/bin/agent
 
-
-$(OUTPUT_DIR)/bin/backend: git.go *.go specs/*.go backend/*.go cmd/backend/*.go backend/*.c backend/*.h
-	go build -gcflags "-N -l" -o "${OUTPUT_DIR}/bin/backend" cmd/backend/*
-
-$(OUTPUT_DIR)/bin/falcon: git.go *.go */*.go cmd/falcon/*.go
+$(OUTPUT_DIR)/bin/falcon: specs/git.go *.go */*.go cmd/falcon/*.go conf/*.go conf/yyparse.go
 	go build -o "${OUTPUT_DIR}/bin/falcon" cmd/falcon/*
 
-$(OUTPUT_DIR)/bin/handoff: git.go *.go specs/*.go handoff/*.go cmd/handoff/*.go
-	go build -o "${OUTPUT_DIR}/bin/handoff" cmd/handoff/*
-
-$(OUTPUT_DIR)/bin/agent: git.go *.go specs/*.go agent/*.go agent/plugin/*.go cmd/agent/*.go
+$(OUTPUT_DIR)/bin/agent: specs/git.go agent/*.go cmd/agent/*.go specs/*.go
 	go build -o "${OUTPUT_DIR}/bin/agent" cmd/agent/*
 
-git.go:
+conf/yyparse.go: conf/yyparse.y
+	go tool yacc -o conf/yyparse.go conf/yyparse.y
+
+specs/git.go: scripts/git.sh
 	/bin/sh scripts/git.sh
 
 clean:
-	rm -rf bin/* git.go
+	rm -rf bin/* specs/git.go conf/yyparse.go conf/*.output
 
 run:
-	./bin/backend -config ./etc/backend.conf -logtostderr -v 3
+	#./bin/falcon -config ./etc/falcon.conf -logtostderr -v 4 parse 2>&1
+	./bin/agent -http=false -v 4 start 2>&1
 
-prepare: git.go
+prepare: specs/git.go conf/yyparse.go
 	go get ./...
 
 tools:
@@ -45,14 +42,12 @@ compile:
 	make
 
 targz:
-	mkdir -p ${OUTPUT_DIR}/dist
-	cd ${OUTPUT_DIR}/bin; tar czvf ../dist/falcon_single_linux_amd64.tar.gz ./falcon ; tar czvf ../dist/falcon_multi_linux_amd64.tar.gz ./backend ./handoff ./agent
+	mkdir -p ${OUTPUT_DIR}/dist; rm -rf ${OUTPUT_DIR}/dist/*
+	cd ${OUTPUT_DIR}/bin; tar czvf ../dist/falcon_Linux_amd64.tar.gz ./falcon; tar czvf ../dist/agent_Linux_amd64.tar.gz ./agent
 
 shasums:
 	cd ${OUTPUT_DIR}/dist; shasum * > ./SHASUMS
 
 release:
 	ghr --delete --prerelease -u yubo -r falcon pre-release ${OUTPUT_DIR}/dist
-#./bin/agent -config ./etc/agent.conf -logtostderr -v 3
-#./bin/backend -config ./etc/backend.conf -logtostderr -v 3
 

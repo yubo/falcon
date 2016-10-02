@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/yubo/falcon/specs"
 )
 
 type statModule struct {
@@ -177,16 +176,24 @@ func statGet(idx int) uint64 {
 	return atomic.LoadUint64(&statCnt[idx])
 }
 
-func statStart(config BackendOpts, p *specs.Process) {
-	if config.Debug > 0 {
-		ticker := falconTicker(time.Second*DEBUG_STAT_STEP, config.Debug)
+func (p *Backend) statStart() {
+	if p.Debug > 0 {
+		ticker := falconTicker(time.Second*DEBUG_STAT_STEP, p.Debug)
 		go func() {
 			for {
 				select {
+				case _, ok := <-p.running:
+					if !ok {
+						return
+					}
+
 				case <-ticker:
 					glog.V(3).Info(statModuleHandle(DEBUG_STAT_MODULE))
 				}
 			}
 		}()
 	}
+}
+
+func (p *Backend) statStop() {
 }

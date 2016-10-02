@@ -8,7 +8,6 @@ package backend
 import (
 	"flag"
 	"fmt"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -16,10 +15,10 @@ import (
 )
 
 var (
-	cache   backendCache
-	entry   *cacheEntry
-	rrdItem *specs.RrdItem
-	err     error
+	cacheApp  *Backend
+	testEntry *cacheEntry
+	rrdItem   *specs.RrdItem
+	err       error
 )
 
 func newRrdItem(i int) *specs.RrdItem {
@@ -41,65 +40,72 @@ func init() {
 	flag.Set("alsologtostderr", "true")
 	flag.Set("v", "5")
 
-	atomic.StoreInt64(&appTs, time.Now().Unix())
-	cacheConfig = BackendOpts{
-		Shm: ShmOpts{
+	cacheApp = &Backend{
+		Shm: Shm{
 			Magic: 0x80386,
 			Key:   0x6020,
 			Size:  4096,
 		},
+		Storage: Storage{
+			Type:   "rrd",
+			Hdisks: []string{"/tmp/falcon"},
+		},
+
+		ts: time.Now().Unix(),
 	}
+	cacheApp.cacheInit()
+	cacheApp.cacheStart()
 }
 
 func TestCache(t *testing.T) {
 	//fmt.Println(runtime.Caller(0))
-	cache.reset(cacheConfig)
+	cacheApp.cacheReset()
 	rrdItem = newRrdItem(1)
 	key := rrdItem.Csum()
 
 	// create
-	entry, err = cache.createEntry(key, rrdItem)
+	testEntry, err = cacheApp.createEntry(key, rrdItem)
 	if err != nil {
 		t.Error(err)
 	}
 	fmt.Println("c.createEntry success\n")
 
 	// get
-	p := cache.get(rrdItem.Csum())
-	if entry != p {
+	p := cacheApp.cache.get(rrdItem.Csum())
+	if testEntry != p {
 		t.Errorf("c.get(%s) error", rrdItem.Csum())
 	}
 	fmt.Printf("c.get success\n")
 
-	if len(cache.hash) != 1 {
-		t.Errorf("c.hash size error size %d want 1", len(cache.hash))
+	if len(cacheApp.cache.hash) != 1 {
+		t.Errorf("c.hash size error size %d want 1", len(cacheApp.cache.hash))
 	}
 
 	rrdItem = newRrdItem(2)
-	cache.createEntry(rrdItem.Csum(), rrdItem)
-	if len(cache.hash) != 2 {
-		t.Errorf("c.hash size error size %d want 2", len(cache.hash))
+	cacheApp.createEntry(rrdItem.Csum(), rrdItem)
+	if len(cacheApp.cache.hash) != 2 {
+		t.Errorf("c.hash size error size %d want 2", len(cacheApp.cache.hash))
 	}
 
 	// unlink
-	cache.unlink(newRrdItem(1).Csum())
-	if len(cache.hash) != 1 {
-		t.Errorf("c.hash size error size %d want 1", len(cache.hash))
+	cacheApp.cache.unlink(newRrdItem(1).Csum())
+	if len(cacheApp.cache.hash) != 1 {
+		t.Errorf("c.hash size error size %d want 1", len(cacheApp.cache.hash))
 	}
 	fmt.Printf("c.unlink success\n")
 
-	for k, _ := range cache.hash {
-		cache.unlink(k)
+	for k, _ := range cacheApp.cache.hash {
+		cacheApp.cache.unlink(k)
 	}
 	fmt.Printf("all c.unlink success\n")
 
 }
 
 func TestCacheQueue(t *testing.T) {
-	cache.reset(cacheConfig)
+	cacheApp.cacheReset()
 
 	rrdItem = newRrdItem(0)
-	entry, err = cache.createEntry(rrdItem.Csum(), rrdItem)
+	testEntry, err = cacheApp.createEntry(rrdItem.Csum(), rrdItem)
 	if err != nil {
 		t.Error(err)
 	}
@@ -107,22 +113,22 @@ func TestCacheQueue(t *testing.T) {
 	//fmt.Printf("cacheEtnry filename: %s\n", entry.filename())
 
 	for i := 1; i < 2*CACHE_SIZE; i++ {
-		entry.put(newRrdItem(i))
+		testEntry.put(newRrdItem(i))
 		if i < CACHE_SIZE {
-			if i != len(entry.getItems()) {
-				t.Errorf("len(data) %d want %d", len(entry.getItems()), i)
+			if i != len(testEntry.getItems()) {
+				t.Errorf("len(data) %d want %d", len(testEntry.getItems()), i)
 			}
 		} else {
-			if len(entry.getItems()) != CACHE_SIZE {
-				t.Errorf("len(data) %d want %d", len(entry.getItems()), CACHE_SIZE)
+			if len(testEntry.getItems()) != CACHE_SIZE {
+				t.Errorf("len(data) %d want %d", len(testEntry.getItems()), CACHE_SIZE)
 			}
 		}
 	}
 	fmt.Printf("e.getItems() success\n")
 
-	entry.dequeueAll()
-	if entry.e.commitId != entry.e.dataId {
-		t.Errorf("len(cache) %d want %d", int(entry.e.dataId-entry.e.commitId), 0)
+	testEntry.dequeueAll()
+	if testEntry.e.commitId != testEntry.e.dataId {
+		t.Errorf("len(cache) %d want %d", int(testEntry.e.dataId-testEntry.e.commitId), 0)
 	}
 }
 
@@ -132,23 +138,24 @@ func TestCacheShm(t *testing.T) {
 		entry_nb int
 	)
 
-	cacheConfig.Shm.Size = 268435456
-	cache.reset(cacheConfig)
-	entry_nb = block_nb * cache.cache_entry_nb
+	cacheApp.Shm.Size = 268435456
+	cacheApp.cacheReset()
+	entry_nb = block_nb * cacheApp.cache.cache_entry_nb
 	fmt.Printf("entry_nb %d block_nb %d block_entry_nb %d\n",
-		entry_nb, block_nb, cache.cache_entry_nb)
+		entry_nb, block_nb, cacheApp.cache.cache_entry_nb)
 
 	for i := 0; i < entry_nb; i++ {
 		rrdItem = newRrdItem(i)
-		entry, err = cache.createEntry(rrdItem.Csum(), rrdItem)
+		testEntry, err = cacheApp.createEntry(rrdItem.Csum(), rrdItem)
 		if err != nil {
 			t.Error(err)
 		}
 	}
 
-	cache.close()
+	cacheApp.cacheStop()
+	cleanBlocks(cacheApp.cache.startkey)
 
-	cache.init(cacheConfig)
+	cacheApp.cacheInit()
+	cacheApp.cacheStart()
 
-	cleanBlocks(cache.startkey)
 }

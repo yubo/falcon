@@ -5,30 +5,23 @@
  */
 package agent
 
-import (
-	"io/ioutil"
-	"os"
-
-	"github.com/golang/glog"
-	"github.com/yudai/hcl"
-)
-
 const (
 	CONN_RETRY      = 2
 	DEBUG_STAT_STEP = 60
 )
 
 var (
-	DefaultOptions = AgentOpts{
+	DefaultAgent = Agent{
 		Debug:    0,
-		PidFile:  "/var/run/agent.pid",
+		Name:     "Agent Module",
 		Host:     "",
 		Http:     true,
-		HttpAddr: "0.0.0.0:1988",
+		HttpAddr: "127.0.0.1:1988",
+		Rpc:      true,
+		RpcAddr:  "127.0.0.1:1989",
 		IfPre:    []string{"eth", "em"},
 		Interval: 60,
-		Handoff: HandoffOpts{
-			Enable:      true,
+		Handoff: Handoff{
 			Batch:       16,
 			ConnTimeout: 1000,
 			CallTimeout: 5000,
@@ -37,25 +30,7 @@ var (
 	}
 )
 
-type HandoffOpts struct {
-	Enable      bool     `hcl:"enable"`
-	Batch       int      `hcl:"batch"`
-	ConnTimeout int      `hcl:"conn_timeout"`
-	CallTimeout int      `hcl:"call_timeout"`
-	Upstreams   []string `hcl:"upstreams"`
-}
-
-type AgentOpts struct {
-	Debug    int         `hcl:"debug"`
-	PidFile  string      `hcl:"pid_file"`
-	Host     string      `hcl:"host"`
-	Http     bool        `hcl:"http"`
-	HttpAddr string      `hcl:"http_addr"`
-	IfPre    []string    `hcl:"iface_prefix"`
-	Interval int         `hcl:"interval"`
-	Handoff  HandoffOpts `hcl:"handoff"`
-}
-
+/*
 func applyConfigFile(opts *AgentOpts, filePath string) error {
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		return err
@@ -90,3 +65,4 @@ func parse(config *AgentOpts, filename string) {
 	glog.V(3).Infof("ParseConfig ok, file %s", filename)
 	appConfigFile = filename
 }
+*/

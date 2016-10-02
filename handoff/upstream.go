@@ -17,26 +17,21 @@ import (
 	"github.com/yubo/falcon/specs"
 )
 
-var (
-	upstreamConfig HandoffOpts
-)
-
 type backend struct {
 	name      string
 	streams   upstream
 	scheduler handoffScheduler
 }
 
-func (b *backend) String() string {
-	return fmt.Sprintf("%s", b.name)
+func (p *backend) String() string {
+	return fmt.Sprintf("%s", p.name)
 }
 
-func (b *backend) init(o BackendOpts) error {
-
-	for node, addr := range o.Upstream {
+func (p *backend) start(o Backend) error {
+	for node, addr := range o.Upstreams {
 		ch := make(chan *specs.MetaData)
-		b.scheduler.addChan(node, ch)
-		b.streams.addClientChan(node, addr, ch)
+		p.scheduler.addChan(node, ch)
+		p.streams.addClientChan(node, addr, ch)
 	}
 	return nil
 }
@@ -53,7 +48,8 @@ type netClients struct {
 }
 
 type upstream interface {
-	run(string) error
+	start(string) error
+	stop() error
 	addClientChan(string, string, chan *specs.MetaData) error
 }
 
@@ -68,7 +64,7 @@ type upstreamFalcon struct {
 }
 
 func newUpstreamFalcon(concurrency int,
-	b BackendOpts) *upstreamFalcon {
+	b Backend) *upstreamFalcon {
 	return &upstreamFalcon{
 		name:        "falcon",
 		concurrency: concurrency,
@@ -102,13 +98,23 @@ func (p *upstreamFalcon) addClientChan(key, addr string,
 	return nil
 }
 
-func (p *upstreamFalcon) run(name string) error {
+func (p *upstreamFalcon) start(name string) error {
 	for node, ch := range p.chans {
 		for i := 0; i < len(p.clients[node].cli); i++ {
 			go falconUpstreamWorker(name, i,
 				ch, &p.clients[node].cli[i],
 				p.clients[node].addr,
 				p.connTimeout, p.callTimeout, p.batch)
+		}
+	}
+	return nil
+}
+
+func (p *upstreamFalcon) stop() error {
+	for node, ch := range p.chans {
+		close(ch)
+		for i := 0; i < len(p.clients[node].cli); i++ {
+			p.clients[node].cli[i].Close()
 		}
 	}
 	return nil
@@ -200,7 +206,10 @@ func falconUpstreamWorker(name string, idx int, ch chan *specs.MetaData,
 	rrds := make([]*specs.RrdItem, batch)
 	for {
 		select {
-		case item := <-ch:
+		case item, ok := <-ch:
+			if !ok {
+				return
+			}
 			if rrds[i], err = item.Rrd(); err != nil {
 				continue
 			}
@@ -229,7 +238,7 @@ type upstreamTsdb struct {
 	chans       map[string]chan *specs.MetaData
 }
 
-func newUpstreamTsdb(concurrency int, b BackendOpts) *upstreamTsdb {
+func newUpstreamTsdb(concurrency int, b Backend) *upstreamTsdb {
 	return &upstreamTsdb{
 		name:        "tsdb",
 		concurrency: concurrency,
@@ -278,7 +287,7 @@ func (p *upstreamTsdb) addClientChan(key, addr string,
 	return nil
 }
 
-func (p *upstreamTsdb) run(name string) error {
+func (p *upstreamTsdb) start(name string) error {
 	for node, ch := range p.chans {
 		for i := 0; i < len(p.clients[node].cli); i++ {
 			go tsdbUpstreamWorker(name, i, ch,
@@ -292,6 +301,16 @@ func (p *upstreamTsdb) run(name string) error {
 	return nil
 }
 
+func (p *upstreamTsdb) stop() error {
+	for node, ch := range p.chans {
+		close(ch)
+		for i := 0; i < len(p.clients[node].cli); i++ {
+			p.clients[node].cli[i].Close()
+		}
+	}
+	return nil
+}
+
 func tsdbUpstreamWorker(name string, idx int,
 	ch chan *specs.MetaData, client *net.Conn,
 	addr string, connTimeout, callTimeout, batch int) {
@@ -300,7 +319,10 @@ func tsdbUpstreamWorker(name string, idx int,
 	items := make([]*specs.MetaData, batch)
 	for {
 		select {
-		case item := <-ch:
+		case item, ok := <-ch:
+			if !ok {
+				return
+			}
 			items[i] = item
 			i++
 			if i == batch {
@@ -379,20 +401,40 @@ func tsdbReconnection(client *net.Conn, addr string, connTimeout int) {
 	}
 }
 
-func upstreamWorker(bs []*backend) error {
-	for _, b := range bs {
-		b.streams.run(b.name)
+func (p *Handoff) upstreamWorkerStart() error {
+	for _, b := range p.bs {
+		b.streams.start(b.name)
 	}
 	return nil
 }
 
-func loadBalancerWorker(bs []*backend) {
+func (p *Handoff) upstreamWorkerStop() error {
+	for _, b := range p.bs {
+		b.streams.stop()
+	}
+	return nil
+}
+
+func (p *Handoff) loadBalancerWorkerStart() {
+	var (
+		ok    bool
+		b     *backend
+		item  *specs.MetaData
+		items *[]*specs.MetaData
+		ch    chan *specs.MetaData
+	)
+
+	// upstreams
+	p.appUpdateChan = make(chan *[]*specs.MetaData, 16)
+
 	go func() {
 		for {
-			items := <-appUpdateChan
-			for _, b := range bs {
-				for _, item := range *items {
-					ch := b.scheduler.sched(item.Id())
+			if items, ok = <-p.appUpdateChan; !ok {
+				return
+			}
+			for _, b = range p.bs {
+				for _, item = range *items {
+					ch = b.scheduler.sched(item.Id())
 					ch <- item
 				}
 			}
@@ -400,35 +442,44 @@ func loadBalancerWorker(bs []*backend) {
 	}()
 }
 
-func upstreamStart(config HandoffOpts, p *specs.Process) {
-	upstreamConfig = config
-	bs := make([]*backend, 0)
-	for k, v := range upstreamConfig.Backends {
-		if !v.Enable {
+func (p *Handoff) loadBalancerWorkerStop() {
+	close(p.appUpdateChan)
+}
+
+func (p *Handoff) upstreamStart() error {
+	p.bs = make([]*backend, 0)
+	for _, v := range p.Backends {
+		if v.Disabled {
 			continue
 		}
-		b := &backend{}
-		b.name = k
+		b := &backend{name: v.Name}
 		if v.Type == "falcon" {
-			b.streams = newUpstreamFalcon(upstreamConfig.Concurrency, v)
+			b.streams = newUpstreamFalcon(p.Concurrency, v)
 		} else if v.Type == "tsdb" {
-			b.streams = newUpstreamTsdb(upstreamConfig.Concurrency, v)
+			b.streams = newUpstreamTsdb(p.Concurrency, v)
 		} else {
 			glog.Fatal(specs.ErrUnsupported)
 		}
 
 		if v.Sched == "consistent" {
-			b.scheduler = newSchedConsistent(upstreamConfig.Replicas)
+			b.scheduler = newSchedConsistent(p.Replicas)
 		} else {
 			glog.Fatal(specs.ErrUnsupported)
 		}
 
-		b.init(v)
-		bs = append(bs, b)
+		b.start(v)
+		p.bs = append(p.bs, b)
 	}
 
-	glog.V(3).Infof("len(bs) %d", len(bs))
+	glog.V(3).Infof("%s upstreamStart len(bs) %d", p.Name, len(p.bs))
 
-	upstreamWorker(bs)
-	loadBalancerWorker(bs)
+	p.upstreamWorkerStart()
+	p.loadBalancerWorkerStart()
+	return nil
+}
+
+func (p *Handoff) upstreamStop() error {
+	p.loadBalancerWorkerStop()
+	p.upstreamWorkerStop()
+	return nil
 }
