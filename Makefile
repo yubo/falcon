@@ -25,8 +25,9 @@ clean:
 	rm -rf bin/* specs/git.go conf/yyparse.go conf/*.output
 
 run:
-	#./bin/falcon -config ./etc/falcon.conf -logtostderr -v 4 parse 2>&1
-	./bin/agent -http=false -v 4 start 2>&1
+	./bin/falcon -config ./etc/falcon.conf -logtostderr -v 3 start 2>&1
+
+#./bin/agent -http=false -v 4 start 2>&1
 
 prepare: specs/git.go conf/yyparse.go
 	go get ./...
