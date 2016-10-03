@@ -20,14 +20,14 @@ var (
 	appAgent Agent = DefaultAgent
 )
 
-type Handoff struct {
+type Lb struct {
 	Batch       int
 	ConnTimeout int
 	CallTimeout int
 	Upstreams   []string
 }
 
-func (p Handoff) String() string {
+func (p Lb) String() string {
 	return fmt.Sprintf("%-14s %d\n"+
 		"%-14s %d\n%-14s %d\n"+
 		"%-14s %s ",
@@ -47,7 +47,7 @@ type Agent struct {
 	HttpAddr string
 	IfPre    []string
 	Interval int
-	Handoff  Handoff
+	Lb  Lb
 	// runtime
 	appUpdateChan chan *[]*specs.MetaData // upstreams
 	httpListener  *net.TCPListener
@@ -85,7 +85,7 @@ func (p Agent) String() string {
 		"http", http, "rpc", rpc,
 		"ifprefix", strings.Join(p.IfPre, ", "),
 		"interval", p.Interval,
-		"Handoff", specs.IndentLines(1, p.Handoff.String()))
+		"Lb", specs.IndentLines(1, p.Lb.String()))
 }
 
 func (p *Agent) Init() error {

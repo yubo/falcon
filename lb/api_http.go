@@ -3,7 +3,7 @@
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
-package handoff
+package lb
 
 import (
 	"net"
@@ -27,10 +27,10 @@ func (ln tcpKeepAliveListener) Accept() (c net.Conn, err error) {
 	return tc, nil
 }
 
-func (p *Handoff) httpRoutes() {
+func (p *Lb) httpRoutes() {
 }
 
-func (p *Handoff) httpStart() {
+func (p *Lb) httpStart() {
 	if !p.Http {
 		return
 	}
@@ -58,7 +58,7 @@ func (p *Handoff) httpStart() {
 	go s.Serve(tcpKeepAliveListener{p.httpListener})
 }
 
-func (p *Handoff) httpStop() error {
+func (p *Lb) httpStop() error {
 	p.httpListener.Close()
 	return nil
 }

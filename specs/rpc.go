@@ -24,14 +24,14 @@ func (p *RpcResp) String() string {
 type Null struct {
 }
 
-/* agent/handoff */
-type HandoffResp struct {
+/* agent/lb */
+type LbResp struct {
 	Message string
 	Total   int
 	Invalid int
 }
 
-func (p *HandoffResp) String() string {
+func (p *LbResp) String() string {
 	return fmt.Sprintf(
 		"<Total=%v, Invalid:%v, Latency=%vms, Message:%s>",
 		p.Total,
@@ -143,7 +143,7 @@ func (p *TsdbItem) TsdbString() (s string) {
 	return s
 }
 
-/* handoff/storage */
+/* lb/storage */
 // Type: GAUGE|COUNTER|DERIVE
 type RrdItem struct {
 	Host      string  `json:"host"`

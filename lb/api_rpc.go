@@ -3,7 +3,7 @@
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
-package handoff
+package lb
 
 import (
 	"container/list"
@@ -36,7 +36,7 @@ func (l *connList) remove(e *list.Element) net.Conn {
 }
 
 type Falcon struct {
-	handoff *Handoff
+	lb *Lb
 }
 
 func (p *Falcon) Ping(req specs.Null, resp *specs.RpcResp) error {
@@ -44,7 +44,7 @@ func (p *Falcon) Ping(req specs.Null, resp *specs.RpcResp) error {
 }
 
 func (p *Falcon) Update(args []*specs.MetaData,
-	reply *specs.HandoffResp) error {
+	reply *specs.LbResp) error {
 	reply.Invalid = 0
 	now := time.Now().Unix()
 
@@ -91,7 +91,7 @@ func (p *Falcon) Update(args []*specs.MetaData,
 		})
 	}
 
-	p.handoff.appUpdateChan <- &items
+	p.lb.appUpdateChan <- &items
 	glog.V(3).Infof("recv %d", len(items))
 
 	reply.Message = "ok"
@@ -104,13 +104,13 @@ func (p *Falcon) Update(args []*specs.MetaData,
 	return nil
 }
 
-func (p *Handoff) rpcStart() (err error) {
+func (p *Lb) rpcStart() (err error) {
 
 	var addr *net.TCPAddr
 	if !p.Rpc {
 		return nil
 	}
-	falcon := &Falcon{handoff: p}
+	falcon := &Falcon{lb: p}
 	rpc.Register(falcon)
 
 	addr, err = net.ResolveTCPAddr("tcp", p.RpcAddr)
@@ -153,7 +153,7 @@ func (p *Handoff) rpcStart() (err error) {
 	return err
 }
 
-func (p *Handoff) rpcStop() (err error) {
+func (p *Lb) rpcStop() (err error) {
 	if p.rpcListener == nil {
 		return specs.ErrNoent
 	}
@@ -169,7 +169,7 @@ func (p *Handoff) rpcStop() (err error) {
 }
 
 /*
-func rpcStart(config HandoffOpts, p *specs.Process) {
+func rpcStart(config LbOpts, p *specs.Process) {
 	var rpcListener *net.TCPListener
 
 	rpc.Register(new(Falcon))

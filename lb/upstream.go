@@ -3,7 +3,7 @@
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
-package handoff
+package lb
 
 import (
 	"bytes"
@@ -20,7 +20,7 @@ import (
 type backend struct {
 	name      string
 	streams   upstream
-	scheduler handoffScheduler
+	scheduler lbScheduler
 }
 
 func (p *backend) String() string {
@@ -401,21 +401,21 @@ func tsdbReconnection(client *net.Conn, addr string, connTimeout int) {
 	}
 }
 
-func (p *Handoff) upstreamWorkerStart() error {
+func (p *Lb) upstreamWorkerStart() error {
 	for _, b := range p.bs {
 		b.streams.start(b.name)
 	}
 	return nil
 }
 
-func (p *Handoff) upstreamWorkerStop() error {
+func (p *Lb) upstreamWorkerStop() error {
 	for _, b := range p.bs {
 		b.streams.stop()
 	}
 	return nil
 }
 
-func (p *Handoff) loadBalancerWorkerStart() {
+func (p *Lb) loadBalancerWorkerStart() {
 	var (
 		ok    bool
 		b     *backend
@@ -442,11 +442,11 @@ func (p *Handoff) loadBalancerWorkerStart() {
 	}()
 }
 
-func (p *Handoff) loadBalancerWorkerStop() {
+func (p *Lb) loadBalancerWorkerStop() {
 	close(p.appUpdateChan)
 }
 
-func (p *Handoff) upstreamStart() error {
+func (p *Lb) upstreamStart() error {
 	p.bs = make([]*backend, 0)
 	for _, v := range p.Backends {
 		if v.Disabled {
@@ -478,7 +478,7 @@ func (p *Handoff) upstreamStart() error {
 	return nil
 }
 
-func (p *Handoff) upstreamStop() error {
+func (p *Lb) upstreamStop() error {
 	p.loadBalancerWorkerStop()
 	p.upstreamWorkerStop()
 	return nil

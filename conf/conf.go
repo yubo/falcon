@@ -16,7 +16,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/yubo/falcon/agent"
 	"github.com/yubo/falcon/backend"
-	"github.com/yubo/falcon/handoff"
+	"github.com/yubo/falcon/lb"
 	"github.com/yubo/falcon/specs"
 )
 
@@ -44,7 +44,7 @@ type yyLex struct {
 type Falcon struct {
 	PidFile string
 	Agent   agent.Agent
-	Handoff []handoff.Handoff
+	Lb []lb.Lb
 	Backend []backend.Backend
 	Modules []specs.Module
 }
@@ -61,8 +61,8 @@ func (p Falcon) String() string {
 var (
 	conf               *Falcon
 	yy                 *yyLex
-	yy_handoff         *handoff.Handoff
-	yy_handoff_backend *handoff.Backend
+	yy_lb         *lb.Lb
+	yy_lb_backend *lb.Backend
 	yy_backend         *backend.Backend
 	yy_mod_name        *string
 	yy_mod_disable     *bool
@@ -100,7 +100,7 @@ var (
 		"conn_timeout":     CONN_TIMEOUT,
 		"call_timeout":     CALL_TIMEOUT,
 		"upstreams":        UPSTREAMS,
-		"handoff":          HANDOFF,
+		"lb":          HANDOFF,
 		"rpc":              RPC,
 		"rpc_addr":         RPC_ADDR,
 		"replicas":         REPLICAS,

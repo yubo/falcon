@@ -3,7 +3,7 @@
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
-package handoff
+package lb
 
 const (
 	CONN_RETRY      = 2
@@ -11,7 +11,7 @@ const (
 )
 
 var (
-	DefaultHandoff = Handoff{
+	DefaultLb = Lb{
 		Debug:       0,
 		Http:        true,
 		HttpAddr:    "0.0.0.0:6060",

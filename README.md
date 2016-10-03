@@ -33,9 +33,10 @@ go test -bench=.
 | lite-falcon |   falcon                            |
 |-------------|-------------------------------------|
 |   agent     |   agent, _aggregator, nodata, task_ |
-|   handoff   |   transfer, _query_                 |
+|   lb        |   transfer, _query, hbs_            |
 |   backend   |   graph, _judge, sender_            |
-|   _no plan_ |   _gateway,  hbs_                   |
+|   web       |   _fe, dashboard_                   |
+|   _no plan_ |   _gateway, ...  _                  |
 
 
 [lite_falcon_img]:https://cdn.rawgit.com/yubo/falcon/master/doc/img/lite-falcon.svg

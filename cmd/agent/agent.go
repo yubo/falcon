@@ -40,10 +40,10 @@ func init() {
 	flag.StringVar(&ag.HttpAddr, "ha", "127.0.0.1:1989", "http addr")
 	flag.StringVar(&ifpre, "if", "eth,em", "interface prefix")
 	flag.IntVar(&ag.Interval, "interval", 60, "interval for collecting data(s)")
-	flag.IntVar(&ag.Handoff.Batch, "batch", 60, "batch number per send")
-	flag.IntVar(&ag.Handoff.ConnTimeout, "conntimeout", 1000, "conntimeout(ms)")
-	flag.IntVar(&ag.Handoff.CallTimeout, "calltimeout", 5000, "calltimeout(ms)")
-	flag.StringVar(&upstreams, "ups", "", "list of handoffs(x.x.x.x:7010,x.x.x.x:7010)")
+	flag.IntVar(&ag.Lb.Batch, "batch", 60, "batch number per send")
+	flag.IntVar(&ag.Lb.ConnTimeout, "conntimeout", 1000, "conntimeout(ms)")
+	flag.IntVar(&ag.Lb.CallTimeout, "calltimeout", 5000, "calltimeout(ms)")
+	flag.StringVar(&upstreams, "ups", "", "list of lbs(x.x.x.x:7010,x.x.x.x:7010)")
 
 	flags.CommandLine.Usage = fmt.Sprintf("Usage: %s [OPTIONS] COMMAND ",
 		"start|stop\n", os.Args[0])
@@ -64,7 +64,7 @@ func start(arg interface{}) {
 	}
 
 	ag.IfPre = strings.Split(ifpre, ",")
-	ag.Handoff.Upstreams = strings.Split(upstreams, ",")
+	ag.Lb.Upstreams = strings.Split(upstreams, ",")
 
 	app := specs.NewProcess(pidfile, []specs.Module{specs.Module(&ag)})
 

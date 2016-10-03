@@ -3,7 +3,7 @@
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
-package handoff
+package lb
 
 import (
 	"github.com/golang/glog"
@@ -11,7 +11,7 @@ import (
 	"stathat.com/c/consistent"
 )
 
-type handoffScheduler interface {
+type lbScheduler interface {
 	sched(string) chan *specs.MetaData
 	addChan(string, chan *specs.MetaData) error
 }

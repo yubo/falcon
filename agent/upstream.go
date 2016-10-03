@@ -132,10 +132,10 @@ func (p *Agent) upstreamStart() {
 	p.appUpdateChan = make(chan *[]*specs.MetaData, 16)
 
 	streamPool = upstreamPool{}
-	streamPool.size = uint32(len(p.Handoff.Upstreams))
+	streamPool.size = uint32(len(p.Lb.Upstreams))
 	streamPool.idx = rand.Uint32() % streamPool.size
 	streamPool.pool = make([]string, int(streamPool.size))
-	copy(streamPool.pool, p.Handoff.Upstreams)
+	copy(streamPool.pool, p.Lb.Upstreams)
 
 	if p.Debug > 1 {
 		go func() {
@@ -155,10 +155,10 @@ func (p *Agent) upstreamStart() {
 	go func() {
 
 		client, err = rpcDial(streamPool.get(),
-			time.Duration(p.Handoff.ConnTimeout)*
+			time.Duration(p.Lb.ConnTimeout)*
 				time.Millisecond)
 		if err != nil {
-			reconnection(&client, p.Handoff.ConnTimeout)
+			reconnection(&client, p.Lb.ConnTimeout)
 		}
 
 		for {
@@ -168,18 +168,18 @@ func (p *Agent) upstreamStart() {
 				return
 			}
 
-			n := p.Handoff.Batch
+			n := p.Lb.Batch
 			for i = 0; i < len(*items)-n; i += n {
 				_items := (*items)[i : i+n]
 				putRpcStorageData(&client, &_items,
-					p.Handoff.ConnTimeout,
-					p.Handoff.CallTimeout)
+					p.Lb.ConnTimeout,
+					p.Lb.CallTimeout)
 			}
 			if i < len(*items) {
 				_items := (*items)[i:]
 				putRpcStorageData(&client, &_items,
-					p.Handoff.ConnTimeout,
-					p.Handoff.CallTimeout)
+					p.Lb.ConnTimeout,
+					p.Lb.CallTimeout)
 			}
 
 		}

@@ -12,7 +12,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/yubo/falcon/agent"
 	"github.com/yubo/falcon/backend"
-	"github.com/yubo/falcon/handoff"
+	"github.com/yubo/falcon/lb"
 )
 
 
@@ -79,10 +79,10 @@ conf: ';'
 	if !*yy_mod_disable {
 		conf.Modules = append(conf.Modules, &conf.Agent)
 	}
-}| handoff_mod '}' {
-	*yy_mod_name = fmt.Sprintf("handoff %s", *yy_mod_name)
+}| lb_mod '}' {
+	*yy_mod_name = fmt.Sprintf("lb %s", *yy_mod_name)
 	if !*yy_mod_disable {
-		conf.Modules = append(conf.Modules, yy_handoff)
+		conf.Modules = append(conf.Modules, yy_lb)
 	}
 }| backend_mod '}' {
 	*yy_mod_name = fmt.Sprintf("backend %s", *yy_mod_name)
@@ -122,19 +122,19 @@ agent_mod_item:
 	conf.Agent.IfPre = yy_as
 	yy_as = make([]string, 0)
 }| INTERVAL num { conf.Agent.Interval = $2 }
- | HANDOFF '{' agent_handoff '}'{
- 	conf.Agent.Handoff.Upstreams = yy_as
+ | HANDOFF '{' agent_lb '}'{
+ 	conf.Agent.Lb.Upstreams = yy_as
 	yy_as = make([]string, 0)
  }
  ;
 
-agent_handoff:
-| agent_handoff agent_handoff_item ';'
+agent_lb:
+| agent_lb agent_lb_item ';'
 
-agent_handoff_item:
-| BATCH num { conf.Agent.Handoff.Batch = $2 }
-| CONN_TIMEOUT num { conf.Agent.Handoff.ConnTimeout = $2 }
-| CALL_TIMEOUT num { conf.Agent.Handoff.CallTimeout = $2 }
+agent_lb_item:
+| BATCH num { conf.Agent.Lb.Batch = $2 }
+| CONN_TIMEOUT num { conf.Agent.Lb.ConnTimeout = $2 }
+| CALL_TIMEOUT num { conf.Agent.Lb.CallTimeout = $2 }
 | UPSTREAMS as 
 ;
 
@@ -160,69 +160,69 @@ mod_item:
  | RPC_ADDR text  { *yy_mod_rpc_addr = $2 }
 ;
 
-handoff_mod: handoff_start mod_name '{'
-| handoff_mod handoff_mod_item ';'
-| handoff_mod INCLUDE text ';'  { yy.include($3) }
+lb_mod: lb_start mod_name '{'
+| lb_mod lb_mod_item ';'
+| lb_mod INCLUDE text ';'  { yy.include($3) }
 ;
 
-handoff_start: HANDOFF {
-	conf.Handoff     = append(conf.Handoff, handoff.DefaultHandoff)
-	yy_handoff       = &conf.Handoff[len(conf.Handoff)-1]
-	yy_handoff_backend = &handoff.Backend{}
-	yy_mod_name      = &yy_handoff.Name
-	yy_mod_disable   = &yy_handoff.Disabled
-	yy_mod_debug     = &yy_handoff.Debug
-	yy_mod_http      = &yy_handoff.Http
-	yy_mod_http_addr = &yy_handoff.HttpAddr
-	yy_mod_rpc       = &yy_handoff.Rpc
-	yy_mod_rpc_addr  = &yy_handoff.RpcAddr
+lb_start: HANDOFF {
+	conf.Lb     = append(conf.Lb, lb.DefaultLb)
+	yy_lb       = &conf.Lb[len(conf.Lb)-1]
+	yy_lb_backend = &lb.Backend{}
+	yy_mod_name      = &yy_lb.Name
+	yy_mod_disable   = &yy_lb.Disabled
+	yy_mod_debug     = &yy_lb.Debug
+	yy_mod_http      = &yy_lb.Http
+	yy_mod_http_addr = &yy_lb.HttpAddr
+	yy_mod_rpc       = &yy_lb.Rpc
+	yy_mod_rpc_addr  = &yy_lb.RpcAddr
 }
 ;
 
-handoff_mod_item:
+lb_mod_item:
    mod_item
- | REPLICAS num { yy_handoff.Replicas = $2 }
- | CONCURRENCY num { yy_handoff.Concurrency = $2 }
- | BACKENDS '{' handoff_backends '}'
+ | REPLICAS num { yy_lb.Replicas = $2 }
+ | CONCURRENCY num { yy_lb.Concurrency = $2 }
+ | BACKENDS '{' lb_backends '}'
  ;
 
 
-handoff_backends:
-|handoff_backends handoff_backends_item ';'
+lb_backends:
+|lb_backends lb_backends_item ';'
 ;
 
-handoff_backends_item:
-| TSDB backend_name '{' handoff_backend '}' { 
-	yy_handoff_backend.Type = "tsdb"
-	yy_handoff.Backends = append(yy_handoff.Backends, *yy_handoff_backend)
-	yy_handoff_backend = &handoff.Backend{}
+lb_backends_item:
+| TSDB backend_name '{' lb_backend '}' { 
+	yy_lb_backend.Type = "tsdb"
+	yy_lb.Backends = append(yy_lb.Backends, *yy_lb_backend)
+	yy_lb_backend = &lb.Backend{}
 }
-| FALCON backend_name '{' handoff_backend '}'{
-	yy_handoff_backend.Type = "falcon"
-	yy_handoff.Backends = append(yy_handoff.Backends, *yy_handoff_backend)
-	yy_handoff_backend = &handoff.Backend{}
+| FALCON backend_name '{' lb_backend '}'{
+	yy_lb_backend.Type = "falcon"
+	yy_lb.Backends = append(yy_lb.Backends, *yy_lb_backend)
+	yy_lb_backend = &lb.Backend{}
 }
 ;
 
 backend_name:
 | text {
-	yy_handoff_backend.Name = $1
+	yy_lb_backend.Name = $1
 }
 ;
 
-handoff_backend:
-| handoff_backend handoff_backend_item ';'
+lb_backend:
+| lb_backend lb_backend_item ';'
 ;
 
-handoff_backend_item:
-| DISABLED bool { yy_handoff_backend.Disabled = $2 }
-| SCHED CONSISTENT { yy_handoff_backend.Sched = "consistent" }
-| BATCH num { yy_handoff_backend.Batch = $2 }
-| CONN_TIMEOUT num { yy_handoff_backend.ConnTimeout = $2 }
-| CALL_TIMEOUT num { yy_handoff_backend.CallTimeout = $2 }
+lb_backend_item:
+| DISABLED bool { yy_lb_backend.Disabled = $2 }
+| SCHED CONSISTENT { yy_lb_backend.Sched = "consistent" }
+| BATCH num { yy_lb_backend.Batch = $2 }
+| CONN_TIMEOUT num { yy_lb_backend.ConnTimeout = $2 }
+| CALL_TIMEOUT num { yy_lb_backend.CallTimeout = $2 }
 | UPSTREAMS '{' ss '}' { 
-	yy_handoff_backend.Upstreams = yy_ss
-	glog.V(4).Infof("upstreams %v yy_ss %v", yy_handoff_backend.Upstreams, yy_ss)
+	yy_lb_backend.Upstreams = yy_ss
+	glog.V(4).Infof("upstreams %v yy_ss %v", yy_lb_backend.Upstreams, yy_ss)
 	yy_ss = make(map[string]string)
 }
 ;

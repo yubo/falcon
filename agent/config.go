@@ -21,7 +21,7 @@ var (
 		RpcAddr:  "127.0.0.1:1989",
 		IfPre:    []string{"eth", "em"},
 		Interval: 60,
-		Handoff: Handoff{
+		Lb: Lb{
 			Batch:       16,
 			ConnTimeout: 1000,
 			CallTimeout: 5000,

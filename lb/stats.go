@@ -3,7 +3,7 @@
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
-package handoff
+package lb
 
 import (
 	"fmt"
@@ -64,7 +64,7 @@ func statGet(idx int) uint64 {
 	return atomic.LoadUint64(&statCnt[idx])
 }
 
-func (p *Handoff) statStart() {
+func (p *Lb) statStart() {
 	if p.Debug > 0 {
 		statTicker := time.NewTicker(time.Second * DEBUG_STAT_STEP).C
 		go func() {
@@ -82,5 +82,5 @@ func (p *Handoff) statStart() {
 	}
 }
 
-func (p *Handoff) statStop() {
+func (p *Lb) statStop() {
 }

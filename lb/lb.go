@@ -3,7 +3,7 @@
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
-package handoff
+package lb
 
 import (
 	"container/list"
@@ -54,7 +54,7 @@ func (p Backend) String() string {
 	return fmt.Sprintf("%s (\n%s\n)", name, specs.IndentLines(1, ret))
 }
 
-type Handoff struct {
+type Lb struct {
 	Debug       int
 	Disabled    bool
 	Name        string
@@ -76,7 +76,7 @@ type Handoff struct {
 	rpcConnects   connList
 }
 
-func (p Handoff) Desc() string {
+func (p Lb) Desc() string {
 	if p.Disabled {
 		return fmt.Sprintf("%s(Disabled)", p.Name)
 	} else {
@@ -85,7 +85,7 @@ func (p Handoff) Desc() string {
 
 }
 
-func (p Handoff) String() string {
+func (p Lb) String() string {
 	http := p.HttpAddr
 	rpc := p.RpcAddr
 
@@ -108,7 +108,7 @@ func (p Handoff) String() string {
 	return ret + fmt.Sprintf("\n)")
 }
 
-func (p *Handoff) Init() error {
+func (p *Lb) Init() error {
 	glog.V(3).Infof("%s Init()", p.Name)
 
 	// rpc
@@ -119,7 +119,7 @@ func (p *Handoff) Init() error {
 
 }
 
-func (p *Handoff) Start() error {
+func (p *Lb) Start() error {
 	glog.V(3).Infof("%s Start()", p.Name)
 	p.status = specs.APP_STATUS_PENDING
 	p.running = make(chan struct{}, 0)
@@ -131,7 +131,7 @@ func (p *Handoff) Start() error {
 	return nil
 }
 
-func (p *Handoff) Stop() error {
+func (p *Lb) Stop() error {
 	glog.V(3).Infof("%s Stop()", p.Name)
 	p.status = specs.APP_STATUS_EXIT
 	close(p.running)
@@ -142,13 +142,13 @@ func (p *Handoff) Stop() error {
 	return nil
 }
 
-func (p *Handoff) Reload() error {
+func (p *Lb) Reload() error {
 	glog.V(3).Infof("%s Reload()", p.Name)
 	return nil
 
 }
 
-func (p *Handoff) Signal(sig os.Signal) error {
+func (p *Lb) Signal(sig os.Signal) error {
 	glog.V(3).Infof("%s signal %v", p.Name, sig)
 	return nil
 }
