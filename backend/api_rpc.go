@@ -67,7 +67,7 @@ func demoValue(idx int64, i int) float64 {
 
 func (p *Bkd) demoStart() {
 	items := make([]*specs.RrdItem, DEBUG_SAMPLE_NB)
-	ticker := falconTicker(time.Second*DEBUG_STEP, p.backend.Debug)
+	ticker := falconTicker(time.Second*DEBUG_STEP, p.backend.Params.Debug)
 	step := DEBUG_STEP
 	j := 0
 	for {
@@ -355,7 +355,7 @@ func (p *Backend) handleItems(items []*specs.RrdItem) {
 		return
 	}
 
-	glog.V(4).Infof("recv %d", n)
+	glog.V(4).Infof(MODULE_NAME+"recv %d", n)
 	statInc(ST_RPC_SERV_RECV, 1)
 	statInc(ST_RPC_SERV_RECV_ITEM, n)
 
@@ -461,13 +461,13 @@ func (p *Backend) getLastRaw(csum string) *specs.RRDData {
 func (p *Backend) rpcStart() (err error) {
 	var addr *net.TCPAddr
 
-	if !p.Rpc {
+	if !p.Params.Rpc {
 		return nil
 	}
 
-	addr, err = net.ResolveTCPAddr("tcp", p.RpcAddr)
+	addr, err = net.ResolveTCPAddr("tcp", p.Params.RpcAddr)
 	if err != nil {
-		glog.Fatalf("rpc.Start error, net.ResolveTCPAddr failed, %s", err)
+		glog.Fatalf(MODULE_NAME+"rpc.Start error, net.ResolveTCPAddr failed, %s", err)
 	}
 
 	p.rpcBkd = &Bkd{
@@ -478,10 +478,10 @@ func (p *Backend) rpcStart() (err error) {
 
 	p.rpcListener, err = net.ListenTCP("tcp", addr)
 	if err != nil {
-		glog.Fatalf("rpc.Start error, listen %s failed, %s",
-			p.RpcAddr, err)
+		glog.Fatalf(MODULE_NAME+"rpc.Start error, listen %s failed, %s",
+			p.Params.RpcAddr, err)
 	} else {
-		glog.Infof("%s rpcStart ok, listening on %s", p.Name, p.RpcAddr)
+		glog.Infof(MODULE_NAME+"%s rpcStart ok, listening on %s", p.Params.Name, p.Params.RpcAddr)
 	}
 
 	go func() {
@@ -489,6 +489,9 @@ func (p *Backend) rpcStart() (err error) {
 		for {
 			conn, err := p.rpcListener.Accept()
 			if err != nil {
+				if p.status == specs.APP_STATUS_EXIT {
+					return
+				}
 				if tempDelay == 0 {
 					tempDelay = 5 * time.Millisecond
 				} else {
@@ -509,7 +512,7 @@ func (p *Backend) rpcStart() (err error) {
 		}
 	}()
 
-	if p.Debug > 1 {
+	if p.Params.Debug > 1 {
 		go p.rpcBkd.demoStart()
 	}
 
@@ -521,7 +524,7 @@ func (p *Backend) rpcStop() (err error) {
 		return specs.ErrNoent
 	}
 
-	if p.Debug > 1 {
+	if p.Params.Debug > 1 {
 		p.rpcBkd.demoStop()
 	}
 
@@ -534,40 +537,3 @@ func (p *Backend) rpcStop() (err error) {
 
 	return nil
 }
-
-/*
-func (p *Backend) rpcStart() {
-	var rpcListener *net.TCPListener
-
-	s := new(Backend)
-	rpc.Register(s)
-	p.RegisterEvent("rpc", rpcEvent)
-	rpcConfig = config
-
-	_rpcStart(&rpcConfig, &rpcListener)
-
-	if rpcConfig.Debug > 1 {
-		go s.demo()
-	}
-
-	go func() {
-		select {
-		case event := <-rpcEvent:
-			if event.Method == specs.ROUTINE_EVENT_M_EXIT {
-				_rpcStop(&rpcConfig, rpcListener)
-				event.Done <- nil
-
-				return
-			} else if event.Method == specs.ROUTINE_EVENT_M_RELOAD {
-				_rpcStop(&rpcConfig, rpcListener)
-
-				glog.V(3).Infof("old:\n%s\n new:\n%s",
-					rpcConfig, appConfig)
-				rpcConfig = appConfig
-				_rpcStart(&rpcConfig, &rpcListener)
-			}
-		}
-	}()
-
-}
-*/

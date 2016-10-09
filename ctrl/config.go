@@ -3,31 +3,32 @@
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
-package lb
+package ctrl
 
-import "github.com/yubo/falcon/specs"
+import (
+	"github.com/yubo/falcon/specs"
+)
 
 const (
 	CONN_RETRY      = 2
 	DEBUG_STAT_STEP = 60
-	CTRL_STEP       = 360
 )
 
 var (
-	DefaultLb = Lb{
+	DefaultCtrl = Ctrl{
 		Params: specs.ModuleParams{
 			Debug:       0,
 			ConnTimeout: 1000,
 			CallTimeout: 5000,
 			Concurrency: 2,
+			Name:        "Control Module",
 			Disabled:    false,
 			Http:        true,
 			HttpAddr:    "0.0.0.0:6060",
 			Rpc:         true,
 			RpcAddr:     "0.0.0.0:8433",
-			CtrlAddr:    "",
+			CtrlAddr:    "N/A",
 		},
-		Batch:    16,
 		Backends: make([]specs.Backend, 0),
 	}
 )

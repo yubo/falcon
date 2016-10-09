@@ -5,28 +5,33 @@
  */
 package agent
 
+import "github.com/yubo/falcon/specs"
+
 const (
 	CONN_RETRY      = 2
 	DEBUG_STAT_STEP = 60
+	CTRL_STEP       = 360
 )
 
 var (
 	DefaultAgent = Agent{
-		Debug:    0,
-		Name:     "Agent Module",
-		Host:     "",
-		Http:     true,
-		HttpAddr: "127.0.0.1:1988",
-		Rpc:      true,
-		RpcAddr:  "127.0.0.1:1989",
-		IfPre:    []string{"eth", "em"},
-		Interval: 60,
-		Lb: Lb{
-			Batch:       16,
+		Params: specs.ModuleParams{
+			Debug:       0,
 			ConnTimeout: 1000,
 			CallTimeout: 5000,
-			Upstreams:   []string{},
+			Concurrency: 2,
+			Name:        "Agent Module",
+			Disabled:    false,
+			Http:        true,
+			Rpc:         true,
+			HttpAddr:    "127.0.0.1:1988",
+			RpcAddr:     "127.0.0.1:1989",
+			CtrlAddr:    "127.0.0.1:8001",
 		},
+		Interval:  60,
+		Batch:     16,
+		IfPre:     []string{"eth", "em"},
+		Upstreams: []string{},
 	}
 )
 

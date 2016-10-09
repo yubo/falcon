@@ -25,10 +25,10 @@ func FmtTs(ts int64) string {
 }
 
 func IndentLines(i int, lines string) (ret string) {
-	ls := strings.Split(lines, "\n")
+	ls := strings.Split(strings.Trim(lines, "\n"), "\n")
 	indent := strings.Repeat(" ", i*IndentSize)
 	for _, l := range ls {
 		ret += fmt.Sprintf("%s%s\n", indent, l)
 	}
-	return strings.TrimRight(ret, "\n")
+	return string([]byte(ret)[:len(ret)-1])
 }

@@ -177,8 +177,8 @@ func statGet(idx int) uint64 {
 }
 
 func (p *Backend) statStart() {
-	if p.Debug > 0 {
-		ticker := falconTicker(time.Second*DEBUG_STAT_STEP, p.Debug)
+	if p.Params.Debug > 0 {
+		ticker := falconTicker(time.Second*DEBUG_STAT_STEP, p.Params.Debug)
 		go func() {
 			for {
 				select {
@@ -188,7 +188,7 @@ func (p *Backend) statStart() {
 					}
 
 				case <-ticker:
-					glog.V(3).Info(statModuleHandle(DEBUG_STAT_MODULE))
+					glog.V(3).Info(MODULE_NAME + statModuleHandle(DEBUG_STAT_MODULE))
 				}
 			}
 		}()

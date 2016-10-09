@@ -41,11 +41,9 @@ func init() {
 	flag.Set("v", "5")
 
 	cacheApp = &Backend{
-		Shm: Shm{
-			Magic: 0x80386,
-			Key:   0x6020,
-			Size:  4096,
-		},
+		ShmMagic: 0x80386,
+		ShmKey:   0x6020,
+		ShmSize:  4096,
 		Storage: Storage{
 			Type:   "rrd",
 			Hdisks: []string{"/tmp/falcon"},
@@ -138,7 +136,7 @@ func TestCacheShm(t *testing.T) {
 		entry_nb int
 	)
 
-	cacheApp.Shm.Size = 268435456
+	cacheApp.ShmSize = 268435456
 	cacheApp.cacheReset()
 	entry_nb = block_nb * cacheApp.cache.cache_entry_nb
 	fmt.Printf("entry_nb %d block_nb %d block_entry_nb %d\n",

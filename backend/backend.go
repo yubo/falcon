@@ -48,32 +48,8 @@ const (
 	DEBUG_SAMPLE_NB         = 18000 //单周期生成样本数量
 	DEBUG_STAT_MODULE       = ST_M_CACHE | ST_M_INDEX
 	DEBUG_STAT_STEP         = 60
+	MODULE_NAME             = "\x1B[32m[BACKEND]\x1B[0m "
 )
-
-type Migrate struct {
-	Disabled    bool
-	Concurrency int
-	Replicas    int
-	CallTimeout int
-	ConnTimeout int
-	Upstreams   map[string]string
-}
-
-func (o Migrate) String() string {
-	var upstream string
-	indent := strings.Repeat(" ", specs.IndentSize)
-
-	for k, v := range o.Upstreams {
-		upstream += fmt.Sprintf("%s%-10s = %s\n", indent, k, v)
-	}
-
-	return fmt.Sprintf("%-12s %v\n%-12s %d\n"+
-		"%-12s %d\n%-12s %d\n"+
-		"%-12s %d\n%s (\n%s\n)",
-		"disable", o.Disabled, "concurrency", o.Concurrency,
-		"replicas", o.Replicas, "callTimeout", o.CallTimeout,
-		"conntimeout", o.ConnTimeout, "upstream", strings.TrimRight(upstream, "\n"))
-}
 
 type Storage struct {
 	Type   string
@@ -81,44 +57,24 @@ type Storage struct {
 }
 
 func (o Storage) String() string {
-
 	return fmt.Sprintf("%-12s %s\n%-12s %s",
 		"type", o.Type,
 		"hdisks", strings.Join(o.Hdisks, ", "))
 }
 
-type Shm struct {
-	Magic uint32
-	Key   int
-	Size  int
-}
-
-func (o Shm) String() string {
-
-	return fmt.Sprintf("%-14s 0x%x\n%-14s 0x%x\n%-14s %v",
-		"magic_code", o.Magic,
-		"key_start_id", o.Key,
-		"segment_size", o.Size)
-
-}
-
 type Backend struct {
 	// config
-	Debug           int
-	Disabled        bool
-	Name            string
-	Http            bool
-	HttpAddr        string
-	Rpc             bool
-	RpcAddr         string
+	Params          specs.ModuleParams
+	Migrate         specs.Migrate
 	Idx             bool
 	IdxInterval     int
 	IdxFullInterval int
 	Dsn             string
 	DbMaxIdle       int
-	Migrate         Migrate
+	ShmMagic        uint32
+	ShmKey          int
+	ShmSize         int
 	Storage         Storage
-	Shm             Shm
 	// runtime
 	status                   uint32
 	running                  chan struct{}
@@ -141,50 +97,52 @@ type Backend struct {
 }
 
 func (p Backend) Desc() string {
-	if p.Disabled {
-		return fmt.Sprintf("%s(Disabled)", p.Name)
-	} else {
-		return fmt.Sprintf("%s", p.Name)
-	}
-
+	return fmt.Sprintf("%s", p.Params.Name)
 }
-func (p Backend) String() string {
-	http := p.HttpAddr
-	rpc := p.RpcAddr
 
-	if !p.Http {
+func (p Backend) String() string {
+	http := p.Params.HttpAddr
+	rpc := p.Params.RpcAddr
+
+	if !p.Params.Http {
 		http += "(disabled)"
 	}
-	if !p.Rpc {
+	if !p.Params.Rpc {
 		rpc += "(disabled)"
 	}
-	return fmt.Sprintf("%-17s %d\n%-17s %v\n"+
-		"%-17s %s\n%-17s %s\n"+
-		"%-17s %v\n%-17s %d\n"+
-		"%-17s %d\n%-17s %s\n"+
-		"%-17s %d\n%s (\n%s\n)\n%s "+
-		"(\n%s\n)\n%s (\n%s\n)",
-		"debug", p.Debug,
-		"disabled", p.Disabled,
-		"http", http,
-		"rpc", rpc,
+	return fmt.Sprintf("%s (\n%s\n)\n"+
+		"%-17s %v\n"+
+		"%-17s %d\n"+
+		"%-17s %d\n"+
+		"%-17s %s\n"+
+		"%-17s %d\n"+
+		"%-17s 0x%x\n"+
+		"%-17s 0x%x\n"+
+		"%-17s %d\n"+
+		"%s (\n%s\n)\n"+
+		"%s (\n%s\n)",
+		"params", specs.IndentLines(1, p.Params.String()),
 		"idx", p.Idx,
 		"idx_interval", p.IdxInterval,
 		"idx_full_interval", p.IdxFullInterval,
 		"dsn", p.Dsn,
 		"dbmaxidle", p.DbMaxIdle,
+		"magic_code", p.ShmMagic,
+		"key_start_id", p.ShmKey,
+		"segment_size", p.ShmSize,
 		"migrate", specs.IndentLines(1, p.Migrate.String()),
-		"storage", specs.IndentLines(1, p.Storage.String()),
-		"shm", specs.IndentLines(1, p.Shm.String()))
+		"storage", specs.IndentLines(1, p.Storage.String()))
 }
 
 func (p *Backend) Init() error {
-	glog.V(3).Infof("%s Init()", p.Name)
+	glog.V(3).Infof(MODULE_NAME+"%s Init()", p.Params.Name)
 	// core
 
 	//cache
-	p.rpcConnects = connList{list: list.New()}
 	p.cacheInit()
+
+	// rpc
+	p.rpcConnects = connList{list: list.New()}
 
 	// http
 	p.httpMux = http.NewServeMux()
@@ -198,7 +156,7 @@ func (p *Backend) Init() error {
 	// store
 	size := CACHE_TIME / FLUSH_DISK_STEP
 	if size < 0 {
-		glog.Fatalf("store.init, bad size %d\n", size)
+		glog.Fatalf(MODULE_NAME+"store.init, bad size %d\n", size)
 	}
 	p.status = specs.APP_STATUS_INIT
 	return nil
@@ -206,7 +164,7 @@ func (p *Backend) Init() error {
 }
 
 func (p *Backend) Start() error {
-	glog.V(3).Infof("%s Start()", p.Name)
+	glog.V(3).Infof(MODULE_NAME+"%s Start()", p.Params.Name)
 	p.status = specs.APP_STATUS_PENDING
 	p.running = make(chan struct{}, 0)
 	p.timeStart()
@@ -221,7 +179,7 @@ func (p *Backend) Start() error {
 }
 
 func (p *Backend) Stop() error {
-	glog.V(3).Infof("%s Stop()", p.Name)
+	glog.V(3).Infof(MODULE_NAME+"%s Stop()", p.Params.Name)
 	p.status = specs.APP_STATUS_EXIT
 	close(p.running)
 	p.cacheStop()
@@ -235,12 +193,12 @@ func (p *Backend) Stop() error {
 }
 
 func (p *Backend) Reload() error {
-	glog.V(3).Infof("%s Reload()", p.Name)
+	glog.V(3).Infof(MODULE_NAME+"%s Reload()", p.Params.Name)
 	return nil
 }
 
 func (p *Backend) Signal(sig os.Signal) error {
-	glog.V(3).Infof("%s signal %v", p.Name, sig)
+	glog.V(3).Infof(MODULE_NAME+"%s signal %v", p.Params.Name, sig)
 	return nil
 }
 
@@ -257,7 +215,7 @@ func (p *Backend) timeStart() {
 
 			case <-ticker:
 				now := time.Now().Unix()
-				if p.Debug > 1 {
+				if p.Params.Debug > 1 {
 					atomic.StoreInt64(&p.ts,
 						start+(now-start)*DEBUG_MULTIPLES)
 				} else {

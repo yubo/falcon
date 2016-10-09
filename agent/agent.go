@@ -16,80 +16,46 @@ import (
 	"github.com/yubo/falcon/specs"
 )
 
+const (
+	MODULE_NAME = "\x1B[32m[AGENT]\x1B[0m "
+)
+
 var (
 	appAgent Agent = DefaultAgent
 )
 
-type Lb struct {
-	Batch       int
-	ConnTimeout int
-	CallTimeout int
-	Upstreams   []string
-}
-
-func (p Lb) String() string {
-	return fmt.Sprintf("%-14s %d\n"+
-		"%-14s %d\n%-14s %d\n"+
-		"%-14s %s ",
-		"batch", p.Batch,
-		"conntimeout", p.ConnTimeout, "callTimeout", p.CallTimeout,
-		"upstreams", strings.Join(p.Upstreams, ", "))
-}
-
 type Agent struct {
-	Debug    int
-	Disabled bool
-	Name     string
-	Host     string
-	Rpc      bool
-	RpcAddr  string
-	Http     bool
-	HttpAddr string
-	IfPre    []string
-	Interval int
-	Lb  Lb
+	Params    specs.ModuleParams
+	Interval  int
+	Batch     int
+	IfPre     []string
+	Upstreams []string
 	// runtime
-	appUpdateChan chan *[]*specs.MetaData // upstreams
+	appUpdateChan chan *[]*specs.MetaData
 	httpListener  *net.TCPListener
 	httpMux       *http.ServeMux
 	running       chan struct{}
 }
 
 func (p Agent) Desc() string {
-	if p.Disabled {
-		return fmt.Sprintf("%s(Disabled)", p.Name)
-	} else {
-		return fmt.Sprintf("%s", p.Name)
-	}
-
+	return fmt.Sprintf("%s", p.Params.Name)
 }
 
 func (p Agent) String() string {
-	http := p.HttpAddr
-	rpc := p.RpcAddr
-
-	if !p.Http {
-		http += "(disabled)"
-	}
-	if !p.Rpc {
-		rpc += "(disabled)"
-	}
-
-	return fmt.Sprintf("%-17s %s\n%-17s %s\n"+
-		"%-17s %d\n%-17s %v\n"+
-		"%-17s %s\n%-17s %s\n"+
-		"%-17s %s\n%-17s %d\n"+
-		"%s (\n%s\n)",
-		"Name", p.Name, "Host", p.Host,
-		"debug", p.Debug, "disabled", p.Disabled,
-		"http", http, "rpc", rpc,
+	return fmt.Sprintf("%s (\n%s\n)\n"+
+		"%-17s %s\n"+
+		"%-17s %d\n"+
+		"%-17s %d\n"+
+		"%-17s %s",
+		"params", specs.IndentLines(1, p.Params.String()),
 		"ifprefix", strings.Join(p.IfPre, ", "),
 		"interval", p.Interval,
-		"Lb", specs.IndentLines(1, p.Lb.String()))
+		"batch", p.Batch,
+		"upstreams", strings.Join(p.Upstreams, ", "))
 }
 
 func (p *Agent) Init() error {
-	glog.V(3).Infof("%s Init()", p.Name)
+	glog.V(3).Infof(MODULE_NAME+"%s Init()", p.Params.Name)
 	// core
 	//runtime.GOMAXPROCS(runtime.NumCPU())
 
@@ -101,8 +67,9 @@ func (p *Agent) Init() error {
 }
 
 func (p *Agent) Start() error {
-	glog.V(3).Infof("%s Start()", p.Name)
+	glog.V(3).Infof(MODULE_NAME+"%s Start()", p.Params.Name)
 	p.running = make(chan struct{}, 0)
+	p.ctrlStart()
 	p.statStart()
 	p.upstreamStart()
 	p.httpStart()
@@ -111,22 +78,23 @@ func (p *Agent) Start() error {
 }
 
 func (p *Agent) Stop() error {
-	glog.V(3).Infof("%s Stop()", p.Name)
+	glog.V(3).Infof(MODULE_NAME+"%s Stop()", p.Params.Name)
 	close(p.running)
 	p.collectStop()
 	p.httpStop()
 	p.upstreamStop()
 	p.statStop()
+	p.ctrlStop()
 	return nil
 }
 
 func (p *Agent) Reload() error {
-	glog.V(3).Infof("%s Reload()", p.Name)
+	glog.V(3).Infof(MODULE_NAME+"%s Reload()", p.Params.Name)
 	return nil
 }
 
 func (p *Agent) Signal(sig os.Signal) error {
-	glog.V(3).Infof("%s signal %v", p.Name, sig)
+	glog.V(3).Infof(MODULE_NAME+"%s signal %v", p.Params.Name, sig)
 	return nil
 }
 

@@ -66,7 +66,7 @@ func reconnection(client **rpc.Client, connTimeout int) {
 
 	for err != nil {
 		//danger!! block routine
-		glog.Infof("%s", err)
+		glog.Infof(MODULE_NAME+"%s", err)
 
 		time.Sleep(time.Millisecond * 500)
 		addr = streamPool.get()
@@ -104,14 +104,14 @@ func putRpcStorageData(client **rpc.Client, items *[]*specs.MetaData,
 	resp = &specs.RpcResp{}
 
 	for i = 0; i < CONN_RETRY; i++ {
-		err = netRpcCall(*client, "Falcon.Update", *items, resp,
+		err = netRpcCall(*client, "LB.Update", *items, resp,
 			time.Duration(callTimeout)*time.Millisecond)
 
 		if err == nil {
-			glog.V(3).Infof("send success %d", len(*items))
+			glog.V(3).Infof(MODULE_NAME+"send success %d", len(*items))
 			goto out
 		}
-		glog.V(3).Info(err)
+		glog.V(3).Info(MODULE_NAME, err)
 		if err == rpc.ErrShutdown {
 			reconnection(client, connTimeout)
 		}
@@ -132,12 +132,12 @@ func (p *Agent) upstreamStart() {
 	p.appUpdateChan = make(chan *[]*specs.MetaData, 16)
 
 	streamPool = upstreamPool{}
-	streamPool.size = uint32(len(p.Lb.Upstreams))
+	streamPool.size = uint32(len(p.Upstreams))
 	streamPool.idx = rand.Uint32() % streamPool.size
 	streamPool.pool = make([]string, int(streamPool.size))
-	copy(streamPool.pool, p.Lb.Upstreams)
+	copy(streamPool.pool, p.Upstreams)
 
-	if p.Debug > 1 {
+	if p.Params.Debug > 1 {
 		go func() {
 			for {
 				items, ok := <-p.appUpdateChan
@@ -145,7 +145,7 @@ func (p *Agent) upstreamStart() {
 					return
 				}
 				for k, v := range *items {
-					glog.V(3).Infof("%d %s", k, v)
+					glog.V(3).Infof(MODULE_NAME+"%d %s", k, v)
 				}
 			}
 		}()
@@ -155,10 +155,10 @@ func (p *Agent) upstreamStart() {
 	go func() {
 
 		client, err = rpcDial(streamPool.get(),
-			time.Duration(p.Lb.ConnTimeout)*
+			time.Duration(p.Params.ConnTimeout)*
 				time.Millisecond)
 		if err != nil {
-			reconnection(&client, p.Lb.ConnTimeout)
+			reconnection(&client, p.Params.ConnTimeout)
 		}
 
 		for {
@@ -168,18 +168,18 @@ func (p *Agent) upstreamStart() {
 				return
 			}
 
-			n := p.Lb.Batch
+			n := p.Batch
 			for i = 0; i < len(*items)-n; i += n {
 				_items := (*items)[i : i+n]
 				putRpcStorageData(&client, &_items,
-					p.Lb.ConnTimeout,
-					p.Lb.CallTimeout)
+					p.Params.ConnTimeout,
+					p.Params.CallTimeout)
 			}
 			if i < len(*items) {
 				_items := (*items)[i:]
 				putRpcStorageData(&client, &_items,
-					p.Lb.ConnTimeout,
-					p.Lb.CallTimeout)
+					p.Params.ConnTimeout,
+					p.Params.CallTimeout)
 			}
 
 		}

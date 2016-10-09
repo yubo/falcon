@@ -4,7 +4,7 @@
 
 简化版本的falcon
 
-出于性能测试的需要，有了这个精简版本，官方的版本请参考[open-falcon](https://github.com/open-falcon/)
+出于性能测试和试验的目的，有了这个精简版本，官方的版本请参考[open-falcon](https://github.com/open-falcon/)
 
 ![][lite_falcon_img]
 
@@ -25,18 +25,19 @@ go test -bench=.
 - 整合／精简了代码,依赖包
 - 简化配置
 - 多硬盘支持(单机多写)
-- 支持快速重启(在pc机上,100万counter,重启时间1.4s左右)
+- 后端使用共享内存，在pc机上,100万counter,重启时间1.4s左右
 - 支持单进程多模块，多实例
+- 集中配置
 
 ## 模块对应关系
 
-| lite-falcon |   falcon                            |
-|-------------|-------------------------------------|
-|   agent     |   agent, _aggregator, nodata, task_ |
-|   lb        |   transfer, _query, hbs_            |
-|   backend   |   graph, _judge, sender_            |
-|   web       |   _fe, dashboard_                   |
-|   _no plan_ |   _gateway, ...  _                  |
+| lite-falcon |   falcon                            |  description                                        |
+|-------------|-------------------------------------|-----------------------------------------------------|
+|   agent     |   agent, _aggregator, nodata, task_ | 安装在需要监控的宿主机上，采集数据，发送给lb        |
+|   lb        |   transfer, _query_                 | 将接收到的请求按一定策略处理或转给后端服务(backend) |
+|   backend   |   graph, _judge, sender_            | 存储、处理数据的后端服务                            |
+|   ctrl      |   _fe, dashboard, hbs, portal_      | 配置、统计各组件,另提供web服务                      |
+|   _no plan_ |   _gateway, ..._                    | 其他组件                                            |
 
 
 [lite_falcon_img]:https://cdn.rawgit.com/yubo/falcon/master/doc/img/lite-falcon.svg

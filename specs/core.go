@@ -6,7 +6,6 @@
 package specs
 
 import (
-	"errors"
 	"flag"
 	"fmt"
 
@@ -35,6 +34,8 @@ const (
 	DERIVE       = "DERIVE"
 	COUNTER      = "COUNTER"
 	VERSION      = "0.0.2"
+	REPLICAS     = 500
+	MODULE_NAME  = "\x1B[32m[SPECS]\x1B[0m "
 )
 
 type CmdOpts struct {
@@ -42,48 +43,95 @@ type CmdOpts struct {
 	Args       []string
 }
 
-var (
-	ErrUnsupported = errors.New("unsupported")
-	ErrExist       = errors.New("entry exists")
-	ErrNoent       = errors.New("entry not exists")
-	ErrParam       = errors.New("param error")
-	ErrEmpty       = errors.New("empty items")
-	EPERM          = errors.New("Operation not permitted")
-	ENOENT         = errors.New("No such file or directory")
-	ESRCH          = errors.New("No such process")
-	EINTR          = errors.New("Interrupted system call")
-	EIO            = errors.New("I/O error")
-	ENXIO          = errors.New("No such device or address")
-	E2BIG          = errors.New("Argument list too long")
-	ENOEXEC        = errors.New("Exec format error")
-	EBADF          = errors.New("Bad file number")
-	ECHILD         = errors.New("No child processes")
-	EAGAIN         = errors.New("Try again")
-	ENOMEM         = errors.New("Out of memory")
-	EACCES         = errors.New("Permission denied")
-	EFAULT         = errors.New("Bad address")
-	ENOTBLK        = errors.New("Block device required")
-	EBUSY          = errors.New("Device or resource busy")
-	EEXIST         = errors.New("File exists")
-	EXDEV          = errors.New("Cross-device link")
-	ENODEV         = errors.New("No such device")
-	ENOTDIR        = errors.New("Not a directory")
-	EISDIR         = errors.New("Is a directory")
-	EINVAL         = errors.New("Invalid argument")
-	ENFILE         = errors.New("File table overflow")
-	EMFILE         = errors.New("Too many open files")
-	ENOTTY         = errors.New("Not a typewriter")
-	ETXTBSY        = errors.New("Text file busy")
-	EFBIG          = errors.New("File too large")
-	ENOSPC         = errors.New("No space left on device")
-	ESPIPE         = errors.New("Illegal seek")
-	EROFS          = errors.New("Read-only file system")
-	EMLINK         = errors.New("Too many links")
-	EPIPE          = errors.New("Broken pipe")
-	EDOM           = errors.New("Math argument out of domain of func")
-	ERANGE         = errors.New("Math result not representable")
-	EFMT           = errors.New("Invalid format") // custom
-)
+type ModuleParams struct {
+	Debug       int
+	ConnTimeout int
+	CallTimeout int
+	Concurrency int
+	Disabled    bool
+	Http        bool
+	Rpc         bool
+	Name        string
+	Host        string
+	HttpAddr    string
+	RpcAddr     string
+	CtrlAddr    string
+}
+
+func (p ModuleParams) String() string {
+	http := p.HttpAddr
+	rpc := p.RpcAddr
+
+	if !p.Http {
+		http += "(disabled)"
+	}
+	if !p.Rpc {
+		rpc += "(disabled)"
+	}
+
+	return fmt.Sprintf("%-17s %d\n"+
+		"%-17s %v\n"+
+		"%-17s %s\n"+
+		"%-17s %s\n"+
+		"%-17s %s\n"+
+		"%-17s %s\n"+
+		"%-17s %s\n"+
+		"%-17s %d\n"+
+		"%-17s %d\n"+
+		"%-17s %d",
+		"debug", p.Debug,
+		"disabled", p.Disabled,
+		"Name", p.Name,
+		"Host", p.Host,
+		"http", http,
+		"rpc", rpc,
+		"ctrl", p.CtrlAddr,
+		"concurrency", p.Concurrency,
+		"conntimeout", p.ConnTimeout,
+		"callTimeout", p.CallTimeout)
+}
+
+type Backend struct {
+	Disabled  bool
+	Name      string
+	Type      string
+	Upstreams map[string]string
+}
+
+func (p Backend) String() string {
+	var s1, s2 string
+
+	s1 = fmt.Sprintf("%s %s", p.Type, p.Name)
+	if p.Disabled {
+		s1 += "(Disable)"
+	}
+
+	for k, v := range p.Upstreams {
+		s2 += fmt.Sprintf("%-17s %s\n", k, v)
+	}
+	return fmt.Sprintf("%s upstreams (\n%s\n)", s1, IndentLines(1, s2))
+}
+
+type Migrate struct {
+	Disabled  bool
+	Upstreams map[string]string
+}
+
+func (p Migrate) String() string {
+	var s string
+
+	for k, v := range p.Upstreams {
+		s += fmt.Sprintf("%-17s %s\n", k, v)
+	}
+	if s != "" {
+		s = fmt.Sprintf("\n%s\n", IndentLines(1, s))
+	}
+
+	return fmt.Sprintf("%-17s %v\n"+
+		"%s (%s)",
+		"disable", p.Disabled,
+		"upstreams", s)
+}
 
 type Dto struct {
 	Msg  string      `json:"msg"`

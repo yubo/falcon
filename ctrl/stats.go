@@ -3,7 +3,7 @@
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
-package lb
+package ctrl
 
 import (
 	"fmt"
@@ -14,29 +14,23 @@ import (
 )
 
 const (
-	ST_RPC_UPDATE = iota
-	ST_RPC_UPDATE_CNT
-	ST_RPC_UPDATE_ERR
-	ST_UPSTREAM_RECONNECT
+	ST_UPSTREAM_RECONNECT = iota
 	ST_UPSTREAM_DIAL
 	ST_UPSTREAM_DIAL_ERR
-	ST_UPSTREAM_PUT
-	ST_UPSTREAM_PUT_ITEM
-	ST_UPSTREAM_PUT_ERR
+	ST_UPSTREAM_UPDATE
+	ST_UPSTREAM_UPDATE_ITEM
+	ST_UPSTREAM_UPDATE_ERR
 	ST_ARRAY_SIZE
 )
 
 var (
 	statName [ST_ARRAY_SIZE]string = [ST_ARRAY_SIZE]string{
-		"ST_RPC_UPDATE",
-		"ST_RPC_UPDATE_CNT",
-		"ST_RPC_UPDATE_ERR",
 		"ST_UPSTREAM_RECONNECT",
 		"ST_UPSTREAM_DIAL",
 		"ST_UPSTREAM_DIAL_ERR",
-		"ST_UPSTREAM_PUT",
-		"ST_UPSTREAM_PUT_ITEM",
-		"ST_UPSTREAM_PUT_ERR",
+		"ST_UPSTREAM_UPDATE",
+		"ST_UPSTREAM_UPDATE_ITEM",
+		"ST_UPSTREAM_UPDATE_ERR",
 	}
 )
 
@@ -64,23 +58,23 @@ func statGet(idx int) uint64 {
 	return atomic.LoadUint64(&statCnt[idx])
 }
 
-func (p *Lb) statStart() {
+func (p *Ctrl) statStart() {
 	if p.Params.Debug > 0 {
-		statTicker := time.NewTicker(time.Second * DEBUG_STAT_STEP).C
+		ticker := time.NewTicker(time.Second * DEBUG_STAT_STEP).C
 		go func() {
 			for {
 				select {
+				case <-ticker:
+					glog.V(3).Info(MODULE_NAME + statHandle())
 				case _, ok := <-p.running:
 					if !ok {
 						return
 					}
-				case <-statTicker:
-					glog.V(3).Info(MODULE_NAME + statHandle())
 				}
 			}
 		}()
 	}
 }
 
-func (p *Lb) statStop() {
+func (p *Ctrl) statStop() {
 }

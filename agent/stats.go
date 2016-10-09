@@ -59,13 +59,13 @@ func statGet(idx int) uint64 {
 }
 
 func (p *Agent) statStart() {
-	if p.Debug > 0 {
+	if p.Params.Debug > 0 {
 		ticker := time.NewTicker(time.Second * DEBUG_STAT_STEP).C
 		go func() {
 			for {
 				select {
 				case <-ticker:
-					glog.V(3).Info(statHandle())
+					glog.V(3).Info(MODULE_NAME + statHandle())
 				case _, ok := <-p.running:
 					if !ok {
 						return

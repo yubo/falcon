@@ -3,7 +3,7 @@
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
-package lb
+package ctrl
 
 import (
 	"container/list"
@@ -35,87 +35,42 @@ func (l *connList) remove(e *list.Element) net.Conn {
 	return l.list.Remove(e).(net.Conn)
 }
 
-type LB struct {
-	lb *Lb
+type CTRL struct {
+	ctrl *Ctrl
 }
 
-func (p *LB) Ping(req specs.Null, resp *specs.RpcResp) error {
+func (p *CTRL) Ping(req specs.Null, resp *specs.RpcResp) error {
 	return nil
 }
 
-func (p *LB) Update(args []*specs.MetaData,
-	reply *specs.LbResp) error {
-	reply.Invalid = 0
-	now := time.Now().Unix()
-
-	items := []*specs.MetaData{}
-	for _, v := range args {
-		if v == nil {
-			reply.Invalid += 1
-			continue
-		}
-
-		if v.Name == "" || v.Host == "" {
-			reply.Invalid += 1
-			continue
-		}
-
-		if v.Type != specs.COUNTER &&
-			v.Type != specs.GAUGE &&
-			v.Type != specs.DERIVE {
-			reply.Invalid += 1
-			continue
-		}
-
-		if v.Step <= 0 {
-			reply.Invalid += 1
-			continue
-		}
-
-		if len(v.Name)+len(v.Tags) > 510 {
-			reply.Invalid += 1
-			continue
-		}
-
-		if v.Ts <= 0 || v.Ts > now*2 {
-			v.Ts = now
-		}
-
-		items = append(items, &specs.MetaData{
-			Name: v.Name,
-			Host: v.Host,
-			Ts:   v.Ts,
-			Step: v.Step,
-			Type: v.Type,
-			Tags: sortTags(v.Tags),
-		})
-	}
-
-	p.lb.appUpdateChan <- &items
-	glog.V(3).Infof(MODULE_NAME+"recv %d", len(items))
-
-	reply.Message = "ok"
-	reply.Total = len(args)
-
-	statInc(ST_RPC_UPDATE, 1)
-	statInc(ST_RPC_UPDATE_CNT, len(items))
-	statInc(ST_RPC_UPDATE_ERR, reply.Invalid)
-
+func (p *CTRL) ListLb(req specs.Null, resp *[]string) error {
+	*resp = p.ctrl.Lbs
 	return nil
 }
 
-func (p *Lb) rpcStart() (err error) {
+func (p *CTRL) ListBackend(req specs.Null, resp *[]specs.Backend) error {
+	*resp = p.ctrl.Backends
+	return nil
+}
+
+func (p *CTRL) ListMigrate(req specs.Null, resp *specs.Migrate) error {
+	*resp = p.ctrl.Migrate
+	return nil
+}
+
+func (p *Ctrl) rpcStart() (err error) {
 
 	var addr *net.TCPAddr
 	if !p.Params.Rpc {
 		return nil
 	}
-	lb := &LB{lb: p}
-	rpc.Register(lb)
+	ctrl := &CTRL{ctrl: p}
+	rpc.Register(ctrl)
 
 	addr, err = net.ResolveTCPAddr("tcp", p.Params.RpcAddr)
 	if err != nil {
-		glog.Fatalf(MODULE_NAME+"rpc.Start error, net.ResolveTCPAddr failed, %s", err)
+		glog.Fatalf(MODULE_NAME+"rpc.Start error, net.ResolveTCPAddr failed, %s",
+			err)
 	}
 
 	p.rpcListener, err = net.ListenTCP("tcp", addr)
@@ -123,7 +78,8 @@ func (p *Lb) rpcStart() (err error) {
 		glog.Fatalf(MODULE_NAME+"rpc.Start error, listen %s failed, %s",
 			p.Params.RpcAddr, err)
 	} else {
-		glog.Infof(MODULE_NAME+"%s rpcStart ok, listening on %s", p.Params.Name, p.Params.RpcAddr)
+		glog.Infof(MODULE_NAME+"%s rpcStart ok, listening on %s",
+			p.Params.Name, p.Params.RpcAddr)
 	}
 
 	go func() {
@@ -156,7 +112,7 @@ func (p *Lb) rpcStart() (err error) {
 	return err
 }
 
-func (p *Lb) rpcStop() (err error) {
+func (p *Ctrl) rpcStop() (err error) {
 	if p.rpcListener == nil {
 		return specs.ErrNoent
 	}

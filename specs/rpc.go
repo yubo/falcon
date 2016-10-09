@@ -32,12 +32,8 @@ type LbResp struct {
 }
 
 func (p *LbResp) String() string {
-	return fmt.Sprintf(
-		"<Total=%v, Invalid:%v, Latency=%vms, Message:%s>",
-		p.Total,
-		p.Invalid,
-		p.Message,
-	)
+	return fmt.Sprintf("Total:%v Invalid:%v Message:%s>",
+		p.Total, p.Invalid, p.Message)
 }
 
 type MetaData struct {
@@ -122,13 +118,8 @@ type TsdbItem struct {
 }
 
 func (p *TsdbItem) String() string {
-	return fmt.Sprintf(
-		"<Metric:%s, Tags:%v, Value:%v, TS:%d>",
-		p.Metric,
-		p.Tags,
-		p.Value,
-		p.Timestamp,
-	)
+	return fmt.Sprintf("Metric:%s, Tags:%v, Value:%v, TS:%d",
+		p.Metric, p.Tags, p.Value, p.Timestamp)
 }
 
 func (p *TsdbItem) TsdbString() (s string) {
@@ -159,8 +150,8 @@ type RrdItem struct {
 }
 
 func (p *RrdItem) String() string {
-	return fmt.Sprintf(
-		"<Host:%s, Key:%s, Tags:%v, Value:%v, TS:%d %v Type:%s, Step:%d, Heartbeat:%d, Min:%s, Max:%s>",
+	return fmt.Sprintf("Host:%s, Key:%s, Tags:%v, Value:%v, "+
+		"TS:%d %v Type:%s, Step:%d, Heartbeat:%d, Min:%s, Max:%s",
 		p.Host,
 		p.Name,
 		p.Tags,
@@ -247,26 +238,12 @@ type RRDData struct {
 
 func (p *RRDData) String() string {
 	return fmt.Sprintf(
-		"<RRDData:Value:%v TS:%d %v>",
+		"RRDData:Value:%v TS:%d %v",
 		p.V,
 		p.Ts,
 		FmtTs(p.Ts),
 	)
 }
-
-/*
-func (p *RRDData) Rrd() *RrdItem {
-	return &RrdItem{
-		Host: p.host,
-		K:    p.k,
-		Tags: p.tags,
-		V:    float64(p.V),
-		Ts:   v.Ts,
-		Type: p.typ,
-		Step: p.step,
-	}
-}
-*/
 
 type File struct {
 	Filename string

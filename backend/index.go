@@ -41,17 +41,17 @@ func indexUpdate(e *cacheEntry, b *Backend) {
 				e.host(), int64(e.e.lastTs))
 			if err != nil {
 				statInc(ST_INDEX_HOST_INSERT_ERR, 1)
-				glog.Warning(err)
+				glog.Warning(MODULE_NAME, err)
 				return
 			}
 
 			hid, err = ret.LastInsertId()
 			if err != nil {
-				glog.Warning(err)
+				glog.Warning(MODULE_NAME, err)
 				return
 			}
 		} else {
-			glog.Warning(e.host(), err)
+			glog.Warning(MODULE_NAME+e.host(), err)
 			return
 		}
 	}
@@ -75,17 +75,17 @@ func indexUpdate(e *cacheEntry, b *Backend) {
 					tag, hid, int64(e.e.lastTs))
 				if err != nil {
 					statInc(ST_INDEX_TAG_INSERT_ERR, 1)
-					glog.Warning(err)
+					glog.Warning(MODULE_NAME, err)
 					return
 				}
 
 				tid, err = ret.LastInsertId()
 				if err != nil {
-					glog.Warning(err)
+					glog.Warning(MODULE_NAME, err)
 					return
 				}
 			} else {
-				glog.Warning(tag, hid, err)
+				glog.Warning(MODULE_NAME+tag, hid, err)
 				return
 			}
 		}
@@ -116,17 +116,17 @@ func indexUpdate(e *cacheEntry, b *Backend) {
 				int64(e.e.lastTs))
 			if err != nil {
 				statInc(ST_INDEX_COUNTER_INSERT_ERR, 1)
-				glog.Warning(err)
+				glog.Warning(MODULE_NAME, err)
 				return
 			}
 
 			cid, err = ret.LastInsertId()
 			if err != nil {
-				glog.Warning(err)
+				glog.Warning(MODULE_NAME, err)
 				return
 			}
 		} else {
-			glog.Warning(counter, hid, err)
+			glog.Warning(MODULE_NAME+counter, hid, err)
 			return
 		}
 	} /* else {
@@ -149,7 +149,7 @@ func (this *Backend) indexTrashWorker() {
 		p, _p *list.ListHead
 	)
 	ticker := falconTicker(time.Second*INDEX_TRASH_LOOPTIME,
-		this.Debug)
+		this.Params.Debug)
 	q0 := &this.cache.idx0q
 	q2 := &this.cache.idx2q
 	for {
@@ -180,7 +180,7 @@ func (p *Backend) indexWorker() {
 		l   *list.ListHead
 		now int64
 	)
-	ticker := falconTicker(time.Second/INDEX_QPS, p.Debug)
+	ticker := falconTicker(time.Second/INDEX_QPS, p.Params.Debug)
 	q0 := &p.cache.idx0q
 	q1 := &p.cache.idx1q
 	q2 := &p.cache.idx2q
@@ -236,7 +236,7 @@ func (p *Backend) indexStart() {
 
 	p.indexDb, err = sql.Open("mysql", p.Dsn)
 	if err != nil {
-		glog.Fatal(err)
+		glog.Fatal(MODULE_NAME, err)
 	}
 
 	p.indexDb.SetMaxIdleConns(p.DbMaxIdle)
@@ -244,7 +244,7 @@ func (p *Backend) indexStart() {
 
 	err = p.indexDb.Ping()
 	if err != nil {
-		glog.Fatal(err)
+		glog.Fatal(MODULE_NAME, err)
 	}
 
 	p.indexUpdateCh = make(chan *cacheEntry, INDEX_MAX_OPEN_CONNS)
@@ -253,7 +253,7 @@ func (p *Backend) indexStart() {
 	go p.indexTrashWorker()
 	go p.updateWorker()
 
-	glog.Info("indexStart ok")
+	glog.Info(MODULE_NAME, "indexStart ok")
 }
 
 func (p *Backend) indexStop() {

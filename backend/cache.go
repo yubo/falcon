@@ -121,7 +121,7 @@ func (p *backendCache) close() {
 	for _, addr := range p.shmaddrs {
 		Shmdt(addr)
 	}
-	glog.V(3).Infof("shmdt %d", len(p.shmaddrs))
+	glog.V(3).Infof(MODULE_NAME+"shmdt %d", len(p.shmaddrs))
 }
 
 func (p *backendCache) get(key string) *cacheEntry {
@@ -175,13 +175,13 @@ func (p *Backend) importBlocks() (int, error) {
 	cache = p.cache
 
 	for {
-		shm_id, size, err = Shmget(cache.endkey, p.Shm.Size, C.IPC_CREAT|0600)
+		shm_id, size, err = Shmget(cache.endkey, p.ShmSize, C.IPC_CREAT|0600)
 		if err != nil {
 			return cache.endkey - cache.startkey, err
 		}
 
-		if size != p.Shm.Size {
-			glog.Errorf("segment size error, remove "+
+		if size != p.ShmSize {
+			glog.Errorf(MODULE_NAME+"segment size error, remove "+
 				"segment from 0x%x and retry", cache.endkey)
 			cleanBlocks(cache.endkey)
 			continue
@@ -194,10 +194,10 @@ func (p *Backend) importBlocks() (int, error) {
 
 		block = (*C.struct_cache_block)(unsafe.Pointer(addr))
 
-		for uint32(block.magic) != p.Shm.Magic {
-			glog.Infof("set magic head at 0x%x",
+		for uint32(block.magic) != p.ShmMagic {
+			glog.Infof(MODULE_NAME+"set magic head at 0x%x",
 				shm_id)
-			block.magic = C.uint32_t(p.Shm.Magic)
+			block.magic = C.uint32_t(p.ShmMagic)
 			return cache.endkey - cache.startkey, specs.EFMT
 		}
 
@@ -252,9 +252,9 @@ func (p *Backend) cacheReset() error {
 	cache.idx0q.init()
 	cache.idx1q.init()
 	cache.idx2q.init()
-	cache.startkey = p.Shm.Key
-	cache.endkey = p.Shm.Key
-	cache.cache_entry_nb = (p.Shm.Size - C.sizeof_struct_cache_block) /
+	cache.startkey = p.ShmKey
+	cache.endkey = p.ShmKey
+	cache.cache_entry_nb = (p.ShmSize - C.sizeof_struct_cache_block) /
 		C.sizeof_struct_cache_entry
 	cleanBlocks(cache.startkey)
 	return nil
@@ -315,16 +315,16 @@ func (p *Backend) allocPool() (err error) {
 	)
 	cache = p.cache
 
-	shm_id, size, err = Shmget(cache.endkey, p.Shm.Size, C.IPC_CREAT|0700)
+	shm_id, size, err = Shmget(cache.endkey, p.ShmSize, C.IPC_CREAT|0700)
 	if err != nil {
 		return err
 	}
 
-	if size != p.Shm.Size {
-		glog.Errorf("alloc shm size %d want %d, remove and try again",
-			size, p.Shm.Size)
+	if size != p.ShmSize {
+		glog.Errorf(MODULE_NAME+"alloc shm size %d want %d, remove and try again",
+			size, p.ShmSize)
 		cleanBlocks(cache.endkey)
-		shm_id, _, err = Shmget(cache.endkey, p.Shm.Size, C.IPC_CREAT|0700)
+		shm_id, _, err = Shmget(cache.endkey, p.ShmSize, C.IPC_CREAT|0700)
 		if err != nil {
 			return err
 		}
@@ -336,7 +336,7 @@ func (p *Backend) allocPool() (err error) {
 	}
 	block = (*C.struct_cache_block)(unsafe.Pointer(addr))
 
-	if uint32(block.magic) == p.Shm.Magic {
+	if uint32(block.magic) == p.ShmMagic {
 		Shmdt(addr)
 		return specs.ErrExist
 	}
@@ -345,12 +345,12 @@ func (p *Backend) allocPool() (err error) {
 	cache.shmaddrs = append(cache.shmaddrs, addr)
 	cache.shmids = append(cache.shmids, shm_id)
 	cache.endkey++
-	glog.V(3).Infof("alloc shm segment, endkey %d len(shmaddr) %d",
+	glog.V(3).Infof(MODULE_NAME+"alloc shm segment, endkey %d len(shmaddr) %d",
 		cache.endkey, len(cache.shmaddrs))
 	cache.Unlock()
 
-	block.magic = C.uint32_t(p.Shm.Magic)
-	block.block_size = C.int(p.Shm.Size)
+	block.magic = C.uint32_t(p.ShmMagic)
+	block.block_size = C.int(p.ShmSize)
 	block.cache_entry_nb = C.int(cache.cache_entry_nb)
 
 	list := &cache.poolq
@@ -485,7 +485,7 @@ func (p *cacheEntry) fetchCommit(backend *Backend) {
 	go func() {
 		err := <-done
 		if err != nil {
-			glog.Warning("get %s from remote err[%s]\n", p.hashkey, err)
+			glog.Warning(MODULE_NAME+"get %s from remote err[%s]\n", p.hashkey, err)
 			return
 		}
 		//todo: flushfile after getfile? not yet
@@ -655,9 +655,9 @@ func (p *Backend) cacheInit() error {
 		hash:     make(map[string]*cacheEntry),
 		shmaddrs: make([]uintptr, 0),
 		shmids:   make([]int, 0),
-		startkey: p.Shm.Key,
-		endkey:   p.Shm.Key,
-		cache_entry_nb: (p.Shm.Size -
+		startkey: p.ShmKey,
+		endkey:   p.ShmKey,
+		cache_entry_nb: (p.ShmSize -
 			C.sizeof_struct_cache_block) /
 			C.sizeof_struct_cache_entry,
 	}
@@ -678,7 +678,7 @@ func (p *Backend) cacheStart() error {
 	if err != specs.EFMT {
 		return err
 	}
-	glog.V(3).Infof("import %d \n", n)
+	glog.V(3).Infof(MODULE_NAME+"import %d \n", n)
 	return nil
 }
 

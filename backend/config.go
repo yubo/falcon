@@ -5,26 +5,38 @@
  */
 package backend
 
+import "github.com/yubo/falcon/specs"
+
+const (
+	CTRL_STEP = 360
+)
+
 var (
 	DefaultBackend = Backend{
-		Debug:           0,
-		Http:            true,
-		HttpAddr:        "0.0.0.0:7021",
-		Rpc:             true,
-		RpcAddr:         "0.0.0.0:7020",
+		Params: specs.ModuleParams{
+			Debug:       0,
+			ConnTimeout: 1000,
+			CallTimeout: 5000,
+			Concurrency: 2,
+			Disabled:    false,
+			Http:        true,
+			Rpc:         true,
+			HttpAddr:    "0.0.0.0:7021",
+			RpcAddr:     "0.0.0.0:7020",
+			CtrlAddr:    "",
+		},
+		Migrate: specs.Migrate{
+			Disabled:  false,
+			Upstreams: map[string]string{},
+		},
 		Idx:             true,
 		IdxInterval:     30,
 		IdxFullInterval: 86400,
 		Dsn:             "falcon:1234@tcp(127.0.0.1:3306)/falcon?loc=Local&parseTime=true",
 		DbMaxIdle:       4,
-		Migrate: Migrate{
-			Disabled:    false,
-			Concurrency: 2,
-			Replicas:    500,
-			ConnTimeout: 1000,
-			CallTimeout: 5000,
-			Upstreams:   map[string]string{},
-		},
+		ShmMagic:        0x80386,
+		ShmKey:          0x7020,
+		ShmSize:         256 * (1 << 20), // 256m
 		Storage: Storage{
 			Type: "rrd",
 		},

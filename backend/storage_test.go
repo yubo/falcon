@@ -52,7 +52,7 @@ func init() {
 
 	err := storageCheckHds(testDirs)
 	if err != nil {
-		glog.Fatalf("rrdtool.Start error, bad data dir %v\n", err)
+		glog.Fatalf(MODULE_NAME+"rrdtool.Start error, bad data dir %v\n", err)
 	}
 
 	storageApp.storageIoTaskCh = make([]chan *ioTask, MAX_HD_NUMBER)

@@ -27,7 +27,7 @@ func (p *backend) String() string {
 	return fmt.Sprintf("%s", p.name)
 }
 
-func (p *backend) start(o Backend) error {
+func (p *backend) start(o specs.Backend) error {
 	for node, addr := range o.Upstreams {
 		ch := make(chan *specs.MetaData)
 		p.scheduler.addChan(node, ch)
@@ -63,14 +63,13 @@ type upstreamFalcon struct {
 	chans       map[string]chan *specs.MetaData
 }
 
-func newUpstreamFalcon(concurrency int,
-	b Backend) *upstreamFalcon {
+func newUpstreamFalcon(p *Lb) *upstreamFalcon {
 	return &upstreamFalcon{
 		name:        "falcon",
-		concurrency: concurrency,
-		connTimeout: b.ConnTimeout,
-		callTimeout: b.CallTimeout,
-		batch:       b.Batch,
+		concurrency: p.Params.Concurrency,
+		connTimeout: p.Params.ConnTimeout,
+		callTimeout: p.Params.CallTimeout,
+		batch:       p.Batch,
 		clients:     make(map[string]rpcClients),
 		chans:       make(map[string]chan *specs.MetaData),
 	}
@@ -91,7 +90,7 @@ func (p *upstreamFalcon) addClientChan(key, addr string,
 	for i := 0; i < p.concurrency; i++ {
 		p.clients[key].cli[i], err = p.dial(addr, p.connTimeout)
 		if err != nil {
-			glog.Fatalf("node:%s addr:%s err:%s\n",
+			glog.Fatalf(MODULE_NAME+"node:%s addr:%s err:%s\n",
 				key, addr, err)
 		}
 	}
@@ -149,7 +148,7 @@ func reconnection(client **rpc.Client, addr string, connTimeout int) {
 
 	for err != nil {
 		//danger!! block routine
-		glog.Infof("reconnection to %s %s", addr, err)
+		glog.Infof(MODULE_NAME+"reconnection to %s %s", addr, err)
 		time.Sleep(time.Millisecond * 500)
 		*client, err = rpcDial(addr,
 			time.Duration(connTimeout)*time.Millisecond)
@@ -187,10 +186,10 @@ func putRpcBackendData(client **rpc.Client, items []*specs.RrdItem,
 			time.Duration(callTimeout)*time.Millisecond)
 
 		if err == nil {
-			glog.V(3).Infof("send %d %s", len(items), addr)
+			glog.V(3).Infof(MODULE_NAME+"send %d %s", len(items), addr)
 			goto out
 		}
-		glog.V(3).Infof("send to %s %s", addr, err)
+		glog.V(3).Infof(MODULE_NAME+"send to %s %s", addr, err)
 		if err == rpc.ErrShutdown {
 			reconnection(client, addr, connTimeout)
 		}
@@ -238,16 +237,15 @@ type upstreamTsdb struct {
 	chans       map[string]chan *specs.MetaData
 }
 
-func newUpstreamTsdb(concurrency int, b Backend) *upstreamTsdb {
+func newUpstreamTsdb(p *Lb) *upstreamTsdb {
 	return &upstreamTsdb{
 		name:        "tsdb",
-		concurrency: concurrency,
-		connTimeout: b.ConnTimeout,
-		callTimeout: b.CallTimeout,
+		concurrency: p.Params.Concurrency,
+		connTimeout: p.Params.ConnTimeout,
+		callTimeout: p.Params.CallTimeout,
 		clients:     make(map[string]netClients),
 		chans:       make(map[string]chan *specs.MetaData),
 	}
-	return nil
 }
 
 func netDial(address string, timeout time.Duration) (net.Conn, error) {
@@ -281,7 +279,7 @@ func (p *upstreamTsdb) addClientChan(key, addr string,
 	for i := 0; i < p.concurrency; i++ {
 		p.clients[key].cli[i], err = p.dial(addr, p.connTimeout)
 		if err != nil {
-			glog.Fatalf("node:%s addr:%s err:%s\n", key, addr, err)
+			glog.Fatalf(MODULE_NAME+"node:%s addr:%s err:%s\n", key, addr, err)
 		}
 	}
 	return nil
@@ -454,24 +452,24 @@ func (p *Lb) upstreamStart() error {
 		}
 		b := &backend{name: v.Name}
 		if v.Type == "falcon" {
-			b.streams = newUpstreamFalcon(p.Concurrency, v)
+			b.streams = newUpstreamFalcon(p)
 		} else if v.Type == "tsdb" {
-			b.streams = newUpstreamTsdb(p.Concurrency, v)
+			b.streams = newUpstreamTsdb(p)
 		} else {
-			glog.Fatal(specs.ErrUnsupported)
+			glog.Fatal(MODULE_NAME, specs.ErrUnsupported)
 		}
 
-		if v.Sched == "consistent" {
-			b.scheduler = newSchedConsistent(p.Replicas)
-		} else {
-			glog.Fatal(specs.ErrUnsupported)
-		}
+		//if v.Sched == "consistent" {
+		b.scheduler = newSchedConsistent()
+		//} else {
+		//	glog.Fatal(specs.ErrUnsupported)
+		//}
 
 		b.start(v)
 		p.bs = append(p.bs, b)
 	}
 
-	glog.V(3).Infof("%s upstreamStart len(bs) %d", p.Name, len(p.bs))
+	glog.V(3).Infof(MODULE_NAME+"%s upstreamStart len(bs) %d", p.Params.Name, len(p.bs))
 
 	p.upstreamWorkerStart()
 	p.loadBalancerWorkerStart()

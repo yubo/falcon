@@ -99,33 +99,26 @@ func (p *Process) Save() error {
 		[]byte(fmt.Sprintf("%d", p.Pid)), 0644)
 }
 
-func (p *Process) Init() {
-	atomic.StoreUint32(&p.status, APP_STATUS_INIT)
-
-	for _, m := range p.modules {
-		m.Init()
-	}
-}
-
 func (p *Process) Start() {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	atomic.StoreUint32(&p.status, APP_STATUS_RUNING)
 
 	for _, m := range p.modules {
+		m.Init()
 		m.Start()
 	}
 
-	glog.Infof("[%d] register signal notify", p.Pid)
+	glog.Infof(MODULE_NAME+"[%d] register signal notify", p.Pid)
 
 	for {
 		s := <-sigs
-		glog.Infof("recv %v", s)
+		glog.Infof(MODULE_NAME+"recv %v", s)
 
 		switch s {
 		case syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
 			pidfile := fmt.Sprintf("%s.%d", p.PidFile, p.Pid)
-			glog.Info("exiting")
+			glog.Info(MODULE_NAME + "exiting")
 			atomic.StoreUint32(&p.status, APP_STATUS_EXIT)
 			os.Rename(p.PidFile, pidfile)
 
@@ -133,11 +126,11 @@ func (p *Process) Start() {
 				m.Stop()
 			}
 
-			glog.Infof("pid:%d exit", p.Pid)
+			glog.Infof(MODULE_NAME+"pid:%d exit", p.Pid)
 			os.Remove(pidfile)
 			os.Exit(0)
 		case syscall.SIGUSR1:
-			glog.Info("reload")
+			glog.Info(MODULE_NAME + "reload")
 			atomic.StoreUint32(&p.status, APP_STATUS_RELOAD)
 			for _, m := range p.modules {
 				m.Reload()

@@ -32,18 +32,18 @@ func init() {
 	host, _ := os.Hostname()
 
 	flag.StringVar(&pidfile, "p", "/tmp/agnet.pid", "pid file path")
-	flag.IntVar(&ag.Debug, "d", 0, "debug level")
-	flag.StringVar(&ag.Host, "host", host, "hostname")
-	flag.BoolVar(&ag.Rpc, "rpc", true, "enable rpc")
-	flag.BoolVar(&ag.Http, "http", true, "enable http")
-	flag.StringVar(&ag.RpcAddr, "ra", "127.0.0.1:1988", "rpc addr")
-	flag.StringVar(&ag.HttpAddr, "ha", "127.0.0.1:1989", "http addr")
+	flag.IntVar(&ag.Params.Debug, "d", 0, "debug level")
+	flag.StringVar(&ag.Params.Host, "host", host, "hostname")
+	flag.BoolVar(&ag.Params.Rpc, "rpc", true, "enable rpc")
+	flag.BoolVar(&ag.Params.Http, "http", true, "enable http")
+	flag.StringVar(&ag.Params.RpcAddr, "ra", "127.0.0.1:1988", "rpc addr")
+	flag.StringVar(&ag.Params.HttpAddr, "ha", "127.0.0.1:1989", "http addr")
+	flag.StringVar(&ag.Params.CtrlAddr, "ca", "127.0.0.1:8001", "ctrl addr")
 	flag.StringVar(&ifpre, "if", "eth,em", "interface prefix")
 	flag.IntVar(&ag.Interval, "interval", 60, "interval for collecting data(s)")
-	flag.IntVar(&ag.Lb.Batch, "batch", 60, "batch number per send")
-	flag.IntVar(&ag.Lb.ConnTimeout, "conntimeout", 1000, "conntimeout(ms)")
-	flag.IntVar(&ag.Lb.CallTimeout, "calltimeout", 5000, "calltimeout(ms)")
-	flag.StringVar(&upstreams, "ups", "", "list of lbs(x.x.x.x:7010,x.x.x.x:7010)")
+	flag.IntVar(&ag.Batch, "batch", 60, "batch number per send")
+	flag.IntVar(&ag.Params.ConnTimeout, "conntimeout", 1000, "conntimeout(ms)")
+	flag.IntVar(&ag.Params.CallTimeout, "calltimeout", 5000, "calltimeout(ms)")
 
 	flags.CommandLine.Usage = fmt.Sprintf("Usage: %s [OPTIONS] COMMAND ",
 		"start|stop\n", os.Args[0])
@@ -64,7 +64,6 @@ func start(arg interface{}) {
 	}
 
 	ag.IfPre = strings.Split(ifpre, ",")
-	ag.Lb.Upstreams = strings.Split(upstreams, ",")
 
 	app := specs.NewProcess(pidfile, []specs.Module{specs.Module(&ag)})
 
@@ -77,7 +76,6 @@ func start(arg interface{}) {
 
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	app.Init()
 	app.Start()
 }
 

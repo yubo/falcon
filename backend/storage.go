@@ -305,12 +305,12 @@ func (p *Backend) reconnection(client **rpc.Client, addr string) {
 		(*client).Close()
 	}
 
-	*client, err = dial(addr, p.Migrate.ConnTimeout)
+	*client, err = dial(addr, p.Params.ConnTimeout)
 
 	for err != nil {
 		//danger!! block routine
 		time.Sleep(time.Millisecond * 500)
-		*client, err = dial(addr, p.Migrate.ConnTimeout)
+		*client, err = dial(addr, p.Params.ConnTimeout)
 	}
 }
 
@@ -347,7 +347,7 @@ func (p *Backend) taskRrdFetch(key string, cf string, start, end int64,
 	return task.args.(*rrdCheckout).data, err
 }
 
-func (p *Backend) netRpcCall(client *rpc.Client, method string, args interface{},
+func netRpcCall(client *rpc.Client, method string, args interface{},
 	reply interface{}, timeout time.Duration) error {
 	done := make(chan *rpc.Call, 1)
 	client.Go(method, args, reply, done)
@@ -379,8 +379,8 @@ func (p *Backend) netRrdFetch(client **rpc.Client, e *cacheEntry, addr string) e
 	atomic.StoreUint32(&e.flag, flag|RRD_F_FETCHING)
 
 	for i = 0; i < CONN_RETRY; i++ {
-		err = p.netRpcCall(*client, "Storage.GetRrd", e.hashkey, &rrdfile,
-			time.Duration(p.Migrate.CallTimeout)*time.Millisecond)
+		err = netRpcCall(*client, "Storage.GetRrd", e.hashkey, &rrdfile,
+			time.Duration(p.Params.CallTimeout)*time.Millisecond)
 
 		if err == nil {
 			done := make(chan error, 1)
@@ -399,7 +399,7 @@ func (p *Backend) netRrdFetch(client **rpc.Client, e *cacheEntry, addr string) e
 				goto out
 			}
 		} else {
-			glog.Warning(err)
+			glog.Warning(MODULE_NAME, err)
 		}
 		if err == rpc.ErrShutdown {
 			p.reconnection(client, addr)
@@ -436,8 +436,8 @@ func (p *Backend) netSendData(client **rpc.Client, e *cacheEntry, addr string) e
 	resp = &specs.RpcResp{}
 
 	for i = 0; i < CONN_RETRY; i++ {
-		err = p.netRpcCall(*client, "Storage.Send", items, resp,
-			time.Duration(p.Migrate.CallTimeout)*time.Millisecond)
+		err = netRpcCall(*client, "Storage.Send", items, resp,
+			time.Duration(p.Params.CallTimeout)*time.Millisecond)
 
 		if err == nil {
 			e._dequeueAll()
@@ -459,8 +459,8 @@ func (p *Backend) netQueryData(client **rpc.Client, addr string,
 	args interface{}, resp interface{}) (err error) {
 
 	for i := 0; i < CONN_RETRY; i++ {
-		err = p.netRpcCall(*client, "Storage.Query", args, resp,
-			time.Duration(p.Migrate.CallTimeout)*time.Millisecond)
+		err = netRpcCall(*client, "Storage.Query", args, resp,
+			time.Duration(p.Params.CallTimeout)*time.Millisecond)
 
 		if err == nil {
 			break
@@ -583,7 +583,7 @@ func (p *Backend) commitCache() {
 
 		if exit {
 			if n%percent == 0 {
-				glog.Infof("%d %d%%", n, n/percent)
+				glog.Infof(MODULE_NAME+"%d %d%%", n, n/percent)
 			}
 		} else {
 			p.cache.dataq.enqueue(l)
@@ -609,7 +609,7 @@ func (p *Backend) commitCache() {
 			}
 			if err := e.commit(p); err != nil {
 				if err != specs.ErrEmpty {
-					glog.Warning(err)
+					glog.Warning(MODULE_NAME, err)
 				}
 			}
 		}
@@ -620,7 +620,7 @@ func (p *Backend) commitCache() {
 		}
 
 		if lastTs > expired && n > nloop {
-			glog.V(4).Infof("last %d expired %d now %d n %d/%d nloop %d",
+			glog.V(4).Infof(MODULE_NAME+"last %d expired %d now %d n %d/%d nloop %d",
 				lastTs, expired, now, n, len(p.cache.hash), nloop)
 			return
 		}
@@ -630,7 +630,7 @@ func (p *Backend) commitCache() {
 func (p *Backend) commitCacheWorker() {
 	var init bool
 
-	ticker := falconTicker(time.Second*FIRST_FLUSH_DISK, p.Debug)
+	ticker := falconTicker(time.Second*FIRST_FLUSH_DISK, p.Params.Debug)
 
 	for {
 		select {
@@ -641,7 +641,7 @@ func (p *Backend) commitCacheWorker() {
 		case <-ticker:
 			if !init {
 				ticker = falconTicker(time.Second*
-					FLUSH_DISK_STEP, p.Debug)
+					FLUSH_DISK_STEP, p.Params.Debug)
 				init = true
 			}
 			p.commitCache()
@@ -662,13 +662,13 @@ func storageCheckHds(hds []string) error {
 }
 
 func (p *Backend) rrdStart() {
-	glog.V(3).Infof("%s rrdStart", p.Name)
+	glog.V(3).Infof(MODULE_NAME+"%s rrdStart", p.Params.Name)
 
 	hds := p.Storage.Hdisks
 
 	err := storageCheckHds(hds)
 	if err != nil {
-		glog.Fatalf("rrdtool.Start error, bad data dir %v\n", err)
+		glog.Fatalf(MODULE_NAME+"rrdtool.Start error, bad data dir %v\n", err)
 	}
 
 	p.storageIoTaskCh = make([]chan *ioTask, len(hds))
@@ -677,19 +677,19 @@ func (p *Backend) rrdStart() {
 	}
 
 	if !p.Migrate.Disabled {
-		p.storageMigrateConsistent.NumberOfReplicas = p.Migrate.Replicas
+		p.storageMigrateConsistent.NumberOfReplicas = specs.REPLICAS
 
 		for node, addr := range p.Migrate.Upstreams {
 			p.storageMigrateConsistent.Add(node)
 			p.storageNetTaskCh[node] = make(chan *netTask, 16)
 			p.storageMigrateClients[node] = make([]*rpc.Client,
-				p.Migrate.Concurrency)
+				p.Params.Concurrency)
 
-			for i := 0; i < p.Migrate.Concurrency; i++ {
+			for i := 0; i < p.Params.Concurrency; i++ {
 				p.storageMigrateClients[node][i], err = dial(addr,
-					p.Migrate.ConnTimeout)
+					p.Params.ConnTimeout)
 				if err != nil {
-					glog.Fatalf("node:%s addr:%s err:%s\n",
+					glog.Fatalf(MODULE_NAME+"node:%s addr:%s err:%s\n",
 						node, addr, err)
 				}
 				go p.netWorker(i, p.storageNetTaskCh[node],

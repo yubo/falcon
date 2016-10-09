@@ -29,33 +29,35 @@ func (ln tcpKeepAliveListener) Accept() (c net.Conn, err error) {
 	return tc, nil
 }
 
-func (p *Agent) httpRoutes() {
-	p.httpMux.HandleFunc("/push", func(w http.ResponseWriter, req *http.Request) {
-		if req.ContentLength == 0 {
-			http.Error(w, "body is blank", http.StatusBadRequest)
-			return
-		}
-
-		decoder := json.NewDecoder(req.Body)
-		var meta []*specs.MetaData
-		err := decoder.Decode(&meta)
-		if err != nil {
-			http.Error(w, "connot decode body", http.StatusBadRequest)
-			return
-		}
-
-		p.appUpdateChan <- &meta
-		w.Write([]byte("success"))
-	})
-}
-
-func (p *Agent) httpStart() {
-	if !p.Http {
-		glog.Info("http.Start warning, not enabled")
+func (p *Agent) push_handle(w http.ResponseWriter, req *http.Request) {
+	if req.ContentLength == 0 {
+		http.Error(w, "body is blank", http.StatusBadRequest)
 		return
 	}
 
-	addr := p.HttpAddr
+	decoder := json.NewDecoder(req.Body)
+	var meta []*specs.MetaData
+	err := decoder.Decode(&meta)
+	if err != nil {
+		http.Error(w, "connot decode body", http.StatusBadRequest)
+		return
+	}
+
+	p.appUpdateChan <- &meta
+	w.Write([]byte("success"))
+}
+
+func (p *Agent) httpRoutes() {
+	p.httpMux.HandleFunc("/push", p.push_handle)
+}
+
+func (p *Agent) httpStart() {
+	if !p.Params.Http {
+		glog.Info(MODULE_NAME + "http.Start warning, not enabled")
+		return
+	}
+
+	addr := p.Params.HttpAddr
 	if addr == "" {
 		return
 	}
@@ -63,11 +65,11 @@ func (p *Agent) httpStart() {
 		Addr:           addr,
 		MaxHeaderBytes: 1 << 30,
 	}
-	glog.Infof("%s http listening %s", p.Name, addr)
+	glog.Infof(MODULE_NAME+"%s http listening %s", p.Params.Name, addr)
 
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
-		glog.Fatal(err)
+		glog.Fatal(MODULE_NAME, err)
 	}
 
 	p.httpListener = ln.(*net.TCPListener)

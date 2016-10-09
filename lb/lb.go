@@ -9,110 +9,61 @@ import (
 	"container/list"
 	"fmt"
 	"net"
+	"net/http"
 	"os"
 
 	"github.com/golang/glog"
 	"github.com/yubo/falcon/specs"
 )
 
-type Backend struct {
-	Disabled    bool
-	Name        string
-	Type        string
-	Sched       string
-	Batch       int
-	ConnTimeout int
-	CallTimeout int
-	Upstreams   map[string]string
-}
-
-func (p Backend) String() string {
-	var (
-		ret  string
-		name string
-	)
-
-	if p.Disabled {
-		name = fmt.Sprintf("%s %s(Disable)", p.Type, p.Name)
-	} else {
-		name = fmt.Sprintf("%s %s", p.Type, p.Name)
-	}
-
-	for k, v := range p.Upstreams {
-		ret += fmt.Sprintf("\n%-14s %s", k, v)
-	}
-	ret = fmt.Sprintf("%-14s %s\n"+
-		"%-14s %d\n"+
-		"%-14s %d\n"+
-		"%-14s %d\n"+
-		"%s (%s\n)",
-		"sched", p.Sched,
-		"batch", p.Batch,
-		"conntimeout", p.ConnTimeout,
-		"callTimeout", p.CallTimeout,
-		"upstreams", specs.IndentLines(1, ret))
-	return fmt.Sprintf("%s (\n%s\n)", name, specs.IndentLines(1, ret))
-}
+const (
+	MODULE_NAME = "\x1B[32m[LB]\x1B[0m "
+)
 
 type Lb struct {
-	Debug       int
-	Disabled    bool
-	Name        string
-	Http        bool
-	HttpAddr    string
-	Rpc         bool
-	RpcAddr     string
-	Replicas    int
-	Concurrency int
-	Backends    []Backend
-
+	Params   specs.ModuleParams
+	Batch    int
+	Backends []specs.Backend
 	// runtime
 	status        uint32
 	running       chan struct{}
 	rpcListener   *net.TCPListener
 	httpListener  *net.TCPListener
+	httpMux       *http.ServeMux
 	bs            []*backend
 	appUpdateChan chan *[]*specs.MetaData // upstreams
 	rpcConnects   connList
 }
 
 func (p Lb) Desc() string {
-	if p.Disabled {
-		return fmt.Sprintf("%s(Disabled)", p.Name)
-	} else {
-		return fmt.Sprintf("%s", p.Name)
-	}
-
+	return fmt.Sprintf("%s", p.Params.Name)
 }
 
 func (p Lb) String() string {
-	http := p.HttpAddr
-	rpc := p.RpcAddr
-
-	if !p.Http {
-		http += "(disabled)"
-	}
-	if !p.Rpc {
-		rpc += "(disabled)"
-	}
-
-	ret := fmt.Sprintf("%-17s %d\n%-17s %v\n"+
-		"%-17s %s\n%-17s %s\n"+
-		"%-17s %d\n%-17s %d\nbackends (",
-		"debug", p.Debug, "disabled", p.Disabled,
-		"http", http, "rpc", rpc,
-		"replicas", p.Replicas, "concurrency", p.Concurrency)
+	var s string
 	for _, v := range p.Backends {
-		ret += fmt.Sprintf("\n%s", specs.IndentLines(1, v.String()))
+		s += fmt.Sprintf("\n%s", specs.IndentLines(1, v.String()))
 	}
-	return ret + fmt.Sprintf("\n)")
+	if s != "" {
+		s = fmt.Sprintf("\n%s\n", specs.IndentLines(1, s))
+	}
+	return fmt.Sprintf("%s (\n%s\n)\n"+
+		"%-17s %d\n"+
+		"%s (%s)",
+		"params", specs.IndentLines(1, p.Params.String()),
+		"batch", p.Batch,
+		"backends", s)
 }
 
 func (p *Lb) Init() error {
-	glog.V(3).Infof("%s Init()", p.Name)
+	glog.V(3).Infof(MODULE_NAME+"%s Init()", p.Params.Name)
 
 	// rpc
 	p.rpcConnects = connList{list: list.New()}
+
+	// http
+	p.httpMux = http.NewServeMux()
+	p.httpRoutes()
 
 	p.status = specs.APP_STATUS_INIT
 	return nil
@@ -120,7 +71,7 @@ func (p *Lb) Init() error {
 }
 
 func (p *Lb) Start() error {
-	glog.V(3).Infof("%s Start()", p.Name)
+	glog.V(3).Infof(MODULE_NAME+"%s Start()", p.Params.Name)
 	p.status = specs.APP_STATUS_PENDING
 	p.running = make(chan struct{}, 0)
 	p.statStart()
@@ -132,7 +83,7 @@ func (p *Lb) Start() error {
 }
 
 func (p *Lb) Stop() error {
-	glog.V(3).Infof("%s Stop()", p.Name)
+	glog.V(3).Infof(MODULE_NAME+"%s Stop()", p.Params.Name)
 	p.status = specs.APP_STATUS_EXIT
 	close(p.running)
 	p.upstreamStop()
@@ -143,66 +94,12 @@ func (p *Lb) Stop() error {
 }
 
 func (p *Lb) Reload() error {
-	glog.V(3).Infof("%s Reload()", p.Name)
+	glog.V(3).Infof(MODULE_NAME+"%s Reload()", p.Params.Name)
 	return nil
 
 }
 
 func (p *Lb) Signal(sig os.Signal) error {
-	glog.V(3).Infof("%s signal %v", p.Name, sig)
+	glog.V(3).Infof(MODULE_NAME+"%s signal %v", p.Params.Name, sig)
 	return nil
 }
-
-/*
-func init() {
-	// core
-	runtime.GOMAXPROCS(runtime.NumCPU())
-
-	// rpc
-	rpcEvent = make(chan specs.ProcEvent)
-	rpcConnects = connList{list: list.New()}
-
-	// http
-	httpEvent = make(chan specs.ProcEvent)
-	httpRoutes()
-
-}
-
-func Handle(arg interface{}) {
-
-	opts := arg.(*specs.CmdOpts)
-	parse(&appConfig, opts.ConfigFile)
-	appProcess = specs.NewProcess(appConfig.PidFile)
-
-	cmd := "start"
-	if len(opts.Args) > 0 {
-		cmd = opts.Args[0]
-	}
-
-	if cmd == "stop" {
-
-		if err := appProcess.Kill(syscall.SIGTERM); err != nil {
-			glog.Fatal(err)
-		}
-	} else if cmd == "reload" {
-		if err := appProcess.Kill(syscall.SIGUSR1); err != nil {
-			glog.Fatal(err)
-		}
-	} else if cmd == "start" {
-		if err := appProcess.Check(); err != nil {
-			glog.Fatal(err)
-		}
-		if err := appProcess.Save(); err != nil {
-			glog.Fatal(err)
-		}
-		rpcStart(appConfig, appProcess)
-		httpStart(appConfig, appProcess)
-		upstreamStart(appConfig, appProcess)
-		statStart(appConfig, appProcess)
-
-		appProcess.StartSignal()
-	} else {
-		glog.Fatal(specs.ErrUnsupported)
-	}
-}
-*/

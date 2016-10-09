@@ -3,7 +3,7 @@
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
-package lb
+package ctrl
 
 import (
 	"io/ioutil"
@@ -26,7 +26,7 @@ func echo_handle(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func (p *Lb) httpRoutes() {
+func (p *Ctrl) httpRoutes() {
 	p.httpMux.HandleFunc("/echo", echo_handle)
 }
 
@@ -40,7 +40,7 @@ func (ln tcpKeepAliveListener) Accept() (c net.Conn, err error) {
 	return tc, nil
 }
 
-func (p *Lb) httpStart() {
+func (p *Ctrl) httpStart() {
 	if !p.Params.Http {
 		glog.Info(MODULE_NAME + "http.Start warning, not enabled")
 		return
@@ -66,7 +66,7 @@ func (p *Lb) httpStart() {
 	go s.Serve(tcpKeepAliveListener{p.httpListener})
 }
 
-func (p *Lb) httpStop() error {
+func (p *Ctrl) httpStop() error {
 	p.httpListener.Close()
 	return nil
 }

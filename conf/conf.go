@@ -16,12 +16,14 @@ import (
 	"github.com/golang/glog"
 	"github.com/yubo/falcon/agent"
 	"github.com/yubo/falcon/backend"
+	"github.com/yubo/falcon/ctrl"
 	"github.com/yubo/falcon/lb"
 	"github.com/yubo/falcon/specs"
 )
 
 const (
 	MAX_CTX_LEVEL = 16
+	MODULE_NAME   = "\x1B[32m[CONF]\x1B[0m "
 )
 
 type yyCtx struct {
@@ -39,12 +41,14 @@ type yyLex struct {
 	ctx     *yyCtx
 	t       []byte
 	i       int
+	debug   bool
 }
 
 type Falcon struct {
 	PidFile string
 	Agent   agent.Agent
-	Lb []lb.Lb
+	Ctrl    ctrl.Ctrl
+	Lb      []lb.Lb
 	Backend []backend.Backend
 	Modules []specs.Module
 }
@@ -59,20 +63,14 @@ func (p Falcon) String() string {
 }
 
 var (
-	conf               *Falcon
-	yy                 *yyLex
-	yy_lb         *lb.Lb
-	yy_lb_backend *lb.Backend
-	yy_backend         *backend.Backend
-	yy_mod_name        *string
-	yy_mod_disable     *bool
-	yy_mod_debug       *int
-	yy_mod_http        *bool
-	yy_mod_http_addr   *string
-	yy_mod_rpc         *bool
-	yy_mod_rpc_addr    *string
-	yy_ss              map[string]string
-	yy_as              []string
+	conf             *Falcon
+	yy               *yyLex
+	yy_lb            *lb.Lb
+	yy_specs_backend *specs.Backend
+	yy_backend       *backend.Backend
+	yy_mod_params    *specs.ModuleParams
+	yy_ss            map[string]string
+	yy_as            []string
 )
 
 const (
@@ -89,10 +87,14 @@ var (
 	keywords = map[string]int{
 		"pid_file":         PID_FILE,
 		"agent":            AGENT,
+		"ctrl":             CTRL,
 		"debug":            DEBUG,
 		"host":             HOST,
 		"http":             HTTP,
 		"http_addr":        HTTP_ADDR,
+		"rpc":              RPC,
+		"rpc_addr":         RPC_ADDR,
+		"ctrl_addr":        CTRL_ADDR,
 		"interval":         INTERVAL,
 		"iface_prefix":     IFACE_PREFIX,
 		"disabled":         DISABLED,
@@ -100,18 +102,13 @@ var (
 		"conn_timeout":     CONN_TIMEOUT,
 		"call_timeout":     CALL_TIMEOUT,
 		"upstreams":        UPSTREAMS,
-		"lb":          HANDOFF,
-		"rpc":              RPC,
-		"rpc_addr":         RPC_ADDR,
-		"replicas":         REPLICAS,
+		"lb":               LB,
+		"lbs":              LBS,
 		"concurrency":      CONCURRENCY,
 		"backends":         BACKENDS,
 		"tsdb":             TSDB,
-		"sched":            SCHED,
-		"consistent":       CONSISTENT,
 		"falcon":           FALCON,
 		"backend":          BACKEND,
-		"rrd_storage":      RRD_STORAGE,
 		"dsn":              DSN,
 		"db_max_idle":      DB_MAX_IDLE,
 		"shm_magic_code":   SHM_MAGIC_CODE,
@@ -173,10 +170,10 @@ func (p *yyLex) include(filename string) (err error) {
 	p.ctx.file = filename
 	if p.ctx.text, err = ioutil.ReadFile(filename); err != nil {
 		dir, _ := os.Getwd()
-		glog.Errorf("%s(curdir:%s)", err.Error(), dir)
+		glog.Errorf(MODULE_NAME+"%s(curdir:%s)", err.Error(), dir)
 		os.Exit(1)
 	}
-	glog.V(4).Infof("ctx level %d", p.ctxL)
+	glog.V(4).Infof(MODULE_NAME+"ctx level %d", p.ctxL)
 	return nil
 }
 
@@ -190,7 +187,7 @@ begin:
 	text := p.ctx.text[p.ctx.pos:]
 	for {
 		if p.ctx.pos == len(p.ctx.text) {
-			glog.V(4).Infof("ctx level %d", p.ctxL)
+			glog.V(4).Infof(MODULE_NAME+"ctx level %d", p.ctxL)
 			if p.ctxL > 0 {
 				p.ctxL--
 				p.ctx = &p.ctxData[p.ctxL]
@@ -202,7 +199,7 @@ begin:
 		for text[0] == ' ' || text[0] == '\t' || text[0] == '\n' {
 			p.ctx.pos += 1
 			if p.ctx.pos == len(p.ctx.text) {
-				glog.V(4).Infof("ctx level %d", p.ctxL)
+				glog.V(4).Infof(MODULE_NAME+"ctx level %d", p.ctxL)
 				if p.ctxL > 0 {
 					p.ctxL--
 					p.ctx = &p.ctxData[p.ctxL]
@@ -235,7 +232,7 @@ begin:
 			p.t = f[:]
 			i64, _ := strconv.ParseInt(string(f), 0, 0)
 			p.i = int(i64)
-			glog.V(4).Infof("return NUM %d\n", p.i)
+			glog.V(4).Infof(MODULE_NAME+"return NUM %d\n", p.i)
 			return NUM
 		}
 
@@ -244,7 +241,7 @@ begin:
 		if f != nil {
 			if val, ok := keywords[string(f)]; ok {
 				p.ctx.pos += len(f)
-				glog.V(4).Infof("find %s return %d\n", string(f), val)
+				glog.V(4).Infof(MODULE_NAME+"find %s return %d\n", string(f), val)
 				return val
 			}
 		}
@@ -253,7 +250,7 @@ begin:
 			if !prefix(text, []byte(`//`)) &&
 				!prefix(text, []byte(`/*`)) {
 				p.ctx.pos++
-				glog.V(4).Infof("return '%c'\n", int(text[0]))
+				glog.V(4).Infof(MODULE_NAME+"return '%c'\n", int(text[0]))
 				return int(text[0])
 			}
 		}
@@ -261,7 +258,7 @@ begin:
 		// comm
 		if text[0] == '#' || prefix(text, []byte(`//`)) {
 			for p.ctx.pos < len(p.ctx.text) {
-				//glog.Infof("%c", p.ctx.text[p.ctx.pos])
+				//glog.Infof(MODULE_NAME+"%c", p.ctx.text[p.ctx.pos])
 				if p.ctx.text[p.ctx.pos] == '\n' {
 					p.ctx.pos++
 					p.ctx.lino++
@@ -301,7 +298,7 @@ begin:
 			} else {
 				p.t = f[:]
 			}
-			glog.V(4).Infof("return TEXT(%s)", string(p.t))
+			glog.V(4).Infof(MODULE_NAME+"return TEXT(%s)", string(p.t))
 			return TEXT
 		}
 		p.Error(fmt.Sprintf("unknown character %c", text[0]))
@@ -342,16 +339,18 @@ func (p *yyLex) Error(s string) {
 		}
 	}
 
-	glog.Errorf("parse file(%s) error: %s\n%s",
+	glog.Errorf(MODULE_NAME+"parse file(%s) error: %s\n%s",
 		p.ctx.file, s, out)
 	os.Exit(1)
 }
 
-func Parse(filename string) *Falcon {
+func Parse(filename string, debug bool) *Falcon {
 	var err error
 	conf = &Falcon{}
-	yy = &yyLex{}
-	yy.ctxL = 0
+	yy = &yyLex{
+		ctxL:  0,
+		debug: debug,
+	}
 	yy.ctx = &yy.ctxData[0]
 	yy.ctx.file = filename
 	yy.ctx.lino = 1

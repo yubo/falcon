@@ -37,7 +37,7 @@ func (p *Agent) collectStart() {
 				vs := []*specs.MetaData{}
 				for _, c := range collectors {
 					if items, err := c.Collect(p.Interval,
-						p.Host); err == nil {
+						p.Params.Host); err == nil {
 						vs = append(vs, items...)
 					}
 				}

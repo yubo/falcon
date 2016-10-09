@@ -22,13 +22,13 @@ type schedConsistent struct {
 	chans   map[string]chan *specs.MetaData
 }
 
-func newSchedConsistent(replicas int) *schedConsistent {
+func newSchedConsistent() *schedConsistent {
 	sched := &schedConsistent{
 		name:    "consistent",
 		consist: consistent.New(),
 		chans:   make(map[string]chan *specs.MetaData),
 	}
-	sched.consist.NumberOfReplicas = replicas
+	sched.consist.NumberOfReplicas = specs.REPLICAS
 	return sched
 }
 
@@ -41,6 +41,6 @@ func (s *schedConsistent) addChan(key string,
 
 func (s *schedConsistent) sched(key string) chan *specs.MetaData {
 	node, _ := s.consist.Get(key)
-	glog.V(4).Infof("node %s", node)
+	glog.V(4).Infof(MODULE_NAME+"node %s", node)
 	return s.chans[node]
 }
