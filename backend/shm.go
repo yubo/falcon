@@ -11,7 +11,10 @@ package backend
 import "C"
 import (
 	"errors"
+	"fmt"
 	"unsafe"
+
+	"github.com/golang/glog"
 )
 
 //void *shmat(int shmid, const void *shmaddr, int shmflg);
@@ -26,23 +29,26 @@ func Shmat(shmid int, shmaddr uintptr,
 }
 
 //int shmget(key_t key, size_t size, int shmflg);
-//return shm_id, segment_size, error
+//return shmid, segment_size, error
 func Shmget(key, size, shmflg int) (int, int, error) {
 	var (
 		buf C.struct_shmid_ds
 	)
 
-	shm_id := C.shmget(C.key_t(key), C.size_t(size),
+	shmid := C.shmget(C.key_t(key), C.size_t(size),
 		C.int(shmflg))
-	if shm_id == -1 {
-		return -1, 0, errors.New("shmget error")
+	if shmid == -1 {
+		return -1, 0, fmt.Errorf("shmget(%x, %d, %d) error",
+			key, size, shmflg)
 	}
+	glog.V(5).Infof(MODULE_NAME+"shmget(%x,%d,%d) %d",
+		key, size, shmflg, shmid)
 
-	if C.shmctl(shm_id, C.IPC_STAT, &buf) == -1 {
+	if C.shmctl(shmid, C.IPC_STAT, &buf) == -1 {
 		buf.shm_segsz = 0
 	}
 
-	return int(shm_id), int(buf.shm_segsz), nil
+	return int(shmid), int(buf.shm_segsz), nil
 }
 
 func Shmdt(p uintptr) error {
@@ -57,5 +63,6 @@ func Shmrm(shmid int) error {
 		(*C.struct_shmid_ds)(unsafe.Pointer(uintptr(0))))) == -1 {
 		return errors.New("shmrm error")
 	}
+	glog.V(5).Infof(MODULE_NAME+"shmrm(%d)", shmid)
 	return nil
 }

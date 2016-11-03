@@ -100,7 +100,7 @@ func (p *Backend) rrdCreate(filename string, e *cacheEntry) error {
 	step := uint(e.e.step)
 
 	c := rrdlite.NewCreator(filename, start, step)
-	c.DS("metric", e.typ(), int(e.e.heartbeat), byte(e.e.min), byte(e.e.max))
+	c.DS("metric", e.typ(), int(e.e.heartbeat), string(byte(e.e.min)), string(byte(e.e.max)))
 
 	// 设置各种归档策略
 	// 1分钟一个点存 12小时

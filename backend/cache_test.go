@@ -6,8 +6,8 @@
 package backend
 
 import (
-	"flag"
 	"fmt"
+	"runtime"
 	"testing"
 	"time"
 
@@ -37,9 +37,7 @@ func newRrdItem(i int) *specs.RrdItem {
 }
 
 func init() {
-	flag.Set("alsologtostderr", "true")
-	flag.Set("v", "5")
-
+	runtime.GOMAXPROCS(runtime.NumCPU())
 	cacheApp = &Backend{
 		ShmMagic: 0x80386,
 		ShmKey:   0x6020,
@@ -52,7 +50,7 @@ func init() {
 		ts: time.Now().Unix(),
 	}
 	cacheApp.cacheInit()
-	cacheApp.cacheStart()
+	//cacheApp.cacheStart()
 }
 
 func TestCache(t *testing.T) {
@@ -105,7 +103,7 @@ func TestCacheQueue(t *testing.T) {
 	rrdItem = newRrdItem(0)
 	testEntry, err = cacheApp.createEntry(rrdItem.Csum(), rrdItem)
 	if err != nil {
-		t.Error(err)
+		t.Errorf("%s:%s", "testCacheQueue", err)
 	}
 
 	//fmt.Printf("cacheEtnry filename: %s\n", entry.filename())
@@ -144,16 +142,18 @@ func TestCacheShm(t *testing.T) {
 
 	for i := 0; i < entry_nb; i++ {
 		rrdItem = newRrdItem(i)
-		testEntry, err = cacheApp.createEntry(rrdItem.Csum(), rrdItem)
-		if err != nil {
-			t.Error(err)
+		if testEntry, err = cacheApp.createEntry(rrdItem.Csum(), rrdItem); err != nil {
+			t.Errorf("%s:%s", "testCacheShm", err)
 		}
 	}
 
 	cacheApp.cacheStop()
 	cleanBlocks(cacheApp.cache.startkey)
 
-	cacheApp.cacheInit()
-	cacheApp.cacheStart()
-
+	if err = cacheApp.cacheInit(); err != nil {
+		t.Errorf("%s:%s", "testCacheShm", err)
+	}
+	if err = cacheApp.cacheStart(); err != nil {
+		t.Errorf("%s:%s", "testCacheShm", err)
+	}
 }

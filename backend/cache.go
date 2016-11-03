@@ -40,25 +40,25 @@ func (p *cacheEntry) setHashkey(s string) int {
 
 func (p *cacheEntry) setHost(s string) int {
 	cs := C.CString(s)
-	defer C.free(cs)
+	defer C.free(unsafe.Pointer(cs))
 	return int(C.set_host(p.e, cs))
 }
 
 func (p *cacheEntry) setName(s string) int {
 	cs := C.CString(s)
-	defer C.free(cs)
+	defer C.free(unsafe.Pointer(cs))
 	return int(C.set_name(p.e, cs))
 }
 
 func (p *cacheEntry) setTags(s string) int {
 	cs := C.CString(s)
-	defer C.free(cs)
+	defer C.free(unsafe.Pointer(cs))
 	return int(C.set_tags(p.e, cs))
 }
 
 func (p *cacheEntry) setTyp(s string) int {
 	cs := C.CString(s)
-	defer C.free(cs)
+	defer C.free(unsafe.Pointer(cs))
 	return int(C.set_typ(p.e, cs))
 }
 
@@ -165,17 +165,17 @@ func (p *backendCache) unlink(key string) *cacheEntry {
 
 func (p *Backend) importBlocks() (int, error) {
 	var (
-		shm_id int
-		size   int
-		addr   uintptr
-		block  *C.struct_cache_block
-		err    error
-		cache  *backendCache
+		shmid int
+		size  int
+		addr  uintptr
+		block *C.struct_cache_block
+		err   error
+		cache *backendCache
 	)
 	cache = p.cache
 
 	for {
-		shm_id, size, err = Shmget(cache.endkey, p.ShmSize, C.IPC_CREAT|0600)
+		shmid, size, err = Shmget(cache.endkey, p.ShmSize, C.IPC_CREAT|0600)
 		if err != nil {
 			return cache.endkey - cache.startkey, err
 		}
@@ -187,7 +187,7 @@ func (p *Backend) importBlocks() (int, error) {
 			continue
 		}
 
-		addr, err = Shmat(shm_id, 0, 0)
+		addr, err = Shmat(shmid, 0, 0)
 		if err != nil {
 			return cache.endkey - cache.startkey, err
 		}
@@ -196,13 +196,13 @@ func (p *Backend) importBlocks() (int, error) {
 
 		for uint32(block.magic) != p.ShmMagic {
 			glog.Infof(MODULE_NAME+"set magic head at 0x%x",
-				shm_id)
+				shmid)
 			block.magic = C.uint32_t(p.ShmMagic)
 			return cache.endkey - cache.startkey, specs.EFMT
 		}
 
 		cache.shmaddrs = append(cache.shmaddrs, addr)
-		cache.shmids = append(cache.shmids, shm_id)
+		cache.shmids = append(cache.shmids, shmid)
 		list := &cache.poolq
 
 		for i := 0; i < int(block.cache_entry_nb); i++ {
@@ -227,19 +227,21 @@ func (p *Backend) importBlocks() (int, error) {
 	return cache.endkey - cache.startkey, nil
 }
 
-func cleanBlocks(start int) int {
+func cleanBlocks(start int) (int, error) {
 	var (
-		shm_id int
-		err    error
+		shmid int
+		err   error
+		i     int
 	)
 
-	for i := start; ; i++ {
-		shm_id, _, err = Shmget(i, 0, 0600)
+	for i = start; ; i++ {
+		shmid, _, err = Shmget(i, 0, 0600)
 		if err != nil {
-			return i - start
+			return i - start, nil
 		}
-		Shmrm(shm_id)
+		Shmrm(shmid)
 	}
+	return i - start, err
 }
 
 func (p *Backend) cacheReset() error {
@@ -256,7 +258,11 @@ func (p *Backend) cacheReset() error {
 	cache.endkey = p.ShmKey
 	cache.cache_entry_nb = (p.ShmSize - C.sizeof_struct_cache_block) /
 		C.sizeof_struct_cache_entry
-	cleanBlocks(cache.startkey)
+	n, err := cleanBlocks(cache.startkey)
+	if err != nil {
+		return err
+	}
+	glog.V(3).Infof(MODULE_NAME+"cleanblocks %d", n)
 	return nil
 }
 
@@ -307,15 +313,15 @@ func (p *cacheq) dequeue() *list.ListHead {
 
 func (p *Backend) allocPool() (err error) {
 	var (
-		shm_id int
-		size   int
-		addr   uintptr
-		block  *C.struct_cache_block
-		cache  *backendCache
+		shmid int
+		size  int
+		addr  uintptr
+		block *C.struct_cache_block
+		cache *backendCache
 	)
 	cache = p.cache
 
-	shm_id, size, err = Shmget(cache.endkey, p.ShmSize, C.IPC_CREAT|0700)
+	shmid, size, err = Shmget(cache.endkey, p.ShmSize, C.IPC_CREAT|0700)
 	if err != nil {
 		return err
 	}
@@ -324,13 +330,13 @@ func (p *Backend) allocPool() (err error) {
 		glog.Errorf(MODULE_NAME+"alloc shm size %d want %d, remove and try again",
 			size, p.ShmSize)
 		cleanBlocks(cache.endkey)
-		shm_id, _, err = Shmget(cache.endkey, p.ShmSize, C.IPC_CREAT|0700)
+		shmid, _, err = Shmget(cache.endkey, p.ShmSize, C.IPC_CREAT|0700)
 		if err != nil {
 			return err
 		}
 	}
 
-	addr, err = Shmat(shm_id, 0, 0)
+	addr, err = Shmat(shmid, 0, 0)
 	if err != nil {
 		return err
 	}
@@ -338,15 +344,16 @@ func (p *Backend) allocPool() (err error) {
 
 	if uint32(block.magic) == p.ShmMagic {
 		Shmdt(addr)
+		glog.Errorf(MODULE_NAME+"magic head already set at shmid %d", shmid)
 		return specs.ErrExist
 	}
+	glog.V(5).Infof(MODULE_NAME+"alloc shm segment, endkey 0x%08x shmid %d len(shmaddr) %d",
+		cache.endkey, shmid, len(cache.shmaddrs))
 
 	cache.Lock()
 	cache.shmaddrs = append(cache.shmaddrs, addr)
-	cache.shmids = append(cache.shmids, shm_id)
+	cache.shmids = append(cache.shmids, shmid)
 	cache.endkey++
-	glog.V(3).Infof(MODULE_NAME+"alloc shm segment, endkey %d len(shmaddr) %d",
-		cache.endkey, len(cache.shmaddrs))
 	cache.Unlock()
 
 	block.magic = C.uint32_t(p.ShmMagic)

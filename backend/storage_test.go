@@ -6,6 +6,7 @@
 package backend
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"runtime"
@@ -19,10 +20,10 @@ import (
 )
 
 const (
-	testDir       = "/tmp/falcon"
+	testDir       = "/home/yubo/hdd"
 	benchSize     = 100
 	workNb        = 4
-	MAX_HD_NUMBER = 2
+	MAX_HD_NUMBER = 12
 )
 
 var (
@@ -34,19 +35,26 @@ var (
 )
 
 func init() {
+	//if testing.Verbose() {
+	flag.Set("alsologtostderr", "true")
+	flag.Set("v", "2")
+	flag.Parse()
+	//}
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	storageApp = &Backend{
+		ShmMagic: 0x80386,
+		ShmKey:   0x6020,
+		ShmSize:  4096000,
 		Storage: Storage{
 			Type: "rrdlite",
 		},
 	}
 
-	os.RemoveAll(testDir)
 	testDirs = make([]string, MAX_HD_NUMBER)
 
 	for i := 0; i < MAX_HD_NUMBER; i++ {
-		testDirs[i] = fmt.Sprintf("%s/hdd%d", testDir, i)
+		testDirs[i] = fmt.Sprintf("%s/hdd%d", testDir, i+1)
 		os.MkdirAll(testDirs[i], 0755)
 	}
 
@@ -62,6 +70,11 @@ func init() {
 		go storageApp.ioWorker(storageApp.storageIoTaskCh[i])
 	}
 
+	storageApp.cacheInit()
+	if err := storageApp.cacheReset(); err != nil {
+		fmt.Println(err)
+	}
+
 	storageApp.timeStart()
 	now = time.Now().Unix()
 	start = now - 120
@@ -69,10 +82,15 @@ func init() {
 }
 
 func (p *Backend) rrdToEntry(item *specs.RrdItem) (*cacheEntry, error) {
-	e, _ := p.getPoolEntry()
-	if err := e.reset(now, item.Host, item.Name, item.Tags, item.Type,
+	e, err := p.getPoolEntry()
+	if err != nil {
+		glog.V(4).Infoln(err)
+		return nil, err
+	}
+	if err = e.reset(now, item.Host, item.Name, item.Tags, item.Type,
 		item.Step, item.Heartbeat, item.Min[0], item.Max[0]); err != nil {
 		p.putPoolEntry(e)
+		glog.V(4).Infoln(err)
 		return nil, err
 	}
 	return e, nil
@@ -99,7 +117,10 @@ func benchmarkAdd(n int, b *testing.B) {
 
 			item := newRrdItem(i)
 			for j := 0; j < m; j++ {
-				e, _ := storageApp.rrdToEntry(item)
+				e, err := storageApp.rrdToEntry(item)
+				if err != nil {
+					glog.Infof("benchmarkAdd %s\n", err)
+				}
 				e.setName(fmt.Sprintf("key_%d_%d", i, j))
 				e.setHashkey(e.csum())
 				if err := e.createRrd(storageApp); err != nil {
@@ -114,7 +135,7 @@ func benchmarkAdd(n int, b *testing.B) {
 	}
 	wg.Wait()
 	//fmt.Printf("add_err %d\n", err_cnt)
-	fmt.Printf("add number: %d\n", cnt)
+	//fmt.Printf("add number: %d\n", cnt)
 }
 
 func benchmarkUpdate(n int, b *testing.B) {
