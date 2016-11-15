@@ -173,18 +173,21 @@ func (p *Backend) importBlocks() (int, error) {
 		cache *backendCache
 	)
 	cache = p.cache
+	cache.Lock()
+	defer cache.Unlock()
 
 	for {
-		shmid, size, err = Shmget(cache.endkey, p.ShmSize, C.IPC_CREAT|0600)
+		shmid, size, err = Shmget(cache.endkey, p.ShmSize, C.IPC_CREAT|0700)
 		if err != nil {
 			return cache.endkey - cache.startkey, err
 		}
+		cache.endkey++
 
 		if size != p.ShmSize {
 			glog.Errorf(MODULE_NAME+"segment size error, remove "+
 				"segment from 0x%x and retry", cache.endkey)
 			cleanBlocks(cache.endkey)
-			continue
+			return cache.endkey - cache.startkey, err
 		}
 
 		addr, err = Shmat(shmid, 0, 0)
@@ -222,7 +225,6 @@ func (p *Backend) importBlocks() (int, error) {
 				cache.idx0q.enqueue(&e.list_idx)
 			}
 		}
-		cache.endkey++
 	}
 	return cache.endkey - cache.startkey, nil
 }
@@ -235,7 +237,7 @@ func cleanBlocks(start int) (int, error) {
 	)
 
 	for i = start; ; i++ {
-		shmid, _, err = Shmget(i, 0, 0600)
+		shmid, _, err = Shmget(i, 0, 0700)
 		if err != nil {
 			return i - start, nil
 		}
@@ -320,11 +322,16 @@ func (p *Backend) allocPool() (err error) {
 		cache *backendCache
 	)
 	cache = p.cache
+	cache.Lock()
+	defer cache.Unlock()
 
 	shmid, size, err = Shmget(cache.endkey, p.ShmSize, C.IPC_CREAT|0700)
 	if err != nil {
+		glog.Errorf(MODULE_NAME+"shmget(%d, %d, ipc_create ) err %s",
+			cache.endkey, p.ShmSize, err)
 		return err
 	}
+	cache.endkey++
 
 	if size != p.ShmSize {
 		glog.Errorf(MODULE_NAME+"alloc shm size %d want %d, remove and try again",
@@ -332,12 +339,15 @@ func (p *Backend) allocPool() (err error) {
 		cleanBlocks(cache.endkey)
 		shmid, _, err = Shmget(cache.endkey, p.ShmSize, C.IPC_CREAT|0700)
 		if err != nil {
+			glog.Errorf(MODULE_NAME+"shmget(%d, %d, ipc_create ) err %s",
+				cache.endkey, p.ShmSize, err)
 			return err
 		}
 	}
 
 	addr, err = Shmat(shmid, 0, 0)
 	if err != nil {
+		glog.Errorf(MODULE_NAME+"shmat(%d, 0, 0 ) err %s", shmid, err)
 		return err
 	}
 	block = (*C.struct_cache_block)(unsafe.Pointer(addr))
@@ -350,11 +360,8 @@ func (p *Backend) allocPool() (err error) {
 	glog.V(5).Infof(MODULE_NAME+"alloc shm segment, endkey 0x%08x shmid %d len(shmaddr) %d",
 		cache.endkey, shmid, len(cache.shmaddrs))
 
-	cache.Lock()
 	cache.shmaddrs = append(cache.shmaddrs, addr)
 	cache.shmids = append(cache.shmids, shmid)
-	cache.endkey++
-	cache.Unlock()
 
 	block.magic = C.uint32_t(p.ShmMagic)
 	block.block_size = C.int(p.ShmSize)
@@ -381,7 +388,7 @@ func (p *Backend) getPoolEntry() (*cacheEntry, error) {
 	var e *list.ListHead
 	if e = p.cache.poolq.dequeue(); e == nil {
 		if err := p.allocPool(); err != nil {
-			return nil, fmt.Errorf("%s(%s)", specs.ENOSPC, err)
+			return nil, fmt.Errorf("%s(%s)", specs.EALLOC, err)
 		}
 		e = p.cache.poolq.dequeue()
 	}

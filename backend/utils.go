@@ -7,9 +7,11 @@ package backend
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -84,4 +86,13 @@ func removeContents(dir string) error {
 		}
 	}
 	return nil
+}
+
+func backtrace(i int) string {
+	pc, file, no, ok := runtime.Caller(i)
+	details := runtime.FuncForPC(pc)
+	if ok && details != nil {
+		return fmt.Sprintf("#%02d %s %s:%d\n", i, details.Name(), file, no)
+	}
+	return ""
 }

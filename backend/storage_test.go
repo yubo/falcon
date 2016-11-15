@@ -20,10 +20,10 @@ import (
 )
 
 const (
-	testDir       = "/home/yubo/hdd"
+	testDir       = "/tmp"
 	benchSize     = 100
 	workNb        = 4
-	MAX_HD_NUMBER = 12
+	MAX_HD_NUMBER = 4
 )
 
 var (
@@ -34,10 +34,10 @@ var (
 	start, end, now int64
 )
 
-func init() {
+func test_storage_init() {
 	//if testing.Verbose() {
 	flag.Set("alsologtostderr", "true")
-	flag.Set("v", "2")
+	flag.Set("v", "5")
 	flag.Parse()
 	//}
 	runtime.GOMAXPROCS(runtime.NumCPU())
@@ -45,7 +45,7 @@ func init() {
 	storageApp = &Backend{
 		ShmMagic: 0x80386,
 		ShmKey:   0x6020,
-		ShmSize:  4096000,
+		ShmSize:  1 << 28, // 256m
 		Storage: Storage{
 			Type: "rrdlite",
 		},
@@ -65,7 +65,7 @@ func init() {
 
 	storageApp.storageIoTaskCh = make([]chan *ioTask, MAX_HD_NUMBER)
 	for i := 0; i < MAX_HD_NUMBER; i++ {
-		storageApp.storageIoTaskCh[i] = make(chan *ioTask, 32)
+		storageApp.storageIoTaskCh[i] = make(chan *ioTask, 320)
 		removeContents(testDirs[i])
 		go storageApp.ioWorker(storageApp.storageIoTaskCh[i])
 	}
@@ -96,9 +96,11 @@ func (p *Backend) rrdToEntry(item *specs.RrdItem) (*cacheEntry, error) {
 	return e, nil
 }
 
-func benchmarkAdd(n int, b *testing.B) {
+func testAdd(n int, t *testing.T) {
 	var err_cnt, cnt uint64
-	b.StopTimer()
+	if storageApp == nil {
+		test_storage_init()
+	}
 	hds := &storageApp.Storage.Hdisks
 	*hds = make([]string, n)
 	for i := 0; i < n; i++ {
@@ -106,11 +108,11 @@ func benchmarkAdd(n int, b *testing.B) {
 		os.MkdirAll((*hds)[i], os.ModePerm)
 	}
 
-	b.N = benchSize
-	m := b.N / workNb
-	b.StartTimer()
+	m := benchSize
+	N := m * n
+	start := time.Now().UnixNano()
 
-	for i := 0; i < workNb; i++ {
+	for i := 0; i < n; i++ {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
@@ -131,9 +133,12 @@ func benchmarkAdd(n int, b *testing.B) {
 				}
 				atomic.AddUint64(&cnt, 1)
 			}
+			glog.Infof("worker %d done task %d", i, m)
 		}(i)
 	}
 	wg.Wait()
+	stop := time.Now().UnixNano()
+	glog.Infof("%d %d ns/op", N, (stop-start)/int64(N))
 	//fmt.Printf("add_err %d\n", err_cnt)
 	//fmt.Printf("add number: %d\n", cnt)
 }
@@ -141,6 +146,9 @@ func benchmarkAdd(n int, b *testing.B) {
 func benchmarkUpdate(n int, b *testing.B) {
 	var err_cnt uint64
 	b.StopTimer()
+	if storageApp == nil {
+		test_storage_init()
+	}
 	hds := &storageApp.Storage.Hdisks
 	*hds = make([]string, n)
 	for i := 0; i < n; i++ {
@@ -177,6 +185,9 @@ func benchmarkUpdate(n int, b *testing.B) {
 func benchmarkFetch(n int, b *testing.B) {
 	var err_cnt uint64
 	b.StopTimer()
+	if storageApp == nil {
+		test_storage_init()
+	}
 	hds := &storageApp.Storage.Hdisks
 	*hds = make([]string, n)
 	for i := 0; i < n; i++ {
@@ -212,10 +223,14 @@ func benchmarkFetch(n int, b *testing.B) {
 	//fmt.Printf("fetch_err %d\n", err_cnt)
 }
 
-func BenchmarkAdd01(b *testing.B) { benchmarkAdd(1, b) }
-func BenchmarkAdd02(b *testing.B) { benchmarkAdd(2, b) }
-func BenchmarkAdd03(b *testing.B) { benchmarkAdd(3, b) }
-func BenchmarkAdd04(b *testing.B) { benchmarkAdd(4, b) }
+func TestAdd01(t *testing.T) { testAdd(1, t) }
+
+//func TestAdd02(t *testing.T) { testAdd(2, t) }
+//func TestAdd04(t *testing.T) { testAdd(4, t) }
+//func TestAdd06(t *testing.T) { testAdd(6, t) }
+//func TestAdd08(t *testing.T) { testAdd(8, t) }
+//func TestAdd10(t *testing.T) { testAdd(10, t) }
+//func TestAdd12(t *testing.T) { testAdd(12, t) }
 
 //func BenchmarkAdd05(b *testing.B) { benchmarkAdd(5, b) }
 //func BenchmarkAdd06(b *testing.B) { benchmarkAdd(6, b) }

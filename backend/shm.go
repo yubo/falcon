@@ -41,8 +41,12 @@ func Shmget(key, size, shmflg int) (int, int, error) {
 		return -1, 0, fmt.Errorf("shmget(%x, %d, %d) error",
 			key, size, shmflg)
 	}
-	glog.V(5).Infof(MODULE_NAME+"shmget(%x,%d,%d) %d",
-		key, size, shmflg, shmid)
+	glog.V(5).Infof(MODULE_NAME+"shmget(%x,%d,%d) %d %s",
+		key, size, shmflg, shmid, backtrace(2))
+	glog.V(5).Infof(MODULE_NAME+"shmget(%x,%d,%d) %d %s",
+		key, size, shmflg, shmid, backtrace(3))
+	glog.V(5).Infof(MODULE_NAME+"shmget(%x,%d,%d) %d %s",
+		key, size, shmflg, shmid, backtrace(4))
 
 	if C.shmctl(shmid, C.IPC_STAT, &buf) == -1 {
 		buf.shm_segsz = 0

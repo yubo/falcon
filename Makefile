@@ -35,7 +35,7 @@ prepare: specs/git.go conf/yyparse.go
 	go get ./...
 
 tools:
-	go get github.com/tcnksm/ghr
+	go get -u github.com/tcnksm/ghr
 
 test:
 	go test ./...

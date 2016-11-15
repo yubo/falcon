@@ -36,7 +36,7 @@ func newRrdItem(i int) *specs.RrdItem {
 	}
 }
 
-func init() {
+func test_cache_init() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	cacheApp = &Backend{
 		ShmMagic: 0x80386,
@@ -55,6 +55,7 @@ func init() {
 
 func TestCache(t *testing.T) {
 	//fmt.Println(runtime.Caller(0))
+	test_cache_init()
 	cacheApp.cacheReset()
 	rrdItem = newRrdItem(1)
 	key := rrdItem.Csum()
@@ -154,6 +155,8 @@ func TestCacheShm(t *testing.T) {
 		t.Errorf("%s:%s", "testCacheShm", err)
 	}
 	if err = cacheApp.cacheStart(); err != nil {
-		t.Errorf("%s:%s", "testCacheShm", err)
+		t.Errorf("%s:%s", "testCache start", err)
 	}
+	cacheApp.cacheStop()
+	cleanBlocks(cacheApp.cache.startkey)
 }

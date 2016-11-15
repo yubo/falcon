@@ -48,4 +48,5 @@ var (
 	EDOM           = errors.New("Math argument out of domain of func")
 	ERANGE         = errors.New("Math result not representable")
 	EFMT           = errors.New("Invalid format") // custom
+	EALLOC         = errors.New("Allocation Failure")
 )
