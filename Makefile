@@ -39,6 +39,8 @@ tools:
 
 test:
 	go test ./...
+	./scripts/test.sh
+	bash <(curl -s https://codecov.io/bash)
 
 compile:
 	mkdir -p "${OUTPUT_DIR}/bin"

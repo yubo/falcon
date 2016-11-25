@@ -10,6 +10,8 @@
 
 var/
 bin/
+dist/
+etc/
 tmp
 git.go
 *.sh

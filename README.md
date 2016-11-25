@@ -1,5 +1,6 @@
 # lite-falcon
 [![wercker status](https://app.wercker.com/status/264bf495c340505f479d787192a213f4/s/master "wercker status")](https://app.wercker.com/project/byKey/264bf495c340505f479d787192a213f4)
+[![codecov](https://codecov.io/gh/yubo/falcon/branch/master/graph/badge.svg)](https://codecov.io/gh/yubo/falcon)
 [![License (3-Clause BSD)](https://img.shields.io/badge/license-BSD%203--Clause-blue.svg?style=flat-square)](http://opensource.org/licenses/BSD-3-Clause)
 
 简化版本的falcon

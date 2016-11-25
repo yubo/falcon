@@ -197,3 +197,9 @@ func (p *Backend) statStart() {
 
 func (p *Backend) statStop() {
 }
+
+func statRrd() {
+	for i := ST_RRD_CREAT; i <= ST_RRD_FETCH_ERR; i++ {
+		glog.V(3).Infof("%s %d", statName[i], statCnt[i])
+	}
+}

@@ -96,7 +96,7 @@ func (p *Backend) ktoch(key string) chan *ioTask {
 
 func (p *Backend) rrdCreate(filename string, e *cacheEntry) error {
 	now := time.Unix(p.timeNow(), 0)
-	start := now.Add(time.Duration(-24) * time.Hour)
+	start := now.Add(time.Duration(-1) * time.Hour)
 	step := uint(e.e.step)
 
 	c := rrdlite.NewCreator(filename, start, step)
