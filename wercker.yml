@@ -7,8 +7,8 @@ build:
         name: prepare
         code: make prepare
     - script:
-        name: test
-        code: make test
+        name: coverage
+        code: make coverage
     - script:
         name: compile
         code: make compile OUTPUT_DIR=$WERCKER_CACHE_DIR

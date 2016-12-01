@@ -39,8 +39,10 @@ tools:
 
 test:
 	go test ./...
-	./scripts/test.sh
-	bash <(curl -s https://codecov.io/bash)
+
+coverage:
+	./scripts/test_coverage.sh
+	curl -s https://codecov.io/bash | bash
 
 compile:
 	mkdir -p "${OUTPUT_DIR}/bin"
