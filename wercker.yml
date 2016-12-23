@@ -4,9 +4,6 @@ build:
   steps:
     - setup-go-workspace
     - script:
-        name: prepare
-        code: make prepare
-    - script:
         name: coverage
         code: make coverage
     - script:

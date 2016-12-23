@@ -16,7 +16,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/yubo/falcon/agent"
 	"github.com/yubo/falcon/backend"
-	"github.com/yubo/falcon/ctrl"
+	"github.com/yubo/falcon/ctrl/core"
 	"github.com/yubo/falcon/lb"
 	"github.com/yubo/falcon/specs"
 )

@@ -2,20 +2,25 @@
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 .PHONY: clean run
+MODULES=agent ctrl falcon
+VENDOR=$(shell readlink -f ./vendor)
+VERSION=$(shell cat VERSION)
+TARGETS=$(MODULES:%=bin/%)
+ORG_PATH=github.com/yubo/falcon
+WORKDIR=${VENDOR}/src/${ORG_PATH}
 
 ifeq ($(strip $(OUTPUT_DIR)),)
   OUTPUT_DIR = .
 endif
 
-all: $(OUTPUT_DIR)/bin/falcon $(OUTPUT_DIR)/bin/agent
+all: $(TARGETS)
 
-$(OUTPUT_DIR)/bin/falcon: specs/git.go *.go */*.go cmd/falcon/*.go conf/*.go conf/yyparse.go
-	go build -o "${OUTPUT_DIR}/bin/falcon" cmd/falcon/*
-
-$(OUTPUT_DIR)/bin/agent: specs/git.go agent/*.go cmd/agent/*.go specs/*.go
-	go build -o "${OUTPUT_DIR}/bin/agent" cmd/agent/*
+$(TARGETS): conf/yyparse.go specs/git.go
+	export GOPATH=${VENDOR} && cd ${WORKDIR} &&\
+	go build -o ${OUTPUT_DIR}/$@ ./$(subst bin/,cmd/,$@)
 
 conf/yyparse.go: conf/yyparse.y
+	export GOPATH=${VENDOR} && cd ${WORKDIR} &&\
 	go tool yacc -o conf/yyparse.go conf/yyparse.y
 
 specs/git.go: scripts/git.sh
@@ -31,16 +36,15 @@ parse:
 	./bin/falcon -config ./etc/falcon.conf -logtostderr -v 3 parse 2>&1
 #./bin/agent -http=false -v 4 start 2>&1
 
-prepare: specs/git.go conf/yyparse.go
-	go get ./...
-
 tools:
 	go get -u github.com/tcnksm/ghr
 
 test:
+	export GOPATH=${VENDOR} && cd ${WORKDIR} &&\
 	go test ./...
 
-coverage:
+coverage: conf/yyparse.go specs/git.go
+	export GOPATH=${VENDOR} && cd ${WORKDIR} &&\
 	./scripts/test_coverage.sh
 	curl -s https://codecov.io/bash | bash
 
