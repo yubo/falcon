@@ -1,0 +1,143 @@
+{{template "base/base.html" .}}
+{{template "base/base_common.html" .}}
+{{define "meta"}}<title>{{.Post.Title}} - {{i18n .Lang "app_name"}}</title>{{end}}
+{{define "body"}}
+<div class="row">
+    <div id="content" class="col-md-9">
+        <div class="box">
+            <div class="cell first breadcrumb last">
+                <a href="{{.AppUrl}}"><i class="icon icon-home"></i></a><i class="divider icon-angle-right"></i><a href="{{.Post.Category.Link}}">{{i18n .Lang (print "category." .Post.Category.Name)}}</a><i class="divider icon-angle-right"></i><a href="{{.Post.Topic.Link}}">{{.Post.Topic.GetName .Lang}}</a>
+                <span class="pull-right">
+                </span>
+            </div>
+            <div class="post-show">
+                <div class="cell first slim">
+                    <div class="avatar pull-right">
+                        <a href="{{.Post.User.Link}}" title="{{.Post.User.NickName}}">
+                            <img class="large" src="{{.Post.User.AvatarLink}}?size=48">
+                        </a>
+                    </div>
+                    <h1 class="post-title">
+                        {{.Post.Title}}{{if .Post.IsBest}} <i class="icon-bookmark color-red"></i>{{end}}
+                    </h1>
+                    <div class="post-meta">
+                        <a target="_blank" class="tag" href="{{.Post.Category.Link}}">{{i18n .Lang (print "category." .Post.Category.Name)}}</a> • <a target="_blank" class="tag" href="{{.Post.Topic.Link}}">{{.Post.Topic.GetName .Lang}}</a> • {{i18n .Lang .Post.GetLang}} • {{i18n .Lang "post.post_author"}} <a target="_blank" href="{{.Post.User.Link}}">{{.Post.User.NickName}}</a> • <span class="time">{{timesince .Lang .Post.Created}}</span>{{if .Post.Replys}}{{if .Post.LastReply}} • <span class="last-reply">{{i18n .Lang "post.last_reply"}} <a href="{{.Post.LastReply.Link}}">{{.Post.LastReply.NickName}}</a></span>{{end}}{{end}}
+                    </div>
+                </div>
+                <div class="cell last slim">
+                    {{if ne (datetime .Post.Updated) (datetime .Post.Created)}}
+                        <p class="post-meta pull-right">
+                            {{if .Post.LastAuthor}}<a target="_blank" href="{{.Post.LastAuthor.Link}}">{{.Post.LastAuthor.NickName}}</a> • {{end}}{{i18n .Lang "post.modified_on"}} {{timesince .Lang .Post.Updated}} / {{.Post.Updated|datetimes}}
+                        </p>
+                    {{end}}
+                    {{if .IsLogin}}
+                        <p>
+                        {{if eq .Post.User.Id .User.Id}}
+                            <a class="color-link" href="{{.Post.Link}}/edit">{{i18n .Lang "post.post_edit"}}</a>
+                        {{end}}
+                        {{if .User.IsAdmin}}
+                            - 
+                            <a rel="toggle-post-best" class="color-link" href="javascript:">
+                                {{if .Post.IsBest}}{{i18n .Lang "post.remove_best"}}{{else}}
+                                {{i18n .Lang "post.set_best"}}{{end}}
+                            </a>
+                        {{end}}
+                        </p>
+                    {{end}}
+                    <span class="clearfix"></span>
+                    <div class="post-content markdown">
+                        {{.Post.GetContentCache|str2html}}
+                    </div>
+                    <div class="pull-right">
+                        {{template "post/component/share.html"}}
+                    </div>
+                    <span class="clearfix"></span>
+                </div>
+            </div>
+        </div>
+        <div class="box post-comments"{{if .IsLogin}} data-user="{{.User.UserName}}"{{end}}>
+            {{if .CommentsNum}}
+                <div class="cell first breadcrumb">
+                    {{i18n .Lang "post.total_replies" .CommentsNum}}
+                </div>
+            {{end}}
+            {{if .CommentsNum}}
+                {{range .Comments}}
+                    <div id="reply{{.Floor}}" class="cell comment" data-user="{{.User.UserName}}" data-user-nick="{{.User.NickName}}" data-floor="{{.Floor}}">
+                        <div class="avatar">
+                            <a href="{{.User.Link}}">
+                                <img src="{{.User.AvatarLink}}?size=48">
+                            </a>
+                        </div>
+                        <div class="content">
+                            <div class="meta">
+                                <a href="{{.User.Link}}">{{.User.NickName}}</a>
+                                <a href="#reply{{.Floor}}">{{i18n $.Lang "post.comment_floor" .Floor}}</a> <span class="time">{{timesince $.Lang .Created}}</span>
+                                {{if $.IsLogin}}
+                                <span class="pull-right">
+                                    <a rel="comment-reply" href="javascript:">{{i18n $.Lang "post.comment_reply"}} <i class="icon-reply"></i></a>
+                                </span>
+                                {{end}}
+                            </div>
+                            <div class="markdown">
+                                {{.GetMessageCache|str2html}}
+                            </div>
+                        </div>
+                        <span class="clearfix"></span>
+                    </div>
+                {{end}}
+            {{else}}
+                <div class="cell last">
+                    <div class="text-center">{{i18n .Lang "post.no_replies"}}</div>
+                </div>
+            {{end}}
+        </div>
+        <div class="box">
+            <div class="cell first last">
+                {{if not .IsLogin}}
+                    <div class="text-center"><a href="{{loginto .Post.Link}}" class="btn btn-primary">{{i18n .Lang "auth.need_login_to_reply"}}</a></div>
+                {{else if not .User.IsActive}}
+                    <div class="text-center"><a href="{{.AppUrl}}settings/profile" class="btn btn-info">{{i18n .Lang "auth.need_active_to_reply"}}</a></div>
+                {{else}}
+                    <form id="post-reply" method="POST" action="{{.Post.Link}}#post-reply">
+                        {{.xsrf_html}}{{.once_html}}
+                        <div id="md-editor" class="markdown-editor"  data-preview-url="{{$.AppUrl}}api/md" data-savekey="post/comment">
+                            {{with .CommentFormSets.Fields.Message}}
+                                {{template "post/component/editor.html" dict "root" $ "Field" .Field "Error" .Error "Help" .Help}}
+                            {{end}}
+                        </div>
+                        <div class="form-group">
+                            <button class="btn btn-primary">{{i18n .Lang "submit"}}</button>
+                        </div>
+                    </form>
+                {{end}}
+            </div>
+        </div>
+    </div>
+    <div id="sidebar" class="col-md-3">
+        <p>
+            <a href="{{.AppUrl}}new?topic={{.Post.Topic.Slug}}" class="btn btn-success">
+                <i class="icon-double-angle-right"></i>
+                {{i18n .Lang "post.post_new_with_topic" (.Post.Topic.GetName .Lang)}}
+            </a>
+        </p>
+    </div>
+</div>
+{{if .User.IsAdmin}}
+<script type="text/javascript">
+    (function($){
+        $(document).on('click', '[rel=toggle-post-best]', function(){
+            var $btn = $(this);
+            $.post('/api/post', {action: 'toggle-best', post: '{{.Post.Id}}'}).complete(function(){
+                window.location.reload();
+            });
+        });
+    })(jQuery);
+</script>
+{{end}}
+{{end}}
+<script type="text/javascript">
+    (function($){
+        $.postPage();
+    })(jQuery);
+</script>
