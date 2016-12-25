@@ -79,7 +79,7 @@ func adminFiler(ctx *context.Context) {
 }
 
 func profileFilter(ctx *context.Context) {
-	if id, ok := ctx.Input.Session("uid").(int); ok {
+	if id, ok := ctx.Input.Session("uid").(int64); ok {
 		me, err := models.GetUser(id)
 		if err != nil {
 			return

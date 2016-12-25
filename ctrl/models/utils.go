@@ -12,43 +12,43 @@ import (
 )
 
 type Log struct {
-	Id        int
-	Module    int
-	Module_id int
-	User_id   int
-	Action    int
+	Id        int64
+	Module    int64
+	Module_id int64
+	User_id   int64
+	Action    int64
 	Data      string
 	Time      time.Time
 }
 
 type cache struct {
 	enable bool
-	data   map[int]interface{}
+	data   map[int64]interface{}
 }
 
-func (c *cache) set(id int, p interface{}) {
+func (c *cache) set(id int64, p interface{}) {
 	if c.enable {
 		c.data[id] = p
 	}
 }
 
-func (c *cache) get(id int) interface{} {
+func (c *cache) get(id int64) interface{} {
 	return c.data[id]
 }
 
-func (c *cache) del(id int) {
+func (c *cache) del(id int64) {
 	if c.enable {
 		delete(c.data, id)
 	}
 }
 
-func DbLog(uid, module, module_id, action int, data string) {
+func DbLog(uid, module, module_id, action int64, data []byte) {
 	log := &Log{
 		User_id:   uid,
 		Module:    module,
 		Module_id: module_id,
 		Action:    action,
-		Data:      data,
+		Data:      string(data),
 	}
 	orm.NewOrm().Insert(log)
 }

@@ -298,13 +298,14 @@ VIEW `falcon`.`user_scope` AS
     SELECT 
         `a`.`user_id` AS `user_id`,
         `a`.`scope_id` AS `scope_id`,
-        `a`.`scope_tag_id` AS `tag_id`,
+        `a`.`user_tag_id` AS `tag_id`,
+        `a`.`scope_tag_id` AS `scope_tag_id`,
         `a`.`role_id` AS `role_id`
     FROM
         (`falcon`.`tag_role_user_scope` `a`
         JOIN `falcon`.`tag_rel` `b` ON (((`a`.`user_tag_id` = `b`.`tag_id`)
             AND (`a`.`scope_tag_id` = `b`.`sup_tag_id`))))
-    GROUP BY `a`.`scope_id`
+    GROUP BY `a`.`user_tag_id`
     HAVING (`a`.`scope_tag_id` = MAX(`a`.`scope_tag_id`));
 
 

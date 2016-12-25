@@ -111,29 +111,3 @@ func TestTagParent(t *testing.T) {
 	}
 
 }
-
-/*
-func TestCreateSchema(t *testing.T) {
-	type testCase struct {
-		//key  string
-		val  interface{}
-		want interface{}
-	}
-	const key = "extra-key"
-	cases := []testCase{
-		{key: key, val: "abc", want: "abc"},
-		{key: key, val: "abc", want: "abc"},
-		{key: key, val: "abc", want: "abc"},
-		{key: key, val: "abc", want: "abc"},
-		{key: key, val: "abc", want: "abc"},
-	}
-	for _, tc := range cases {
-		extra := make(map[string]interface{})
-		extra[tc.key] = tc.val
-		tok := Foo{}
-		if got, want := tok.Bar(key), tc.wang; got != wang {
-			t.Errorf("foo(%q) = %q; wang %q", key, got, wang)
-		}
-	}
-}
-*/

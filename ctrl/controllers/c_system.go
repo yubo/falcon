@@ -26,8 +26,10 @@ type SystemController struct {
 // @router / [post]
 func (c *SystemController) CreateSystem() {
 	var system models.System
+
 	json.Unmarshal(c.Ctx.Input.RequestBody, &system)
-	id, err := models.AddSystem(&system)
+	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	id, err := me.AddSystem(&system)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -42,9 +44,9 @@ func (c *SystemController) CreateSystem() {
 // @router /cnt/:query [get]
 func (c *SystemController) GetSystemsCnt() {
 	query := strings.TrimSpace(c.GetString(":query"))
+	me, _ := c.Ctx.Input.GetData("me").(*models.User)
 
-	cnt, err := models.GetSystemsCnt(query)
-	if err != nil {
+	if cnt, err := me.GetSystemsCnt(query); err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
 		c.SendObj(200, cnt)
@@ -62,9 +64,9 @@ func (c *SystemController) GetSystems() {
 	query := strings.TrimSpace(c.GetString(":query"))
 	per, _ := c.GetInt("per", models.PAGE_PER)
 	offset, _ := c.GetInt("offset", 0)
+	me, _ := c.Ctx.Input.GetData("me").(*models.User)
 
-	systems, err := models.GetSystems(query, per, offset)
-	if err != nil {
+	if systems, err := me.GetSystems(query, per, offset); err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
 		c.SendObj(200, systems)
@@ -78,12 +80,12 @@ func (c *SystemController) GetSystems() {
 // @Failure {code:int, msg:string}
 // @router /:id [get]
 func (c *SystemController) GetSystem() {
-	id, err := c.GetInt(":id")
+	id, err := c.GetInt64(":id")
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		system, err := models.GetSystem(id)
-		if err != nil {
+		me, _ := c.Ctx.Input.GetData("me").(*models.User)
+		if system, err := me.GetSystem(id); err != nil {
 			c.SendMsg(403, err.Error())
 		} else {
 			c.SendObj(200, system)
@@ -101,15 +103,16 @@ func (c *SystemController) GetSystem() {
 func (c *SystemController) UpdateSystem() {
 	var system models.System
 
-	id, err := c.GetInt(":id")
+	id, err := c.GetInt64(":id")
 	if err != nil {
 		c.SendMsg(403, err.Error())
 		return
 	}
 
 	json.Unmarshal(c.Ctx.Input.RequestBody, &system)
+	me, _ := c.Ctx.Input.GetData("me").(*models.User)
 
-	if u, err := models.UpdateSystem(id, &system); err != nil {
+	if u, err := me.UpdateSystem(id, &system); err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
 		c.SendObj(200, u)
@@ -123,13 +126,14 @@ func (c *SystemController) UpdateSystem() {
 // @Failure {code:403, msg:string}
 // @router /:id [delete]
 func (c *SystemController) DeleteSystem() {
-	id, err := c.GetInt(":id")
+	id, err := c.GetInt64(":id")
 	if err != nil {
 		c.SendMsg(403, err.Error())
 		return
 	}
 
-	err = models.DeleteSystem(id)
+	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	err = me.DeleteSystem(id)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 		return
@@ -148,8 +152,9 @@ func (c *MainController) GetSystem() {
 
 	query := strings.TrimSpace(c.GetString("query"))
 	per, _ := c.GetInt("per", models.PAGE_PER)
+	me, _ := c.Ctx.Input.GetData("me").(*models.User)
 
-	qs := models.QuerySystems(query)
+	qs := me.QuerySystems(query)
 	total, err := qs.Count()
 	if err != nil {
 		goto out
@@ -175,13 +180,15 @@ out:
 
 func (c *MainController) EditSystem() {
 	var system *models.System
+	var me *models.User
 
-	id, err := c.GetInt(":id")
+	id, err := c.GetInt64(":id")
 	if err != nil {
 		goto out
 	}
 
-	system, err = models.GetSystem(id)
+	me, _ = c.Ctx.Input.GetData("me").(*models.User)
+	system, err = me.GetSystem(id)
 	if err != nil {
 		goto out
 	}

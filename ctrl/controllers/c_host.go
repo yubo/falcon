@@ -21,6 +21,7 @@ type HostController struct {
 // @Title CreateHost
 // @Description create hosts
 // @Param	body	body 	models.Host	true	"body for host content"
+// @Param	tag	request string		true	"add host at the tag"
 // @Success {code:200, data:int} models.Host.Id
 // @Failure {code:int, msg:string}
 // @router / [post]
@@ -83,11 +84,12 @@ func (c *HostController) GetHosts() {
 // @Failure {code:int, msg:string}
 // @router /:id [get]
 func (c *HostController) GetHost() {
-	id, err := c.GetInt(":id")
+	id, err := c.GetInt64(":id")
+	me, _ := c.Ctx.Input.GetData("me").(*models.User)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		host, err := models.GetHost(id)
+		host, err := me.GetHost(id)
 		if err != nil {
 			c.SendMsg(403, err.Error())
 		} else {
@@ -107,7 +109,7 @@ func (c *HostController) UpdateHost() {
 	var host models.Host
 	me, _ := c.Ctx.Input.GetData("me").(*models.User)
 
-	id, err := c.GetInt(":id")
+	id, err := c.GetInt64(":id")
 	if err != nil {
 		c.SendMsg(403, err.Error())
 		return
@@ -130,7 +132,7 @@ func (c *HostController) UpdateHost() {
 // @router /:id [delete]
 func (c *HostController) DeleteHost() {
 	tag := c.GetString("tag")
-	id, err := c.GetInt(":id")
+	id, err := c.GetInt64(":id")
 	if err != nil {
 		c.SendMsg(403, err.Error())
 		return
@@ -184,13 +186,15 @@ out:
 
 func (c *MainController) EditHost() {
 	var host *models.Host
+	var me *models.User
 
-	id, err := c.GetInt(":id")
+	id, err := c.GetInt64(":id")
 	if err != nil {
 		goto out
 	}
 
-	host, err = models.GetHost(id)
+	me, _ = c.Ctx.Input.GetData("me").(*models.User)
+	host, err = me.GetHost(id)
 	if err != nil {
 		goto out
 	}

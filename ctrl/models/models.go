@@ -16,6 +16,7 @@ const (
 	SYS_R_SCOPE    = "falcon_tag_read"
 	SYS_B_SCOPE    = "falcon_tag_bind"
 	SYS_O_SCOPE    = "falcon_tag_operate"
+	SYS_A_SCOPE    = "falcon_admin"
 )
 
 const (
@@ -130,7 +131,7 @@ func start() error {
 			if v == module {
 				cacheModule[k] = cache{
 					enable: true,
-					data:   make(map[int]interface{}),
+					data:   make(map[int64]interface{}),
 				}
 				break
 			}

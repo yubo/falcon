@@ -29,7 +29,9 @@ func (c *ScopeController) CreateScope() {
 	var scope models.Scope
 	json.Unmarshal(c.Ctx.Input.RequestBody, &scope)
 	beego.Debug(string(c.Ctx.Input.RequestBody))
-	id, err := models.AddScope(&scope)
+	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+
+	id, err := me.AddScope(&scope)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -45,14 +47,15 @@ func (c *ScopeController) CreateScope() {
 // @router /cnt/:query [get]
 func (c *ScopeController) GetScopesCnt() {
 	query := strings.TrimSpace(c.GetString(":query"))
-	sysid, err := c.GetInt("system_id", 0)
+	sysid, err := c.GetInt64("system_id", 0)
 
 	if err != nil || sysid == 0 {
 		c.SendMsg(403, models.ErrParam.Error())
 		return
 	}
 
-	cnt, err := models.GetScopesCnt(sysid, query)
+	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	cnt, err := me.GetScopesCnt(sysid, query)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -73,13 +76,14 @@ func (c *ScopeController) GetScopes() {
 	per, _ := c.GetInt("per", models.PAGE_PER)
 	offset, _ := c.GetInt("offset", 0)
 
-	sysid, err := c.GetInt("system_id", 0)
+	sysid, err := c.GetInt64("system_id", 0)
 	if err != nil || sysid == 0 {
 		c.SendMsg(403, models.ErrParam.Error())
 		return
 	}
 
-	scopes, err := models.GetScopes(sysid, query, per, offset)
+	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	scopes, err := me.GetScopes(sysid, query, per, offset)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -94,11 +98,12 @@ func (c *ScopeController) GetScopes() {
 // @Failure {code:int, msg:string}
 // @router /:id [get]
 func (c *ScopeController) GetScope() {
-	id, err := c.GetInt(":id")
+	id, err := c.GetInt64(":id")
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		scope, err := models.GetScope(id)
+		me, _ := c.Ctx.Input.GetData("me").(*models.User)
+		scope, err := me.GetScope(id)
 		if err != nil {
 			c.SendMsg(403, err.Error())
 		} else {
@@ -117,15 +122,15 @@ func (c *ScopeController) GetScope() {
 func (c *ScopeController) UpdateScope() {
 	var scope models.Scope
 
-	id, err := c.GetInt(":id")
+	id, err := c.GetInt64(":id")
 	if err != nil {
 		c.SendMsg(403, err.Error())
 		return
 	}
 
 	json.Unmarshal(c.Ctx.Input.RequestBody, &scope)
-
-	if u, err := models.UpdateScope(id, &scope); err != nil {
+	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	if u, err := me.UpdateScope(id, &scope); err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
 		c.SendObj(200, u)
@@ -139,13 +144,14 @@ func (c *ScopeController) UpdateScope() {
 // @Failure {code:403, msg:string}
 // @router /:id [delete]
 func (c *ScopeController) DeleteScope() {
-	id, err := c.GetInt(":id")
+	id, err := c.GetInt64(":id")
 	if err != nil {
 		c.SendMsg(403, err.Error())
 		return
 	}
 
-	err = models.DeleteScope(id)
+	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	err = me.DeleteScope(id)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 		return
@@ -162,7 +168,7 @@ func (c *ScopeController) DeleteScope() {
 func (c *MainController) GetScope() {
 	var scopes []*models.Scope
 
-	sysid, err := c.GetInt(":sysid")
+	sysid, err := c.GetInt64(":sysid")
 	if err != nil {
 		c.SendMsg(400, err.Error())
 		return
@@ -170,8 +176,9 @@ func (c *MainController) GetScope() {
 
 	query := strings.TrimSpace(c.GetString("query"))
 	per, _ := c.GetInt("per", models.PAGE_PER)
+	me, _ := c.Ctx.Input.GetData("me").(*models.User)
 
-	qs := models.QueryScopes(sysid, query)
+	qs := me.QueryScopes(sysid, query)
 	total, err := qs.Count()
 	if err != nil {
 		goto out
@@ -198,17 +205,19 @@ out:
 func (c *MainController) EditScope() {
 	var scope *models.Scope
 	var sys *models.System
+	var me *models.User
 
-	id, err := c.GetInt(":id")
+	id, err := c.GetInt64(":id")
 	if err != nil {
 		goto out
 	}
 
-	scope, err = models.GetScope(id)
+	me, _ = c.Ctx.Input.GetData("me").(*models.User)
+	scope, err = me.GetScope(id)
 	if err != nil {
 		goto out
 	}
-	sys, err = models.GetSystem(scope.System_id)
+	sys, err = me.GetSystem(scope.System_id)
 	if err != nil {
 		goto out
 	}
@@ -226,13 +235,15 @@ out:
 
 func (c *MainController) AddScope() {
 	var sys *models.System
+	var me *models.User
 
-	sysid, err := c.GetInt(":sysid")
+	sysid, err := c.GetInt64(":sysid")
 	if err != nil {
 		goto out
 	}
 
-	sys, err = models.GetSystem(sysid)
+	me, _ = c.Ctx.Input.GetData("me").(*models.User)
+	sys, err = me.GetSystem(sysid)
 	if err != nil {
 		goto out
 	}

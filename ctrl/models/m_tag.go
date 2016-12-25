@@ -14,15 +14,15 @@ import (
 )
 
 type Tag struct {
-	Id          int       `json:"id"`
+	Id          int64     `json:"id"`
 	Name        string    `json:"name"`
 	Create_time time.Time `json:"-"`
 }
 
 type Tag_rel struct {
-	Id         int
-	Tag_id     int
-	Sup_tag_id int
+	Id         int64
+	Tag_id     int64
+	Sup_tag_id int64
 }
 
 type TagNode struct {
@@ -153,9 +153,7 @@ func TagParent(t string) string {
 	}
 }
 
-func (u *User) AddTag(t *Tag) (id int, err error) {
-	var id64 int64
-
+func (u *User) AddTag(t *Tag) (id int64, err error) {
 	if t.Name, err = sysTagSchema.Fmt(t.Name,
 		false); err != nil {
 		return
@@ -163,20 +161,26 @@ func (u *User) AddTag(t *Tag) (id int, err error) {
 
 	// TODO: check parent exist/acl
 	if _, err = u.Access(SYS_W_SCOPE,
-		TagParent(t.Name)); err != nil {
+		TagParent(t.Name), true); err != nil {
 		return
 	}
 
-	if id64, err = orm.NewOrm().Insert(t); err != nil {
+	if id, err = orm.NewOrm().Insert(t); err != nil {
 		return
 	}
-	id = int(id64)
 
 	if parents := TagParents(t.Name); len(parents) > 0 {
-		var tags []*Tag
+		var (
+			tags []*Tag
+			arg  = make([]interface{}, len(parents))
+		)
+
+		for i, v := range parents {
+			arg[i] = v
+		}
 
 		_, err = orm.NewOrm().QueryTable(new(Tag)).
-			Filter("Name__in", parents...).ALL(&tags)
+			Filter("Name__in", arg...).All(&tags)
 		if err != nil {
 			return
 		}
@@ -184,20 +188,20 @@ func (u *User) AddTag(t *Tag) (id int, err error) {
 		for i, tag := range tags {
 			tag_rels[i] = Tag_rel{Tag_id: id, Sup_tag_id: tag.Id}
 		}
-		_, err = orm.NewOrm.InsertMulti(10, tag_rels)
+		_, err = orm.NewOrm().InsertMulti(10, tag_rels)
 		if err != nil {
 			return
 		}
 	}
 
 	t.Id = id
-	cacheModule[CTL_M_TAG].set(t.Id, t)
-	DbLog(u.Id, CTL_M_TAG, t.Id, CTL_A_ADD, "")
+	cacheModule[CTL_M_TAG].set(id, t)
+	DbLog(u.Id, CTL_M_TAG, id, CTL_A_ADD, nil)
 
 	return id, err
 }
 
-func GetTag(id int) (*Tag, error) {
+func (u *User) GetTag(id int64) (*Tag, error) {
 	if t, ok := cacheModule[CTL_M_TAG].get(id).(*Tag); ok {
 		return t, nil
 	}
@@ -207,6 +211,12 @@ func GetTag(id int) (*Tag, error) {
 		cacheModule[CTL_M_TAG].set(id, t)
 	}
 	return t, err
+}
+
+func (u *User) GetTagByName(tag string) (t *Tag, err error) {
+	t = &Tag{Name: tag}
+	err = orm.NewOrm().Read(t, "Name")
+	return
 }
 
 func (u *User) QueryTags(query string) orm.QuerySeter {
@@ -228,13 +238,13 @@ func (u *User) GetTags(query string, limit, offset int) (tags []*Tag, err error)
 	return
 }
 
-func (u *User) UpdateTag(id int, _t *Tag) (t *Tag, err error) {
-	if t, err = GetTag(id); err != nil {
+func (u *User) UpdateTag(id int64, _t *Tag) (t *Tag, err error) {
+	if t, err = u.GetTag(id); err != nil {
 		return
 	}
 
 	if _, err = u.Access(SYS_W_SCOPE,
-		TagParent(t.Name)); err != nil {
+		TagParent(t.Name), true); err != nil {
 		return
 	}
 
@@ -242,20 +252,20 @@ func (u *User) UpdateTag(id int, _t *Tag) (t *Tag, err error) {
 		t.Name = _t.Name
 	}
 	_, err = orm.NewOrm().Update(t)
-	DbLog(u.Id, CTL_M_TAG, t.Id, CTL_A_SET, "")
+	DbLog(u.Id, CTL_M_TAG, id, CTL_A_SET, nil)
 	return t, err
 }
 
-func (u *User) DeleteTag(id int) (err error) {
+func (u *User) DeleteTag(id int64) (err error) {
 	var n int64
 	var tag *Tag
 
-	if tag, err = GetTag(id); err != nil {
+	if tag, err = u.GetTag(id); err != nil {
 		return
 	}
 
 	if _, err = u.Access(SYS_W_SCOPE,
-		TagParent(tag.Name)); err != nil {
+		TagParent(tag.Name), false); err != nil {
 		return
 	}
 
@@ -263,6 +273,7 @@ func (u *User) DeleteTag(id int) (err error) {
 		return ErrNoExits
 	}
 	cacheModule[CTL_M_TAG].del(id)
+	DbLog(u.Id, CTL_M_TAG, id, CTL_A_DEL, nil)
 
 	return nil
 }

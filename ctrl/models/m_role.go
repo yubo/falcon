@@ -6,32 +6,33 @@
 package models
 
 import (
+	"encoding/json"
 	"time"
 
-	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/orm"
 )
 
 type Role struct {
-	Id          int       `json:"id"`
+	Id          int64     `json:"id"`
 	Name        string    `json:"name"`
 	Cname       string    `json:"cname"`
 	Note        string    `json:"note"`
 	Create_time time.Time `json:"-"`
 }
 
-func AddRole(r *Role) (int, error) {
-	id, err := orm.NewOrm().Insert(r)
+func (u *User) AddRole(r *Role) (id int64, err error) {
+	id, err = orm.NewOrm().Insert(r)
 	if err != nil {
-		beego.Error(err)
-		return 0, err
+		return
 	}
-	r.Id = int(id)
-	cacheModule[CTL_M_ROLE].set(r.Id, r)
-	return r.Id, err
+	r.Id = id
+	cacheModule[CTL_M_ROLE].set(id, r)
+	data, _ := json.Marshal(r)
+	DbLog(u.Id, CTL_M_ROLE, id, CTL_A_ADD, data)
+	return
 }
 
-func GetRole(id int) (*Role, error) {
+func (u *User) GetRole(id int64) (*Role, error) {
 	if r, ok := cacheModule[CTL_M_ROLE].get(id).(*Role); ok {
 		return r, nil
 	}
@@ -43,7 +44,7 @@ func GetRole(id int) (*Role, error) {
 	return r, err
 }
 
-func QueryRoles(query string) orm.QuerySeter {
+func (u *User) QueryRoles(query string) orm.QuerySeter {
 	qs := orm.NewOrm().QueryTable(new(Role))
 	if query != "" {
 		qs = qs.Filter("Name__icontains", query)
@@ -51,18 +52,18 @@ func QueryRoles(query string) orm.QuerySeter {
 	return qs
 }
 
-func GetRolesCnt(query string) (int, error) {
-	cnt, err := QueryRoles(query).Count()
+func (u *User) GetRolesCnt(query string) (int, error) {
+	cnt, err := u.QueryRoles(query).Count()
 	return int(cnt), err
 }
 
-func GetRoles(query string, limit, offset int) (roles []*Role, err error) {
-	_, err = QueryRoles(query).Limit(limit, offset).All(&roles)
+func (u *User) GetRoles(query string, limit, offset int) (roles []*Role, err error) {
+	_, err = u.QueryRoles(query).Limit(limit, offset).All(&roles)
 	return
 }
 
-func UpdateRole(id int, _r *Role) (r *Role, err error) {
-	if r, err = GetRole(id); err != nil {
+func (u *User) UpdateRole(id int64, _r *Role) (r *Role, err error) {
+	if r, err = u.GetRole(id); err != nil {
 		return nil, ErrNoRole
 	}
 
@@ -76,15 +77,17 @@ func UpdateRole(id int, _r *Role) (r *Role, err error) {
 		r.Note = _r.Note
 	}
 	_, err = orm.NewOrm().Update(r)
+	DbLog(u.Id, CTL_M_ROLE, id, CTL_A_SET, nil)
 	return r, err
 }
 
-func DeleteRole(id int) error {
+func (u *User) DeleteRole(id int64) error {
 
 	if n, err := orm.NewOrm().Delete(&Role{Id: id}); err != nil || n == 0 {
 		return ErrNoExits
 	}
 	cacheModule[CTL_M_ROLE].del(id)
+	DbLog(u.Id, CTL_M_ROLE, id, CTL_A_DEL, nil)
 
 	return nil
 }

@@ -105,16 +105,17 @@ func (c *AuthController) Logout() {
 	}
 }
 
-func (c *AuthController) Access(uuid string) (id int) {
+func (c *AuthController) Access(uuid string) (id int64) {
 	beego.Debug("Access uuid:", uuid)
-	user, err := models.GetUserByUuid(uuid)
+	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	user, err := me.GetUserByUuid(uuid)
 	if err != nil {
-		id, err = models.AddUser(&models.User{Uuid: uuid})
+		id, err = me.AddUser(&models.User{Uuid: uuid})
 		if err != nil {
 			beego.Info(err)
 			return -1
 		}
-		user, err = models.GetUser(id)
+		user, err = me.GetUser(id)
 	}
 	c.SetSession("uid", user.Id)
 	return user.Id

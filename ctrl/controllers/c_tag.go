@@ -81,12 +81,12 @@ func (c *TagController) GetTags() {
 // @Failure {code:int, msg:string}
 // @router /:id [get]
 func (c *TagController) GetTag() {
-	id, err := c.GetInt(":id")
+	id, err := c.GetInt64(":id")
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		tag, err := models.GetTag(id)
-		if err != nil {
+		me, _ := c.Ctx.Input.GetData("me").(*models.User)
+		if tag, err := me.GetTag(id); err != nil {
 			c.SendMsg(403, err.Error())
 		} else {
 			c.SendObj(200, tag)
@@ -105,7 +105,7 @@ func (c *TagController) UpdateTag() {
 	var tag models.Tag
 	me, _ := c.Ctx.Input.GetData("me").(*models.User)
 
-	id, err := c.GetInt(":id")
+	id, err := c.GetInt64(":id")
 	if err != nil {
 		c.SendMsg(403, err.Error())
 		return
@@ -127,7 +127,7 @@ func (c *TagController) UpdateTag() {
 // @Failure {code:403, msg:string}
 // @router /:id [delete]
 func (c *TagController) DeleteTag() {
-	id, err := c.GetInt(":id")
+	id, err := c.GetInt64(":id")
 	if err != nil {
 		c.SendMsg(403, err.Error())
 		return
@@ -181,14 +181,15 @@ out:
 
 func (c *MainController) EditTag() {
 	var tag *models.Tag
+	var me *models.User
 
-	id, err := c.GetInt(":id")
+	id, err := c.GetInt64(":id")
 	if err != nil {
 		goto out
 	}
 
-	tag, err = models.GetTag(id)
-	if err != nil {
+	me, _ = c.Ctx.Input.GetData("me").(*models.User)
+	if tag, err = me.GetTag(id); err != nil {
 		goto out
 	}
 

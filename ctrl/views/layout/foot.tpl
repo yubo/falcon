@@ -241,7 +241,7 @@ function delete_user(id) {
 }
 
 function edit_host(id, method) {
-	jQuery[method]('/v1.0/host/'+id, JSON.stringify({
+	jQuery[method]('/v1.0/host/'+id+'?tag='+$("#tag").val(), JSON.stringify({
 		"Uuid" : $("#uuid").val(),
 		"name" : $("#name").val(),
 		"type" : $("#type").val(),

@@ -27,7 +27,7 @@ func (c *MainController) PutProfile() {
 		user.Name = ""
 	}
 
-	if u, err := models.UpdateUser(me.Id, &user); err != nil {
+	if u, err := me.UpdateUser(me.Id, &user); err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
 		c.SendObj(200, u)

@@ -6,45 +6,53 @@
 package models
 
 import (
+	"encoding/json"
 	"time"
 
-	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/orm"
 )
 
 type Scope struct {
-	Id          int       `json:"id"`
+	Id          int64     `json:"id"`
 	Name        string    `json:"name"`
-	System_id   int       `json:"system_id"`
+	System_id   int64     `json:"system_id"`
 	Cname       string    `json:"cname"`
 	Note        string    `json:"note"`
 	Create_time time.Time `json:"-"`
 }
 
-func AddScope(s *Scope) (int, error) {
-	id, err := orm.NewOrm().Insert(s)
-	if err != nil {
-		beego.Error(err)
-		return 0, err
+func (u *User) AddScope(s *Scope) (id int64, err error) {
+	if id, err = orm.NewOrm().Insert(s); err != nil {
+		return
 	}
-	s.Id = int(id)
-	cacheModule[CTL_M_SCOPE].set(s.Id, s)
-	return s.Id, err
+	s.Id = id
+	cacheModule[CTL_M_SCOPE].set(id, s)
+	data, _ := json.Marshal(s)
+	DbLog(u.Id, CTL_M_SCOPE, id, CTL_A_ADD, data)
+	return
 }
 
-func GetScope(id int) (*Scope, error) {
-	if s, ok := cacheModule[CTL_M_SCOPE].get(id).(*Scope); ok {
-		return s, nil
+func (u *User) GetScope(id int64) (s *Scope, err error) {
+	var ok bool
+
+	if s, ok = cacheModule[CTL_M_SCOPE].get(id).(*Scope); ok {
+		return
 	}
-	s := &Scope{Id: id}
-	err := orm.NewOrm().Read(s, "Id")
+	s = &Scope{Id: id}
+	err = orm.NewOrm().Read(s, "Id")
 	if err == nil {
 		cacheModule[CTL_M_SCOPE].set(id, s)
 	}
-	return s, err
+	return
 }
 
-func QueryScopes(sysid int, query string) orm.QuerySeter {
+func (u *User) GetScopeByName(scope string) (s *Scope, err error) {
+	s = &Scope{Name: scope}
+	err = orm.NewOrm().Read(s, "Name")
+	return
+}
+
+func (u *User) QueryScopes(sysid int64, query string) orm.QuerySeter {
 	qs := orm.NewOrm().QueryTable(new(Scope)).Filter("System_id", sysid)
 	if query != "" {
 		qs = qs.Filter("Name__icontains", query)
@@ -52,18 +60,18 @@ func QueryScopes(sysid int, query string) orm.QuerySeter {
 	return qs
 }
 
-func GetScopesCnt(sysid int, query string) (int, error) {
-	cnt, err := QueryScopes(sysid, query).Count()
+func (u *User) GetScopesCnt(sysid int64, query string) (int, error) {
+	cnt, err := u.QueryScopes(sysid, query).Count()
 	return int(cnt), err
 }
 
-func GetScopes(sysid int, query string, limit, offset int) (scopes []*Scope, err error) {
-	_, err = QueryScopes(sysid, query).Limit(limit, offset).All(&scopes)
+func (u *User) GetScopes(sysid int64, query string, limit, offset int) (scopes []*Scope, err error) {
+	_, err = u.QueryScopes(sysid, query).Limit(limit, offset).All(&scopes)
 	return
 }
 
-func UpdateScope(id int, _s *Scope) (s *Scope, err error) {
-	if s, err = GetScope(id); err != nil {
+func (u *User) UpdateScope(id int64, _s *Scope) (s *Scope, err error) {
+	if s, err = u.GetScope(id); err != nil {
 		return nil, ErrNoScope
 	}
 
@@ -82,15 +90,17 @@ func UpdateScope(id int, _s *Scope) (s *Scope, err error) {
 		s.Note = _s.Note
 	}
 	_, err = orm.NewOrm().Update(s)
+	DbLog(u.Id, CTL_M_SCOPE, id, CTL_A_SET, nil)
 	return s, err
 }
 
-func DeleteScope(id int) error {
+func (u *User) DeleteScope(id int64) error {
 
 	if n, err := orm.NewOrm().Delete(&Scope{Id: id}); err != nil || n == 0 {
 		return ErrNoExits
 	}
 	cacheModule[CTL_M_SCOPE].del(id)
+	DbLog(u.Id, CTL_M_SCOPE, id, CTL_A_DEL, nil)
 
 	return nil
 }

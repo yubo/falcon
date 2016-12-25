@@ -6,14 +6,14 @@
 package models
 
 import (
+	"encoding/json"
 	"time"
 
-	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/orm"
 )
 
 type User struct {
-	Id          int       `json:"id"`
+	Id          int64     `json:"id"`
 	Uuid        string    `json:"uuid"`
 	Name        string    `json:"name"`
 	Cname       string    `json:"cname"`
@@ -24,44 +24,100 @@ type User struct {
 	Create_time time.Time `json:"-"`
 }
 
-func (u *User) AccessTid(scope string, tag int) error {
-	return nil
-}
+// return nil *Tag if tag not exist
+func (u *User) Access(scope, tag string, chkExist bool) (t *Tag, err error) {
+	var s *Scope
+	var tag_id int64
 
-func (u *User) Access(scope, tag string) (*Tag, error) {
-	return nil, nil
-}
-
-func AddUser(u *User) (int, error) {
-	id, err := orm.NewOrm().Insert(u)
-	if err != nil {
-		beego.Error(err)
-		return 0, err
+	// if not found, err will be return <QuerySeter> no row found
+	if t, err = u.GetTagByName(tag); chkExist && err != nil {
+		return
 	}
-	u.Id = int(id)
-	cacheModule[CTL_M_USER].set(u.Id, u)
-	return u.Id, err
+
+	if u.IsAdmin() {
+		return
+	}
+
+	if s, err = u.GetScopeByName(scope); err != nil {
+		return
+	}
+
+	// TODO: test
+	err = orm.NewOrm().Raw(`
+SELECT sup_tag_id
+FROM tag_rel
+WHERE sup_tag_id IN (
+    SELECT user_scope.user_tag_id
+    FROM (SELECT a.tag_id AS user_tag_id,
+                b.tag_id AS scope_tag_id,
+                a.role_id AS role_id,
+                a.user_id AS user_id,
+                b.scope_id AS scope_id
+          FROM tag_role_user a
+          JOIN tag_role_scope b
+          ON a.user_id = ? AND b.scope_id = ? AND a.role_id = b.role_id) user_scope
+   JOIN tag_rel 
+   ON user_scope.user_tag_id = tag_rel.tag_id AND user_scope.scope_tag_id = tag_rel.sup_tag_id
+   GROUP BY user_scope.user_tag_id)
+AND tag_id = ?
+`,
+		u.Id, s.Id, t.Id).QueryRow(&tag_id)
+
+	return
 }
 
-func GetUser(id int) (*User, error) {
-	if u, ok := cacheModule[CTL_M_USER].get(id).(*User); ok {
-		return u, nil
+func (u *User) AccessTid(scope string, tag int64, chkExist bool) (t *Tag, err error) {
+	if t, err = u.GetTag(tag); chkExist && err != nil {
+		return
 	}
-	u := &User{Id: id}
-	err := orm.NewOrm().Read(u, "Id")
+
+	if u.IsAdmin() {
+		return
+	}
+
+	return
+}
+
+func (u *User) IsAdmin() bool {
+	return u.Id == 1
+}
+
+func (u *User) AddUser(user *User) (id int64, err error) {
+	if id, err = orm.NewOrm().Insert(user); err != nil {
+		return
+	}
+	user.Id = id
+	cacheModule[CTL_M_USER].set(id, user)
+
+	data, _ := json.Marshal(user)
+	DbLog(u.Id, CTL_M_USER, id, CTL_A_ADD, data)
+	return
+}
+
+// just called from profileFilter()
+func GetUser(id int64) (*User, error) {
+	if user, ok := cacheModule[CTL_M_USER].get(id).(*User); ok {
+		return user, nil
+	}
+	user := &User{Id: id}
+	err := orm.NewOrm().Read(user, "Id")
 	if err == nil {
-		cacheModule[CTL_M_USER].set(id, u)
+		cacheModule[CTL_M_USER].set(id, user)
 	}
-	return u, err
+	return user, err
 }
 
-func GetUserByUuid(uuid string) (u *User, err error) {
-	u = &User{Uuid: uuid}
-	err = orm.NewOrm().Read(u, "Uuid")
-	return u, err
+func (u *User) GetUser(id int64) (*User, error) {
+	return GetUser(id)
 }
 
-func QueryUsers(query string) orm.QuerySeter {
+func (u *User) GetUserByUuid(uuid string) (user *User, err error) {
+	user = &User{Uuid: uuid}
+	err = orm.NewOrm().Read(user, "Uuid")
+	return user, err
+}
+
+func (u *User) QueryUsers(query string) orm.QuerySeter {
 	qs := orm.NewOrm().QueryTable(new(User))
 	if query != "" {
 		qs = qs.SetCond(orm.NewCondition().Or("Name__icontains", query).Or("Email__icontains", query))
@@ -69,48 +125,50 @@ func QueryUsers(query string) orm.QuerySeter {
 	return qs
 }
 
-func GetUsersCnt(query string) (int, error) {
-	cnt, err := QueryUsers(query).Count()
+func (u *User) GetUsersCnt(query string) (int, error) {
+	cnt, err := u.QueryUsers(query).Count()
 	return int(cnt), err
 }
 
-func GetUsers(query string, limit, offset int) (users []*User, err error) {
-	_, err = QueryUsers(query).Limit(limit, offset).All(&users)
+func (u *User) GetUsers(query string, limit, offset int) (users []*User, err error) {
+	_, err = u.QueryUsers(query).Limit(limit, offset).All(&users)
 	return
 }
 
-func UpdateUser(id int, _u *User) (u *User, err error) {
-	if u, err = GetUser(id); err != nil {
+func (u *User) UpdateUser(id int64, _u *User) (user *User, err error) {
+	if user, err = u.GetUser(id); err != nil {
 		return nil, ErrNoUsr
 	}
 
 	if _u.Name != "" {
-		u.Name = _u.Name
+		user.Name = _u.Name
 	}
 	if _u.Cname != "" {
-		u.Cname = _u.Cname
+		user.Cname = _u.Cname
 	}
 	if _u.Email != "" {
-		u.Email = _u.Email
+		user.Email = _u.Email
 	}
 	if _u.Phone != "" {
-		u.Phone = _u.Phone
+		user.Phone = _u.Phone
 	}
 	if _u.IM != "" {
-		u.IM = _u.IM
+		user.IM = _u.IM
 	}
 	if _u.QQ != "" {
-		u.QQ = _u.QQ
+		user.QQ = _u.QQ
 	}
-	_, err = orm.NewOrm().Update(u)
-	return u, err
+	_, err = orm.NewOrm().Update(user)
+	DbLog(u.Id, CTL_M_USER, id, CTL_A_SET, nil)
+	return user, err
 }
 
-func DeleteUser(id int) error {
+func (u *User) DeleteUser(id int64) error {
 	if n, err := orm.NewOrm().Delete(&User{Id: id}); err != nil || n == 0 {
 		return ErrNoExits
 	}
 	cacheModule[CTL_M_USER].del(id)
+	DbLog(u.Id, CTL_M_USER, id, CTL_A_DEL, nil)
 
 	return nil
 }

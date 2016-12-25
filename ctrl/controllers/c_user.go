@@ -26,8 +26,8 @@ type UserController struct {
 func (c *UserController) CreateUser() {
 	var user models.User
 	json.Unmarshal(c.Ctx.Input.RequestBody, &user)
-	id, err := models.AddUser(&user)
-	if err != nil {
+	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	if id, err := me.AddUser(&user); err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
 		c.SendObj(200, id)
@@ -41,9 +41,9 @@ func (c *UserController) CreateUser() {
 // @router /cnt/:query [get]
 func (c *UserController) GetUsersCnt() {
 	query := strings.TrimSpace(c.GetString(":query"))
+	me, _ := c.Ctx.Input.GetData("me").(*models.User)
 
-	cnt, err := models.GetUsersCnt(query)
-	if err != nil {
+	if cnt, err := me.GetUsersCnt(query); err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
 		c.SendObj(200, cnt)
@@ -61,9 +61,9 @@ func (c *UserController) GetUsers() {
 	query := strings.TrimSpace(c.GetString(":query"))
 	per, _ := c.GetInt("per", models.PAGE_PER)
 	offset, _ := c.GetInt("offset", 0)
+	me, _ := c.Ctx.Input.GetData("me").(*models.User)
 
-	users, err := models.GetUsers(query, per, offset)
-	if err != nil {
+	if users, err := me.GetUsers(query, per, offset); err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
 		c.SendObj(200, users)
@@ -77,12 +77,12 @@ func (c *UserController) GetUsers() {
 // @Failure {code:int, msg:string}
 // @router /:id [get]
 func (c *UserController) GetUser() {
-	id, err := c.GetInt(":id")
+	id, err := c.GetInt64(":id")
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		user, err := models.GetUser(id)
-		if err != nil {
+		me, _ := c.Ctx.Input.GetData("me").(*models.User)
+		if user, err := me.GetUser(id); err != nil {
 			c.SendMsg(403, err.Error())
 		} else {
 			c.SendObj(200, user)
@@ -100,7 +100,7 @@ func (c *UserController) GetUser() {
 func (c *UserController) UpdateUser() {
 	var user models.User
 
-	id, err := c.GetInt(":id")
+	id, err := c.GetInt64(":id")
 	if err != nil {
 		c.SendMsg(403, err.Error())
 		return
@@ -108,7 +108,8 @@ func (c *UserController) UpdateUser() {
 
 	json.Unmarshal(c.Ctx.Input.RequestBody, &user)
 
-	if u, err := models.UpdateUser(id, &user); err != nil {
+	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	if u, err := me.UpdateUser(id, &user); err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
 		c.SendObj(200, u)
@@ -122,14 +123,14 @@ func (c *UserController) UpdateUser() {
 // @Failure {code:int, msg:string}
 // @router /:id [delete]
 func (c *UserController) DeleteUser() {
-	id, err := c.GetInt(":id")
+	id, err := c.GetInt64(":id")
 	if err != nil {
 		c.SendMsg(403, err.Error())
 		return
 	}
 
-	err = models.DeleteUser(id)
-	if err != nil {
+	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	if err = me.DeleteUser(id); err != nil {
 		c.SendMsg(403, err.Error())
 		return
 	}
@@ -145,8 +146,9 @@ func (c *MainController) GetUser() {
 
 	query := strings.TrimSpace(c.GetString("query"))
 	per, _ := c.GetInt("per", models.PAGE_PER)
+	me, _ := c.Ctx.Input.GetData("me").(*models.User)
 
-	qs := models.QueryUsers(query)
+	qs := me.QueryUsers(query)
 	total, err := qs.Count()
 	if err != nil {
 		goto out
@@ -171,15 +173,15 @@ out:
 }
 
 func (c *MainController) EditUser() {
-	var user *models.User
+	var me, user *models.User
 
-	id, err := c.GetInt(":id")
+	id, err := c.GetInt64(":id")
 	if err != nil {
 		goto out
 	}
 
-	user, err = models.GetUser(id)
-	if err != nil {
+	me, _ = c.Ctx.Input.GetData("me").(*models.User)
+	if user, err = me.GetUser(id); err != nil {
 		goto out
 	}
 

@@ -3,13 +3,20 @@
   <div class="page-header">
     <h1 class="page-header">{{.H1}} {{.Host.Id}}</h1>
     <form>
+{{if eq .Method "post"}}
+      <div class="form-group">
+        <label for="tag">tag</label>
+        <input type="text" name="tag" id="tag" class="form-control" value="" />
+      </div>
+{{end}}
+
       <div class="form-group">
         <label for="name">机器名</label>
         <input type="text" name="name" id="name" class="form-control" value="{{.Host.Name}}" />
       </div>
 
       <div class="form-group">
-        <label for="Uuid">uuid</label>
+        <label for="uuid">uuid</label>
         <input type="text" name="uuid" id="uuid" class="form-control" value="{{.Host.Uuid}}" />
       </div>
 

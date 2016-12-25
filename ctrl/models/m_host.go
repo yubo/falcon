@@ -6,6 +6,7 @@
 package models
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/astaxie/beego"
@@ -13,7 +14,7 @@ import (
 )
 
 type Host struct {
-	Id          int       `json:"id"`
+	Id          int64     `json:"id"`
 	Uuid        string    `json:"uuid"`
 	Name        string    `json:"name"`
 	Type        string    `json:"type"`
@@ -23,17 +24,16 @@ type Host struct {
 	Create_time time.Time `json:"-"`
 }
 
-func (u *User) AddHost(h *Host, tagstring string) (_id int, err error) {
-	var id int64
+func (u *User) AddHost(h *Host, tag string) (id int64, err error) {
 	var t *Tag
 
-	if tagstring, err = sysTagSchema.Fmt(t.Name,
+	if tag, err = sysTagSchema.Fmt(tag,
 		false); err != nil {
 		return
 	}
 
 	if t, err = u.Access(SYS_W_SCOPE,
-		TagParent(tagstring)); err != nil {
+		tag, true); err != nil {
 		return
 	}
 
@@ -43,20 +43,21 @@ func (u *User) AddHost(h *Host, tagstring string) (_id int, err error) {
 		return
 	}
 
-	// TODO: bind host to t.Name
-	_, err = orm.NewOrm().Raw("insert into tag_host(tag_id, host_id) values (?, ?)", id, t.Id).Exec()
+	// bind host to tag
+	_, err = orm.NewOrm().Raw("insert into tag_host(tag_id, host_id) values (?, ?)", t.Id, id).Exec()
 	if err != nil {
 		return
 	}
 
-	h.Id = int(id)
-	cacheModule[CTL_M_HOST].set(h.Id, h)
-	DbLog(u.Id, CTL_M_HOST, h.Id, CTL_A_ADD, "")
+	h.Id = id
+	cacheModule[CTL_M_HOST].set(id, h)
+	data, _ := json.Marshal(h)
+	DbLog(u.Id, CTL_M_HOST, id, CTL_A_ADD, data)
 
-	return h.Id, nil
+	return
 }
 
-func GetHost(id int) (*Host, error) {
+func (u *User) GetHost(id int64) (*Host, error) {
 	if h, ok := cacheModule[CTL_M_HOST].get(id).(*Host); ok {
 		return h, nil
 	}
@@ -68,7 +69,7 @@ func GetHost(id int) (*Host, error) {
 	return h, err
 }
 
-func GetHostByUuid(uuid string) (h *Host, err error) {
+func (u *User) GetHostByUuid(uuid string) (h *Host, err error) {
 	h = &Host{Uuid: uuid}
 	err = orm.NewOrm().Read(h, "Uuid")
 	return h, err
@@ -76,6 +77,7 @@ func GetHostByUuid(uuid string) (h *Host, err error) {
 
 func (u *User) QueryHosts(query string) orm.QuerySeter {
 	// TODO: acl filter
+	// just for admin?
 	qs := orm.NewOrm().QueryTable(new(Host))
 	if query != "" {
 		qs = qs.Filter("Name__icontains", query)
@@ -93,8 +95,8 @@ func (u *User) GetHosts(query string, limit, offset int) (hosts []*Host, err err
 	return
 }
 
-func (u *User) UpdateHost(id int, _h *Host) (h *Host, err error) {
-	if h, err = GetHost(id); err != nil {
+func (u *User) UpdateHost(id int64, _h *Host) (h *Host, err error) {
+	if h, err = u.GetHost(id); err != nil {
 		return nil, ErrNoHost
 	}
 
@@ -120,15 +122,15 @@ func (u *User) UpdateHost(id int, _h *Host) (h *Host, err error) {
 		h.Idc = _h.Idc
 	}
 	_, err = orm.NewOrm().Update(h)
-	DbLog(u.Id, CTL_M_HOST, h.Id, CTL_A_SET, "")
+	DbLog(u.Id, CTL_M_HOST, id, CTL_A_SET, nil)
 	return h, err
 }
 
-func (u *User) DeleteHost(host_id int, tag string) (err error) {
+func (u *User) DeleteHost(id int64, tag string) (err error) {
 	var n, m int64
 	var t *Tag
 
-	qs := orm.NewOrm().QueryTable("tag_host").Filter("host_id", host_id)
+	qs := orm.NewOrm().QueryTable("tag_host").Filter("host_id", id)
 	n, err = qs.Count()
 	if err != nil {
 		// not exist
@@ -136,7 +138,7 @@ func (u *User) DeleteHost(host_id int, tag string) (err error) {
 	}
 
 	// ACL
-	if t, err = u.Access(SYS_W_SCOPE, tag); err != nil {
+	if t, err = u.Access(SYS_W_SCOPE, tag, true); err != nil {
 		return
 	}
 
@@ -147,11 +149,11 @@ func (u *User) DeleteHost(host_id int, tag string) (err error) {
 
 	// delete host_id if not bound by any tag
 	if n-m == 0 {
-		if n, err = orm.NewOrm().Delete(&Host{Id: host_id}); err != nil {
+		if n, err = orm.NewOrm().Delete(&Host{Id: id}); err != nil {
 			return
 		}
-		cacheModule[CTL_M_HOST].del(host_id)
-		DbLog(u.Id, CTL_M_HOST, host_id, CTL_A_DEL, "")
+		cacheModule[CTL_M_HOST].del(id)
+		DbLog(u.Id, CTL_M_HOST, id, CTL_A_DEL, nil)
 	}
 
 	return nil
