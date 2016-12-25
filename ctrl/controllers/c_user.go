@@ -161,7 +161,7 @@ func (c *MainController) GetUser() {
 	c.Data["Me"], _ = c.Ctx.Input.GetData("me").(*models.User)
 	c.Data["Users"] = users
 	c.Data["Query"] = query
-	c.Data["Search"] = userSearch
+	c.Data["Search"] = Search{"query", "/user"}
 
 	c.TplName = "user/list.tpl"
 	return

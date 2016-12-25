@@ -24,10 +24,13 @@ type HostController struct {
 // @Success {code:200, data:int} models.Host.Id
 // @Failure {code:int, msg:string}
 // @router / [post]
-func (c *HostController) CreatHost() {
+func (c *HostController) CreateHost() {
 	var host models.Host
+	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	tag := strings.TrimSpace(c.GetString("tag"))
+
 	json.Unmarshal(c.Ctx.Input.RequestBody, &host)
-	id, err := models.AddHost(&host)
+	id, err := me.AddHost(&host, tag)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -42,8 +45,9 @@ func (c *HostController) CreatHost() {
 // @router /cnt/:query [get]
 func (c *HostController) GetHostsCnt() {
 	query := strings.TrimSpace(c.GetString(":query"))
+	me, _ := c.Ctx.Input.GetData("me").(*models.User)
 
-	cnt, err := models.GetHostsCnt(query)
+	cnt, err := me.GetHostsCnt(query)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -62,8 +66,9 @@ func (c *HostController) GetHosts() {
 	query := strings.TrimSpace(c.GetString(":query"))
 	per, _ := c.GetInt("per", models.PAGE_PER)
 	offset, _ := c.GetInt("offset", 0)
+	me, _ := c.Ctx.Input.GetData("me").(*models.User)
 
-	hosts, err := models.GetHosts(query, per, offset)
+	hosts, err := me.GetHosts(query, per, offset)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -100,6 +105,7 @@ func (c *HostController) GetHost() {
 // @router /:id [put]
 func (c *HostController) UpdateHost() {
 	var host models.Host
+	me, _ := c.Ctx.Input.GetData("me").(*models.User)
 
 	id, err := c.GetInt(":id")
 	if err != nil {
@@ -109,7 +115,7 @@ func (c *HostController) UpdateHost() {
 
 	json.Unmarshal(c.Ctx.Input.RequestBody, &host)
 
-	if u, err := models.UpdateHost(id, &host); err != nil {
+	if u, err := me.UpdateHost(id, &host); err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
 		c.SendObj(200, u)
@@ -118,18 +124,20 @@ func (c *HostController) UpdateHost() {
 
 // @Title DeleteHost
 // @Description delete the host
-// @Param	id		path 	string	true		"The id you want to delete"
+// @Param	tag		path 	string	true		"The tag you want to delete"
 // @Success {code:200, data:"delete success!"} delete success!
 // @Failure {code:403, msg:string}
 // @router /:id [delete]
 func (c *HostController) DeleteHost() {
+	tag := c.GetString("tag")
 	id, err := c.GetInt(":id")
 	if err != nil {
 		c.SendMsg(403, err.Error())
 		return
 	}
 
-	err = models.DeleteHost(id)
+	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	err = me.DeleteHost(id, tag)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 		return
@@ -148,8 +156,9 @@ func (c *MainController) GetHost() {
 
 	query := strings.TrimSpace(c.GetString("query"))
 	per, _ := c.GetInt("per", models.PAGE_PER)
+	me, _ := c.Ctx.Input.GetData("me").(*models.User)
 
-	qs := models.QueryHosts(query)
+	qs := me.QueryHosts(query)
 	total, err := qs.Count()
 	if err != nil {
 		goto out
@@ -164,7 +173,7 @@ func (c *MainController) GetHost() {
 	c.PrepareEnv()
 	c.Data["Hosts"] = hosts
 	c.Data["Query"] = query
-	c.Data["Search"] = hostSearch
+	c.Data["Search"] = Search{"query", "/host"}
 
 	c.TplName = "host/list.tpl"
 	return

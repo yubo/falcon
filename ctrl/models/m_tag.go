@@ -6,9 +6,10 @@
 package models
 
 import (
+	"fmt"
+	"strings"
 	"time"
 
-	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/orm"
 )
 
@@ -18,15 +19,182 @@ type Tag struct {
 	Create_time time.Time `json:"-"`
 }
 
-func AddTag(t *Tag) (int, error) {
-	id, err := orm.NewOrm().Insert(t)
-	if err != nil {
-		beego.Error(err)
-		return 0, err
+type Tag_rel struct {
+	Id         int
+	Tag_id     int
+	Sup_tag_id int
+}
+
+type TagNode struct {
+	Key  string
+	Must bool
+}
+
+type TagSchema struct {
+	data  string
+	nodes []TagNode
+}
+
+//cop,owt,pdl,servicegroup;service,jobgroup;job,sbs;mod;srv;grp;cluster;loc;idc;status;
+func NewTagSchema(tag string) (*TagSchema, error) {
+	var (
+		i, j int
+	)
+
+	ret := &TagSchema{data: tag}
+	for i, j = 0, 0; j < len(tag); j++ {
+		if tag[j] == ',' {
+			if i >= j {
+				return nil, ErrParam
+			}
+			ret.nodes = append(ret.nodes, TagNode{
+				Key:  strings.TrimSpace(tag[i:j]),
+				Must: true,
+			})
+			i = j + 1
+		} else if tag[j] == ';' {
+			if i >= j {
+				return nil, ErrParam
+			}
+			ret.nodes = append(ret.nodes, TagNode{
+				Key:  strings.TrimSpace(tag[i:j]),
+				Must: false,
+			})
+			i = j + 1
+		}
 	}
-	t.Id = int(id)
+	if i != j || i == 0 {
+		return nil, ErrParam
+	}
+
+	return ret, nil
+}
+
+func tagMap(tag string) (map[string]string, error) {
+	var (
+		i, j int
+		k, v string
+		ret  = make(map[string]string)
+	)
+
+	for i, j = 0, 0; j < len(tag); j++ {
+		if tag[j] == '=' {
+			k = strings.TrimSpace(tag[i:j])
+			i = j + 1
+		} else if tag[j] == ',' {
+			v = strings.TrimSpace(tag[i:j])
+			if len(k) > 0 && len(v) > 0 {
+				ret[k] = v
+				k, v = "", ""
+			} else {
+				return ret, ErrParam
+			}
+			i = j + 1
+		}
+	}
+
+	v = strings.TrimSpace(tag[i:])
+	if len(k) > 0 && len(v) > 0 {
+		ret[k] = v
+		return ret, nil
+	} else {
+		return ret, ErrParam
+	}
+}
+
+func (ts *TagSchema) Fmt(tag string, force bool) (string, error) {
+	var (
+		ret string
+		n   int
+	)
+
+	m, err := tagMap(tag)
+	if err != nil {
+		return "", err
+	}
+	for _, node := range ts.nodes {
+		if v, ok := m[node.Key]; ok {
+			ret += fmt.Sprintf("%s=%s,", node.Key, v)
+			n++
+		} else if !force && node.Must {
+			return ret, ErrParam
+		}
+
+		// done
+		if n == len(m) {
+			return ret[:len(ret)-1], nil
+		}
+	}
+
+	// some m.key miss match
+	if force && len(ret) > 1 {
+		return ret[0 : len(ret)-1], nil
+	}
+
+	return ret, ErrParam
+}
+
+func TagParents(t string) []string {
+	tags := strings.Split(t, ",")
+	ret := make([]string, len(tags)-1)
+
+	for tag, i := "", 0; i < len(ret); i++ {
+		tag += tags[i] + ","
+		ret = append(ret, tag[:len(tag)-1])
+	}
+	return ret
+}
+
+func TagParent(t string) string {
+	if i := strings.LastIndexAny(t, ","); i > 0 {
+		return t[:i]
+	} else {
+		return ""
+	}
+}
+
+func (u *User) AddTag(t *Tag) (id int, err error) {
+	var id64 int64
+
+	if t.Name, err = sysTagSchema.Fmt(t.Name,
+		false); err != nil {
+		return
+	}
+
+	// TODO: check parent exist/acl
+	if _, err = u.Access(SYS_W_SCOPE,
+		TagParent(t.Name)); err != nil {
+		return
+	}
+
+	if id64, err = orm.NewOrm().Insert(t); err != nil {
+		return
+	}
+	id = int(id64)
+
+	if parents := TagParents(t.Name); len(parents) > 0 {
+		var tags []*Tag
+
+		_, err = orm.NewOrm().QueryTable(new(Tag)).
+			Filter("Name__in", parents...).ALL(&tags)
+		if err != nil {
+			return
+		}
+		tag_rels := make([]Tag_rel, len(tags))
+		for i, tag := range tags {
+			tag_rels[i] = Tag_rel{Tag_id: id, Sup_tag_id: tag.Id}
+		}
+		_, err = orm.NewOrm.InsertMulti(10, tag_rels)
+		if err != nil {
+			return
+		}
+	}
+
+	t.Id = id
 	cacheModule[CTL_M_TAG].set(t.Id, t)
-	return t.Id, err
+	DbLog(u.Id, CTL_M_TAG, t.Id, CTL_A_ADD, "")
+
+	return id, err
 }
 
 func GetTag(id int) (*Tag, error) {
@@ -41,39 +209,57 @@ func GetTag(id int) (*Tag, error) {
 	return t, err
 }
 
-func QueryTags(query string) orm.QuerySeter {
+func (u *User) QueryTags(query string) orm.QuerySeter {
+	// TODO: acl filter
 	qs := orm.NewOrm().QueryTable(new(Tag))
 	if query != "" {
-		qs = qs.SetCond(orm.NewCondition().Or("Name__icontains", query))
+		qs = qs.Filter("Name__icontains", query)
 	}
 	return qs
 }
 
-func GetTagsCnt(query string) (int, error) {
-	cnt, err := QueryTags(query).Count()
+func (u *User) GetTagsCnt(query string) (int, error) {
+	cnt, err := u.QueryTags(query).Count()
 	return int(cnt), err
 }
 
-func GetTags(query string, limit, offset int) (tags []*Tag, err error) {
-	_, err = QueryTags(query).Limit(limit, offset).All(&tags)
+func (u *User) GetTags(query string, limit, offset int) (tags []*Tag, err error) {
+	_, err = u.QueryTags(query).Limit(limit, offset).All(&tags)
 	return
 }
 
-func UpdateTag(id int, _t *Tag) (t *Tag, err error) {
+func (u *User) UpdateTag(id int, _t *Tag) (t *Tag, err error) {
 	if t, err = GetTag(id); err != nil {
-		return nil, ErrNoTag
+		return
+	}
+
+	if _, err = u.Access(SYS_W_SCOPE,
+		TagParent(t.Name)); err != nil {
+		return
 	}
 
 	if _t.Name != "" {
 		t.Name = _t.Name
 	}
 	_, err = orm.NewOrm().Update(t)
+	DbLog(u.Id, CTL_M_TAG, t.Id, CTL_A_SET, "")
 	return t, err
 }
 
-func DeleteTag(id int) error {
+func (u *User) DeleteTag(id int) (err error) {
+	var n int64
+	var tag *Tag
 
-	if n, err := orm.NewOrm().Delete(&Tag{Id: id}); err != nil || n == 0 {
+	if tag, err = GetTag(id); err != nil {
+		return
+	}
+
+	if _, err = u.Access(SYS_W_SCOPE,
+		TagParent(tag.Name)); err != nil {
+		return
+	}
+
+	if n, err = orm.NewOrm().Delete(&Tag{Id: id}); err != nil || n == 0 {
 		return ErrNoExits
 	}
 	cacheModule[CTL_M_TAG].del(id)

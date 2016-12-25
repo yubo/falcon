@@ -17,8 +17,12 @@ func init() {
 
 	ns := beego.NewNamespace("/v1.0",
 		beego.NSNamespace("/auth", beego.NSInclude(&controllers.AuthController{})),
-		beego.NSNamespace("/user", beego.NSInclude(&controllers.UserController{})),
 		beego.NSNamespace("/host", beego.NSInclude(&controllers.HostController{})),
+		beego.NSNamespace("/role", beego.NSInclude(&controllers.RoleController{})),
+		beego.NSNamespace("/system", beego.NSInclude(&controllers.SystemController{})),
+		beego.NSNamespace("/tag", beego.NSInclude(&controllers.TagController{})),
+		beego.NSNamespace("/user", beego.NSInclude(&controllers.UserController{})),
+		beego.NSNamespace("/scope", beego.NSInclude(&controllers.ScopeController{})),
 	)
 	beego.AddNamespace(ns)
 

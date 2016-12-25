@@ -164,7 +164,7 @@ func (c *MainController) GetRole() {
 	c.PrepareEnv()
 	c.Data["Roles"] = roles
 	c.Data["Query"] = query
-	c.Data["Search"] = roleSearch
+	c.Data["Search"] = Search{"query", "/role"}
 
 	c.TplName = "role/list.tpl"
 	return

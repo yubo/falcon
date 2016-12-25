@@ -23,15 +23,37 @@ type Host struct {
 	Create_time time.Time `json:"-"`
 }
 
-func AddHost(h *Host) (int, error) {
-	id, err := orm.NewOrm().Insert(h)
+func (u *User) AddHost(h *Host, tagstring string) (_id int, err error) {
+	var id int64
+	var t *Tag
+
+	if tagstring, err = sysTagSchema.Fmt(t.Name,
+		false); err != nil {
+		return
+	}
+
+	if t, err = u.Access(SYS_W_SCOPE,
+		TagParent(tagstring)); err != nil {
+		return
+	}
+
+	id, err = orm.NewOrm().Insert(h)
 	if err != nil {
 		beego.Error(err)
-		return 0, err
+		return
 	}
+
+	// TODO: bind host to t.Name
+	_, err = orm.NewOrm().Raw("insert into tag_host(tag_id, host_id) values (?, ?)", id, t.Id).Exec()
+	if err != nil {
+		return
+	}
+
 	h.Id = int(id)
 	cacheModule[CTL_M_HOST].set(h.Id, h)
-	return h.Id, err
+	DbLog(u.Id, CTL_M_HOST, h.Id, CTL_A_ADD, "")
+
+	return h.Id, nil
 }
 
 func GetHost(id int) (*Host, error) {
@@ -52,25 +74,26 @@ func GetHostByUuid(uuid string) (h *Host, err error) {
 	return h, err
 }
 
-func QueryHosts(query string) orm.QuerySeter {
+func (u *User) QueryHosts(query string) orm.QuerySeter {
+	// TODO: acl filter
 	qs := orm.NewOrm().QueryTable(new(Host))
 	if query != "" {
-		qs = qs.SetCond(orm.NewCondition().Or("Name__icontains", query))
+		qs = qs.Filter("Name__icontains", query)
 	}
 	return qs
 }
 
-func GetHostsCnt(query string) (int, error) {
-	cnt, err := QueryHosts(query).Count()
+func (u *User) GetHostsCnt(query string) (int, error) {
+	cnt, err := u.QueryHosts(query).Count()
 	return int(cnt), err
 }
 
-func GetHosts(query string, limit, offset int) (hosts []*Host, err error) {
-	_, err = QueryHosts(query).Limit(limit, offset).All(&hosts)
+func (u *User) GetHosts(query string, limit, offset int) (hosts []*Host, err error) {
+	_, err = u.QueryHosts(query).Limit(limit, offset).All(&hosts)
 	return
 }
 
-func UpdateHost(id int, _h *Host) (h *Host, err error) {
+func (u *User) UpdateHost(id int, _h *Host) (h *Host, err error) {
 	if h, err = GetHost(id); err != nil {
 		return nil, ErrNoHost
 	}
@@ -97,15 +120,39 @@ func UpdateHost(id int, _h *Host) (h *Host, err error) {
 		h.Idc = _h.Idc
 	}
 	_, err = orm.NewOrm().Update(h)
+	DbLog(u.Id, CTL_M_HOST, h.Id, CTL_A_SET, "")
 	return h, err
 }
 
-func DeleteHost(id int) error {
+func (u *User) DeleteHost(host_id int, tag string) (err error) {
+	var n, m int64
+	var t *Tag
 
-	if n, err := orm.NewOrm().Delete(&Host{Id: id}); err != nil || n == 0 {
-		return ErrNoExits
+	qs := orm.NewOrm().QueryTable("tag_host").Filter("host_id", host_id)
+	n, err = qs.Count()
+	if err != nil {
+		// not exist
+		return
 	}
-	cacheModule[CTL_M_HOST].del(id)
+
+	// ACL
+	if t, err = u.Access(SYS_W_SCOPE, tag); err != nil {
+		return
+	}
+
+	// unbind tag_host
+	if m, err = qs.Filter("tag_id", t.Id).Delete(); err != nil {
+		return
+	}
+
+	// delete host_id if not bound by any tag
+	if n-m == 0 {
+		if n, err = orm.NewOrm().Delete(&Host{Id: host_id}); err != nil {
+			return
+		}
+		cacheModule[CTL_M_HOST].del(host_id)
+		DbLog(u.Id, CTL_M_HOST, host_id, CTL_A_DEL, "")
+	}
 
 	return nil
 }

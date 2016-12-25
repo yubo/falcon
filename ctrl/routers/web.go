@@ -55,6 +55,10 @@ func init() {
 	beego.Router("/system", mc, "get:GetSystem")
 	beego.Router("/system/edit/:id([0-9]+)", mc, "get:EditSystem")
 	beego.Router("/system/add", mc, "get:AddSystem")
+
+	beego.Router("/scope/:sysid([0-9]+)", mc, "get:GetScope")
+	beego.Router("/scope/edit/:id([0-9]+)", mc, "get:EditScope")
+	beego.Router("/scope/add/:sysid([0-9]+)", mc, "get:AddScope")
 }
 
 /*

@@ -29,11 +29,6 @@ var (
 		{"Profile", "/settings/profile"},
 		{"About", "/settings/about"},
 	}
-	userSearch   = Search{"query", "/user"}
-	hostSearch   = Search{"query", "/host"}
-	tagSearch    = Search{"query", "/tag"}
-	roleSearch   = Search{"query", "/role"}
-	systemSearch = Search{"query", "/system"}
 )
 
 func (c *BaseController) SendMsg(code int, msg string) {

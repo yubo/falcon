@@ -58,6 +58,20 @@ func init() {
 	models.RegisterAuth(_ldap)
 }
 
+func (p *ldapAuth) PreStart() error {
+	if p.AuthModule.Prestarted {
+		return models.ErrRePreStart
+	}
+	p.AuthModule.Prestarted = true
+	p.addr = beego.AppConfig.String("ldapaddr")
+	p.baseDN = beego.AppConfig.String("ldapbasedn")
+	p.bindDN = beego.AppConfig.String("ldapbinddn")
+	p.bindPwd = beego.AppConfig.String("ldapbindpwd")
+	p.filter = beego.AppConfig.String("ldapfilter")
+	p.tls, _ = beego.AppConfig.Bool("ldaptls")
+	return nil
+}
+
 func (p *ldapAuth) Verify(_c interface{}) (bool, string, error) {
 	c := _c.(*controllers.AuthController)
 

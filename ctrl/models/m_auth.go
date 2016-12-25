@@ -17,8 +17,9 @@ type Auth struct {
 }
 
 type AuthModule struct {
-	Name string
-	Html string
+	Name       string
+	Html       string
+	Prestarted bool
 }
 
 func (p *AuthModule) GetName() string {
@@ -36,11 +37,20 @@ func (p *AuthModule) Verify(c interface{}) (bool, string, error) {
 	return false, "", EPERM
 }
 
+func (p *AuthModule) PreStart() error {
+	if p.Prestarted {
+		return ErrRePreStart
+	}
+	p.Prestarted = true
+	return nil
+}
+
 type AuthInterface interface {
 	GetName() string
 	LoginHtml(c interface{}) string
 	Verify(c interface{}) (success bool, uuid string, err error)
 	CallBack(c interface{})
+	PreStart() error
 }
 
 func RegisterAuth(p AuthInterface) error {

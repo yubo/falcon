@@ -164,7 +164,7 @@ func (c *MainController) GetSystem() {
 	c.Data["Me"], _ = c.Ctx.Input.GetData("me").(*models.User)
 	c.Data["Systems"] = systems
 	c.Data["Query"] = query
-	c.Data["Search"] = systemSearch
+	c.Data["Search"] = Search{"query", "/system"}
 
 	c.TplName = "system/list.tpl"
 	return

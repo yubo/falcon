@@ -24,6 +24,14 @@ type User struct {
 	Create_time time.Time `json:"-"`
 }
 
+func (u *User) AccessTid(scope string, tag int) error {
+	return nil
+}
+
+func (u *User) Access(scope, tag string) (*Tag, error) {
+	return nil, nil
+}
+
 func AddUser(u *User) (int, error) {
 	id, err := orm.NewOrm().Insert(u)
 	if err != nil {

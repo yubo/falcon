@@ -47,7 +47,7 @@ func GetSystem(id int) (*System, error) {
 func QuerySystems(query string) orm.QuerySeter {
 	qs := orm.NewOrm().QueryTable(new(System))
 	if query != "" {
-		qs = qs.SetCond(orm.NewCondition().Or("Name__icontains", query))
+		qs = qs.Filter("Name__icontains", query)
 	}
 	return qs
 }

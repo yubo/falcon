@@ -26,9 +26,10 @@ type TagController struct {
 // @router / [post]
 func (c *TagController) CreateTag() {
 	var tag models.Tag
+	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+
 	json.Unmarshal(c.Ctx.Input.RequestBody, &tag)
-	id, err := models.AddTag(&tag)
-	if err != nil {
+	if id, err := me.AddTag(&tag); err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
 		c.SendObj(200, id)
@@ -42,8 +43,9 @@ func (c *TagController) CreateTag() {
 // @router /cnt/:query [get]
 func (c *TagController) GetTagsCnt() {
 	query := strings.TrimSpace(c.GetString(":query"))
+	me, _ := c.Ctx.Input.GetData("me").(*models.User)
 
-	cnt, err := models.GetTagsCnt(query)
+	cnt, err := me.GetTagsCnt(query)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -62,8 +64,9 @@ func (c *TagController) GetTags() {
 	query := strings.TrimSpace(c.GetString(":query"))
 	per, _ := c.GetInt("per", models.PAGE_PER)
 	offset, _ := c.GetInt("offset", 0)
+	me, _ := c.Ctx.Input.GetData("me").(*models.User)
 
-	tags, err := models.GetTags(query, per, offset)
+	tags, err := me.GetTags(query, per, offset)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -100,6 +103,7 @@ func (c *TagController) GetTag() {
 // @router /:id [put]
 func (c *TagController) UpdateTag() {
 	var tag models.Tag
+	me, _ := c.Ctx.Input.GetData("me").(*models.User)
 
 	id, err := c.GetInt(":id")
 	if err != nil {
@@ -109,7 +113,7 @@ func (c *TagController) UpdateTag() {
 
 	json.Unmarshal(c.Ctx.Input.RequestBody, &tag)
 
-	if u, err := models.UpdateTag(id, &tag); err != nil {
+	if u, err := me.UpdateTag(id, &tag); err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
 		c.SendObj(200, u)
@@ -129,7 +133,8 @@ func (c *TagController) DeleteTag() {
 		return
 	}
 
-	err = models.DeleteTag(id)
+	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	err = me.DeleteTag(id)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 		return
@@ -148,8 +153,9 @@ func (c *MainController) GetTag() {
 
 	query := strings.TrimSpace(c.GetString("query"))
 	per, _ := c.GetInt("per", models.PAGE_PER)
+	me, _ := c.Ctx.Input.GetData("me").(*models.User)
 
-	qs := models.QueryTags(query)
+	qs := me.QueryTags(query)
 	total, err := qs.Count()
 	if err != nil {
 		goto out
@@ -164,7 +170,7 @@ func (c *MainController) GetTag() {
 	c.Data["Me"], _ = c.Ctx.Input.GetData("me").(*models.User)
 	c.Data["Tags"] = tags
 	c.Data["Query"] = query
-	c.Data["Search"] = tagSearch
+	c.Data["Search"] = Search{"query", "/tag"}
 
 	c.TplName = "tag/list.tpl"
 	return

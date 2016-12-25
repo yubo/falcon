@@ -249,7 +249,7 @@ function edit_host(id, method) {
 		"loc" : $("#loc").val(),
 		"idc" : $("#idc").val()
 	}), function(json) {
-		if (json != 200) {
+		if (json.code != 200) {
 			err_message_quietly(json.msg);
 		} else {
 			ok_message_quietly(method +" host success");
@@ -276,7 +276,7 @@ function edit_tag(id, method) {
 	jQuery[method]('/v1.0/tag/'+id, JSON.stringify({
 		"name" : $("#name").val()
 	}), function(json) {
-		if (json != 200) {
+		if (json.code != 200) {
 			err_message_quietly(json.msg);
 		} else {
 			ok_message_quietly(method +" tag success");
@@ -301,11 +301,11 @@ function delete_tag(id) {
 
 function edit_role(id, method) {
 	jQuery[method]('/v1.0/role/'+id, JSON.stringify({
-		"name" : $("#name").val()
-		"cname" : $("#cname").val()
+		"name" : $("#name").val(),
+		"cname" : $("#cname").val(),
 		"note" : $("#note").val()
 	}), function(json) {
-		if (json != 200) {
+		if (json.code != 200) {
 			err_message_quietly(json.msg);
 		} else {
 			ok_message_quietly(method +" role success");
@@ -330,12 +330,12 @@ function delete_role(id) {
 
 function edit_system(id, method) {
 	jQuery[method]('/v1.0/system/'+id, JSON.stringify({
-		"name" : $("#name").val()
-		"cname" : $("#cname").val()
-		"developers" : $("#developers").val()
+		"name" : $("#name").val(),
+		"cname" : $("#cname").val(),
+		"developers" : $("#developers").val(),
 		"email" : $("#email").val()
 	}), function(json) {
-		if (json != 200) {
+		if (json.code != 200) {
 			err_message_quietly(json.msg);
 		} else {
 			ok_message_quietly(method +" system success");
@@ -357,6 +357,37 @@ function delete_system(id) {
 	}, function() {
 	});
 }
+
+function edit_scope(id, method) {
+	jQuery[method]('/v1.0/scope/'+id, JSON.stringify({
+		"name" : $("#name").val(),
+		"system_id" : parseInt($("#system_id").val()),
+		"cname" : $("#cname").val(),
+		"note" : $("#note").val()
+	}), function(json) {
+		if (json.code != 200) {
+			err_message_quietly(json.msg);
+		} else {
+			ok_message_quietly(method +" scope success");
+		}
+	});
+}
+
+function delete_scope(id) {
+	my_confirm("真的要删除么？", [ '确定', '取消' ], function() {
+		$.delete('/v1.0/scope/'+id, {}, function(json) {
+			if (json.code != 200) {
+				err_message_quietly(json.msg);
+			} else {
+				ok_message_quietly('delete scope successfully', function() {
+					location.reload();
+				});
+			}
+		});
+	}, function() {
+	});
+}
+
 
 jQuery.each( [ "put", "delete" ], function( i, method ) {
   jQuery[ method ] = function( url, data, callback, type ) {

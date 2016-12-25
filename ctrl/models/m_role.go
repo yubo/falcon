@@ -46,7 +46,7 @@ func GetRole(id int) (*Role, error) {
 func QueryRoles(query string) orm.QuerySeter {
 	qs := orm.NewOrm().QueryTable(new(Role))
 	if query != "" {
-		qs = qs.SetCond(orm.NewCondition().Or("Name__icontains", query))
+		qs = qs.Filter("Name__icontains", query)
 	}
 	return qs
 }
