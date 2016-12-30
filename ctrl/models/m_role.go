@@ -84,10 +84,24 @@ func (u *User) UpdateRole(id int64, _r *Role) (r *Role, err error) {
 func (u *User) DeleteRole(id int64) error {
 
 	if n, err := orm.NewOrm().Delete(&Role{Id: id}); err != nil || n == 0 {
-		return ErrNoExits
+		return err
 	}
 	cacheModule[CTL_M_ROLE].del(id)
 	DbLog(u.Id, CTL_M_ROLE, id, CTL_A_DEL, nil)
 
+	return nil
+}
+
+func (u *User) BindUserRole(user_id, role_id, tag_id int64) (err error) {
+	if _, err := orm.NewOrm().Raw("INSERT INTO `tag_role_user` (`tag_id`, `role_id`, `user_id`) VALUES (?, ?, ?)", tag_id, role_id, user_id).Exec(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (u *User) BindScopeRole(scope_id, role_id, tag_id int64) (err error) {
+	if _, err := orm.NewOrm().Raw("INSERT INTO `tag_role_scope` (`tag_id`, `role_id`, `scope_id`) VALUES (?, ?, ?)", tag_id, role_id, scope_id).Exec(); err != nil {
+		return err
+	}
 	return nil
 }

@@ -2,3 +2,5 @@ tmp/
 .gdbinit
 ctrl
 *.swp
+note.*
+static/tree

@@ -26,8 +26,9 @@ type MainController struct {
 
 var (
 	settingsLinks = []Link{
+		{"Global", "/settings/config/global"},
 		{"Profile", "/settings/profile"},
-		{"About", "/settings/about"},
+		{"AboutMe", "/settings/aboutme"},
 	}
 )
 
@@ -62,4 +63,9 @@ func (c *BaseController) PrepareEnv() {
 func (c *MainController) Get() {
 	c.PrepareEnv()
 	c.TplName = "index.tpl"
+}
+
+func (c *MainController) About() {
+	c.PrepareEnv()
+	c.TplName = "about.tpl"
 }

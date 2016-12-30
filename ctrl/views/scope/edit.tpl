@@ -17,7 +17,7 @@
       </div>
 
       <input type="hidden" name="system_id" id="system_id" class="form-control" value="{{.Scope.System_id}}" />
-      <button type="button" class="btn btn-default" id="update_system" onclick="edit_scope('{{if gt .Scope.Id 0}}{{.Scope.Id}}{{end}}','{{.Method}}');"> <span class="glyphicon glyphicon-floppy-disk"></span> 更新 </button>
+      <button type="button" class="btn btn-default" id="edit-system" onclick="edit_scope('{{if gt .Scope.Id 0}}{{.Scope.Id}}{{end}}','{{.Method}}');"> <span class="glyphicon glyphicon-floppy-disk"></span> 更新 </button>
     </from>
   </div>
 </div>

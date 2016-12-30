@@ -388,6 +388,17 @@ function delete_scope(id) {
 	});
 }
 
+function edit_config(module){
+	$.post('/settings/config/'+module, JSON.stringify(
+		$('#form-config').serializeObject()
+	), function(json) {
+		if (json.code != 200) {
+			err_message_quietly(json.msg);
+		} else {
+			ok_message_quietly("update sysconfig success");
+		}
+	});
+}
 
 jQuery.each( [ "put", "delete" ], function( i, method ) {
   jQuery[ method ] = function( url, data, callback, type ) {
@@ -406,6 +417,22 @@ jQuery.each( [ "put", "delete" ], function( i, method ) {
     });
   };
 });
+
+$.fn.serializeObject = function() {
+  var o = {};
+  var a = this.serializeArray();
+  $.each(a, function() {
+    if (o[this.name] !== undefined) {
+      if (!o[this.name].push) {
+        o[this.name] = [o[this.name]];
+      }
+      o[this.name].push(this.value || '');
+    } else {
+      o[this.name] = this.value || '';
+    }
+  });
+  return o;
+};
     </script>
   </body>
 </html>

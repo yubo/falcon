@@ -66,13 +66,31 @@ AND tag_id = ?
 	return
 }
 
-func (u *User) AccessTid(scope string, tag int64, chkExist bool) (t *Tag, err error) {
-	if t, err = u.GetTag(tag); chkExist && err != nil {
-		return
-	}
-
-	if u.IsAdmin() {
-		return
+func access(user_id, scope_id, tag_id int64) (tid int64, err error) {
+	// TODO: test
+	err = orm.NewOrm().Raw(`
+SELECT b2.scope_tag_id
+FROM tag_rel a2
+JOIN (
+    SELECT a1.scope_tag_id, a1.user_tag_id
+    FROM (SELECT a0.tag_id AS user_tag_id,
+                b0.tag_id AS scope_tag_id,
+                a0.role_id AS role_id,
+                a0.user_id AS user_id,
+                b0.scope_id AS scope_id
+          FROM tag_role_user a0
+          JOIN tag_role_scope b0
+          ON a0.user_id = ? AND b0.scope_id = ? AND a0.role_id = b0.role_id) a1
+    JOIN tag_rel b1
+    ON a1.user_tag_id = b1.tag_id AND a1.scope_tag_id = b1.sup_tag_id
+    GROUP BY a1.user_tag_id 
+    HAVING a1.scope_tag_id = MAX(a1.scope_tag_id)) b2
+ON  a2.sup_tag_id = b2.user_tag_id 
+WHERE a2.tag_id = ?
+`,
+		user_id, scope_id, tag_id).QueryRow(&tid)
+	if err != nil {
+		err = EACCES
 	}
 
 	return

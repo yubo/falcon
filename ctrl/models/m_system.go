@@ -23,7 +23,7 @@ type System struct {
 
 func (u *User) AddSystem(s *System) (id int64, err error) {
 
-	if u.IsAdmin() {
+	if !u.IsAdmin() {
 		return 0, EACCES
 	}
 

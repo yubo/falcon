@@ -8,7 +8,7 @@
         <input type="text" name="name" id="name" class="form-control" value="{{.Tag.Name}}" />
       </div>
 
-      <button type="button" class="btn btn-default" id="update_tag" onclick="edit_tag('{{.Tag.Id}}','{{.Method}}');"> <span class="glyphicon glyphicon-floppy-disk"></span> 更新 </button>
+      <button type="button" class="btn btn-default" id="edit-tag" onclick="edit_tag('{{.Tag.Id}}','{{.Method}}');"> <span class="glyphicon glyphicon-floppy-disk"></span> 更新 </button>
     </from>
   </div>
 </div>

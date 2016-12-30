@@ -20,7 +20,7 @@
         <input type="text" name="email" id="email" class="form-control" value="{{.System.Email}}" />
       </div>
 
-      <button type="button" class="btn btn-default" id="update_system" onclick="edit_system('{{.System.Id}}','{{.Method}}');"> <span class="glyphicon glyphicon-floppy-disk"></span> 更新 </button>
+      <button type="button" class="btn btn-default" id="edit-system" onclick="edit_system('{{.System.Id}}','{{.Method}}');"> <span class="glyphicon glyphicon-floppy-disk"></span> 更新 </button>
     </from>
   </div>
 </div>

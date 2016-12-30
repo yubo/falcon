@@ -102,6 +102,7 @@ func TestTagParent(t *testing.T) {
 		{tag: "", want: ""},
 		{tag: "a=1", want: ""},
 		{tag: "a=1,b=1", want: "a=1"},
+		{tag: "a=1,b=1,c=1", want: "a=1,b=1"},
 	}
 	for _, tc := range cases {
 		if got, want := TagParent(tc.tag), tc.want; got != want {
@@ -110,4 +111,40 @@ func TestTagParent(t *testing.T) {
 		}
 	}
 
+}
+
+func TestTagParents(t *testing.T) {
+	cases := []struct {
+		tag  string
+		want []string
+	}{
+		{tag: "", want: []string{""}},
+		{tag: "a=1", want: []string{""}},
+		{tag: "a=1,b=1", want: []string{"", "a=1"}},
+		{tag: "a=1,b=1,c=1", want: []string{"", "a=1", "a=1,b=1"}},
+	}
+	for _, tc := range cases {
+		if got, want := TagParents(tc.tag), tc.want; stringscmp(got, want) != 0 {
+			t.Errorf("TagParents(%q) = %q; want %q",
+				tc.tag, got, want)
+		}
+	}
+}
+
+func TestTagRelation(t *testing.T) {
+	cases := []struct {
+		tag  string
+		want []string
+	}{
+		{tag: "", want: []string{""}},
+		{tag: "a=1", want: []string{"", "a=1"}},
+		{tag: "a=1,b=1", want: []string{"", "a=1", "a=1,b=1"}},
+		{tag: "a=1,b=1,c=1", want: []string{"", "a=1", "a=1,b=1", "a=1,b=1,c=1"}},
+	}
+	for _, tc := range cases {
+		if got, want := TagRelation(tc.tag), tc.want; stringscmp(got, want) != 0 {
+			t.Errorf("TagParents(%q) = %q; want %q",
+				tc.tag, got, want)
+		}
+	}
 }

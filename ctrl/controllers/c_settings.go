@@ -5,7 +5,11 @@
  */
 package controllers
 
-import "github.com/yubo/falcon/ctrl/models"
+import (
+	"encoding/json"
+
+	"github.com/yubo/falcon/ctrl/models"
+)
 
 func (c *MainController) GetProfile() {
 	c.Data["Me"], _ = c.Ctx.Input.GetData("me").(*models.User)
@@ -18,26 +22,32 @@ func (c *MainController) GetProfile() {
 	c.TplName = "settings/profile.tpl"
 }
 
-func (c *MainController) PutProfile() {
-	var user models.User
-
-	//settings/profile
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
-	if me.Name != "" && user.Name != "" {
-		user.Name = ""
-	}
-
-	if u, err := me.UpdateUser(me.Id, &user); err != nil {
-		c.SendMsg(400, err.Error())
-	} else {
-		c.SendObj(200, u)
-	}
-}
-
-func (c *MainController) GetAbout() {
+func (c *MainController) GetAboutMe() {
 	c.PrepareEnv()
 	c.Data["Links"] = settingsLinks
-	c.Data["CurLink"] = "About"
-	c.Data["H1"] = "About"
+	c.Data["CurLink"] = "AboutMe"
+	c.Data["H1"] = "About Me"
 	c.TplName = "settings/about.tpl"
+}
+
+func (c *MainController) GetConfigGlobal() {
+	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	c.PrepareEnv()
+	c.Data["Links"] = settingsLinks
+	c.Data["CurLink"] = "Global"
+	c.Data["Moudle"] = "global"
+	c.Data["Config"], _ = me.ConfigGet("global")
+	c.TplName = "settings/config.tpl"
+}
+
+func (c *MainController) PostConfigGlobal() {
+	conf := make(map[string]string)
+
+	json.Unmarshal(c.Ctx.Input.RequestBody, &conf)
+	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	if err := me.ConfigSet("global", conf); err != nil {
+		c.SendMsg(403, err.Error())
+	} else {
+		c.SendObj(200, "")
+	}
 }

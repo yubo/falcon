@@ -18,7 +18,7 @@
         <input type="text" name="note" id="note" class="form-control" value="{{.Role.Note}}" />
       </div>
 
-      <button type="button" class="btn btn-default" id="update_role" onclick="edit_role('{{.Role.Id}}','{{.Method}}');"> <span class="glyphicon glyphicon-floppy-disk"></span> 更新 </button>
+      <button type="button" class="btn btn-default" id="edit-role" onclick="edit_role('{{.Role.Id}}','{{.Method}}');"> <span class="glyphicon glyphicon-floppy-disk"></span> 更新 </button>
     </from>
   </div>
 </div>

@@ -30,11 +30,12 @@ func init() {
 	mc := &controllers.MainController{}
 
 	beego.Router("/", mc, "get:Get")
-	beego.Router("/login", ac, "get:LoginGet;post:LoginPost")
+	beego.Router("/login", ac, "get:GetLogin;post:PostLogin")
 	beego.Router("/logout", ac, "get:Logout")
 
 	beego.Router("/settings/profile", mc, "get:GetProfile")
-	beego.Router("/settings/about", mc, "get:GetAbout")
+	beego.Router("/settings/aboutme", mc, "get:GetAboutMe")
+	beego.Router("/settings/config/global", mc, "get:GetConfigGlobal;post:PostConfigGlobal")
 
 	beego.Router("/user", mc, "get:GetUser")
 	beego.Router("/user/edit/:id([0-9]+)", mc, "get:EditUser")
@@ -59,6 +60,8 @@ func init() {
 	beego.Router("/scope/:sysid([0-9]+)", mc, "get:GetScope")
 	beego.Router("/scope/edit/:id([0-9]+)", mc, "get:EditScope")
 	beego.Router("/scope/add/:sysid([0-9]+)", mc, "get:AddScope")
+
+	beego.Router("/about", mc, "get:About")
 }
 
 /*

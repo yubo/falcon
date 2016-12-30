@@ -23,6 +23,7 @@ type Tag_rel struct {
 	Id         int64
 	Tag_id     int64
 	Sup_tag_id int64
+	Rel_type   int64
 }
 
 type TagNode struct {
@@ -134,13 +135,36 @@ func (ts *TagSchema) Fmt(tag string, force bool) (string, error) {
 	return ret, ErrParam
 }
 
-func TagParents(t string) []string {
-	tags := strings.Split(t, ",")
-	ret := make([]string, len(tags)-1)
+func TagRelation(t string) (ret []string) {
 
-	for tag, i := "", 0; i < len(ret); i++ {
-		tag += tags[i] + ","
-		ret = append(ret, tag[:len(tag)-1])
+	if t == "" {
+		return []string{""}
+	}
+
+	tags := strings.Split(t, ",")
+	if len(tags) < 1 {
+		return []string{""}
+	}
+	ret = make([]string, len(tags)+1)
+
+	for tag, i := "", 1; i < len(ret); i++ {
+		tag += tags[i-1] + ","
+		ret[i] = tag[:len(tag)-1]
+	}
+	return ret
+}
+
+func TagParents(t string) (ret []string) {
+
+	tags := strings.Split(t, ",")
+	if len(tags) < 1 {
+		return nil
+	}
+	ret = make([]string, len(tags))
+
+	for tag, i := "", 1; i < len(ret); i++ {
+		tag += tags[i-1] + ","
+		ret[i] = tag[:len(tag)-1]
 	}
 	return ret
 }
@@ -153,15 +177,15 @@ func TagParent(t string) string {
 	}
 }
 
-func (u *User) AddTag(t *Tag) (id int64, err error) {
-	if t.Name, err = sysTagSchema.Fmt(t.Name,
+func (u *User) addTag(t *Tag, schema *TagSchema) (id int64, err error) {
+	if t.Name, err = schema.Fmt(t.Name,
 		false); err != nil {
 		return
 	}
 
 	// TODO: check parent exist/acl
 	if _, err = u.Access(SYS_W_SCOPE,
-		TagParent(t.Name), true); err != nil {
+		TagParent(t.Name), false); err != nil {
 		return
 	}
 
@@ -169,13 +193,14 @@ func (u *User) AddTag(t *Tag) (id int64, err error) {
 		return
 	}
 
-	if parents := TagParents(t.Name); len(parents) > 0 {
+	if rels := TagRelation(t.Name); len(rels) > 0 {
 		var (
 			tags []*Tag
-			arg  = make([]interface{}, len(parents))
+			arg  = make([]interface{}, len(rels))
+			typ  int64
 		)
 
-		for i, v := range parents {
+		for i, v := range rels {
 			arg[i] = v
 		}
 
@@ -186,7 +211,17 @@ func (u *User) AddTag(t *Tag) (id int64, err error) {
 		}
 		tag_rels := make([]Tag_rel, len(tags))
 		for i, tag := range tags {
-			tag_rels[i] = Tag_rel{Tag_id: id, Sup_tag_id: tag.Id}
+			if i == len(tags)-1 {
+				typ = TAG_T_SELF
+			} else if i == len(tags)-2 {
+				typ = TAG_T_DIRECT
+			} else {
+				typ = TAG_T_INDIRECT
+			}
+			tag_rels[i] = Tag_rel{
+				Tag_id:     id,
+				Sup_tag_id: tag.Id,
+				Rel_type:   typ}
 		}
 		_, err = orm.NewOrm().InsertMulti(10, tag_rels)
 		if err != nil {
@@ -199,6 +234,10 @@ func (u *User) AddTag(t *Tag) (id int64, err error) {
 	DbLog(u.Id, CTL_M_TAG, id, CTL_A_ADD, nil)
 
 	return id, err
+}
+
+func (u *User) AddTag(t *Tag) (id int64, err error) {
+	return u.addTag(t, sysTagSchema)
 }
 
 func (u *User) GetTag(id int64) (*Tag, error) {
@@ -215,6 +254,7 @@ func (u *User) GetTag(id int64) (*Tag, error) {
 
 func (u *User) GetTagByName(tag string) (t *Tag, err error) {
 	t = &Tag{Name: tag}
+
 	err = orm.NewOrm().Read(t, "Name")
 	return
 }

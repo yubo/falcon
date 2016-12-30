@@ -40,7 +40,7 @@
         <input type="text" name="idc" id="idc" class="form-control" value="{{.User.Idc}}" />
       </div>
 
-      <button type="button" class="btn btn-default" id="update_host" onclick="edit_host('{{.Host.Id}}','{{.Method}}');"> <span class="glyphicon glyphicon-floppy-disk"></span> 更新 </button>
+      <button type="button" class="btn btn-default" id="edit-host" onclick="edit_host('{{.Host.Id}}','{{.Method}}');"> <span class="glyphicon glyphicon-floppy-disk"></span> 更新 </button>
     </from>
   </div>
 </div>

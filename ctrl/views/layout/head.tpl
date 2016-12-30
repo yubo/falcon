@@ -70,22 +70,31 @@
             <li class="dropdown">
               <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">settings<span class="caret"></span></a>
               <ul class="dropdown-menu">
-                <li><a href="/settings/profile">profile</a></li>
-                <li><a href="/settings/about">about</a></li>
+                <li><a href="/settings/config/global">Global</a></li>
+                <li><a href="/settings/profile">Profile</a></li>
+                <li><a href="/settings/aboutme">About Me</a></li>
               </ul>
             </li>
 
             <li class="dropdown">
               <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">help<span class="caret"></span></a>
               <ul class="dropdown-menu">
-                <li><a href="/doc">Doc</a></li>
+                <li><a href="/doc" target="_blank">Doc</a></li>
                 <li role="separator" class="divider"></li>
                 <li><a href="/about">About</a></li>
               </ul>
             </li>
             <li><a href="/logout">{{.Me.Name}}[logout]</a></li>
 {{else}}
-            <li><a href="/login">[login]</a></li>
+            <li class="dropdown">
+              <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">help<span class="caret"></span></a>
+              <ul class="dropdown-menu">
+                <li><a href="/doc" target="_blank">Doc</a></li>
+                <li role="separator" class="divider"></li>
+                <li><a href="/about">About Falcon</a></li>
+              </ul>
+            </li>
+	    <li><a href="/login">[login]</a></li>
 {{end}}
           </ul>
 {{if .Search}}

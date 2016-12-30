@@ -30,6 +30,12 @@ const (
 )
 
 const (
+	TAG_T_INDIRECT = iota
+	TAG_T_DIRECT
+	TAG_T_SELF
+)
+
+const (
 	CTL_A_ADD = iota
 	CTL_A_DEL
 	CTL_A_SET
@@ -50,6 +56,7 @@ var (
 	}
 
 	ErrExist       = errors.New("object exists")
+	ErrLogged      = errors.New("already logged in")
 	ErrNoExits     = errors.New("object not exists")
 	ErrAuthFailed  = errors.New("auth failed")
 	ErrNoUsr       = errors.New("user not exists")
@@ -58,7 +65,8 @@ var (
 	ErrNoRole      = errors.New("role not exists")
 	ErrNoSystem    = errors.New("system not exists")
 	ErrNoScope     = errors.New("scope not exists")
-	ErrNoLogged    = errors.New("not Logged")
+	ErrNoModule    = errors.New("module not exists")
+	ErrNoLogged    = errors.New("not logged in")
 	ErrRePreStart  = errors.New("multiple times PreStart")
 	ErrUnsupported = errors.New("unsupported")
 	ErrParam       = errors.New("param error")
@@ -103,7 +111,7 @@ var (
 
 func init() {
 	orm.RegisterModelWithPrefix(DB_PREFIX, new(User), new(Host),
-		new(Tag), new(Role), new(System), new(Scope), new(Log))
+		new(Tag), new(Role), new(System), new(Scope), new(Log), new(Tag_rel))
 
 	// tag
 	sysTagSchema, _ = NewTagSchema(SYS_TAG_SCHEMA)
@@ -116,7 +124,7 @@ func init() {
 	beego.AddAPPStartHook(start)
 }
 
-func start() error {
+func start() (err error) {
 	for _, auth := range strings.Split(beego.AppConfig.String("authmodule"), ",") {
 		beego.Debug(auth)
 		if auth, ok := AuthMap[auth]; ok {
@@ -137,5 +145,8 @@ func start() error {
 			}
 		}
 	}
-	return nil
+
+	err = ConfigStart()
+
+	return
 }

@@ -15,7 +15,8 @@ dev:
 	bee run -gendoc=true -downdoc=true
 
 db:
-	mysql -uroot -p12341234 < ./scripts/falcon.sql
+	mysql -uroot -p12341234 falcon < ./scripts/falcon.sql
+	mysql -uroot -p12341234 falcon_test < ./scripts/falcon.sql
 
 env:
 	@echo export GOPATH=${VENDOR}

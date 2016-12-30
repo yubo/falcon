@@ -8,14 +8,14 @@ func init() {
 
 	beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/controllers:AuthController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/controllers:AuthController"],
 		beego.ControllerComments{
-			Method: "LoginGet",
+			Method: "GetLogin",
 			Router: `/login`,
 			AllowHTTPMethods: []string{"get"},
 			Params: nil})
 
 	beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/controllers:AuthController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/controllers:AuthController"],
 		beego.ControllerComments{
-			Method: "LoginPost",
+			Method: "PostLogin",
 			Router: `/login`,
 			AllowHTTPMethods: []string{"post"},
 			Params: nil})

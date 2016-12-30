@@ -27,6 +27,6 @@
               <label for="name">QQ</label>
               <input type="text" name="qq" id="qq" class="form-control" value="{{.User.QQ}}" />
             </div>
-            <button type="button" class="btn btn-default" id="update_user" onclick="edit_user('{{.User.Id}}','{{.Method}}');"> <span class="glyphicon glyphicon-floppy-disk"></span> 更新 </button>
+            <button type="button" class="btn btn-default" id="edit-user" onclick="edit_user('{{.User.Id}}','{{.Method}}');"> <span class="glyphicon glyphicon-floppy-disk"></span> 更新 </button>
           </from>
 

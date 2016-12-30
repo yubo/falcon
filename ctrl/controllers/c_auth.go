@@ -17,7 +17,7 @@ type AuthController struct {
 // @Title Auth Login page
 // @Description auth login page render, for test
 // @router /login [get]
-func (c *AuthController) LoginGet() {
+func (c *AuthController) GetLogin() {
 	modules := make([]*models.AuthModule, 0)
 
 	for _, auth := range models.Auths {
@@ -41,7 +41,7 @@ func (c *AuthController) LoginGet() {
 // @Success 200 {uid:string, uuid:string} models.User.Id, models.User.Uuid
 // @Failure 406 {string} error
 // @router /login [post]
-func (c *AuthController) LoginPost() {
+func (c *AuthController) PostLogin() {
 	var (
 		err          error
 		ok           bool
@@ -49,7 +49,7 @@ func (c *AuthController) LoginPost() {
 		auth         models.AuthInterface
 	)
 	if _uid := c.GetSession("uid"); _uid != nil {
-		c.Data["json"] = models.ErrExist.Error()
+		c.Data["json"] = models.ErrLogged.Error()
 		goto out_err
 	}
 
