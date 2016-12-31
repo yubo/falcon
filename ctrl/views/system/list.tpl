@@ -11,7 +11,7 @@
               <th>developers</th>
               <th>email</th>
               <th>created</th>
-              <th>scope cmd</th>
+              <th>token cmd</th>
               <th class="pull-right">system cmd</th>
             </tr>
           </thead>
@@ -23,9 +23,9 @@
               <td>{{.Email}}</td>
               <td>{{dateformat .Create_time "2006-01-02 15:04:05"}}</td>
               <td>
-                  <a href="/scope/add/{{.Id}}" class="orange" style="text-decoration:none;"> <span class="glyphicon glyphicon-plus"></span> </a>
+                  <a href="/token/add/{{.Id}}" class="orange" style="text-decoration:none;"> <span class="glyphicon glyphicon-plus"></span> </a>
                   <span class="cut-line">¦</span>
-                  <a href="/scope/{{.Id}}" class="orange" style="text-decoration:none;"> <span class="glyphicon glyphicon-th-list"></span> </a>
+                  <a href="/token/{{.Id}}" class="orange" style="text-decoration:none;"> <span class="glyphicon glyphicon-th-list"></span> </a>
               </td>
                <td>
                 <div class="pull-right">     

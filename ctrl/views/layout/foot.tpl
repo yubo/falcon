@@ -53,127 +53,6 @@ function my_confirm(msg, btns, yes_func, no_func) {
 
 // - business function -
 
-function update_profile() {
-	$.post('/me/profile', {
-		'cnname' : $("#cnname").val(),
-		'email' : $("#email").val(),
-		'phone' : $("#phone").val(),
-		'im' : $("#im").val(),
-		'qq' : $("#qq").val()
-	}, function(json) {
-		if (json.msg.length > 0) {
-			err_message_quietly(json.msg);
-		} else {
-			ok_message_quietly("更新成功：）");
-		}
-	});
-}
-
-function change_password() {
-	$.post('/me/chpwd', {
-		'old_password' : $("#old_password").val(),
-		'new_password' : $("#new_password").val(),
-		'repeat_password' : $("#repeat_password").val()
-	}, function(json) {
-		if (json.msg.length > 0) {
-			err_message_quietly(json.msg);
-		} else {
-			ok_message_quietly("密码修改成功：）");
-		}
-	});
-}
-
-function register() {
-	$.post('/auth/register', {
-		'name' : $('#name').val(),
-		'password' : $("#password").val(),
-		'repeat_password' : $("#repeat_password").val()
-	}, function(json) {
-		if (json.msg.length > 0) {
-			err_message_quietly(json.msg);
-		} else {
-			ok_message_quietly('sign up successfully', function() {
-				location.href = '/auth/login';
-			});
-		}
-	});
-}
-
-function login() {
-	var raw = $('#ldap').prop('checked');
-	if (raw) {
-		useLdap = '1'
-	} else {
-		useLdap = '0'
-	}
-	$.post('/auth/login', {
-		'name' : $('#name').val(),
-		'password' : $("#password").val(),
-		'ldap' : useLdap,
-		'sig': $("#sig").val(),
-		'callback': $("#callback").val()
-	}, function(json) {
-		if (json.msg.length > 0) {
-			err_message_quietly(json.msg);
-		} else {
-			ok_message_quietly('sign in successfully', function() {
-				var redirect_url = '/me/info';
-				if (json.data.length > 0) {
-					redirect_url = json.data;
-				}
-				location.href = redirect_url;
-			});
-		}
-	});
-}
-
-
-
-function create_team() {
-	$.post('/me/team/c', {
-		'name' : $("#name").val(),
-		'resume' : $("#resume").val(),
-		'users' : $("#users").val()
-	}, function(json) {
-		if (json.msg.length > 0) {
-			err_message_quietly(json.msg);
-		} else {
-			ok_message_quietly('create team successfully');
-		}
-	});
-}
-
-function edit_team(tid) {
-	$.post('/target-team/edit', {
-		'resume' : $("#resume").val(),
-		'users' : $("#users").val(),
-		'id': tid
-	}, function(json) {
-		if (json.msg.length > 0) {
-			err_message_quietly(json.msg);
-		} else {
-			ok_message_quietly('edit team successfully');
-		}
-	});
-}
-
-
-
-function delete_team(id) {
-	my_confirm("真的真的要删除么？", [ '确定', '取消' ], function() {
-		$.get('/target-team/delete?id='+id, {}, function(json) {
-			if (json.msg.length > 0) {
-				err_message_quietly(json.msg);
-			} else {
-				ok_message_quietly('delete team successfully', function() {
-					location.reload();
-				});
-			}
-		});
-	}, function() {
-	});
-}
-
 function set_role(uid, obj) {
 	var role = obj.checked ? '1' : '0';
 	$.post('/target-user/role?id='+uid, {
@@ -211,7 +90,7 @@ function user_detail(uid) {
 function edit_user(id, method) {
 	jQuery[method]('/v1.0/user/'+id, JSON.stringify({
 		"name" : $("#name").val(),
-		"cnname" : $("#cnname").val(),
+		"cname" : $("#cname").val(),
 		"email" : $("#email").val(),
 		"phone" : $("#phone").val(),
 		"im" : $("#im").val(),
@@ -358,8 +237,8 @@ function delete_system(id) {
 	});
 }
 
-function edit_scope(id, method) {
-	jQuery[method]('/v1.0/scope/'+id, JSON.stringify({
+function edit_token(id, method) {
+	jQuery[method]('/v1.0/token/'+id, JSON.stringify({
 		"name" : $("#name").val(),
 		"system_id" : parseInt($("#system_id").val()),
 		"cname" : $("#cname").val(),
@@ -368,18 +247,18 @@ function edit_scope(id, method) {
 		if (json.code != 200) {
 			err_message_quietly(json.msg);
 		} else {
-			ok_message_quietly(method +" scope success");
+			ok_message_quietly(method +" token success");
 		}
 	});
 }
 
-function delete_scope(id) {
+function delete_token(id) {
 	my_confirm("真的要删除么？", [ '确定', '取消' ], function() {
-		$.delete('/v1.0/scope/'+id, {}, function(json) {
+		$.delete('/v1.0/token/'+id, {}, function(json) {
 			if (json.code != 200) {
 				err_message_quietly(json.msg);
 			} else {
-				ok_message_quietly('delete scope successfully', function() {
+				ok_message_quietly('delete token successfully', function() {
 					location.reload();
 				});
 			}

@@ -76,10 +76,10 @@ COLLATE = utf8_unicode_ci COMMENT = '系统模块';
 
 
 -- -----------------------------------------------------
--- Table `scope`
+-- Table `token`
 -- -----------------------------------------------------
-DROP TABLE IF EXISTS `scope`;
-CREATE TABLE `scope` (
+DROP TABLE IF EXISTS `token`;
+CREATE TABLE `token` (
   `id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
   `name` VARCHAR(32) NOT NULL,
   `system_id` INT(11) UNSIGNED NOT NULL,
@@ -89,7 +89,7 @@ CREATE TABLE `scope` (
   PRIMARY KEY (`id`),
   UNIQUE INDEX `index_name` (`name`),
   INDEX `index_system_id` (`system_id`),
-  CONSTRAINT `scope_rel_ibfk_1`
+  CONSTRAINT `token_rel_ibfk_1`
     FOREIGN KEY (`system_id`)
     REFERENCES `system` (`id`)
     ON DELETE CASCADE)
@@ -113,38 +113,6 @@ CREATE TABLE `role` (
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8
 COLLATE = utf8_unicode_ci COMMENT = '角色';
-
--- -----------------------------------------------------
--- Table `tag_role_scope`
--- -----------------------------------------------------
-DROP TABLE IF EXISTS `tag_role_scope`;
-CREATE TABLE `tag_role_scope` (
-  `id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
-  `tag_id` INT(11) UNSIGNED NOT NULL,
-  `role_id` INT(11) UNSIGNED NOT NULL,
-  `scope_id` INT(11) UNSIGNED NOT NULL,
-  PRIMARY KEY (`id`),
-  INDEX `index_tag_id` (`tag_id`),
-  INDEX `index_role_id` (`role_id`),
-  INDEX `index_scope_id` (`scope_id`),
-  CONSTRAINT `unique_id`
-    UNIQUE (`tag_id`,`role_id`,`scope_id`),
-  CONSTRAINT `tag_role_scope_ibfk_1`
-    FOREIGN KEY (`tag_id`)
-    REFERENCES `tag` (`id`)
-    ON DELETE CASCADE,
-  CONSTRAINT `tag_role_scope_ibfk_2`
-    FOREIGN KEY (`role_id`)
-    REFERENCES `role` (`id`)
-    ON DELETE CASCADE,
-  CONSTRAINT `tag_role_scope_ibfk_3`
-    FOREIGN KEY (`scope_id`)
-    REFERENCES `scope` (`id`)
-    ON DELETE CASCADE)
-ENGINE = InnoDB
-DEFAULT CHARACTER SET = utf8
-COLLATE = utf8_unicode_ci COMMENT = '节点角色与权限点';
-
 
 -- -----------------------------------------------------
 -- Table `session`
@@ -243,37 +211,6 @@ COLLATE = utf8_unicode_ci;
 
 
 -- -----------------------------------------------------
--- Table `tag_role_user`
--- -----------------------------------------------------
-DROP TABLE IF EXISTS `tag_role_user`;
-CREATE TABLE `tag_role_user` (
-  `id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
-  `tag_id` INT(11) UNSIGNED NOT NULL DEFAULT 0,
-  `role_id` INT(11) UNSIGNED NOT NULL DEFAULT 0,
-  `user_id` INT(11) UNSIGNED NOT NULL DEFAULT 0,
-  PRIMARY KEY (`id`),
-  INDEX `index_tag_id` (`tag_id`),
-  INDEX `index_role_id` (`role_id`),
-  INDEX `index_user_id` (`user_id`),
-  CONSTRAINT `unique_id`
-    UNIQUE (`tag_id`,`role_id`,`user_id`),
-  CONSTRAINT `tag_role_user_ibfk_1`
-    FOREIGN KEY (`tag_id`)
-    REFERENCES `tag` (`id`)
-    ON DELETE CASCADE,
-  CONSTRAINT `tag_role_user_ibfk_2`
-    FOREIGN KEY (`role_id`)
-    REFERENCES `role` (`id`)
-    ON DELETE CASCADE,
-  CONSTRAINT `tag_role_user_ibfk_3`
-    FOREIGN KEY (`user_id`)
-    REFERENCES `user` (`id`)
-    ON DELETE CASCADE)
-ENGINE = InnoDB
-DEFAULT CHARACTER SET = utf8
-COLLATE = utf8_unicode_ci;
-
--- -----------------------------------------------------
 -- Table `log`
 -- -----------------------------------------------------
 DROP TABLE IF EXISTS `log`;
@@ -290,38 +227,57 @@ ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8
 COLLATE = utf8_unicode_ci;
 
+-- -----------------------------------------------------
+-- Table `tpl_rel`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `tpl_rel`;
+CREATE TABLE `tpl_rel` (
+  `id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `tpl_id` INT(11) UNSIGNED NOT NULL,
+  `tag_id` INT(11) UNSIGNED NOT NULL,
+  `sub_id` INT(11) UNSIGNED NOT NULL,
+  `rel_type` TINYINT(4) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'relation type',
+  PRIMARY KEY (`id`),
+  INDEX `index_tpl_id` (`tpl_id`),
+  INDEX `index_tag_id` (`tag_id`),
+  INDEX `index_sub_id` (`sub_id`),
+  INDEX `index_rel_type` (`rel_type`))
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8
+COLLATE = utf8_unicode_ci COMMENT = '节点上的模板关联(tag,tpl,sub_meta)';
 
-DROP VIEW IF EXISTS `tag_role_user_scope` ;
-DROP TABLE IF EXISTS `tag_role_user_scope`;
+
+DROP VIEW IF EXISTS `tag_role_user_token` ;
+DROP TABLE IF EXISTS `tag_role_user_token`;
 CREATE OR REPLACE 
-VIEW `tag_role_user_scope` AS
+VIEW `tag_role_user_token` AS
     SELECT 
         `a`.`tag_id` AS `user_tag_id`,
-        `b`.`tag_id` AS `scope_tag_id`,
-        `a`.`role_id` AS `role_id`,
-        `a`.`user_id` AS `user_id`,
-        `b`.`scope_id` AS `scope_id`
-    FROM
-        (`tag_role_user` `a`
-        JOIN `tag_role_scope` `b` ON ((`a`.`role_id` = `b`.`role_id`)));
+        `b`.`tag_id` AS `token_tag_id`,
+        `a`.`tpl_id` AS `role_id`,
+        `a`.`sub_id` AS `user_id`,
+        `b`.`sub_id` AS `token_id`
+    FROM `tpl_rel` `a` JOIN `tpl_rel` `b`
+	ON `a`.`rel_type` = 0 AND `b`.`rel_type` = 1
+	AND `a`.`tpl_id` = `b`.`tpl_id`;
 
 
-DROP VIEW IF EXISTS `user_scope` ;
-DROP TABLE IF EXISTS `user_scope`;
+DROP VIEW IF EXISTS `acl`;
+DROP TABLE IF EXISTS `acl`;
 CREATE OR REPLACE 
-VIEW `user_scope` AS
+VIEW `acl` AS
     SELECT 
         `a`.`user_id` AS `user_id`,
-        `a`.`scope_id` AS `scope_id`,
+        `a`.`token_id` AS `token_id`,
         `a`.`user_tag_id` AS `user_tag_id`,
-        `a`.`scope_tag_id` AS `scope_tag_id`,
+        `a`.`token_tag_id` AS `token_tag_id`,
         `a`.`role_id` AS `role_id`
     FROM
-        (`tag_role_user_scope` `a`
+        (`tag_role_user_token` `a`
         JOIN `tag_rel` `b` ON (((`a`.`user_tag_id` = `b`.`tag_id`)
-            AND (`a`.`scope_tag_id` = `b`.`sup_tag_id`))))
-    GROUP BY `a`.`user_tag_id`,`a`.`scope_id`,`a`.`user_id`
-    HAVING (`a`.`scope_tag_id` = MAX(`a`.`scope_tag_id`));
+            AND (`a`.`token_tag_id` = `b`.`sup_tag_id`))))
+    GROUP BY `a`.`user_tag_id`,`a`.`token_id`,`a`.`user_id`
+    HAVING (`a`.`token_tag_id` = MAX(`a`.`token_tag_id`));
 
 
 
@@ -330,6 +286,37 @@ SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
 
 INSERT INTO `tag` (`name`) VALUES ('');
+INSERT INTO `user` (`uuid`, `name`, `cname`, `email`, `phone`, `im`, `qq`) VALUES
+    ('admin@falcon', 'admin', 'admin', 'root@localhost', '', '', '');
+-- 
+-- 
+-- INSERT INTO `role` (`name`, `cname`, `note`) VALUES
+--     ('admin', '超级管理员', '配置所有选项'),
+--     ('manager', '管理员', 'user'),
+--     ('sre', '工程师', 'Site Reliability Engineering'),
+--     ('user', '普通用户', 'user');
+-- 
+-- 
+-- INSERT INTO `system` (`name`, `cname`, `developers`, `email`) VALUES
+--     ('falcon', '机器管理', 'yubo', 'yubo@xiaomi.com');
+-- 
+-- 
+-- INSERT INTO `token` (`name`, `system_id`, `cname`, `note`) VALUES
+--     ('falcon-tag-edit', 1, '节点修改', '允许添加删除节点'),
+--     ('falcon-host-operate', 1, '机器操作', '重启，改名，关机'),
+--     ('falcon-host-bind', 1, '机器挂载', '允许挂载，删除机器与节点的对应关系'),
+--     ('falcon-tag-read', 1, '节点读', '查看节点及节点下相关内容');
+-- 
+-- 
+-- INSERT INTO `tag_host` (`tag_id`, `host_id`) VALUES
+--     (2, 1),
+--     (2, 2),
+--     (2, 3),
+--     (3, 4),
+--     (3, 5),
+--     (3, 6),
+--     (4, 7),
+--     (4, 8),
 
 -- INSERT INTO `tag_rel` (`tag_id`, `sup_tag_id`) VALUES
 --     (2, 1),
@@ -399,7 +386,7 @@ INSERT INTO `tag` (`name`) VALUES ('');
 --     ('falcon', '机器管理', 'yubo', 'yubo@xiaomi.com');
 -- 
 -- 
--- INSERT INTO `scope` (`name`, `system_id`, `cname`, `note`) VALUES
+-- INSERT INTO `token` (`name`, `system_id`, `cname`, `note`) VALUES
 --     ('falcon-tag-edit', 1, '节点修改', '允许添加删除节点'),
 --     ('falcon-host-operate', 1, '机器操作', '重启，改名，关机'),
 --     ('falcon-host-bind', 1, '机器挂载', '允许挂载，删除机器与节点的对应关系'),
@@ -429,7 +416,7 @@ INSERT INTO `tag` (`name`) VALUES ('');
 --     (8, 20),
 --     (8, 21);
 -- 
--- INSERT INTO `tag_role_scope` (`tag_id`, `role_id`, `scope_id`) VALUES
+-- INSERT INTO `tag_role_token` (`tag_id`, `role_id`, `token_id`) VALUES
 --     (1, 1, 1),
 --     (1, 1, 2),
 --     (1, 1, 3),

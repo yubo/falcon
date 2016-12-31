@@ -118,48 +118,6 @@ func init() {
 			AllowHTTPMethods: []string{"delete"},
 			Params: nil})
 
-	beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/controllers:ScopeController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/controllers:ScopeController"],
-		beego.ControllerComments{
-			Method: "CreateScope",
-			Router: `/`,
-			AllowHTTPMethods: []string{"post"},
-			Params: nil})
-
-	beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/controllers:ScopeController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/controllers:ScopeController"],
-		beego.ControllerComments{
-			Method: "GetScopesCnt",
-			Router: `/cnt/:query`,
-			AllowHTTPMethods: []string{"get"},
-			Params: nil})
-
-	beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/controllers:ScopeController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/controllers:ScopeController"],
-		beego.ControllerComments{
-			Method: "GetScopes",
-			Router: `/search/:query`,
-			AllowHTTPMethods: []string{"get"},
-			Params: nil})
-
-	beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/controllers:ScopeController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/controllers:ScopeController"],
-		beego.ControllerComments{
-			Method: "GetScope",
-			Router: `/:id`,
-			AllowHTTPMethods: []string{"get"},
-			Params: nil})
-
-	beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/controllers:ScopeController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/controllers:ScopeController"],
-		beego.ControllerComments{
-			Method: "UpdateScope",
-			Router: `/:id`,
-			AllowHTTPMethods: []string{"put"},
-			Params: nil})
-
-	beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/controllers:ScopeController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/controllers:ScopeController"],
-		beego.ControllerComments{
-			Method: "DeleteScope",
-			Router: `/:id`,
-			AllowHTTPMethods: []string{"delete"},
-			Params: nil})
-
 	beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/controllers:SystemController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/controllers:SystemController"],
 		beego.ControllerComments{
 			Method: "CreateSystem",
@@ -240,6 +198,48 @@ func init() {
 	beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/controllers:TagController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/controllers:TagController"],
 		beego.ControllerComments{
 			Method: "DeleteTag",
+			Router: `/:id`,
+			AllowHTTPMethods: []string{"delete"},
+			Params: nil})
+
+	beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/controllers:TokenController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/controllers:TokenController"],
+		beego.ControllerComments{
+			Method: "CreateToken",
+			Router: `/`,
+			AllowHTTPMethods: []string{"post"},
+			Params: nil})
+
+	beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/controllers:TokenController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/controllers:TokenController"],
+		beego.ControllerComments{
+			Method: "GetTokensCnt",
+			Router: `/cnt/:query`,
+			AllowHTTPMethods: []string{"get"},
+			Params: nil})
+
+	beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/controllers:TokenController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/controllers:TokenController"],
+		beego.ControllerComments{
+			Method: "GetTokens",
+			Router: `/search/:query`,
+			AllowHTTPMethods: []string{"get"},
+			Params: nil})
+
+	beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/controllers:TokenController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/controllers:TokenController"],
+		beego.ControllerComments{
+			Method: "GetToken",
+			Router: `/:id`,
+			AllowHTTPMethods: []string{"get"},
+			Params: nil})
+
+	beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/controllers:TokenController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/controllers:TokenController"],
+		beego.ControllerComments{
+			Method: "UpdateToken",
+			Router: `/:id`,
+			AllowHTTPMethods: []string{"put"},
+			Params: nil})
+
+	beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/controllers:TokenController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/controllers:TokenController"],
+		beego.ControllerComments{
+			Method: "DeleteToken",
 			Router: `/:id`,
 			AllowHTTPMethods: []string{"delete"},
 			Params: nil})

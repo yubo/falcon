@@ -24,80 +24,10 @@ type User struct {
 	Create_time time.Time `json:"-"`
 }
 
-// return nil *Tag if tag not exist
-func (u *User) Access(scope, tag string, chkExist bool) (t *Tag, err error) {
-	var s *Scope
-	var tag_id int64
-
-	// if not found, err will be return <QuerySeter> no row found
-	if t, err = u.GetTagByName(tag); chkExist && err != nil {
-		return
-	}
-
-	if u.IsAdmin() {
-		return
-	}
-
-	if s, err = u.GetScopeByName(scope); err != nil {
-		return
-	}
-
-	// TODO: test
-	err = orm.NewOrm().Raw(`
-SELECT sup_tag_id
-FROM tag_rel
-WHERE sup_tag_id IN (
-    SELECT user_scope.user_tag_id
-    FROM (SELECT a.tag_id AS user_tag_id,
-                b.tag_id AS scope_tag_id,
-                a.role_id AS role_id,
-                a.user_id AS user_id,
-                b.scope_id AS scope_id
-          FROM tag_role_user a
-          JOIN tag_role_scope b
-          ON a.user_id = ? AND b.scope_id = ? AND a.role_id = b.role_id) user_scope
-   JOIN tag_rel 
-   ON user_scope.user_tag_id = tag_rel.tag_id AND user_scope.scope_tag_id = tag_rel.sup_tag_id
-   GROUP BY user_scope.user_tag_id)
-AND tag_id = ?
-`,
-		u.Id, s.Id, t.Id).QueryRow(&tag_id)
-
-	return
-}
-
-func access(user_id, scope_id, tag_id int64) (tid int64, err error) {
-	// TODO: test
-	err = orm.NewOrm().Raw(`
-SELECT b2.scope_tag_id
-FROM tag_rel a2
-JOIN (
-    SELECT a1.scope_tag_id, a1.user_tag_id
-    FROM (SELECT a0.tag_id AS user_tag_id,
-                b0.tag_id AS scope_tag_id,
-                a0.role_id AS role_id,
-                a0.user_id AS user_id,
-                b0.scope_id AS scope_id
-          FROM tag_role_user a0
-          JOIN tag_role_scope b0
-          ON a0.user_id = ? AND b0.scope_id = ? AND a0.role_id = b0.role_id) a1
-    JOIN tag_rel b1
-    ON a1.user_tag_id = b1.tag_id AND a1.scope_tag_id = b1.sup_tag_id
-    GROUP BY a1.user_tag_id 
-    HAVING a1.scope_tag_id = MAX(a1.scope_tag_id)) b2
-ON  a2.sup_tag_id = b2.user_tag_id 
-WHERE a2.tag_id = ?
-`,
-		user_id, scope_id, tag_id).QueryRow(&tid)
-	if err != nil {
-		err = EACCES
-	}
-
-	return
-}
-
 func (u *User) IsAdmin() bool {
-	return u.Id == 1
+	// 1: sys
+	// 2: admin
+	return u.Id < 3
 }
 
 func (u *User) AddUser(user *User) (id int64, err error) {

@@ -47,12 +47,20 @@
           <ul class="nav navbar-nav navbar-right">
 {{if .Me}}
             <li class="dropdown">
-              <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">management<span class="caret"></span></a>
+              <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Template<span class="caret"></span></a>
+              <ul class="dropdown-menu">
+                <li><a href="/tpl/acl">Access</a></li>
+                <li><a href="/tpl/rule">Rule</a></li>
+              </ul>
+            </li>
+
+             <li class="dropdown">
+              <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Meta<span class="caret"></span></a>
               <ul class="dropdown-menu">
                 <li><a href="/tag">tag</a></li>
                 <li><a href="/role">role</a></li>
                 <li><a href="/user">user</a></li>
-                <li><a href="/system">system</a></li>
+                <li><a href="/system">system(token)</a></li>
                 <li><a href="/host">host</a></li>
                 <li class="disabled"><a href="/trigger">trigger</a></li>
 
@@ -60,7 +68,7 @@
                 <li><a href="/tag/add">add tag</a></li>
                 <li><a href="/role/add">add role</a></li>
                 <li><a href="/user/add">add user</a></li>
-                <li><a href="/system/add">add system</a></li>
+                <li><a href="/system/add">add system(token)</a></li>
                 <li><a href="/host/add">add host</a></li>
                 <li class="disabled"><a href="/trigger/add">add trigger</a></li>
 
@@ -68,7 +76,7 @@
             </li>
 
             <li class="dropdown">
-              <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">settings<span class="caret"></span></a>
+              <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Settings<span class="caret"></span></a>
               <ul class="dropdown-menu">
                 <li><a href="/settings/config/global">Global</a></li>
                 <li><a href="/settings/profile">Profile</a></li>

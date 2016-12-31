@@ -12,7 +12,7 @@ import (
 	"github.com/astaxie/beego/orm"
 )
 
-type Scope struct {
+type Token struct {
 	Id          int64     `json:"id"`
 	Name        string    `json:"name"`
 	System_id   int64     `json:"system_id"`
@@ -21,7 +21,7 @@ type Scope struct {
 	Create_time time.Time `json:"-"`
 }
 
-func (u *User) AddScope(s *Scope) (id int64, err error) {
+func (u *User) AddToken(s *Token) (id int64, err error) {
 	if id, err = orm.NewOrm().Insert(s); err != nil {
 		return
 	}
@@ -32,13 +32,13 @@ func (u *User) AddScope(s *Scope) (id int64, err error) {
 	return
 }
 
-func (u *User) GetScope(id int64) (s *Scope, err error) {
+func (u *User) GetToken(id int64) (s *Token, err error) {
 	var ok bool
 
-	if s, ok = cacheModule[CTL_M_SCOPE].get(id).(*Scope); ok {
+	if s, ok = cacheModule[CTL_M_SCOPE].get(id).(*Token); ok {
 		return
 	}
-	s = &Scope{Id: id}
+	s = &Token{Id: id}
 	err = orm.NewOrm().Read(s, "Id")
 	if err == nil {
 		cacheModule[CTL_M_SCOPE].set(id, s)
@@ -46,33 +46,33 @@ func (u *User) GetScope(id int64) (s *Scope, err error) {
 	return
 }
 
-func (u *User) GetScopeByName(scope string) (s *Scope, err error) {
-	s = &Scope{Name: scope}
+func (u *User) GetTokenByName(token string) (s *Token, err error) {
+	s = &Token{Name: token}
 	err = orm.NewOrm().Read(s, "Name")
 	return
 }
 
-func (u *User) QueryScopes(sysid int64, query string) orm.QuerySeter {
-	qs := orm.NewOrm().QueryTable(new(Scope)).Filter("System_id", sysid)
+func (u *User) QueryTokens(sysid int64, query string) orm.QuerySeter {
+	qs := orm.NewOrm().QueryTable(new(Token)).Filter("System_id", sysid)
 	if query != "" {
 		qs = qs.Filter("Name__icontains", query)
 	}
 	return qs
 }
 
-func (u *User) GetScopesCnt(sysid int64, query string) (int, error) {
-	cnt, err := u.QueryScopes(sysid, query).Count()
+func (u *User) GetTokensCnt(sysid int64, query string) (int, error) {
+	cnt, err := u.QueryTokens(sysid, query).Count()
 	return int(cnt), err
 }
 
-func (u *User) GetScopes(sysid int64, query string, limit, offset int) (scopes []*Scope, err error) {
-	_, err = u.QueryScopes(sysid, query).Limit(limit, offset).All(&scopes)
+func (u *User) GetTokens(sysid int64, query string, limit, offset int) (tokens []*Token, err error) {
+	_, err = u.QueryTokens(sysid, query).Limit(limit, offset).All(&tokens)
 	return
 }
 
-func (u *User) UpdateScope(id int64, _s *Scope) (s *Scope, err error) {
-	if s, err = u.GetScope(id); err != nil {
-		return nil, ErrNoScope
+func (u *User) UpdateToken(id int64, _s *Token) (s *Token, err error) {
+	if s, err = u.GetToken(id); err != nil {
+		return nil, ErrNoToken
 	}
 
 	if _s.Name != "" {
@@ -94,9 +94,9 @@ func (u *User) UpdateScope(id int64, _s *Scope) (s *Scope, err error) {
 	return s, err
 }
 
-func (u *User) DeleteScope(id int64) error {
+func (u *User) DeleteToken(id int64) error {
 
-	if n, err := orm.NewOrm().Delete(&Scope{Id: id}); err != nil || n == 0 {
+	if n, err := orm.NewOrm().Delete(&Token{Id: id}); err != nil || n == 0 {
 		return ErrNoExits
 	}
 	cacheModule[CTL_M_SCOPE].del(id)

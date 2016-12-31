@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	scope_test_init bool
+	token_test_init bool
 )
 
 func init() {
@@ -40,23 +40,22 @@ func init() {
 		return
 	}
 	//orm.Debug = true
-	scope_test_init = true
+	token_test_init = true
 }
 
-func testScopeInitDb(t *testing.T, o orm.Ormer) (err error) {
+func testTokenInitDb(t *testing.T, o orm.Ormer) (err error) {
 	tables := []string{
 		"tag_host",
 		"tag_rel",
-		"tag_role_scope",
-		"tag_role_user",
+		"tpl_rel",
 		"host",
-		"scope",
+		"token",
 		"system",
 		"tag",
 		"role",
 		"user",
 	}
-	t.Log("enter testScopeInitDb")
+	t.Log("enter testTokenInitDb")
 	o.Raw("SET FOREIGN_KEY_CHECKS=0").Exec()
 	for _, table := range tables {
 		if _, err = o.Raw("TRUNCATE TABLE `" + table + "`").Exec(); err != nil {
@@ -77,13 +76,13 @@ func testScopeInitDb(t *testing.T, o orm.Ormer) (err error) {
 	return nil
 }
 
-func TestScope(t *testing.T) {
-	if !scope_test_init {
-		t.Logf("scope orm not inited, skip testing\n")
+func TestToken(t *testing.T) {
+	if !token_test_init {
+		t.Logf("token orm not inited, skip testing\n")
 		return
 	}
 	o := orm.NewOrm()
-	err := testScopeInitDb(t, o)
+	err := testTokenInitDb(t, o)
 	if err != nil {
 		t.Error("init db failed", err)
 	}
@@ -145,17 +144,17 @@ func TestScope(t *testing.T) {
 		}
 	}
 
-	// scope
-	scope_idx := make(map[string]int64)
-	scopes := []string{
-		"scope1",
-		"scope2",
-		"scope3",
-		"scope41",
-		"scope42",
+	// token
+	token_idx := make(map[string]int64)
+	tokens := []string{
+		"token1",
+		"token2",
+		"token3",
+		"token41",
+		"token42",
 	}
-	for _, scope := range scopes {
-		if scope_idx[scope], err = admin.AddScope(&Scope{Name: scope, System_id: system_idx["s1"]}); err != nil {
+	for _, token := range tokens {
+		if token_idx[token], err = admin.AddToken(&Token{Name: token, System_id: system_idx["s1"]}); err != nil {
 			t.Error(err)
 		}
 	}
@@ -168,21 +167,21 @@ func TestScope(t *testing.T) {
 		{user_idx["u1"], role_idx["r4"], tag_idx["a=1,b=2"]},
 	}
 	for _, n := range binds {
-		if err := admin.BindUserRole(n[0], n[1], n[2]); err != nil {
+		if err := admin.BindAclUser(n[1], n[2], n[0]); err != nil {
 			t.Error(err)
 		}
 	}
 
-	// bind scope
+	// bind token
 	binds = [][3]int64{
-		{scope_idx["scope1"], role_idx["r1"], tag_idx["a=1,b=2"]},
-		{scope_idx["scope2"], role_idx["r2"], tag_idx["a=1"]},
-		{scope_idx["scope3"], role_idx["r3"], tag_idx["a=1,b=2,c=2"]},
-		{scope_idx["scope41"], role_idx["r4"], tag_idx["a=1"]},
-		{scope_idx["scope42"], role_idx["r4"], tag_idx["a=1,b=2"]},
+		{token_idx["token1"], role_idx["r1"], tag_idx["a=1,b=2"]},
+		{token_idx["token2"], role_idx["r2"], tag_idx["a=1"]},
+		{token_idx["token3"], role_idx["r3"], tag_idx["a=1,b=2,c=2"]},
+		{token_idx["token41"], role_idx["r4"], tag_idx["a=1"]},
+		{token_idx["token42"], role_idx["r4"], tag_idx["a=1,b=2"]},
 	}
 	for _, n := range binds {
-		if err := admin.BindScopeRole(n[0], n[1], n[2]); err != nil {
+		if err := admin.BindAclToken(n[1], n[2], n[0]); err != nil {
 			t.Error(err)
 		}
 	}
@@ -197,29 +196,29 @@ func TestScope(t *testing.T) {
 		wante error
 	}{
 		//case1
-		{name: "case1-1", uid: user_idx["u1"], sid: scope_idx["scope1"], tid: tag_idx["a=1"], want: 0, wante: EACCES},
-		{name: "case1-2", uid: user_idx["u1"], sid: scope_idx["scope1"], tid: tag_idx["a=1,b=2"], want: tag_idx["a=1,b=2"], wante: nil},
-		{name: "case1-3", uid: user_idx["u1"], sid: scope_idx["scope1"], tid: tag_idx["a=1,b=2,c=1"], want: tag_idx["a=1,b=2"], wante: nil},
-		{name: "case1-4", uid: user_idx["u1"], sid: scope_idx["scope1"], tid: tag_idx["a=1,b=2,c=2"], want: tag_idx["a=1,b=2"], wante: nil},
+		{name: "case1-1", uid: user_idx["u1"], sid: token_idx["token1"], tid: tag_idx["a=1"], want: 0, wante: EACCES},
+		{name: "case1-2", uid: user_idx["u1"], sid: token_idx["token1"], tid: tag_idx["a=1,b=2"], want: tag_idx["a=1,b=2"], wante: nil},
+		{name: "case1-3", uid: user_idx["u1"], sid: token_idx["token1"], tid: tag_idx["a=1,b=2,c=1"], want: tag_idx["a=1,b=2"], wante: nil},
+		{name: "case1-4", uid: user_idx["u1"], sid: token_idx["token1"], tid: tag_idx["a=1,b=2,c=2"], want: tag_idx["a=1,b=2"], wante: nil},
 		//case2
-		{name: "case2-1", uid: user_idx["u1"], sid: scope_idx["scope2"], tid: tag_idx["a=1"], want: 0, wante: EACCES},
-		{name: "case2-2", uid: user_idx["u1"], sid: scope_idx["scope2"], tid: tag_idx["a=1,b=2"], want: tag_idx["a=1"], wante: nil},
-		{name: "case2-3", uid: user_idx["u1"], sid: scope_idx["scope2"], tid: tag_idx["a=1,b=2,c=1"], want: tag_idx["a=1"], wante: nil},
-		{name: "case2-4", uid: user_idx["u1"], sid: scope_idx["scope2"], tid: tag_idx["a=1,b=2,c=2"], want: tag_idx["a=1"], wante: nil},
+		{name: "case2-1", uid: user_idx["u1"], sid: token_idx["token2"], tid: tag_idx["a=1"], want: 0, wante: EACCES},
+		{name: "case2-2", uid: user_idx["u1"], sid: token_idx["token2"], tid: tag_idx["a=1,b=2"], want: tag_idx["a=1"], wante: nil},
+		{name: "case2-3", uid: user_idx["u1"], sid: token_idx["token2"], tid: tag_idx["a=1,b=2,c=1"], want: tag_idx["a=1"], wante: nil},
+		{name: "case2-4", uid: user_idx["u1"], sid: token_idx["token2"], tid: tag_idx["a=1,b=2,c=2"], want: tag_idx["a=1"], wante: nil},
 		//case3
-		{name: "case3-1", uid: user_idx["u1"], sid: scope_idx["scope3"], tid: tag_idx["a=1"], want: 0, wante: EACCES},
-		{name: "case3-2", uid: user_idx["u1"], sid: scope_idx["scope3"], tid: tag_idx["a=1,b=2"], want: 0, wante: EACCES},
-		{name: "case3-3", uid: user_idx["u1"], sid: scope_idx["scope3"], tid: tag_idx["a=1,b=2,c=1"], want: 0, wante: EACCES},
-		{name: "case3-4", uid: user_idx["u1"], sid: scope_idx["scope3"], tid: tag_idx["a=1,b=2,c=2"], want: 0, wante: EACCES},
+		{name: "case3-1", uid: user_idx["u1"], sid: token_idx["token3"], tid: tag_idx["a=1"], want: 0, wante: EACCES},
+		{name: "case3-2", uid: user_idx["u1"], sid: token_idx["token3"], tid: tag_idx["a=1,b=2"], want: 0, wante: EACCES},
+		{name: "case3-3", uid: user_idx["u1"], sid: token_idx["token3"], tid: tag_idx["a=1,b=2,c=1"], want: 0, wante: EACCES},
+		{name: "case3-4", uid: user_idx["u1"], sid: token_idx["token3"], tid: tag_idx["a=1,b=2,c=2"], want: 0, wante: EACCES},
 		//case4
-		{name: "case4-1", uid: user_idx["u1"], sid: scope_idx["scope41"], tid: tag_idx["a=1"], want: 0, wante: EACCES},
-		{name: "case4-2", uid: user_idx["u1"], sid: scope_idx["scope41"], tid: tag_idx["a=1,b=2"], want: tag_idx["a=1"], wante: nil},
-		{name: "case4-3", uid: user_idx["u1"], sid: scope_idx["scope41"], tid: tag_idx["a=1,b=2,c=1"], want: tag_idx["a=1"], wante: nil},
-		{name: "case4-4", uid: user_idx["u1"], sid: scope_idx["scope41"], tid: tag_idx["a=1,b=2,c=2"], want: tag_idx["a=1"], wante: nil},
-		{name: "case4-5", uid: user_idx["u1"], sid: scope_idx["scope42"], tid: tag_idx["a=1"], want: 0, wante: EACCES},
-		{name: "case4-6", uid: user_idx["u1"], sid: scope_idx["scope42"], tid: tag_idx["a=1,b=2"], want: tag_idx["a=1,b=2"], wante: nil},
-		{name: "case4-7", uid: user_idx["u1"], sid: scope_idx["scope42"], tid: tag_idx["a=1,b=2,c=1"], want: tag_idx["a=1,b=2"], wante: nil},
-		{name: "case4-8", uid: user_idx["u1"], sid: scope_idx["scope42"], tid: tag_idx["a=1,b=2,c=2"], want: tag_idx["a=1,b=2"], wante: nil},
+		{name: "case4-1", uid: user_idx["u1"], sid: token_idx["token41"], tid: tag_idx["a=1"], want: 0, wante: EACCES},
+		{name: "case4-2", uid: user_idx["u1"], sid: token_idx["token41"], tid: tag_idx["a=1,b=2"], want: tag_idx["a=1"], wante: nil},
+		{name: "case4-3", uid: user_idx["u1"], sid: token_idx["token41"], tid: tag_idx["a=1,b=2,c=1"], want: tag_idx["a=1"], wante: nil},
+		{name: "case4-4", uid: user_idx["u1"], sid: token_idx["token41"], tid: tag_idx["a=1,b=2,c=2"], want: tag_idx["a=1"], wante: nil},
+		{name: "case4-5", uid: user_idx["u1"], sid: token_idx["token42"], tid: tag_idx["a=1"], want: 0, wante: EACCES},
+		{name: "case4-6", uid: user_idx["u1"], sid: token_idx["token42"], tid: tag_idx["a=1,b=2"], want: tag_idx["a=1,b=2"], wante: nil},
+		{name: "case4-7", uid: user_idx["u1"], sid: token_idx["token42"], tid: tag_idx["a=1,b=2,c=1"], want: tag_idx["a=1,b=2"], wante: nil},
+		{name: "case4-8", uid: user_idx["u1"], sid: token_idx["token42"], tid: tag_idx["a=1,b=2,c=2"], want: tag_idx["a=1,b=2"], wante: nil},
 	}
 	for _, c := range cases {
 		if got, gote := access(c.uid, c.sid,

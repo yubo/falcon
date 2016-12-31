@@ -26,6 +26,7 @@ const (
 	CTL_M_TAG
 	CTL_M_USER
 	CTL_M_SCOPE
+	CTL_M_TPL
 	CTL_M_SIZE
 )
 
@@ -35,6 +36,12 @@ const (
 	TAG_T_SELF
 )
 
+const (
+	TPL_T_ACL_USER = iota
+	TPL_T_ACL_TOKEN
+	TPL_T_RULE_HOST
+	TPL_T_RULE_TRIGGER
+)
 const (
 	CTL_A_ADD = iota
 	CTL_A_DEL
@@ -48,7 +55,7 @@ var (
 	sysTagSchema *TagSchema
 
 	moduleName [CTL_M_SIZE]string = [CTL_M_SIZE]string{
-		"host", "role", "system", "tag", "user", "scope",
+		"host", "role", "system", "tag", "user", "token",
 	}
 
 	actionName [CTL_A_SIZE]string = [CTL_A_SIZE]string{
@@ -64,7 +71,7 @@ var (
 	ErrNoTag       = errors.New("tag not exists")
 	ErrNoRole      = errors.New("role not exists")
 	ErrNoSystem    = errors.New("system not exists")
-	ErrNoScope     = errors.New("scope not exists")
+	ErrNoToken     = errors.New("token not exists")
 	ErrNoModule    = errors.New("module not exists")
 	ErrNoLogged    = errors.New("not logged in")
 	ErrRePreStart  = errors.New("multiple times PreStart")
@@ -111,7 +118,8 @@ var (
 
 func init() {
 	orm.RegisterModelWithPrefix(DB_PREFIX, new(User), new(Host),
-		new(Tag), new(Role), new(System), new(Scope), new(Log), new(Tag_rel))
+		new(Tag), new(Role), new(System), new(Token), new(Log),
+		new(Tag_rel), new(Tpl_rel))
 
 	// tag
 	sysTagSchema, _ = NewTagSchema(SYS_TAG_SCHEMA)

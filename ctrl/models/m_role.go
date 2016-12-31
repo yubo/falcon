@@ -99,8 +99,8 @@ func (u *User) BindUserRole(user_id, role_id, tag_id int64) (err error) {
 	return nil
 }
 
-func (u *User) BindScopeRole(scope_id, role_id, tag_id int64) (err error) {
-	if _, err := orm.NewOrm().Raw("INSERT INTO `tag_role_scope` (`tag_id`, `role_id`, `scope_id`) VALUES (?, ?, ?)", tag_id, role_id, scope_id).Exec(); err != nil {
+func (u *User) BindTokenRole(token_id, role_id, tag_id int64) (err error) {
+	if _, err := orm.NewOrm().Raw("INSERT INTO `tag_role_token` (`tag_id`, `role_id`, `token_id`) VALUES (?, ?, ?)", tag_id, role_id, token_id).Exec(); err != nil {
 		return err
 	}
 	return nil

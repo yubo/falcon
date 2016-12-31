@@ -1,7 +1,7 @@
 {{template "layout/head.tpl" .}}
   <div class="container">
     <div class="page-header">
-      <h1>Scope</h1>
+      <h1>Token</h1>
       <div class="table-responsive">
         <table class="table table-striped">
           <thead>
@@ -13,7 +13,7 @@
               <th class="pull-right">command</th>
             </tr>
           </thead>
-          <tbody> {{range .Scopes}}
+          <tbody> {{range .Tokens}}
             <tr>
               <td>{{.Name}}</td>
               <td>{{.Cname}}</td>
@@ -21,9 +21,9 @@
               <td>{{dateformat .Create_time "2006-01-02 15:04:05"}}</td>
               <td>
                 <div class="pull-right">     
-                  <a href="/scope/edit/{{.Id}}" class="orange" style="text-decoration:none;"> <span class="glyphicon glyphicon-edit"></span> </a>                 
+                  <a href="/token/edit/{{.Id}}" class="orange" style="text-decoration:none;"> <span class="glyphicon glyphicon-edit"></span> </a>                 
                   <span class="cut-line">¦</span>
-                  <a href="javascript:delete_scope('{{.Id}}');" class="orange" style="text-decoration:none;"><span class="glyphicon glyphicon-trash"></span> </a>
+                  <a href="javascript:delete_token('{{.Id}}');" class="orange" style="text-decoration:none;"><span class="glyphicon glyphicon-trash"></span> </a>
                 </div> 
               </td>
             </tr> {{end}}

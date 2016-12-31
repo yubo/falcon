@@ -14,24 +14,24 @@ import (
 	"github.com/yubo/falcon/ctrl/models"
 )
 
-// Operations about Scopes
-type ScopeController struct {
+// Operations about Tokens
+type TokenController struct {
 	BaseController
 }
 
-// @Title CreateScope
-// @Description create scopes
-// @Param	body	body 	models.Scope	true	"body for scope content"
-// @Success {code:200, data:int} models.Scope.Id
+// @Title CreateToken
+// @Description create tokens
+// @Param	body	body 	models.Token	true	"body for token content"
+// @Success {code:200, data:int} models.Token.Id
 // @Failure {code:int, msg:string}
 // @router / [post]
-func (c *ScopeController) CreateScope() {
-	var scope models.Scope
-	json.Unmarshal(c.Ctx.Input.RequestBody, &scope)
+func (c *TokenController) CreateToken() {
+	var token models.Token
+	json.Unmarshal(c.Ctx.Input.RequestBody, &token)
 	beego.Debug(string(c.Ctx.Input.RequestBody))
 	me, _ := c.Ctx.Input.GetData("me").(*models.User)
 
-	id, err := me.AddScope(&scope)
+	id, err := me.AddToken(&token)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -39,13 +39,13 @@ func (c *ScopeController) CreateScope() {
 	}
 }
 
-// @Title GetScopesCnt
-// @Description get Scopes number
+// @Title GetTokensCnt
+// @Description get Tokens number
 // @Param   system_id query   int  true        "system id"
-// @Success {code:200, data:int} scope number
+// @Success {code:200, data:int} token number
 // @Failure {code:int, msg:string}
 // @router /cnt/:query [get]
-func (c *ScopeController) GetScopesCnt() {
+func (c *TokenController) GetTokensCnt() {
 	query := strings.TrimSpace(c.GetString(":query"))
 	sysid, err := c.GetInt64("system_id", 0)
 
@@ -55,7 +55,7 @@ func (c *ScopeController) GetScopesCnt() {
 	}
 
 	me, _ := c.Ctx.Input.GetData("me").(*models.User)
-	cnt, err := me.GetScopesCnt(sysid, query)
+	cnt, err := me.GetTokensCnt(sysid, query)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -63,15 +63,15 @@ func (c *ScopeController) GetScopesCnt() {
 	}
 }
 
-// @Title GetScopes
-// @Description get all Scopes
+// @Title GetTokens
+// @Description get all Tokens
 // @Param   per       query   int  false       "per page number"
 // @Param   offset    query   int  false       "offset  number"
 // @Param   system_id query   int  true        "system id"
-// @Success {code:200, data:object} models.Scope
+// @Success {code:200, data:object} models.Token
 // @Failure {code:int, msg:string}
 // @router /search/:query [get]
-func (c *ScopeController) GetScopes() {
+func (c *TokenController) GetTokens() {
 	query := strings.TrimSpace(c.GetString(":query"))
 	per, _ := c.GetInt("per", models.PAGE_PER)
 	offset, _ := c.GetInt("offset", 0)
@@ -83,44 +83,44 @@ func (c *ScopeController) GetScopes() {
 	}
 
 	me, _ := c.Ctx.Input.GetData("me").(*models.User)
-	scopes, err := me.GetScopes(sysid, query, per, offset)
+	tokens, err := me.GetTokens(sysid, query, per, offset)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendObj(200, scopes)
+		c.SendObj(200, tokens)
 	}
 }
 
 // @Title Get
-// @Description get scope by id
+// @Description get token by id
 // @Param	id		path 	int	true		"The key for staticblock"
-// @Success {code:200, data:object} models.Scope
+// @Success {code:200, data:object} models.Token
 // @Failure {code:int, msg:string}
 // @router /:id [get]
-func (c *ScopeController) GetScope() {
+func (c *TokenController) GetToken() {
 	id, err := c.GetInt64(":id")
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
 		me, _ := c.Ctx.Input.GetData("me").(*models.User)
-		scope, err := me.GetScope(id)
+		token, err := me.GetToken(id)
 		if err != nil {
 			c.SendMsg(403, err.Error())
 		} else {
-			c.SendObj(200, scope)
+			c.SendObj(200, token)
 		}
 	}
 }
 
-// @Title UpdateScope
-// @Description update the scope
+// @Title UpdateToken
+// @Description update the token
 // @Param	id		path 	string	true		"The id you want to update"
-// @Param	body		body 	models.Scope	true		"body for scope content"
-// @Success {code:200, data:object} models.Scope
+// @Param	body		body 	models.Token	true		"body for token content"
+// @Success {code:200, data:object} models.Token
 // @Failure {code:int, msg:string}
 // @router /:id [put]
-func (c *ScopeController) UpdateScope() {
-	var scope models.Scope
+func (c *TokenController) UpdateToken() {
+	var token models.Token
 
 	id, err := c.GetInt64(":id")
 	if err != nil {
@@ -128,22 +128,22 @@ func (c *ScopeController) UpdateScope() {
 		return
 	}
 
-	json.Unmarshal(c.Ctx.Input.RequestBody, &scope)
+	json.Unmarshal(c.Ctx.Input.RequestBody, &token)
 	me, _ := c.Ctx.Input.GetData("me").(*models.User)
-	if u, err := me.UpdateScope(id, &scope); err != nil {
+	if u, err := me.UpdateToken(id, &token); err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
 		c.SendObj(200, u)
 	}
 }
 
-// @Title DeleteScope
-// @Description delete the scope
+// @Title DeleteToken
+// @Description delete the token
 // @Param	id		path 	string	true		"The id you want to delete"
 // @Success {code:200, data:"delete success!"} delete success!
 // @Failure {code:403, msg:string}
 // @router /:id [delete]
-func (c *ScopeController) DeleteScope() {
+func (c *TokenController) DeleteToken() {
 	id, err := c.GetInt64(":id")
 	if err != nil {
 		c.SendMsg(403, err.Error())
@@ -151,7 +151,7 @@ func (c *ScopeController) DeleteScope() {
 	}
 
 	me, _ := c.Ctx.Input.GetData("me").(*models.User)
-	err = me.DeleteScope(id)
+	err = me.DeleteToken(id)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 		return
@@ -165,8 +165,8 @@ func (c *ScopeController) DeleteScope() {
 // #####################################
 // #############  render ###############
 // #####################################
-func (c *MainController) GetScope() {
-	var scopes []*models.Scope
+func (c *MainController) GetToken() {
+	var tokens []*models.Token
 
 	sysid, err := c.GetInt64(":sysid")
 	if err != nil {
@@ -178,32 +178,32 @@ func (c *MainController) GetScope() {
 	per, _ := c.GetInt("per", models.PAGE_PER)
 	me, _ := c.Ctx.Input.GetData("me").(*models.User)
 
-	qs := me.QueryScopes(sysid, query)
+	qs := me.QueryTokens(sysid, query)
 	total, err := qs.Count()
 	if err != nil {
 		goto out
 	}
 
 	_, err = qs.Limit(per,
-		c.SetPaginator(per, total).Offset()).All(&scopes)
+		c.SetPaginator(per, total).Offset()).All(&tokens)
 	if err != nil {
 		goto out
 	}
 
 	c.Data["Me"], _ = c.Ctx.Input.GetData("me").(*models.User)
-	c.Data["Scopes"] = scopes
+	c.Data["Tokens"] = tokens
 	c.Data["Query"] = query
-	c.Data["Search"] = Search{"query", fmt.Sprintf("/scope/%d", sysid)}
+	c.Data["Search"] = Search{"query", fmt.Sprintf("/token/%d", sysid)}
 
-	c.TplName = "scope/list.tpl"
+	c.TplName = "token/list.tpl"
 	return
 
 out:
 	c.SendMsg(400, err.Error())
 }
 
-func (c *MainController) EditScope() {
-	var scope *models.Scope
+func (c *MainController) EditToken() {
+	var token *models.Token
 	var sys *models.System
 	var me *models.User
 
@@ -213,27 +213,27 @@ func (c *MainController) EditScope() {
 	}
 
 	me, _ = c.Ctx.Input.GetData("me").(*models.User)
-	scope, err = me.GetScope(id)
+	token, err = me.GetToken(id)
 	if err != nil {
 		goto out
 	}
-	sys, err = me.GetSystem(scope.System_id)
+	sys, err = me.GetSystem(token.System_id)
 	if err != nil {
 		goto out
 	}
 
 	c.Data["Me"], _ = c.Ctx.Input.GetData("me").(*models.User)
-	c.Data["Scope"] = scope
+	c.Data["Token"] = token
 	c.Data["System"] = sys
-	c.Data["H1"] = "edit scope at "
+	c.Data["H1"] = "edit token at "
 	c.Data["Method"] = "put"
-	c.TplName = "scope/edit.tpl"
+	c.TplName = "token/edit.tpl"
 	return
 out:
 	c.SendMsg(400, err.Error())
 }
 
-func (c *MainController) AddScope() {
+func (c *MainController) AddToken() {
 	var sys *models.System
 	var me *models.User
 
@@ -248,11 +248,11 @@ func (c *MainController) AddScope() {
 		goto out
 	}
 	c.Data["Me"], _ = c.Ctx.Input.GetData("me").(*models.User)
-	c.Data["Scope"] = &models.Scope{System_id: sysid}
+	c.Data["Token"] = &models.Token{System_id: sysid}
 	c.Data["System"] = sys
-	c.Data["H1"] = "add scope at "
+	c.Data["H1"] = "add token at "
 	c.Data["Method"] = "post"
-	c.TplName = "scope/edit.tpl"
+	c.TplName = "token/edit.tpl"
 	return
 out:
 	c.SendMsg(400, err.Error())

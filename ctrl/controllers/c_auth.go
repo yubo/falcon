@@ -110,7 +110,8 @@ func (c *AuthController) Access(uuid string) (id int64) {
 	me, _ := c.Ctx.Input.GetData("me").(*models.User)
 	user, err := me.GetUserByUuid(uuid)
 	if err != nil {
-		id, err = me.AddUser(&models.User{Uuid: uuid})
+		sys, _ := models.GetUser(1)
+		id, err = sys.AddUser(&models.User{Uuid: uuid})
 		if err != nil {
 			beego.Info(err)
 			return -1
