@@ -45,69 +45,29 @@
         </div>
         <div id="navbar" class="navbar-collapse collapse">
           <ul class="nav navbar-nav navbar-right">
-{{if .Me}}
+
+{{range .HeadLinks}}
+  {{if .SubLinks}}
             <li class="dropdown">
-              <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Template<span class="caret"></span></a>
+              <a href="{{.Url}}" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">{{.Text}}<span class="caret"></span></a>
               <ul class="dropdown-menu">
-                <li><a href="/tpl/acl">Access</a></li>
-                <li><a href="/tpl/rule">Rule</a></li>
-              </ul>
-            </li>
-
-             <li class="dropdown">
-              <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Meta<span class="caret"></span></a>
-              <ul class="dropdown-menu">
-                <li><a href="/tag">tag</a></li>
-                <li><a href="/role">role</a></li>
-                <li><a href="/user">user</a></li>
-                <li><a href="/system">system(token)</a></li>
-                <li><a href="/host">host</a></li>
-                <li class="disabled"><a href="/trigger">trigger</a></li>
-
+    {{range .SubLinks}}
+      {{if .Text}}
+                <li{{if .Disabled}} class="disabled"{{end}}><a href="{{.Url}}">{{.Text}}</a></li>
+      {{else}}
                 <li role="separator" class="divider"></li>
-                <li><a href="/tag/add">add tag</a></li>
-                <li><a href="/role/add">add role</a></li>
-                <li><a href="/user/add">add user</a></li>
-                <li><a href="/system/add">add system(token)</a></li>
-                <li><a href="/host/add">add host</a></li>
-                <li class="disabled"><a href="/trigger/add">add trigger</a></li>
-
+      {{end}}
+    {{end}}
               </ul>
             </li>
-
-            <li class="dropdown">
-              <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Settings<span class="caret"></span></a>
-              <ul class="dropdown-menu">
-                <li><a href="/settings/config/global">Global</a></li>
-                <li><a href="/settings/profile">Profile</a></li>
-                <li><a href="/settings/aboutme">About Me</a></li>
-              </ul>
-            </li>
-
-            <li class="dropdown">
-              <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">help<span class="caret"></span></a>
-              <ul class="dropdown-menu">
-                <li><a href="/doc" target="_blank">Doc</a></li>
-                <li role="separator" class="divider"></li>
-                <li><a href="/about">About</a></li>
-              </ul>
-            </li>
-            <li><a href="/logout">{{.Me.Name}}[logout]</a></li>
-{{else}}
-            <li class="dropdown">
-              <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">help<span class="caret"></span></a>
-              <ul class="dropdown-menu">
-                <li><a href="/doc" target="_blank">Doc</a></li>
-                <li role="separator" class="divider"></li>
-                <li><a href="/about">About Falcon</a></li>
-              </ul>
-            </li>
-	    <li><a href="/login">[login]</a></li>
+  {{else}} 
+	    <li><a href="{{.Url}}">{{.Text}}</a></li>
+  {{end}}
 {{end}}
           </ul>
 {{if .Search}}
           <form class="navbar-form navbar-right" method="get" action="{{.Search.Url}}">
-            <input name="{{.Search.Name}}" value="{{.Query}}" type="text" class="form-control" placeholder="Search...">
+            <input name="{{.Search.Name}}" value="{{.Query}}" type="text" class="form-control" placeholder="{{.Search.Placeholder}}">
           </form>
 {{end}}
         </div>

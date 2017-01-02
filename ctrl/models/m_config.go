@@ -21,7 +21,7 @@ var (
 	defconfig = map[string]*map[string]string{
 		"global": &map[string]string{
 			"host_bind_default_tag": "cop=xiaomi",
-			"admin_uid":             "1",
+			"admin_uid":             "2",
 		},
 	}
 )
@@ -29,7 +29,8 @@ var (
 func ConfigStart() (err error) {
 	var confs []Conf
 
-	_, err = orm.NewOrm().Raw("SELECT `key`, `value` FROM `config`").QueryRows(&confs)
+	_, err = orm.NewOrm().Raw("SELECT `key`, `value` FROM `kv` where "+
+		"`type_id` = ?", KV_T_CONFIG).QueryRows(&confs)
 	if err != nil {
 		return err
 	}
@@ -72,7 +73,9 @@ func (u *User) ConfigSet(k string, v map[string]string) (err error) {
 	}
 	vs = string(vb)
 	config[k] = &v
-	_, err = orm.NewOrm().Raw("INSERT INTO `config`(`key`,`value`) VALUES (?,?) ON DUPLICATE KEY UPDATE `value`=?", k, vs, vs).Exec()
+	_, err = orm.NewOrm().Raw("INSERT INTO `kv`(`key`,`value`, `type_id`) "+
+		"VALUES (?,?,?) ON DUPLICATE KEY UPDATE `value`=?",
+		k, vs, KV_T_CONFIG, vs).Exec()
 
 	return
 }

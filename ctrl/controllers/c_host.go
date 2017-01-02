@@ -21,17 +21,15 @@ type HostController struct {
 // @Title CreateHost
 // @Description create hosts
 // @Param	body	body 	models.Host	true	"body for host content"
-// @Param	tag	request string		true	"add host at the tag"
 // @Success {code:200, data:int} models.Host.Id
 // @Failure {code:int, msg:string}
 // @router / [post]
 func (c *HostController) CreateHost() {
 	var host models.Host
 	me, _ := c.Ctx.Input.GetData("me").(*models.User)
-	tag := strings.TrimSpace(c.GetString("tag"))
 
 	json.Unmarshal(c.Ctx.Input.RequestBody, &host)
-	id, err := me.AddHost(&host, tag)
+	id, err := me.AddHost(&host)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -126,12 +124,10 @@ func (c *HostController) UpdateHost() {
 
 // @Title DeleteHost
 // @Description delete the host
-// @Param	tag		path 	string	true		"The tag you want to delete"
 // @Success {code:200, data:"delete success!"} delete success!
 // @Failure {code:403, msg:string}
 // @router /:id [delete]
 func (c *HostController) DeleteHost() {
-	tag := c.GetString("tag")
 	id, err := c.GetInt64(":id")
 	if err != nil {
 		c.SendMsg(403, err.Error())
@@ -139,7 +135,7 @@ func (c *HostController) DeleteHost() {
 	}
 
 	me, _ := c.Ctx.Input.GetData("me").(*models.User)
-	err = me.DeleteHost(id, tag)
+	err = me.DeleteHost(id)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 		return
@@ -172,10 +168,10 @@ func (c *MainController) GetHost() {
 		goto out
 	}
 
-	c.PrepareEnv()
+	c.PrepareEnv(headLinks[HEAD_LINK_IDX_META].SubLinks, "Host")
 	c.Data["Hosts"] = hosts
 	c.Data["Query"] = query
-	c.Data["Search"] = Search{"query", "/host"}
+	c.Data["Search"] = Search{"query", "/host", "host name"}
 
 	c.TplName = "host/list.tpl"
 	return
@@ -199,7 +195,7 @@ func (c *MainController) EditHost() {
 		goto out
 	}
 
-	c.PrepareEnv()
+	c.PrepareEnv(headLinks[HEAD_LINK_IDX_META].SubLinks, "Host")
 	c.Data["Host"] = host
 	c.Data["H1"] = "edit host"
 	c.Data["Method"] = "put"
@@ -211,7 +207,7 @@ out:
 
 func (c *MainController) AddHost() {
 
-	c.PrepareEnv()
+	c.PrepareEnv(headLinks[HEAD_LINK_IDX_META].SubLinks, "Host")
 	c.Data["Method"] = "post"
 	c.Data["H1"] = "add host"
 	c.TplName = "host/edit.tpl"

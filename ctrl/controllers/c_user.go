@@ -160,10 +160,10 @@ func (c *MainController) GetUser() {
 		goto out
 	}
 
-	c.Data["Me"], _ = c.Ctx.Input.GetData("me").(*models.User)
+	c.PrepareEnv(headLinks[HEAD_LINK_IDX_META].SubLinks, "User")
 	c.Data["Users"] = users
 	c.Data["Query"] = query
-	c.Data["Search"] = Search{"query", "/user"}
+	c.Data["Search"] = Search{"query", "/user", "user name or email"}
 
 	c.TplName = "user/list.tpl"
 	return
@@ -185,10 +185,11 @@ func (c *MainController) EditUser() {
 		goto out
 	}
 
-	c.Data["Me"], _ = c.Ctx.Input.GetData("me").(*models.User)
+	c.PrepareEnv(headLinks[HEAD_LINK_IDX_META].SubLinks, "User")
 	c.Data["User"] = user
 	c.Data["H1"] = "edit user"
 	c.Data["Method"] = "put"
+	c.Data["EditUser"] = true
 	c.TplName = "user/edit.tpl"
 	return
 out:
@@ -197,8 +198,9 @@ out:
 
 func (c *MainController) AddUser() {
 
-	c.Data["Me"], _ = c.Ctx.Input.GetData("me").(*models.User)
+	c.PrepareEnv(headLinks[HEAD_LINK_IDX_META].SubLinks, "User")
 	c.Data["Method"] = "post"
 	c.Data["H1"] = "add user"
+	c.Data["EditUser"] = true
 	c.TplName = "user/edit.tpl"
 }

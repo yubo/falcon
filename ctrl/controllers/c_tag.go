@@ -167,10 +167,10 @@ func (c *MainController) GetTag() {
 		goto out
 	}
 
-	c.Data["Me"], _ = c.Ctx.Input.GetData("me").(*models.User)
+	c.PrepareEnv(headLinks[HEAD_LINK_IDX_META].SubLinks, "Tag")
 	c.Data["Tags"] = tags
 	c.Data["Query"] = query
-	c.Data["Search"] = Search{"query", "/tag"}
+	c.Data["Search"] = Search{"query", "/tag", "tag name"}
 
 	c.TplName = "tag/list.tpl"
 	return
@@ -193,7 +193,7 @@ func (c *MainController) EditTag() {
 		goto out
 	}
 
-	c.Data["Me"], _ = c.Ctx.Input.GetData("me").(*models.User)
+	c.PrepareEnv(headLinks[HEAD_LINK_IDX_META].SubLinks, "Tag")
 	c.Data["Tag"] = tag
 	c.Data["H1"] = "edit tag"
 	c.Data["Method"] = "put"
@@ -205,7 +205,7 @@ out:
 
 func (c *MainController) AddTag() {
 
-	c.Data["Me"], _ = c.Ctx.Input.GetData("me").(*models.User)
+	c.PrepareEnv(headLinks[HEAD_LINK_IDX_META].SubLinks, "Tag")
 	c.Data["Method"] = "post"
 	c.Data["H1"] = "add tag"
 	c.TplName = "tag/edit.tpl"

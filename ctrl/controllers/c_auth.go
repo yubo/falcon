@@ -6,7 +6,8 @@
 package controllers
 
 import (
-	"github.com/astaxie/beego"
+	"fmt"
+
 	"github.com/yubo/falcon/ctrl/models"
 )
 
@@ -21,14 +22,13 @@ func (c *AuthController) GetLogin() {
 	modules := make([]*models.AuthModule, 0)
 
 	for _, auth := range models.Auths {
-		beego.Debug(auth.GetName(), " Render")
 		modules = append(modules,
 			&models.AuthModule{Name: auth.GetName(),
 				Html: auth.LoginHtml(c),
 			})
 	}
 
-	c.PrepareEnv()
+	c.PrepareEnv(nil, "")
 	c.Data["Modules"] = modules
 	c.TplName = "login.tpl"
 }
@@ -43,14 +43,18 @@ func (c *AuthController) GetLogin() {
 // @router /login [post]
 func (c *AuthController) PostLogin() {
 	var (
+		user         *models.User
 		err          error
 		ok           bool
 		uuid, method string
 		auth         models.AuthInterface
 	)
-	if _uid := c.GetSession("uid"); _uid != nil {
-		c.Data["json"] = models.ErrLogged.Error()
-		goto out_err
+	if id, ok := c.GetSession("uid").(int64); ok {
+		if user, err = models.GetUser(id); err == nil {
+			c.Data["json"] = fmt.Errorf("%s(%s/%s)",
+				models.ErrLogged.Error(), user.Name, user.Uuid)
+			goto out_err
+		}
 	}
 
 	if method = c.GetString("method"); method == "" {
@@ -64,7 +68,6 @@ func (c *AuthController) PostLogin() {
 	}
 
 	if ok, uuid, err = auth.Verify(c); !ok {
-		beego.Debug(ok, uuid, err)
 		c.Data["json"] = models.ErrAuthFailed.Error()
 		goto out_err
 	}
@@ -106,14 +109,12 @@ func (c *AuthController) Logout() {
 }
 
 func (c *AuthController) Access(uuid string) (id int64) {
-	beego.Debug("Access uuid:", uuid)
 	me, _ := c.Ctx.Input.GetData("me").(*models.User)
 	user, err := me.GetUserByUuid(uuid)
 	if err != nil {
 		sys, _ := models.GetUser(1)
 		id, err = sys.AddUser(&models.User{Uuid: uuid})
 		if err != nil {
-			beego.Info(err)
 			return -1
 		}
 		user, err = me.GetUser(id)

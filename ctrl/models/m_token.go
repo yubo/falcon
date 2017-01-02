@@ -6,7 +6,6 @@
 package models
 
 import (
-	"encoding/json"
 	"time"
 
 	"github.com/astaxie/beego/orm"
@@ -15,7 +14,6 @@ import (
 type Token struct {
 	Id          int64     `json:"id"`
 	Name        string    `json:"name"`
-	System_id   int64     `json:"system_id"`
 	Cname       string    `json:"cname"`
 	Note        string    `json:"note"`
 	Create_time time.Time `json:"-"`
@@ -27,8 +25,7 @@ func (u *User) AddToken(s *Token) (id int64, err error) {
 	}
 	s.Id = id
 	cacheModule[CTL_M_SCOPE].set(id, s)
-	data, _ := json.Marshal(s)
-	DbLog(u.Id, CTL_M_SCOPE, id, CTL_A_ADD, data)
+	DbLog(u.Id, CTL_M_SCOPE, id, CTL_A_ADD, jsonStr(s))
 	return
 }
 
@@ -52,21 +49,21 @@ func (u *User) GetTokenByName(token string) (s *Token, err error) {
 	return
 }
 
-func (u *User) QueryTokens(sysid int64, query string) orm.QuerySeter {
-	qs := orm.NewOrm().QueryTable(new(Token)).Filter("System_id", sysid)
+func (u *User) QueryTokens(query string) orm.QuerySeter {
+	qs := orm.NewOrm().QueryTable(new(Token))
 	if query != "" {
 		qs = qs.Filter("Name__icontains", query)
 	}
 	return qs
 }
 
-func (u *User) GetTokensCnt(sysid int64, query string) (int, error) {
-	cnt, err := u.QueryTokens(sysid, query).Count()
+func (u *User) GetTokensCnt(query string) (int, error) {
+	cnt, err := u.QueryTokens(query).Count()
 	return int(cnt), err
 }
 
-func (u *User) GetTokens(sysid int64, query string, limit, offset int) (tokens []*Token, err error) {
-	_, err = u.QueryTokens(sysid, query).Limit(limit, offset).All(&tokens)
+func (u *User) GetTokens(query string, limit, offset int) (tokens []*Token, err error) {
+	_, err = u.QueryTokens(query).Limit(limit, offset).All(&tokens)
 	return
 }
 
@@ -90,7 +87,7 @@ func (u *User) UpdateToken(id int64, _s *Token) (s *Token, err error) {
 		s.Note = _s.Note
 	}
 	_, err = orm.NewOrm().Update(s)
-	DbLog(u.Id, CTL_M_SCOPE, id, CTL_A_SET, nil)
+	DbLog(u.Id, CTL_M_SCOPE, id, CTL_A_SET, "")
 	return s, err
 }
 
@@ -100,7 +97,7 @@ func (u *User) DeleteToken(id int64) error {
 		return ErrNoExits
 	}
 	cacheModule[CTL_M_SCOPE].del(id)
-	DbLog(u.Id, CTL_M_SCOPE, id, CTL_A_DEL, nil)
+	DbLog(u.Id, CTL_M_SCOPE, id, CTL_A_DEL, "")
 
 	return nil
 }

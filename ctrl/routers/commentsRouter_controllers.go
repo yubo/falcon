@@ -118,48 +118,6 @@ func init() {
 			AllowHTTPMethods: []string{"delete"},
 			Params: nil})
 
-	beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/controllers:SystemController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/controllers:SystemController"],
-		beego.ControllerComments{
-			Method: "CreateSystem",
-			Router: `/`,
-			AllowHTTPMethods: []string{"post"},
-			Params: nil})
-
-	beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/controllers:SystemController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/controllers:SystemController"],
-		beego.ControllerComments{
-			Method: "GetSystemsCnt",
-			Router: `/cnt/:query`,
-			AllowHTTPMethods: []string{"get"},
-			Params: nil})
-
-	beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/controllers:SystemController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/controllers:SystemController"],
-		beego.ControllerComments{
-			Method: "GetSystems",
-			Router: `/search/:query`,
-			AllowHTTPMethods: []string{"get"},
-			Params: nil})
-
-	beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/controllers:SystemController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/controllers:SystemController"],
-		beego.ControllerComments{
-			Method: "GetSystem",
-			Router: `/:id`,
-			AllowHTTPMethods: []string{"get"},
-			Params: nil})
-
-	beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/controllers:SystemController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/controllers:SystemController"],
-		beego.ControllerComments{
-			Method: "UpdateSystem",
-			Router: `/:id`,
-			AllowHTTPMethods: []string{"put"},
-			Params: nil})
-
-	beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/controllers:SystemController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/controllers:SystemController"],
-		beego.ControllerComments{
-			Method: "DeleteSystem",
-			Router: `/:id`,
-			AllowHTTPMethods: []string{"delete"},
-			Params: nil})
-
 	beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/controllers:TagController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/controllers:TagController"],
 		beego.ControllerComments{
 			Method: "CreateTag",

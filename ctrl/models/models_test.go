@@ -65,10 +65,7 @@ func testTokenInitDb(t *testing.T, o orm.Ormer) (err error) {
 	o.Raw("SET FOREIGN_KEY_CHECKS=1").Exec()
 
 	// init admin
-	admin := User{
-		Name: "admin",
-	}
-	o.Insert(&admin)
+	o.Insert(&User{Name: "admin"})
 
 	// init root tree tag
 	o.Insert(&Tag{})
@@ -77,6 +74,12 @@ func testTokenInitDb(t *testing.T, o orm.Ormer) (err error) {
 }
 
 func TestToken(t *testing.T) {
+	var items []string
+	tag_idx := make(map[string]int64)
+	user_idx := make(map[string]int64)
+	role_idx := make(map[string]int64)
+	token_idx := make(map[string]int64)
+
 	if !token_test_init {
 		t.Logf("token orm not inited, skip testing\n")
 		return
@@ -92,96 +95,79 @@ func TestToken(t *testing.T) {
 	admin.addTag(&Tag{Name: ""}, schema)
 
 	// tag
-	tag_idx := make(map[string]int64)
-	tags := []string{
+	items = []string{
 		"a=1",
 		"a=1,b=1",
 		"a=1,b=2",
 		"a=1,b=2,c=1",
 		"a=1,b=2,c=2",
 	}
-	for _, tag := range tags {
-		if tag_idx[tag], err = admin.addTag(&Tag{Name: tag}, schema); err != nil {
+	for _, item := range items {
+		if tag_idx[item], err = admin.addTag(&Tag{Name: item}, schema); err != nil {
 			t.Error(err)
 		}
 	}
 
 	// user
-	user_idx := make(map[string]int64)
-	users := []string{
+	items = []string{
 		"u1",
 	}
-	for _, user := range users {
-		if user_idx[user], err = admin.AddUser(&User{Name: user}); err != nil {
+	for _, item := range items {
+		if user_idx[item], err = admin.AddUser(&User{Name: item}); err != nil {
 			t.Error(err)
 		}
 	}
 
 	// role
-	role_idx := make(map[string]int64)
-	roles := []string{
+	items = []string{
 		"r1",
 		"r2",
 		"r3",
 		"r4",
 	}
-	for _, role := range roles {
-		if role_idx[role], err = admin.AddRole(&Role{Name: role}); err != nil {
-			t.Error(err)
-		}
-	}
-
-	// system
-	system_idx := make(map[string]int64)
-	systems := []string{
-		"s1",
-		"s2",
-		"s3",
-	}
-	for _, system := range systems {
-		if system_idx[system], err = admin.AddSystem(&System{Name: system}); err != nil {
+	for _, item := range items {
+		if role_idx[item], err = admin.AddRole(&Role{Name: item}); err != nil {
 			t.Error(err)
 		}
 	}
 
 	// token
-	token_idx := make(map[string]int64)
-	tokens := []string{
+	items = []string{
 		"token1",
 		"token2",
 		"token3",
 		"token41",
 		"token42",
 	}
-	for _, token := range tokens {
-		if token_idx[token], err = admin.AddToken(&Token{Name: token, System_id: system_idx["s1"]}); err != nil {
+	for _, item := range items {
+		if token_idx[item], err = admin.AddToken(&Token{Name: item}); err != nil {
 			t.Error(err)
 		}
 	}
 
 	// bind user
 	binds := [][3]int64{
-		{user_idx["u1"], role_idx["r1"], tag_idx["a=1,b=2"]},
-		{user_idx["u1"], role_idx["r2"], tag_idx["a=1,b=2"]},
-		{user_idx["u1"], role_idx["r3"], tag_idx["a=1,b=2"]},
-		{user_idx["u1"], role_idx["r4"], tag_idx["a=1,b=2"]},
+		{tag_idx["a=1,b=2"], user_idx["u1"], role_idx["r1"]},
+		{tag_idx["a=1,b=2"], user_idx["u1"], role_idx["r2"]},
+		{tag_idx["a=1,b=2"], user_idx["u1"], role_idx["r3"]},
+		{tag_idx["a=1,b=2"], user_idx["u1"], role_idx["r4"]},
 	}
 	for _, n := range binds {
-		if err := admin.BindAclUser(n[1], n[2], n[0]); err != nil {
+		if err := admin.BindAclUser(n[0], n[1], n[2]); err != nil {
 			t.Error(err)
 		}
 	}
 
 	// bind token
 	binds = [][3]int64{
-		{token_idx["token1"], role_idx["r1"], tag_idx["a=1,b=2"]},
-		{token_idx["token2"], role_idx["r2"], tag_idx["a=1"]},
-		{token_idx["token3"], role_idx["r3"], tag_idx["a=1,b=2,c=2"]},
-		{token_idx["token41"], role_idx["r4"], tag_idx["a=1"]},
-		{token_idx["token42"], role_idx["r4"], tag_idx["a=1,b=2"]},
+		{tag_idx["a=1,b=2"], token_idx["token1"], role_idx["r1"]},
+		{tag_idx["a=1"], token_idx["token2"], role_idx["r2"]},
+		{tag_idx["a=1,b=2,c=2"], token_idx["token3"], role_idx["r3"]},
+		{tag_idx["a=1"], token_idx["token41"], role_idx["r4"]},
+		{tag_idx["a=1,b=2"], token_idx["token42"], role_idx["r4"]},
 	}
 	for _, n := range binds {
-		if err := admin.BindAclToken(n[1], n[2], n[0]); err != nil {
+		if err := admin.BindAclToken(n[0], n[1], n[2]); err != nil {
 			t.Error(err)
 		}
 	}

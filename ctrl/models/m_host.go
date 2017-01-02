@@ -6,7 +6,6 @@
 package models
 
 import (
-	"encoding/json"
 	"time"
 
 	"github.com/astaxie/beego"
@@ -24,36 +23,16 @@ type Host struct {
 	Create_time time.Time `json:"-"`
 }
 
-func (u *User) AddHost(h *Host, tag string) (id int64, err error) {
-	var t *Tag
-
-	if tag, err = sysTagSchema.Fmt(tag,
-		false); err != nil {
-		return
-	}
-
-	if t, err = u.Access(SYS_W_SCOPE,
-		tag, true); err != nil {
-		return
-	}
-
+func (u *User) AddHost(h *Host) (id int64, err error) {
 	id, err = orm.NewOrm().Insert(h)
 	if err != nil {
 		beego.Error(err)
 		return
 	}
 
-	// bind host to tag
-	_, err = orm.NewOrm().Raw("insert into tag_host(tag_id, host_id) values (?, ?)", t.Id, id).Exec()
-	if err != nil {
-		return
-	}
-
 	h.Id = id
 	cacheModule[CTL_M_HOST].set(id, h)
-	data, _ := json.Marshal(h)
-	DbLog(u.Id, CTL_M_HOST, id, CTL_A_ADD, data)
-
+	DbLog(u.Id, CTL_M_HOST, id, CTL_A_ADD, jsonStr(h))
 	return
 }
 
@@ -122,39 +101,16 @@ func (u *User) UpdateHost(id int64, _h *Host) (h *Host, err error) {
 		h.Idc = _h.Idc
 	}
 	_, err = orm.NewOrm().Update(h)
-	DbLog(u.Id, CTL_M_HOST, id, CTL_A_SET, nil)
+	DbLog(u.Id, CTL_M_HOST, id, CTL_A_SET, "")
 	return h, err
 }
 
-func (u *User) DeleteHost(id int64, tag string) (err error) {
-	var n, m int64
-	var t *Tag
-
-	qs := orm.NewOrm().QueryTable("tag_host").Filter("host_id", id)
-	n, err = qs.Count()
-	if err != nil {
-		// not exist
-		return
+func (u *User) DeleteHost(id int64) error {
+	if n, err := orm.NewOrm().Delete(&Host{Id: id}); err != nil || n == 0 {
+		return err
 	}
-
-	// ACL
-	if t, err = u.Access(SYS_W_SCOPE, tag, true); err != nil {
-		return
-	}
-
-	// unbind tag_host
-	if m, err = qs.Filter("tag_id", t.Id).Delete(); err != nil {
-		return
-	}
-
-	// delete host_id if not bound by any tag
-	if n-m == 0 {
-		if n, err = orm.NewOrm().Delete(&Host{Id: id}); err != nil {
-			return
-		}
-		cacheModule[CTL_M_HOST].del(id)
-		DbLog(u.Id, CTL_M_HOST, id, CTL_A_DEL, nil)
-	}
+	cacheModule[CTL_M_HOST].del(id)
+	DbLog(u.Id, CTL_M_HOST, id, CTL_A_DEL, "")
 
 	return nil
 }

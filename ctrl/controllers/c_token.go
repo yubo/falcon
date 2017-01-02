@@ -7,7 +7,6 @@ package controllers
 
 import (
 	"encoding/json"
-	"fmt"
 	"strings"
 
 	"github.com/astaxie/beego"
@@ -27,10 +26,9 @@ type TokenController struct {
 // @router / [post]
 func (c *TokenController) CreateToken() {
 	var token models.Token
-	json.Unmarshal(c.Ctx.Input.RequestBody, &token)
-	beego.Debug(string(c.Ctx.Input.RequestBody))
 	me, _ := c.Ctx.Input.GetData("me").(*models.User)
 
+	json.Unmarshal(c.Ctx.Input.RequestBody, &token)
 	id, err := me.AddToken(&token)
 	if err != nil {
 		c.SendMsg(403, err.Error())
@@ -47,15 +45,9 @@ func (c *TokenController) CreateToken() {
 // @router /cnt/:query [get]
 func (c *TokenController) GetTokensCnt() {
 	query := strings.TrimSpace(c.GetString(":query"))
-	sysid, err := c.GetInt64("system_id", 0)
-
-	if err != nil || sysid == 0 {
-		c.SendMsg(403, models.ErrParam.Error())
-		return
-	}
-
 	me, _ := c.Ctx.Input.GetData("me").(*models.User)
-	cnt, err := me.GetTokensCnt(sysid, query)
+
+	cnt, err := me.GetTokensCnt(query)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -75,15 +67,9 @@ func (c *TokenController) GetTokens() {
 	query := strings.TrimSpace(c.GetString(":query"))
 	per, _ := c.GetInt("per", models.PAGE_PER)
 	offset, _ := c.GetInt("offset", 0)
-
-	sysid, err := c.GetInt64("system_id", 0)
-	if err != nil || sysid == 0 {
-		c.SendMsg(403, models.ErrParam.Error())
-		return
-	}
-
 	me, _ := c.Ctx.Input.GetData("me").(*models.User)
-	tokens, err := me.GetTokens(sysid, query, per, offset)
+
+	tokens, err := me.GetTokens(query, per, offset)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -99,6 +85,7 @@ func (c *TokenController) GetTokens() {
 // @router /:id [get]
 func (c *TokenController) GetToken() {
 	id, err := c.GetInt64(":id")
+
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -129,6 +116,7 @@ func (c *TokenController) UpdateToken() {
 	}
 
 	json.Unmarshal(c.Ctx.Input.RequestBody, &token)
+
 	me, _ := c.Ctx.Input.GetData("me").(*models.User)
 	if u, err := me.UpdateToken(id, &token); err != nil {
 		c.SendMsg(400, err.Error())
@@ -168,17 +156,11 @@ func (c *TokenController) DeleteToken() {
 func (c *MainController) GetToken() {
 	var tokens []*models.Token
 
-	sysid, err := c.GetInt64(":sysid")
-	if err != nil {
-		c.SendMsg(400, err.Error())
-		return
-	}
-
 	query := strings.TrimSpace(c.GetString("query"))
 	per, _ := c.GetInt("per", models.PAGE_PER)
 	me, _ := c.Ctx.Input.GetData("me").(*models.User)
 
-	qs := me.QueryTokens(sysid, query)
+	qs := me.QueryTokens(query)
 	total, err := qs.Count()
 	if err != nil {
 		goto out
@@ -190,10 +172,10 @@ func (c *MainController) GetToken() {
 		goto out
 	}
 
-	c.Data["Me"], _ = c.Ctx.Input.GetData("me").(*models.User)
+	c.PrepareEnv(headLinks[HEAD_LINK_IDX_META].SubLinks, "Token")
 	c.Data["Tokens"] = tokens
 	c.Data["Query"] = query
-	c.Data["Search"] = Search{"query", fmt.Sprintf("/token/%d", sysid)}
+	c.Data["Search"] = Search{"query", "/token", "tag name"}
 
 	c.TplName = "token/list.tpl"
 	return
@@ -204,7 +186,6 @@ out:
 
 func (c *MainController) EditToken() {
 	var token *models.Token
-	var sys *models.System
 	var me *models.User
 
 	id, err := c.GetInt64(":id")
@@ -217,15 +198,10 @@ func (c *MainController) EditToken() {
 	if err != nil {
 		goto out
 	}
-	sys, err = me.GetSystem(token.System_id)
-	if err != nil {
-		goto out
-	}
 
-	c.Data["Me"], _ = c.Ctx.Input.GetData("me").(*models.User)
+	c.PrepareEnv(headLinks[HEAD_LINK_IDX_META].SubLinks, "Token")
 	c.Data["Token"] = token
-	c.Data["System"] = sys
-	c.Data["H1"] = "edit token at "
+	c.Data["H1"] = "edit token"
 	c.Data["Method"] = "put"
 	c.TplName = "token/edit.tpl"
 	return
@@ -234,26 +210,9 @@ out:
 }
 
 func (c *MainController) AddToken() {
-	var sys *models.System
-	var me *models.User
-
-	sysid, err := c.GetInt64(":sysid")
-	if err != nil {
-		goto out
-	}
-
-	me, _ = c.Ctx.Input.GetData("me").(*models.User)
-	sys, err = me.GetSystem(sysid)
-	if err != nil {
-		goto out
-	}
-	c.Data["Me"], _ = c.Ctx.Input.GetData("me").(*models.User)
-	c.Data["Token"] = &models.Token{System_id: sysid}
-	c.Data["System"] = sys
-	c.Data["H1"] = "add token at "
+	c.PrepareEnv(headLinks[HEAD_LINK_IDX_META].SubLinks, "Token")
+	c.Data["H1"] = "add token"
 	c.Data["Method"] = "post"
 	c.TplName = "token/edit.tpl"
 	return
-out:
-	c.SendMsg(400, err.Error())
 }

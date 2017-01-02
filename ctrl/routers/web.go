@@ -36,6 +36,10 @@ func init() {
 	beego.Router("/settings/profile", mc, "get:GetProfile")
 	beego.Router("/settings/aboutme", mc, "get:GetAboutMe")
 	beego.Router("/settings/config/global", mc, "get:GetConfigGlobal;post:PostConfigGlobal")
+	if beego.BConfig.RunMode == "dev" {
+		beego.Router("/settings/debug", mc, "get:GetDebug")
+		beego.Router("/settings/debug/:action", mc, "get:GetDebugAction")
+	}
 
 	beego.Router("/user", mc, "get:GetUser")
 	beego.Router("/user/edit/:id([0-9]+)", mc, "get:EditUser")
@@ -53,16 +57,14 @@ func init() {
 	beego.Router("/role/edit/:id([0-9]+)", mc, "get:EditRole")
 	beego.Router("/role/add", mc, "get:AddRole")
 
-	beego.Router("/system", mc, "get:GetSystem")
-	beego.Router("/system/edit/:id([0-9]+)", mc, "get:EditSystem")
-	beego.Router("/system/add", mc, "get:AddSystem")
-
-	beego.Router("/token/:sysid([0-9]+)", mc, "get:GetToken")
+	beego.Router("/token", mc, "get:GetToken")
 	beego.Router("/token/edit/:id([0-9]+)", mc, "get:EditToken")
-	beego.Router("/token/add/:sysid([0-9]+)", mc, "get:AddToken")
+	beego.Router("/token/add", mc, "get:AddToken")
 
-	beego.Router("/tpl/acl", mc, "get:GetTplAcl")
-	beego.Router("/tpl/rule", mc, "get:GetTplRule")
+	beego.Router("/rel/tag/host", mc, "get:GetTagHost")
+	beego.Router("/rel/tag/role/user", mc, "get:GetTagRoleUser")
+	beego.Router("/rel/tag/role/token", mc, "get:GetTagRoleToken")
+	beego.Router("/rel/tag/rule/trigger", mc, "get:GetTagRuleTrigger")
 
 	beego.Router("/about", mc, "get:About")
 }

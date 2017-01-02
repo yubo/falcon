@@ -11,7 +11,9 @@ swagger/swagger.json: routers/router.go
 	bee generate docs
 
 dev:
-	export GOPATH=${VENDOR} && cd ${WORKDIR} &&\
+	#export GOPATH=${VENDOR} && cd ${WORKDIR} &&
+	cd ${WORKDIR} &&\
+	echo ${WORKDIR} &&\
 	bee run -gendoc=true -downdoc=true
 
 db:

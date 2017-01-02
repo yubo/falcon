@@ -19,7 +19,6 @@ func init() {
 		beego.NSNamespace("/auth", beego.NSInclude(&controllers.AuthController{})),
 		beego.NSNamespace("/host", beego.NSInclude(&controllers.HostController{})),
 		beego.NSNamespace("/role", beego.NSInclude(&controllers.RoleController{})),
-		beego.NSNamespace("/system", beego.NSInclude(&controllers.SystemController{})),
 		beego.NSNamespace("/tag", beego.NSInclude(&controllers.TagController{})),
 		beego.NSNamespace("/user", beego.NSInclude(&controllers.UserController{})),
 		beego.NSNamespace("/token", beego.NSInclude(&controllers.TokenController{})),

@@ -5,48 +5,45 @@
  */
 package models
 
-import (
-	"encoding/json"
-
-	"github.com/astaxie/beego/orm"
-)
+import "github.com/astaxie/beego/orm"
 
 type Tpl_rel struct {
-	Id       int64
-	Tpl_id   int64
-	Tag_id   int64
-	Sub_id   int64
-	Rel_type int64
+	Id      int64
+	Tpl_id  int64
+	Tag_id  int64
+	Sub_id  int64
+	Creator int64
+	Type_id int64
 }
 
-func addTplRel(user_id, tpl_id, tag_id, sub_id, rel_type int64) error {
-	t := &Tpl_rel{Tpl_id: tpl_id, Tag_id: tag_id, Sub_id: sub_id, Rel_type: rel_type}
+func addTplRel(user_id, tpl_id, tag_id, sub_id, type_id int64) error {
+	t := &Tpl_rel{Tpl_id: tpl_id, Tag_id: tag_id, Sub_id: sub_id,
+		Creator: user_id, Type_id: type_id}
 
 	id, err := orm.NewOrm().Insert(t)
 	if err != nil {
 		return err
 	}
 
-	data, _ := json.Marshal(t)
-	DbLog(user_id, CTL_M_TPL, id, CTL_A_ADD, data)
+	DbLog(user_id, CTL_M_TPL, id, CTL_A_ADD, jsonStr(t))
 
 	return nil
 }
 
 func (u *User) BindAclUser(role_id, tag_id, user_id int64) error {
-	return addTplRel(u.Id, role_id, tag_id, user_id, TPL_T_ACL_USER)
+	return addTplRel(u.Id, role_id, tag_id, user_id, TPL_REL_T_ACL_USER)
 }
 
 func (u *User) BindAclToken(role_id, tag_id, token_id int64) (err error) {
-	return addTplRel(u.Id, role_id, tag_id, token_id, TPL_T_ACL_TOKEN)
+	return addTplRel(u.Id, role_id, tag_id, token_id, TPL_REL_T_ACL_TOKEN)
 }
 
 func (u *User) BindRuleHost(rule_id, tag_id, host_id int64) error {
-	return addTplRel(u.Id, rule_id, tag_id, host_id, TPL_T_RULE_HOST)
+	return addTplRel(u.Id, rule_id, tag_id, host_id, TPL_REL_T_RULE_HOST)
 }
 
 func (u *User) BindRuleTrigger(rule_id, tag_id, trigger_id int64) (err error) {
-	return addTplRel(u.Id, rule_id, tag_id, trigger_id, TPL_T_RULE_TRIGGER)
+	return addTplRel(u.Id, rule_id, tag_id, trigger_id, TPL_REL_T_RULE_TRIGGER)
 }
 
 // Access
@@ -106,7 +103,7 @@ JOIN (
                 b0.sub_id AS token_id
           FROM tpl_rel a0
           JOIN tpl_rel b0
-          ON a0.rel_type = ? AND a0.sub_id = ? AND b0.rel_type = ?
+          ON a0.type_id = ? AND a0.sub_id = ? AND b0.type_id = ?
 	      AND b0.sub_id = ? AND a0.tpl_id = b0.tpl_id) a1
     JOIN tag_rel b1
     ON a1.user_tag_id = b1.tag_id AND a1.token_tag_id = b1.sup_tag_id
@@ -115,7 +112,7 @@ JOIN (
 ON  a2.sup_tag_id = b2.user_tag_id 
 WHERE a2.tag_id = ?
 `,
-		TPL_T_ACL_USER, user_id, TPL_T_ACL_TOKEN, token_id, tag_id).QueryRow(&tid)
+		TPL_REL_T_ACL_USER, user_id, TPL_REL_T_ACL_TOKEN, token_id, tag_id).QueryRow(&tid)
 	if err != nil {
 		err = EACCES
 	}

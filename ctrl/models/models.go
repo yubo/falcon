@@ -10,15 +10,16 @@ import (
 
 const (
 	DB_PREFIX      = ""
-	PAGE_PER       = 20
-	SYS_TAG_SCHEMA = "cop,owt,pdl,servicegroup;service,jobgroup;job,sbs;mod;srv;grp;cluster;"
-	SYS_W_SCOPE    = "falcon_tag_write"
-	SYS_R_SCOPE    = "falcon_tag_read"
-	SYS_B_SCOPE    = "falcon_tag_bind"
-	SYS_O_SCOPE    = "falcon_tag_operate"
+	PAGE_PER       = 10
+	SYS_TAG_SCHEMA = "cop,owt,pdl;servicegroup;service,jobgroup;job,sbs;mod;srv;grp;cluster;"
+	SYS_W_SCOPE    = "falcon_write"
+	SYS_R_SCOPE    = "falcon_read"
+	SYS_B_SCOPE    = "falcon_bind"
+	SYS_O_SCOPE    = "falcon_operate"
 	SYS_A_SCOPE    = "falcon_admin"
 )
 
+// ctl meta name
 const (
 	CTL_M_HOST = iota
 	CTL_M_ROLE
@@ -30,24 +31,33 @@ const (
 	CTL_M_SIZE
 )
 
-const (
-	TAG_T_INDIRECT = iota
-	TAG_T_DIRECT
-	TAG_T_SELF
-)
-
-const (
-	TPL_T_ACL_USER = iota
-	TPL_T_ACL_TOKEN
-	TPL_T_RULE_HOST
-	TPL_T_RULE_TRIGGER
-)
+// ctl method name
 const (
 	CTL_A_ADD = iota
 	CTL_A_DEL
 	CTL_A_SET
 	CTL_A_GET
 	CTL_A_SIZE
+)
+
+// db.tag_rel.type_id
+const (
+	TAG_T_INDIRECT = iota
+	TAG_T_DIRECT
+	TAG_T_SELF
+)
+
+// db.tpl_rel.type_id
+const (
+	TPL_REL_T_ACL_USER = iota
+	TPL_REL_T_ACL_TOKEN
+	TPL_REL_T_RULE_TRIGGER
+)
+
+// db.kv.type_id
+const (
+	KV_T_CONFIG = iota
+	KV_T_CACHE
 )
 
 var (
@@ -70,12 +80,14 @@ var (
 	ErrNoHost      = errors.New("host not exists")
 	ErrNoTag       = errors.New("tag not exists")
 	ErrNoRole      = errors.New("role not exists")
-	ErrNoSystem    = errors.New("system not exists")
 	ErrNoToken     = errors.New("token not exists")
 	ErrNoModule    = errors.New("module not exists")
+	ErrNoRel       = errors.New("relation not exists")
 	ErrNoLogged    = errors.New("not logged in")
 	ErrRePreStart  = errors.New("multiple times PreStart")
 	ErrUnsupported = errors.New("unsupported")
+	ErrDelDefault  = errors.New("You cannot delete this basic data")
+	ErrDelInUse    = errors.New("Still in use, cannot remove")
 	ErrParam       = errors.New("param error")
 	ErrEmpty       = errors.New("empty items")
 	EPERM          = errors.New("Operation not permitted")
@@ -118,7 +130,7 @@ var (
 
 func init() {
 	orm.RegisterModelWithPrefix(DB_PREFIX, new(User), new(Host),
-		new(Tag), new(Role), new(System), new(Token), new(Log),
+		new(Tag), new(Role), new(Token), new(Log),
 		new(Tag_rel), new(Tpl_rel))
 
 	// tag
@@ -142,6 +154,14 @@ func start() (err error) {
 		}
 	}
 
+	CacheInit()
+
+	err = ConfigStart()
+
+	return
+}
+
+func CacheInit() {
 	for _, module := range strings.Split(beego.AppConfig.String("cachemodule"), ",") {
 		for k, v := range moduleName {
 			if v == module {
@@ -153,8 +173,4 @@ func start() (err error) {
 			}
 		}
 	}
-
-	err = ConfigStart()
-
-	return
 }

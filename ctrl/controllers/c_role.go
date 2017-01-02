@@ -170,10 +170,10 @@ func (c *MainController) GetRole() {
 		goto out
 	}
 
-	c.PrepareEnv()
+	c.PrepareEnv(headLinks[HEAD_LINK_IDX_META].SubLinks, "Role")
 	c.Data["Roles"] = roles
 	c.Data["Query"] = query
-	c.Data["Search"] = Search{"query", "/role"}
+	c.Data["Search"] = Search{"query", "/role", "role name"}
 
 	c.TplName = "role/list.tpl"
 	return
@@ -197,7 +197,7 @@ func (c *MainController) EditRole() {
 		goto out
 	}
 
-	c.PrepareEnv()
+	c.PrepareEnv(headLinks[HEAD_LINK_IDX_META].SubLinks, "Role")
 	c.Data["Role"] = role
 	c.Data["H1"] = "edit role"
 	c.Data["Method"] = "put"
@@ -209,7 +209,7 @@ out:
 
 func (c *MainController) AddRole() {
 
-	c.PrepareEnv()
+	c.PrepareEnv(headLinks[HEAD_LINK_IDX_META].SubLinks, "Role")
 	c.Data["Method"] = "post"
 	c.Data["H1"] = "add role"
 	c.TplName = "role/edit.tpl"

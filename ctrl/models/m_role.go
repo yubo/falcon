@@ -6,7 +6,6 @@
 package models
 
 import (
-	"encoding/json"
 	"time"
 
 	"github.com/astaxie/beego/orm"
@@ -27,8 +26,7 @@ func (u *User) AddRole(r *Role) (id int64, err error) {
 	}
 	r.Id = id
 	cacheModule[CTL_M_ROLE].set(id, r)
-	data, _ := json.Marshal(r)
-	DbLog(u.Id, CTL_M_ROLE, id, CTL_A_ADD, data)
+	DbLog(u.Id, CTL_M_ROLE, id, CTL_A_ADD, jsonStr(r))
 	return
 }
 
@@ -77,17 +75,16 @@ func (u *User) UpdateRole(id int64, _r *Role) (r *Role, err error) {
 		r.Note = _r.Note
 	}
 	_, err = orm.NewOrm().Update(r)
-	DbLog(u.Id, CTL_M_ROLE, id, CTL_A_SET, nil)
+	DbLog(u.Id, CTL_M_ROLE, id, CTL_A_SET, "")
 	return r, err
 }
 
 func (u *User) DeleteRole(id int64) error {
-
 	if n, err := orm.NewOrm().Delete(&Role{Id: id}); err != nil || n == 0 {
 		return err
 	}
 	cacheModule[CTL_M_ROLE].del(id)
-	DbLog(u.Id, CTL_M_ROLE, id, CTL_A_DEL, nil)
+	DbLog(u.Id, CTL_M_ROLE, id, CTL_A_DEL, "")
 
 	return nil
 }

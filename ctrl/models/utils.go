@@ -6,6 +6,7 @@
 package models
 
 import (
+	"encoding/json"
 	"strings"
 	"time"
 
@@ -43,13 +44,13 @@ func (c *cache) del(id int64) {
 	}
 }
 
-func DbLog(uid, module, module_id, action int64, data []byte) {
+func DbLog(uid, module, module_id, action int64, data string) {
 	log := &Log{
 		User_id:   uid,
 		Module:    module,
 		Module_id: module_id,
 		Action:    action,
-		Data:      string(data),
+		Data:      data,
 	}
 	orm.NewOrm().Insert(log)
 }
@@ -75,7 +76,14 @@ func stringscmp(a, b []string) (ret int) {
 		if ret = strings.Compare(a[i], b[i]); ret != 0 {
 			return
 		}
-
 	}
 	return
+}
+
+func jsonStr(i interface{}) string {
+	if ret, err := json.Marshal(i); err != nil {
+		return ""
+	} else {
+		return string(ret)
+	}
 }

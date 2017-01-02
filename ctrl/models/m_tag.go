@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/orm"
 )
 
@@ -23,7 +24,7 @@ type Tag_rel struct {
 	Id         int64
 	Tag_id     int64
 	Sup_tag_id int64
-	Rel_type   int64
+	Type_id    int64
 }
 
 type TagNode struct {
@@ -46,6 +47,7 @@ func NewTagSchema(tag string) (*TagSchema, error) {
 	for i, j = 0, 0; j < len(tag); j++ {
 		if tag[j] == ',' {
 			if i >= j {
+				beego.Debug(tag, ErrParam)
 				return nil, ErrParam
 			}
 			ret.nodes = append(ret.nodes, TagNode{
@@ -55,6 +57,7 @@ func NewTagSchema(tag string) (*TagSchema, error) {
 			i = j + 1
 		} else if tag[j] == ';' {
 			if i >= j {
+				beego.Debug(tag, ErrParam)
 				return nil, ErrParam
 			}
 			ret.nodes = append(ret.nodes, TagNode{
@@ -65,6 +68,7 @@ func NewTagSchema(tag string) (*TagSchema, error) {
 		}
 	}
 	if i != j || i == 0 {
+		beego.Debug(tag, ErrParam)
 		return nil, ErrParam
 	}
 
@@ -88,6 +92,7 @@ func tagMap(tag string) (map[string]string, error) {
 				ret[k] = v
 				k, v = "", ""
 			} else {
+				beego.Debug(tag, ErrParam)
 				return ret, ErrParam
 			}
 			i = j + 1
@@ -99,6 +104,7 @@ func tagMap(tag string) (map[string]string, error) {
 		ret[k] = v
 		return ret, nil
 	} else {
+		beego.Debug(tag, ErrParam)
 		return ret, ErrParam
 	}
 }
@@ -118,6 +124,7 @@ func (ts *TagSchema) Fmt(tag string, force bool) (string, error) {
 			ret += fmt.Sprintf("%s=%s,", node.Key, v)
 			n++
 		} else if !force && node.Must {
+			beego.Debug(tag, ErrParam)
 			return ret, ErrParam
 		}
 
@@ -132,6 +139,7 @@ func (ts *TagSchema) Fmt(tag string, force bool) (string, error) {
 		return ret[0 : len(ret)-1], nil
 	}
 
+	beego.Debug(tag, ErrParam)
 	return ret, ErrParam
 }
 
@@ -195,9 +203,9 @@ func (u *User) addTag(t *Tag, schema *TagSchema) (id int64, err error) {
 
 	if rels := TagRelation(t.Name); len(rels) > 0 {
 		var (
-			tags []*Tag
-			arg  = make([]interface{}, len(rels))
-			typ  int64
+			tags    []*Tag
+			arg     = make([]interface{}, len(rels))
+			type_id int64
 		)
 
 		for i, v := range rels {
@@ -212,16 +220,16 @@ func (u *User) addTag(t *Tag, schema *TagSchema) (id int64, err error) {
 		tag_rels := make([]Tag_rel, len(tags))
 		for i, tag := range tags {
 			if i == len(tags)-1 {
-				typ = TAG_T_SELF
+				type_id = TAG_T_SELF
 			} else if i == len(tags)-2 {
-				typ = TAG_T_DIRECT
+				type_id = TAG_T_DIRECT
 			} else {
-				typ = TAG_T_INDIRECT
+				type_id = TAG_T_INDIRECT
 			}
 			tag_rels[i] = Tag_rel{
 				Tag_id:     id,
 				Sup_tag_id: tag.Id,
-				Rel_type:   typ}
+				Type_id:    type_id}
 		}
 		_, err = orm.NewOrm().InsertMulti(10, tag_rels)
 		if err != nil {
@@ -231,7 +239,7 @@ func (u *User) addTag(t *Tag, schema *TagSchema) (id int64, err error) {
 
 	t.Id = id
 	cacheModule[CTL_M_TAG].set(id, t)
-	DbLog(u.Id, CTL_M_TAG, id, CTL_A_ADD, nil)
+	DbLog(u.Id, CTL_M_TAG, id, CTL_A_ADD, "")
 
 	return id, err
 }
@@ -292,7 +300,7 @@ func (u *User) UpdateTag(id int64, _t *Tag) (t *Tag, err error) {
 		t.Name = _t.Name
 	}
 	_, err = orm.NewOrm().Update(t)
-	DbLog(u.Id, CTL_M_TAG, id, CTL_A_SET, nil)
+	DbLog(u.Id, CTL_M_TAG, id, CTL_A_SET, "")
 	return t, err
 }
 
@@ -313,7 +321,7 @@ func (u *User) DeleteTag(id int64) (err error) {
 		return ErrNoExits
 	}
 	cacheModule[CTL_M_TAG].del(id)
-	DbLog(u.Id, CTL_M_TAG, id, CTL_A_DEL, nil)
+	DbLog(u.Id, CTL_M_TAG, id, CTL_A_DEL, "")
 
 	return nil
 }

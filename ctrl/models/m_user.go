@@ -6,7 +6,6 @@
 package models
 
 import (
-	"encoding/json"
 	"time"
 
 	"github.com/astaxie/beego/orm"
@@ -25,8 +24,8 @@ type User struct {
 }
 
 func (u *User) IsAdmin() bool {
-	// 1: sys
-	// 2: admin
+	// 1: system
+	// 2: admin(first user)
 	return u.Id < 3
 }
 
@@ -37,8 +36,7 @@ func (u *User) AddUser(user *User) (id int64, err error) {
 	user.Id = id
 	cacheModule[CTL_M_USER].set(id, user)
 
-	data, _ := json.Marshal(user)
-	DbLog(u.Id, CTL_M_USER, id, CTL_A_ADD, data)
+	DbLog(u.Id, CTL_M_USER, id, CTL_A_ADD, jsonStr(user))
 	return
 }
 
@@ -107,7 +105,7 @@ func (u *User) UpdateUser(id int64, _u *User) (user *User, err error) {
 		user.QQ = _u.QQ
 	}
 	_, err = orm.NewOrm().Update(user)
-	DbLog(u.Id, CTL_M_USER, id, CTL_A_SET, nil)
+	DbLog(u.Id, CTL_M_USER, id, CTL_A_SET, "")
 	return user, err
 }
 
@@ -116,7 +114,7 @@ func (u *User) DeleteUser(id int64) error {
 		return ErrNoExits
 	}
 	cacheModule[CTL_M_USER].del(id)
-	DbLog(u.Id, CTL_M_USER, id, CTL_A_DEL, nil)
+	DbLog(u.Id, CTL_M_USER, id, CTL_A_DEL, "")
 
 	return nil
 }
