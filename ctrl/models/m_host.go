@@ -101,6 +101,7 @@ func (u *User) UpdateHost(id int64, _h *Host) (h *Host, err error) {
 		h.Idc = _h.Idc
 	}
 	_, err = orm.NewOrm().Update(h)
+	cacheModule[CTL_M_HOST].set(id, h)
 	DbLog(u.Id, CTL_M_HOST, id, CTL_A_SET, "")
 	return h, err
 }

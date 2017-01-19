@@ -8,30 +8,37 @@
     <meta name="description" content="">
     <meta name="author" content="">
     <link rel="icon" href="/static/favicon.ico">
-
     <title>Falcon</title>
-
     <!-- Bootstrap core CSS -->
     <link href="/static/css/bootstrap.min.css" rel="stylesheet">
-
     <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
     <link href="/static/css/ie10-viewport-bug-workaround.css" rel="stylesheet">
-
     <!-- Custom styles for this template -->
+    <link href="/static/css/zTreeStyle/zTreeStyle.css" rel="stylesheet">
+    <link href="/static/css/select2.css" rel="stylesheet">
+    <link href="/static/css/select2-bootstrap.css" rel="stylesheet">
     <link href="/static/css/custom.css" rel="stylesheet">
-
     <!-- Just for debugging purposes. Don't actually copy these 2 lines! -->
     <!--[if lt IE 9]><script src="../../assets/js/ie8-responsive-file-warning.js"></script><![endif]-->
     <script src="/static/js/ie-emulation-modes-warning.js"></script>
-
     <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
     <!--[if lt IE 9]>
       <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
       <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
     <![endif]-->
+    <script src="/static/js/jquery.min.js"></script>
+    <script src="/static/js/bootstrap.min.js"></script>
+    <script src="/static/js/jquery.ztree.core.min.js"></script>
+    <script src="/static/js/jquery.ztree.exedit.min.js"></script>
+
+    <script src="/static/js/select2.min.js"></script>
+    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+    <script src="/static/js/ie10-viewport-bug-workaround.js"></script>
+    <script src="/static/layer/layer.js"></script>
+    <script src="/static/js/custom.js"></script>
+
   </head>
   <body>
-
     <nav class="navbar navbar-inverse navbar-fixed-top">
       <div class="container-fluid">
         <div class="navbar-header">
@@ -66,8 +73,8 @@
 {{end}}
           </ul>
 {{if .Search}}
-          <form class="navbar-form navbar-right" method="get" action="{{.Search.Url}}">
-            <input name="{{.Search.Name}}" value="{{.Query}}" type="text" class="form-control" placeholder="{{.Search.Placeholder}}">
+          <form id="search" class="navbar-form navbar-right">
+            <input id="query" name="{{.Search.Name}}" value="{{.Query}}" type="text" class="form-control" placeholder="{{.Search.Placeholder}}">
           </form>
 {{end}}
         </div>

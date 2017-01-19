@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/orm"
 	"github.com/yubo/falcon/ctrl/models"
 )
@@ -28,20 +29,32 @@ func (c *MainController) GetAboutMe() {
 	c.TplName = "settings/about.tpl"
 }
 
-func (c *MainController) GetConfigGlobal() {
+func (c *MainController) GetConfig() {
+	var err error
+
+	module := c.GetString(":module")
 	me, _ := c.Ctx.Input.GetData("me").(*models.User)
-	c.PrepareEnv(headLinks[HEAD_LINK_IDX_SETTINGS].SubLinks, "Global")
-	c.Data["Moudle"] = "global"
-	c.Data["Config"], _ = me.ConfigGet("global")
+
+	conf, err := me.ConfigGet(module)
+	if err != nil {
+		c.SendMsg(403, err.Error())
+		return
+	}
+	c.Data["Config"] = conf.Value.([]models.ConfigEntry)
+	c.Data["Module"] = conf.Key
+	c.Data["Note"] = conf.Note
+	beego.Debug(c.Data["Config"])
+	c.PrepareEnv(headLinks[HEAD_LINK_IDX_SETTINGS].SubLinks, module)
 	c.TplName = "settings/config.tpl"
 }
 
-func (c *MainController) PostConfigGlobal() {
+func (c *MainController) PostConfig() {
+	module := c.GetString(":module")
 	conf := make(map[string]string)
 
 	json.Unmarshal(c.Ctx.Input.RequestBody, &conf)
 	me, _ := c.Ctx.Input.GetData("me").(*models.User)
-	if err := me.ConfigSet("global", conf); err != nil {
+	if err := me.ConfigSet(module, conf); err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
 		c.SendObj(200, "")
@@ -90,8 +103,10 @@ func populate() (interface{}, error) {
 		user_idx  = make(map[string]int64)
 		role_idx  = make(map[string]int64)
 		token_idx = make(map[string]int64)
+		host_idx  = make(map[string]int64)
 	)
 	admin, _ := models.GetUser(1)
+	tag_idx["/"] = 1
 
 	// user
 	items = []string{
@@ -138,7 +153,12 @@ func populate() (interface{}, error) {
 		{"cop=xiaomi,owt=miliao,pdl=micloud", "miliao.cloud3.bj"},
 	}
 	for _, item2 := range items2 {
-		if _, err = admin.AddHost(&models.Host{Name: item2[1]}); err != nil {
+		if host_idx[item2[1]], err = admin.AddHost(&models.Host{Name: item2[1]}); err != nil {
+			return nil, err
+		}
+
+		if err = admin.CreateTagHost(models.RelTagHost{Tag_id: tag_idx[item2[0]],
+			Host_id: host_idx[item2[1]]}); err != nil {
 			return nil, err
 		}
 		ret = fmt.Sprintf("%sadd host(%s, %s)\n", ret, item2[1], item2[0])
@@ -181,8 +201,8 @@ func populate() (interface{}, error) {
 		{"cop=xiaomi,owt=miliao", "test", "usr"},
 	}
 	for _, s := range binds {
-		if err := admin.BindAclUser(tag_idx[s[0]], user_idx[s[1]],
-			role_idx[s[2]]); err != nil {
+		if err := admin.BindAclUser(tag_idx[s[0]], role_idx[s[2]],
+			user_idx[s[1]]); err != nil {
 			return nil, err
 		}
 		ret = fmt.Sprintf("%sbind tag(%s) user(%s) role(%s)\n",
@@ -191,12 +211,12 @@ func populate() (interface{}, error) {
 
 	// bind token
 	binds = [][3]string{
-		{models.SYS_W_SCOPE, "adm", ""},
-		{models.SYS_R_SCOPE, "adm", ""},
-		{models.SYS_W_SCOPE, "sre", ""},
-		{models.SYS_R_SCOPE, "sre", ""},
-		{models.SYS_R_SCOPE, "dev", ""},
-		{models.SYS_R_SCOPE, "usr", ""},
+		{models.SYS_W_SCOPE, "adm", "/"},
+		{models.SYS_R_SCOPE, "adm", "/"},
+		{models.SYS_W_SCOPE, "sre", "/"},
+		{models.SYS_R_SCOPE, "sre", "/"},
+		{models.SYS_R_SCOPE, "dev", "/"},
+		{models.SYS_R_SCOPE, "usr", "/"},
 		{models.SYS_W_SCOPE, "adm", "cop=xiaomi,owt=miliao"},
 		{models.SYS_R_SCOPE, "sre", "cop=xiaomi"},
 		{models.SYS_B_SCOPE, "dev", "cop=xiaomi,owt=miliao,pdl=op"},
@@ -204,8 +224,8 @@ func populate() (interface{}, error) {
 		{models.SYS_A_SCOPE, "usr", "cop=xiaomi,owt=miliao"},
 	}
 	for _, s := range binds {
-		if err := admin.BindAclToken(tag_idx[s[1]], token_idx[s[2]],
-			role_idx[s[0]]); err != nil {
+		if err := admin.BindAclToken(tag_idx[s[2]], role_idx[s[1]],
+			token_idx[s[0]]); err != nil {
 			return nil, err
 		}
 		ret = fmt.Sprintf("%sbind tag(%s) token(%s) role(%s)\n",
@@ -218,14 +238,15 @@ func populate() (interface{}, error) {
 func resetDb() (interface{}, error) {
 	var err error
 	tables := []string{
+		"host",
+		"kv",
+		"log",
+		"role",
+		"tag",
 		"tag_host",
 		"tag_rel",
-		"tpl_rel",
-		"host",
 		"token",
-		"system",
-		"tag",
-		"role",
+		"tpl_rel",
 		"user",
 	}
 	o := orm.NewOrm()
@@ -242,7 +263,7 @@ func resetDb() (interface{}, error) {
 	o.Insert(&models.User{Name: "system"})
 
 	// init root tree tag
-	o.Insert(&models.Tag{})
+	o.Insert(&models.Tag{Name: ""})
 
 	// reset cache
 	models.CacheInit()

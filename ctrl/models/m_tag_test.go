@@ -13,7 +13,7 @@ func TestNewTagSchema(t *testing.T) {
 		schema string
 		want   error
 	}{
-		{name: "1", schema: "cap,owt", want: ErrParam},
+		{name: "1", schema: "cop,owt", want: ErrParam},
 		{name: "2", schema: "", want: ErrParam},
 		{name: "3", schema: "cop,owt,pdl,servicegroup;service,jobgroup;job,sbs;mod;srv;grp;cluster;loc;idc;status;", want: nil},
 	}

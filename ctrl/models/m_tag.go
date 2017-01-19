@@ -24,7 +24,7 @@ type Tag_rel struct {
 	Id         int64
 	Tag_id     int64
 	Sup_tag_id int64
-	Type_id    int64
+	Offset     int64
 }
 
 type TagNode struct {
@@ -115,6 +115,10 @@ func (ts *TagSchema) Fmt(tag string, force bool) (string, error) {
 		n   int
 	)
 
+	if tag == "" {
+		return "", nil
+	}
+
 	m, err := tagMap(tag)
 	if err != nil {
 		return "", err
@@ -186,8 +190,7 @@ func TagParent(t string) string {
 }
 
 func (u *User) addTag(t *Tag, schema *TagSchema) (id int64, err error) {
-	if t.Name, err = schema.Fmt(t.Name,
-		false); err != nil {
+	if t.Name, err = schema.Fmt(t.Name, false); err != nil {
 		return
 	}
 
@@ -203,9 +206,8 @@ func (u *User) addTag(t *Tag, schema *TagSchema) (id int64, err error) {
 
 	if rels := TagRelation(t.Name); len(rels) > 0 {
 		var (
-			tags    []*Tag
-			arg     = make([]interface{}, len(rels))
-			type_id int64
+			tags []*Tag
+			arg  = make([]interface{}, len(rels))
 		)
 
 		for i, v := range rels {
@@ -219,17 +221,10 @@ func (u *User) addTag(t *Tag, schema *TagSchema) (id int64, err error) {
 		}
 		tag_rels := make([]Tag_rel, len(tags))
 		for i, tag := range tags {
-			if i == len(tags)-1 {
-				type_id = TAG_T_SELF
-			} else if i == len(tags)-2 {
-				type_id = TAG_T_DIRECT
-			} else {
-				type_id = TAG_T_INDIRECT
-			}
 			tag_rels[i] = Tag_rel{
 				Tag_id:     id,
 				Sup_tag_id: tag.Id,
-				Type_id:    type_id}
+				Offset:     int64(len(tags) - 1 - i)}
 		}
 		_, err = orm.NewOrm().InsertMulti(10, tag_rels)
 		if err != nil {
@@ -300,6 +295,7 @@ func (u *User) UpdateTag(id int64, _t *Tag) (t *Tag, err error) {
 		t.Name = _t.Name
 	}
 	_, err = orm.NewOrm().Update(t)
+	cacheModule[CTL_M_TAG].set(id, t)
 	DbLog(u.Id, CTL_M_TAG, id, CTL_A_SET, "")
 	return t, err
 }

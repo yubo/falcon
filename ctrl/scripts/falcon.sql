@@ -28,12 +28,11 @@ SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='TRADITIONAL,ALLOW_INVALID_DATES';
 DROP TABLE IF EXISTS `kv`;
 CREATE TABLE `kv` (
   `key` VARCHAR(128) NOT NULL,
+  `note` VARCHAR(128) NOT NULL DEFAULT '',
   `value` BLOB NOT NULL,
   `type_id` TINYINT(4) NOT NULL,
-  PRIMARY KEY (`key`))
-ENGINE = InnoDB
-DEFAULT CHARACTER SET = utf8
-COLLATE = utf8_unicode_ci;
+  PRIMARY KEY (`key`)
+) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8 COLLATE = utf8_unicode_ci;
 
 
 -- -----------------------------------------------------
@@ -53,9 +52,8 @@ CREATE TABLE `host` (
   PRIMARY KEY (`id`),
   INDEX `index_status` (`status`),
   INDEX `index_type` (`type`),
-  UNIQUE INDEX `index_name` (`name`))
-ENGINE = InnoDB
-DEFAULT CHARACTER SET = utf8
+  UNIQUE INDEX `index_name` (`name`)
+) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8
 COLLATE = utf8_unicode_ci COMMENT = '机器';
 
 
@@ -70,9 +68,8 @@ CREATE TABLE `token` (
   `note` VARCHAR(255) NOT NULL DEFAULT '',
   `create_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  UNIQUE INDEX `index_name` (`name`))
-ENGINE = InnoDB
-DEFAULT CHARACTER SET = utf8
+  UNIQUE INDEX `index_name` (`name`)
+) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8
 COLLATE = utf8_unicode_ci COMMENT = '权限点';
 
 
@@ -87,9 +84,8 @@ CREATE TABLE `role` (
   `note` VARCHAR(255) NOT NULL DEFAULT '',
   `create_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  UNIQUE INDEX `index_name` (`name`))
-ENGINE = InnoDB
-DEFAULT CHARACTER SET = utf8
+  UNIQUE INDEX `index_name` (`name`)
+) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8
 COLLATE = utf8_unicode_ci COMMENT = '角色';
 
 -- -----------------------------------------------------
@@ -100,10 +96,8 @@ CREATE TABLE `session` (
   `session_key` CHAR(64) NOT NULL,
   `session_data` BLOB NULL DEFAULT NULL,
   `session_expiry` INT(11) UNSIGNED NOT NULL,
-  PRIMARY KEY (`session_key`))
-ENGINE = InnoDB
-DEFAULT CHARACTER SET = utf8
-COLLATE = utf8_unicode_ci;
+  PRIMARY KEY (`session_key`)
+) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8 COLLATE = utf8_unicode_ci;
 
 
 -- -----------------------------------------------------
@@ -115,32 +109,22 @@ CREATE TABLE `tag` (
   `name` VARCHAR(255) NOT NULL DEFAULT '',
   `create_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  UNIQUE INDEX `index_name` (`name`))
-ENGINE = InnoDB
-DEFAULT CHARACTER SET = utf8
-COLLATE = utf8_unicode_ci;
+  UNIQUE INDEX `index_name` (`name`)
+) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8 COLLATE = utf8_unicode_ci;
 
 DROP TABLE IF EXISTS `tag_rel`;
 CREATE TABLE `tag_rel` (
   `id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
   `tag_id` INT(11) UNSIGNED NOT NULL DEFAULT 0,
   `sup_tag_id` INT(11) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Superior/Self tag id',
-  `type_id` TINYINT(4) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'relation type',
+  `offset` TINYINT(4) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'relation type',
   PRIMARY KEY (`id`),
   INDEX `index_tag_id` (`tag_id`),
   INDEX `index_sup_tag_id` (`sup_tag_id`),
-  INDEX `index_type_id` (`type_id`),
-  CONSTRAINT `tag_rel_ibfk_1`
-    FOREIGN KEY (`tag_id`)
-    REFERENCES `tag` (`id`)
-    ON DELETE CASCADE,
-  CONSTRAINT `tag_rel_ibfk_2`
-    FOREIGN KEY (`sup_tag_id`)
-    REFERENCES `tag` (`id`)
-    ON DELETE CASCADE)
-ENGINE = InnoDB
-DEFAULT CHARACTER SET = utf8
-COLLATE = utf8_unicode_ci;
+  INDEX `index_offset` (`offset`),
+  CONSTRAINT `tag_rel_ibfk_1` FOREIGN KEY (`tag_id`) REFERENCES `tag` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `tag_rel_ibfk_2` FOREIGN KEY (`sup_tag_id`) REFERENCES `tag` (`id`) ON DELETE CASCADE
+) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8 COLLATE = utf8_unicode_ci;
 
 
 -- -----------------------------------------------------
@@ -154,17 +138,10 @@ CREATE TABLE `tag_host` (
   PRIMARY KEY (`id`),
   INDEX `index_tag_id` (`tag_id`),
   INDEX `index_host_id` (`host_id`),
-  CONSTRAINT `tag_host_rel_ibfk_1`
-    FOREIGN KEY (`tag_id`)
-    REFERENCES `tag` (`id`)
-    ON DELETE CASCADE,
-  CONSTRAINT `tag_host_rel_ibfk_2`
-    FOREIGN KEY (`host_id`)
-    REFERENCES `host` (`id`)
-    ON DELETE CASCADE)
-ENGINE = InnoDB
-DEFAULT CHARACTER SET = utf8
-COLLATE = utf8_unicode_ci;
+  UNIQUE INDEX `index_tag_host` (`tag_id`, `host_id`),
+  CONSTRAINT `tag_host_rel_ibfk_1` FOREIGN KEY (`tag_id`) REFERENCES `tag` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `tag_host_rel_ibfk_2` FOREIGN KEY (`host_id`) REFERENCES `host` (`id`) ON DELETE CASCADE
+) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8 COLLATE = utf8_unicode_ci;
 
 
 -- -----------------------------------------------------
@@ -183,11 +160,37 @@ CREATE TABLE `user` (
   `disabled` TINYINT(4) NOT NULL DEFAULT '0',
   `create_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  UNIQUE INDEX `index_name` (`name`))
-ENGINE = InnoDB
-DEFAULT CHARACTER SET = utf8
-COLLATE = utf8_unicode_ci;
+  UNIQUE INDEX `index_name` (`name`)
+) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8 COLLATE = utf8_unicode_ci;
 
+-- -----------------------------------------------------
+-- Table `team`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `team`;
+CREATE TABLE `team` (
+  `id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(32) NOT NULL,
+  `note` VARCHAR(255) NOT NULL DEFAULT '',
+  `create_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE INDEX `index_name` (`name`)
+) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8 COLLATE = utf8_unicode_ci;
+
+-- -----------------------------------------------------
+-- Table `team_user`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `team_user`;
+CREATE TABLE `team_user` (
+  `id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `team_id` INT(11) UNSIGNED NOT NULL,
+  `user_id` INT(11) UNSIGNED NOT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `index_team_id` (`team_id`),
+  INDEX `index_user_id` (`user_id`),
+  UNIQUE INDEX `index_team_user` (`team_id`, `user_id`),
+  CONSTRAINT `team_user_rel_ibfk_1` FOREIGN KEY (`team_id`) REFERENCES `team` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `team_user_rel_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
+) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8 COLLATE = utf8_unicode_ci;
 
 -- -----------------------------------------------------
 -- Table `log`
@@ -201,10 +204,8 @@ CREATE TABLE `log` (
   `action`    TINYINT(4) UNSIGNED NOT NULL DEFAULT 0,
   `data`      BLOB NULL DEFAULT NULL,
   `time`      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`))
-ENGINE = InnoDB
-DEFAULT CHARACTER SET = utf8
-COLLATE = utf8_unicode_ci;
+  PRIMARY KEY (`id`)
+) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8 COLLATE = utf8_unicode_ci;
 
 -- -----------------------------------------------------
 -- Table `tpl_rel`
@@ -222,10 +223,101 @@ CREATE TABLE `tpl_rel` (
   INDEX `index_tag_id` (`tag_id`),
   INDEX `index_sub_id` (`sub_id`),
   INDEX `index_creator` (`creator`),
-  INDEX `index_type_id` (`type_id`))
-ENGINE = InnoDB
-DEFAULT CHARACTER SET = utf8
+  INDEX `index_type_id` (`type_id`)
+) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8
 COLLATE = utf8_unicode_ci COMMENT = '节点上的模板关联(tag,tpl,sub_meta)';
+
+--
+-- Table structure for table `rule`
+--
+
+DROP TABLE IF EXISTS `rule`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `rule` (
+  `id` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(255) NOT NULL DEFAULT '',
+  `pid` INT(10) UNSIGNED NOT NULL DEFAULT '0',
+  `action_id` INT(10) UNSIGNED NOT NULL DEFAULT '0',
+  `create_user_id` INT(10) UNSIGNED NOT NULL DEFAULT '0',
+  `create_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  INDEX `index_create_user_id` (`create_user_id`),
+  UNIQUE KEY `index_name` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+
+--
+-- Table structure for table `action`
+--
+DROP TABLE IF EXISTS `action`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `action` (
+  `id` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `sendto` VARCHAR(255) NOT NULL DEFAULT '',
+  `url` VARCHAR(255) NOT NULL DEFAULT '',
+  `send_flag` INT(10) UNSIGNED NOT NULL DEFAULT '0',
+  `cb_falg` INT(10) UNSIGNED NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+
+--
+-- Table structure for table `trigger`
+--
+DROP TABLE IF EXISTS `trigger`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `trigger` (
+  `id` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `metric_id` INT(10) UNSIGNED NOT NULL DEFAULT '0',
+  `tags` VARCHAR(2048) DEFAULT NULL,
+  `max_step` INT(11) NOT NULL DEFAULT '1',
+  `priority` TINYINT(4) NOT NULL DEFAULT '0',
+  `func` VARCHAR(16) NOT NULL DEFAULT 'last(#1)',
+  `op` VARCHAR(8) NOT NULL DEFAULT '',
+  `condition` VARCHAR(64) NOT NULL,
+  `note` VARCHAR(128) NOT NULL DEFAULT '',
+  `metric` VARCHAR(1024) DEFAULT NULL,
+  `run_begin` VARCHAR(16) NOT NULL DEFAULT '',
+  `run_end` VARCHAR(16) NOT NULL DEFAULT '',
+  `rule_id` INT(10) UNSIGNED NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id`),
+  KEY `index_rule_id` (`rule_id`)
+) ENGINE=InnoDB DEFAULT CHARACTER SET = utf8 COLLATE=utf8_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+
+
+--
+-- Table structure for table `expression`
+--
+DROP TABLE IF EXISTS `expression`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `expression` (
+  `id` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(128) DEFAULT NULL,
+  `expression` VARCHAR(1024) NOT NULL,
+  `op` VARCHAR(8) NOT NULL DEFAULT '',
+  `condition` VARCHAR(16) NOT NULL DEFAULT '',
+  `max_step` INT(11) NOT NULL DEFAULT '1',
+  `priority` TINYINT(4) NOT NULL DEFAULT '0',
+  `msg` VARCHAR(1024) NOT NULL DEFAULT '',
+  `action_threshold` VARCHAR(16) NOT NULL DEFAULT 'last(#1)',
+  `action_id` INT(10) UNSIGNED NOT NULL DEFAULT '0',
+  `create_user_id` INT(10) UNSIGNED NOT NULL DEFAULT '0',
+  `pause` TINYINT(1) NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `index_name` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+
+
 
 
 DROP VIEW IF EXISTS `tag_role_user_token` ;

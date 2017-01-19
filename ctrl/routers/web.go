@@ -7,6 +7,7 @@ package routers
 import (
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/context"
+	"github.com/astaxie/beego/plugins/cors"
 	"github.com/yubo/falcon/ctrl/controllers"
 	"github.com/yubo/falcon/ctrl/models"
 )
@@ -16,6 +17,14 @@ const (
 )
 
 func init() {
+
+	beego.InsertFilter("*", beego.BeforeRouter, cors.Allow(&cors.Options{
+		AllowOrigins:     []string{"*"},
+		AllowMethods:     []string{"*"},
+		AllowHeaders:     []string{"ApiToken"},
+		ExposeHeaders:    []string{"*"},
+		AllowCredentials: true,
+	}))
 
 	beego.InsertFilter("/*", beego.BeforeRouter, profileFilter)
 
@@ -35,7 +44,7 @@ func init() {
 
 	beego.Router("/settings/profile", mc, "get:GetProfile")
 	beego.Router("/settings/aboutme", mc, "get:GetAboutMe")
-	beego.Router("/settings/config/global", mc, "get:GetConfigGlobal;post:PostConfigGlobal")
+	beego.Router("/settings/config/:module", mc, "get:GetConfig;post:PostConfig")
 	if beego.BConfig.RunMode == "dev" {
 		beego.Router("/settings/debug", mc, "get:GetDebug")
 		beego.Router("/settings/debug/:action", mc, "get:GetDebugAction")
@@ -65,6 +74,14 @@ func init() {
 	beego.Router("/rel/tag/role/user", mc, "get:GetTagRoleUser")
 	beego.Router("/rel/tag/role/token", mc, "get:GetTagRoleToken")
 	beego.Router("/rel/tag/rule/trigger", mc, "get:GetTagRuleTrigger")
+
+	beego.Router("/team", mc, "get:GetTeam")
+	beego.Router("/teamusers/edit/:id([0-9]+)", mc, "get:EditTeamUsers")
+	beego.Router("/teamusers/add", mc, "get:AddTeamUsers")
+
+	beego.Router("/rule", mc, "get:GetRule")
+	beego.Router("/rule/edit/:id([0-9]+)", mc, "get:EditRule")
+	beego.Router("/rule/add", mc, "get:AddRule")
 
 	beego.Router("/about", mc, "get:About")
 }

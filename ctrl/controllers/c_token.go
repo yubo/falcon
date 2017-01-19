@@ -39,12 +39,12 @@ func (c *TokenController) CreateToken() {
 
 // @Title GetTokensCnt
 // @Description get Tokens number
-// @Param   system_id query   int  true        "system id"
+// @Param   query     query   string  false       "token name"
 // @Success {code:200, data:int} token number
 // @Failure {code:int, msg:string}
-// @router /cnt/:query [get]
+// @router /cnt [get]
 func (c *TokenController) GetTokensCnt() {
-	query := strings.TrimSpace(c.GetString(":query"))
+	query := strings.TrimSpace(c.GetString("query"))
 	me, _ := c.Ctx.Input.GetData("me").(*models.User)
 
 	cnt, err := me.GetTokensCnt(query)
@@ -57,14 +57,14 @@ func (c *TokenController) GetTokensCnt() {
 
 // @Title GetTokens
 // @Description get all Tokens
-// @Param   per       query   int  false       "per page number"
-// @Param   offset    query   int  false       "offset  number"
-// @Param   system_id query   int  true        "system id"
+// @Param   query     query   string  false       "token name"
+// @Param   per       query   int     false       "per page number"
+// @Param   offset    query   int     false       "offset  number"
 // @Success {code:200, data:object} models.Token
 // @Failure {code:int, msg:string}
-// @router /search/:query [get]
+// @router /search [get]
 func (c *TokenController) GetTokens() {
-	query := strings.TrimSpace(c.GetString(":query"))
+	query := strings.TrimSpace(c.GetString("query"))
 	per, _ := c.GetInt("per", models.PAGE_PER)
 	offset, _ := c.GetInt("offset", 0)
 	me, _ := c.Ctx.Input.GetData("me").(*models.User)
@@ -175,7 +175,7 @@ func (c *MainController) GetToken() {
 	c.PrepareEnv(headLinks[HEAD_LINK_IDX_META].SubLinks, "Token")
 	c.Data["Tokens"] = tokens
 	c.Data["Query"] = query
-	c.Data["Search"] = Search{"query", "/token", "tag name"}
+	c.Data["Search"] = Search{"query", "tag name"}
 
 	c.TplName = "token/list.tpl"
 	return

@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/orm"
 )
 
@@ -56,16 +57,24 @@ func DbLog(uid, module, module_id, action int64, data string) {
 }
 
 /* dst <- src format tpl */
-func kvOverlay(dst, src, tpl map[string]string) map[string]string {
-	ret := make(map[string]string)
-	for k, _ := range tpl {
-		if v, ok := src[k]; ok {
-			ret[k] = v
-		} else if v, ok := dst[k]; ok {
-			ret[k] = v
+func kvOverlay(dst, src, tpl *ConfigEntry) ConfigEntry {
+	tplValue := tpl.Value.([]ConfigEntry)
+	dstValue := dst.Value.([]ConfigEntry)
+	beego.Debug(src)
+	srcValue := src.Value.([]ConfigEntry)
+	ret := make([]ConfigEntry, len(tplValue))
+
+	for idx, v := range tplValue {
+		for _, v1 := range srcValue {
+			if v.Key == v1.Key {
+				ret[idx] = v1
+				goto next
+			}
 		}
+		ret[idx] = dstValue[idx]
+	next:
 	}
-	return ret
+	return ConfigEntry{Key: tpl.Key, Note: tpl.Note, Value: ret}
 }
 
 func stringscmp(a, b []string) (ret int) {
@@ -86,4 +95,47 @@ func jsonStr(i interface{}) string {
 	} else {
 		return string(ret)
 	}
+}
+
+func MdiffStr(src, dst []string) (add, del []string) {
+	_src := make(map[string]bool)
+	_dst := make(map[string]bool)
+	for _, v := range src {
+		_src[v] = true
+	}
+	for _, v := range dst {
+		_dst[v] = true
+	}
+	for k, _ := range _src {
+		if !_dst[k] {
+			del = append(del, k)
+		}
+	}
+	for k, _ := range _dst {
+		if !_src[k] {
+			add = append(add, k)
+		}
+	}
+	return
+}
+func MdiffInt(src, dst []int64) (add, del []int64) {
+	_src := make(map[int64]bool)
+	_dst := make(map[int64]bool)
+	for _, v := range src {
+		_src[v] = true
+	}
+	for _, v := range dst {
+		_dst[v] = true
+	}
+	for k, _ := range _src {
+		if !_dst[k] {
+			del = append(del, k)
+		}
+	}
+	for k, _ := range _dst {
+		if !_src[k] {
+			add = append(add, k)
+		}
+	}
+	return
 }

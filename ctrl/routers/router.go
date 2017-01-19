@@ -22,6 +22,8 @@ func init() {
 		beego.NSNamespace("/tag", beego.NSInclude(&controllers.TagController{})),
 		beego.NSNamespace("/user", beego.NSInclude(&controllers.UserController{})),
 		beego.NSNamespace("/token", beego.NSInclude(&controllers.TokenController{})),
+		beego.NSNamespace("/rel", beego.NSInclude(&controllers.RelController{})),
+		beego.NSNamespace("/team", beego.NSInclude(&controllers.TeamController{})),
 	)
 	beego.AddNamespace(ns)
 

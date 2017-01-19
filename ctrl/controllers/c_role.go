@@ -39,11 +39,12 @@ func (c *RoleController) CreateRole() {
 
 // @Title GetRolesCnt
 // @Description get Roles number
+// @Param   query     query   string  false    "role name"
 // @Success {code:200, data:int} role number
 // @Failure {code:int, msg:string}
-// @router /cnt/:query [get]
+// @router /cnt [get]
 func (c *RoleController) GetRolesCnt() {
-	query := strings.TrimSpace(c.GetString(":query"))
+	query := strings.TrimSpace(c.GetString("query"))
 	me, _ := c.Ctx.Input.GetData("me").(*models.User)
 
 	cnt, err := me.GetRolesCnt(query)
@@ -56,13 +57,14 @@ func (c *RoleController) GetRolesCnt() {
 
 // @Title GetRoles
 // @Description get all Roles
-// @Param   per       query   int  false       "per page number"
-// @Param   offset    query   int  false       "offset  number"
+// @Param   query     query   string  false    "role name"
+// @Param   per       query   int     false    "per page number"
+// @Param   offset    query   int     false    "offset  number"
 // @Success {code:200, data:object} models.Role
 // @Failure {code:int, msg:string}
-// @router /search/:query [get]
+// @router /search [get]
 func (c *RoleController) GetRoles() {
-	query := strings.TrimSpace(c.GetString(":query"))
+	query := strings.TrimSpace(c.GetString("query"))
 	per, _ := c.GetInt("per", models.PAGE_PER)
 	offset, _ := c.GetInt("offset", 0)
 	me, _ := c.Ctx.Input.GetData("me").(*models.User)
@@ -173,7 +175,7 @@ func (c *MainController) GetRole() {
 	c.PrepareEnv(headLinks[HEAD_LINK_IDX_META].SubLinks, "Role")
 	c.Data["Roles"] = roles
 	c.Data["Query"] = query
-	c.Data["Search"] = Search{"query", "/role", "role name"}
+	c.Data["Search"] = Search{"query", "role name"}
 
 	c.TplName = "role/list.tpl"
 	return

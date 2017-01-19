@@ -24,21 +24,21 @@ func (u *User) AddToken(s *Token) (id int64, err error) {
 		return
 	}
 	s.Id = id
-	cacheModule[CTL_M_SCOPE].set(id, s)
-	DbLog(u.Id, CTL_M_SCOPE, id, CTL_A_ADD, jsonStr(s))
+	cacheModule[CTL_M_TOKEN].set(id, s)
+	DbLog(u.Id, CTL_M_TOKEN, id, CTL_A_ADD, jsonStr(s))
 	return
 }
 
 func (u *User) GetToken(id int64) (s *Token, err error) {
 	var ok bool
 
-	if s, ok = cacheModule[CTL_M_SCOPE].get(id).(*Token); ok {
+	if s, ok = cacheModule[CTL_M_TOKEN].get(id).(*Token); ok {
 		return
 	}
 	s = &Token{Id: id}
 	err = orm.NewOrm().Read(s, "Id")
 	if err == nil {
-		cacheModule[CTL_M_SCOPE].set(id, s)
+		cacheModule[CTL_M_TOKEN].set(id, s)
 	}
 	return
 }
@@ -67,28 +67,24 @@ func (u *User) GetTokens(query string, limit, offset int) (tokens []*Token, err 
 	return
 }
 
-func (u *User) UpdateToken(id int64, _s *Token) (s *Token, err error) {
-	if s, err = u.GetToken(id); err != nil {
+func (u *User) UpdateToken(id int64, _tk *Token) (tk *Token, err error) {
+	if tk, err = u.GetToken(id); err != nil {
 		return nil, ErrNoToken
 	}
 
-	if _s.Name != "" {
-		s.Name = _s.Name
+	if _tk.Name != "" {
+		tk.Name = _tk.Name
 	}
-	if _s.Cname != "" {
-		s.Cname = _s.Cname
+	if _tk.Cname != "" {
+		tk.Cname = _tk.Cname
 	}
-	/* not allowed
-	if _s.System_id != 0 {
-		s.Developers = _s.Developers
+	if _tk.Note != "" {
+		tk.Note = _tk.Note
 	}
-	*/
-	if _s.Note != "" {
-		s.Note = _s.Note
-	}
-	_, err = orm.NewOrm().Update(s)
-	DbLog(u.Id, CTL_M_SCOPE, id, CTL_A_SET, "")
-	return s, err
+	_, err = orm.NewOrm().Update(tk)
+	cacheModule[CTL_M_TOKEN].set(id, tk)
+	DbLog(u.Id, CTL_M_TOKEN, id, CTL_A_SET, "")
+	return tk, err
 }
 
 func (u *User) DeleteToken(id int64) error {
@@ -96,8 +92,8 @@ func (u *User) DeleteToken(id int64) error {
 	if n, err := orm.NewOrm().Delete(&Token{Id: id}); err != nil || n == 0 {
 		return ErrNoExits
 	}
-	cacheModule[CTL_M_SCOPE].del(id)
-	DbLog(u.Id, CTL_M_SCOPE, id, CTL_A_DEL, "")
+	cacheModule[CTL_M_TOKEN].del(id)
+	DbLog(u.Id, CTL_M_TOKEN, id, CTL_A_DEL, "")
 
 	return nil
 }

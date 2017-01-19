@@ -75,6 +75,7 @@ func (u *User) UpdateRole(id int64, _r *Role) (r *Role, err error) {
 		r.Note = _r.Note
 	}
 	_, err = orm.NewOrm().Update(r)
+	cacheModule[CTL_M_ROLE].set(id, r)
 	DbLog(u.Id, CTL_M_ROLE, id, CTL_A_SET, "")
 	return r, err
 }

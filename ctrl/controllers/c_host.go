@@ -39,11 +39,12 @@ func (c *HostController) CreateHost() {
 
 // @Title GetHostsCnt
 // @Description get Hosts number
+// @Param   query     query   string  false       "host name"
 // @Success {code:200, data:int} host number
 // @Failure {code:int, msg:string}
-// @router /cnt/:query [get]
+// @router /cnt [get]
 func (c *HostController) GetHostsCnt() {
-	query := strings.TrimSpace(c.GetString(":query"))
+	query := strings.TrimSpace(c.GetString("query"))
 	me, _ := c.Ctx.Input.GetData("me").(*models.User)
 
 	cnt, err := me.GetHostsCnt(query)
@@ -56,13 +57,14 @@ func (c *HostController) GetHostsCnt() {
 
 // @Title GetHosts
 // @Description get all Hosts
-// @Param   per       query   int  false       "per page number"
-// @Param   offset    query   int  false       "offset  number"
+// @Param   query     query   string  false       "host name"
+// @Param   per       query   int     false       "per page number"
+// @Param   offset    query   int     false       "offset  number"
 // @Success {code:200, data:object} models.Host
 // @Failure {code:int, msg:string}
-// @router /search/:query [get]
+// @router /search [get]
 func (c *HostController) GetHosts() {
-	query := strings.TrimSpace(c.GetString(":query"))
+	query := strings.TrimSpace(c.GetString("query"))
 	per, _ := c.GetInt("per", models.PAGE_PER)
 	offset, _ := c.GetInt("offset", 0)
 	me, _ := c.Ctx.Input.GetData("me").(*models.User)
@@ -171,7 +173,7 @@ func (c *MainController) GetHost() {
 	c.PrepareEnv(headLinks[HEAD_LINK_IDX_META].SubLinks, "Host")
 	c.Data["Hosts"] = hosts
 	c.Data["Query"] = query
-	c.Data["Search"] = Search{"query", "/host", "host name"}
+	c.Data["Search"] = Search{"query", "host name"}
 
 	c.TplName = "host/list.tpl"
 	return

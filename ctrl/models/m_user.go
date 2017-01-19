@@ -11,6 +11,12 @@ import (
 	"github.com/astaxie/beego/orm"
 )
 
+type Operator struct {
+	id int64
+	o  orm.Ormer
+	u  *User
+}
+
 type User struct {
 	Id          int64     `json:"id"`
 	Uuid        string    `json:"uuid"`
@@ -105,6 +111,7 @@ func (u *User) UpdateUser(id int64, _u *User) (user *User, err error) {
 		user.QQ = _u.QQ
 	}
 	_, err = orm.NewOrm().Update(user)
+	cacheModule[CTL_M_USER].set(id, user)
 	DbLog(u.Id, CTL_M_USER, id, CTL_A_SET, "")
 	return user, err
 }

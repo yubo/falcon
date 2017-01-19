@@ -75,6 +75,8 @@ func (p *ldapAuth) PreStart() error {
 func (p *ldapAuth) Verify(_c interface{}) (bool, string, error) {
 	c := _c.(*controllers.AuthController)
 
+	beego.Debug("ldap verify user", c.GetString("username"), "password", c.GetString("password"))
+
 	if beego.BConfig.RunMode == "dev" && c.GetString("username") == "test" {
 		return true, "test", nil
 	}

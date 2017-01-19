@@ -113,7 +113,7 @@ func (c *AuthController) Access(uuid string) (id int64) {
 	user, err := me.GetUserByUuid(uuid)
 	if err != nil {
 		sys, _ := models.GetUser(1)
-		id, err = sys.AddUser(&models.User{Uuid: uuid})
+		id, err = sys.AddUser(&models.User{Uuid: uuid, Name: uuid})
 		if err != nil {
 			return -1
 		}

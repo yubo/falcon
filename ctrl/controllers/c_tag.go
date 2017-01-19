@@ -38,11 +38,12 @@ func (c *TagController) CreateTag() {
 
 // @Title GetTagsCnt
 // @Description get Tags number
+// @Param   query     query   string  false       "tag name"
 // @Success {code:200, data:int} tag number
 // @Failure {code:int, msg:string}
-// @router /cnt/:query [get]
+// @router /cnt [get]
 func (c *TagController) GetTagsCnt() {
-	query := strings.TrimSpace(c.GetString(":query"))
+	query := strings.TrimSpace(c.GetString("query"))
 	me, _ := c.Ctx.Input.GetData("me").(*models.User)
 
 	cnt, err := me.GetTagsCnt(query)
@@ -55,13 +56,14 @@ func (c *TagController) GetTagsCnt() {
 
 // @Title GetTags
 // @Description get all Tags
-// @Param   per       query   int  false       "per page number"
-// @Param   offset    query   int  false       "offset  number"
+// @Param   query     query   string  false       "tag name"
+// @Param   per       query   int     false       "per page number"
+// @Param   offset    query   int     false       "offset  number"
 // @Success {code:200, data:object} models.Tag
 // @Failure {code:int, msg:string}
-// @router /search/:query [get]
+// @router /search [get]
 func (c *TagController) GetTags() {
-	query := strings.TrimSpace(c.GetString(":query"))
+	query := strings.TrimSpace(c.GetString("query"))
 	per, _ := c.GetInt("per", models.PAGE_PER)
 	offset, _ := c.GetInt("offset", 0)
 	me, _ := c.Ctx.Input.GetData("me").(*models.User)
@@ -170,7 +172,7 @@ func (c *MainController) GetTag() {
 	c.PrepareEnv(headLinks[HEAD_LINK_IDX_META].SubLinks, "Tag")
 	c.Data["Tags"] = tags
 	c.Data["Query"] = query
-	c.Data["Search"] = Search{"query", "/tag", "tag name"}
+	c.Data["Search"] = Search{"query", "tag name"}
 
 	c.TplName = "tag/list.tpl"
 	return

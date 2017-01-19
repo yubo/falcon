@@ -1,6 +1,8 @@
 package controllers
 
 import (
+	"strings"
+
 	"github.com/astaxie/beego"
 	"github.com/beego/wetalk/modules/utils"
 	"github.com/yubo/falcon/ctrl/models"
@@ -21,7 +23,6 @@ type Links struct {
 
 type Search struct {
 	Name        string
-	Url         string
 	Placeholder string
 }
 
@@ -34,7 +35,8 @@ type MainController struct {
 }
 
 const (
-	HEAD_LINK_IDX_REL = iota
+	HEAD_LINK_IDX_DASHBOARD = iota
+	HEAD_LINK_IDX_REL
 	HEAD_LINK_IDX_META
 	HEAD_LINK_IDX_SETTINGS
 	HEAD_LINK_IDX_HELP
@@ -51,12 +53,17 @@ var (
 		{Text: "[login]", Url: "/login"},
 	}
 	headLinks = []Links{
+		HEAD_LINK_IDX_DASHBOARD: {Text: "Dashboard", Url: "#",
+			SubLinks: []Link{
+				{Text: "Falcon", Url: "#", Disabled: true},
+				{Text: "Alarm", Url: "#", Disabled: true},
+				{Text: "Graph", Url: "#", Disabled: true}}},
 		HEAD_LINK_IDX_REL: {Text: "Relation", Url: "#",
 			SubLinks: []Link{
 				{Text: "Tag Host", Url: "/rel/tag/host"},
 				{Text: "Tag Role User", Url: "/rel/tag/role/user"},
 				{Text: "Tag Role Token", Url: "/rel/tag/role/token"},
-				{Text: "Tag Rule Trigger", Url: "/rel/tag/rule/trigger"}}},
+				{Text: "Tag Template Trigger", Url: "/rel/tag/rule/trigger"}}},
 		HEAD_LINK_IDX_META: {Text: "Meta", Url: "#",
 			SubLinks: []Link{
 				{Text: "Tag", Url: "/tag"},
@@ -66,11 +73,16 @@ var (
 				{Text: "User", Url: "/user"},
 				{Text: "Token", Url: "/token"},
 				{},
-				{Text: "Rule", Url: "/rule", Disabled: true},
-				{Text: "Trigger", Url: "/trigger", Disabled: true}}},
+				{Text: "Team", Url: "/team"},
+				{Text: "Template", Url: "/rule"},
+				{Text: "Trigger", Url: "#", Disabled: true},
+				{Text: "Expression", Url: "/expression"}}},
 		HEAD_LINK_IDX_SETTINGS: {Text: "Settings", Url: "#",
 			SubLinks: []Link{
-				{Text: "Global", Url: "/settings/config/global"},
+				{Text: "ctrl", Url: "/settings/config/ctrl"},
+				{Text: "agent", Url: "/settings/config/agent"},
+				{Text: "graph", Url: "/settings/config/graph"},
+				{},
 				{Text: "Profile", Url: "/settings/profile"},
 				{Text: "About Me", Url: "/settings/aboutme"}}},
 		HEAD_LINK_IDX_HELP: {Text: "help", Url: "#",
@@ -89,9 +101,22 @@ func init() {
 
 func start() (err error) {
 	if beego.BConfig.RunMode == "dev" {
-		headLinks[2].SubLinks = append(headLinks[2].SubLinks, Link{Text: "Debug", Url: "/settings/debug"})
+		headLinks[HEAD_LINK_IDX_SETTINGS].SubLinks =
+			append(headLinks[HEAD_LINK_IDX_SETTINGS].SubLinks,
+				Link{},
+				Link{Text: "Debug", Url: "/settings/debug"})
 	}
+	beego.AddFuncMap("configFilter", configFilter)
 	return
+}
+
+func configFilter(in interface{}) (out interface{}) {
+	switch in.(type) {
+	case []string:
+		return strings.Join(in.([]string), ",")
+	}
+	return in
+
 }
 
 func (c *BaseController) SendMsg(code int, msg string) {
@@ -118,17 +143,20 @@ func (c *BaseController) SetPaginator(per int, nums int64) *utils.Paginator {
 	return p
 }
 
-func (c *BaseController) PrepareEnv(links []Link, curLink string) {
+func (c *BaseController) PrepareEnv(links []Link, curLink string) (me *models.User) {
 	var ok bool
 
-	if c.Data["Me"], ok = c.Ctx.Input.GetData("me").(*models.User); !ok {
+	if me, ok = c.Ctx.Input.GetData("me").(*models.User); !ok {
 		c.Data["HeadLinks"] = notLoginheadLinks
 		return
 	}
+	c.Data["Me"] = me
 	c.Data["HeadLinks"] = headLinks
 	c.Data["Links"] = links
 	c.Data["CurLink"] = curLink
-
+	c.Data["Portion"], _ = c.GetBool("portion", false)
+	c.Data["URL"] = c.Ctx.Request.URL.String()
+	return
 }
 
 func (c *MainController) Get() {

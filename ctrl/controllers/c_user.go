@@ -36,11 +36,12 @@ func (c *UserController) CreateUser() {
 
 // @Title GetUsersCnt
 // @Description get Users number
+// @Param   query     query   string  false       "user name/email"
 // @Success {code:200, data:int} user number
 // @Failure {code:int, msg:string}
-// @router /cnt/:query [get]
+// @router /cnt [get]
 func (c *UserController) GetUsersCnt() {
-	query := strings.TrimSpace(c.GetString(":query"))
+	query := strings.TrimSpace(c.GetString("query"))
 	me, _ := c.Ctx.Input.GetData("me").(*models.User)
 
 	if cnt, err := me.GetUsersCnt(query); err != nil {
@@ -52,13 +53,14 @@ func (c *UserController) GetUsersCnt() {
 
 // @Title GetUsers
 // @Description get all Users
-// @Param   per       query   int  false       "per page number"
-// @Param   offset    query   int  false       "offset  number"
+// @Param   query     query   string  false       "user name/email"
+// @Param   per       query   int     false       "per page number"
+// @Param   offset    query   int     false       "offset  number"
 // @Success {code:200, data:object} models.User
 // @Failure {code:int, msg:string}
-// @router /search/:query [get]
+// @router /search [get]
 func (c *UserController) GetUsers() {
-	query := strings.TrimSpace(c.GetString(":query"))
+	query := strings.TrimSpace(c.GetString("query"))
 	per, _ := c.GetInt("per", models.PAGE_PER)
 	offset, _ := c.GetInt("offset", 0)
 	me, _ := c.Ctx.Input.GetData("me").(*models.User)
@@ -163,7 +165,7 @@ func (c *MainController) GetUser() {
 	c.PrepareEnv(headLinks[HEAD_LINK_IDX_META].SubLinks, "User")
 	c.Data["Users"] = users
 	c.Data["Query"] = query
-	c.Data["Search"] = Search{"query", "/user", "user name or email"}
+	c.Data["Search"] = Search{"query", "user name or email"}
 
 	c.TplName = "user/list.tpl"
 	return

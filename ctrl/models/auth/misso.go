@@ -52,7 +52,7 @@ func (p *missoAuth) LoginHtml(_c interface{}) string {
 	base_url := ctx.Input.Context.Request.Host
 
 	login_url, _ := p.GetLoginUrl()
-	return fmt.Sprintf("<a href='%s&callback=http://%s/pub/auth/callback/"+
+	return fmt.Sprintf("<a href='%s&callback=http://%s/v1.0/auth/callback/"+
 		"%s'>mioss</a>", login_url, base_url, p.Name)
 }
 
