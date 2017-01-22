@@ -33,7 +33,7 @@ func (c *HostController) CreateHost() {
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendObj(200, id)
+		c.SendMsg(200, id)
 	}
 }
 
@@ -51,7 +51,7 @@ func (c *HostController) GetHostsCnt() {
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendObj(200, cnt)
+		c.SendMsg(200, cnt)
 	}
 }
 
@@ -73,7 +73,7 @@ func (c *HostController) GetHosts() {
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendObj(200, hosts)
+		c.SendMsg(200, hosts)
 	}
 }
 
@@ -93,7 +93,7 @@ func (c *HostController) GetHost() {
 		if err != nil {
 			c.SendMsg(403, err.Error())
 		} else {
-			c.SendObj(200, host)
+			c.SendMsg(200, host)
 		}
 	}
 }
@@ -120,7 +120,7 @@ func (c *HostController) UpdateHost() {
 	if u, err := me.UpdateHost(id, &host); err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
-		c.SendObj(200, u)
+		c.SendMsg(200, u)
 	}
 }
 
@@ -145,7 +145,7 @@ func (c *HostController) DeleteHost() {
 
 	beego.Debug("delete success!")
 
-	c.SendObj(200, "delete success!")
+	c.SendMsg(200, "delete success!")
 }
 
 // #####################################

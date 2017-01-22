@@ -1,11 +1,10 @@
 <template>
 <div class="container">
   <ul class="nav nav-tabs">
-    <li role="presentation" v-bind:class="{ active: tabName === 'ldap' }"><a @click="tabName = 'ldap'" >ldap</a></li>
-    <li role="presentation" v-bind:class="{ active: tabName === 'misso' }"><a @click="tabName = 'misso'" >misso</a></li>
+    <li role="presentation" v-bind:class="{ active: tabName === 'ldap' }"><a @click="showLdap()" >ldap</a></li>
+    <li role="presentation" v-bind:class="{ active: tabName === 'misso' }"><a @click="showMisso()" >misso</a></li>
   </ul>
-  <ldap v-show="tabName === 'ldap'"> </ldap> 
-  <misso v-show="tabName === 'misso'"></misso>
+  <router-view> </router-view> 
 </div>
 </template>
 
@@ -24,6 +23,14 @@ export default {
     misso
   },
   methods: {
+    showLdap () {
+      this.tabName = 'ldap'
+      this.$router.push('/login/ldap')
+    },
+    showMisso () {
+      this.tabName = 'misso'
+      this.$router.push('/login/misso')
+    }
   }
 
 }

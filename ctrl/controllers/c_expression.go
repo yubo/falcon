@@ -33,7 +33,7 @@ func (c *ExpressionController) CreateExpression() {
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendObj(200, id)
+		c.SendMsg(200, id)
 	}
 }
 
@@ -51,7 +51,7 @@ func (c *ExpressionController) GetExpressionsCnt() {
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendObj(200, cnt)
+		c.SendMsg(200, cnt)
 	}
 }
 
@@ -73,7 +73,7 @@ func (c *ExpressionController) GetExpressions() {
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendObj(200, expressions)
+		c.SendMsg(200, expressions)
 	}
 }
 
@@ -94,7 +94,7 @@ func (c *ExpressionController) GetExpression() {
 		if err != nil {
 			c.SendMsg(403, err.Error())
 		} else {
-			c.SendObj(200, expression)
+			c.SendMsg(200, expression)
 		}
 	}
 }
@@ -121,7 +121,7 @@ func (c *ExpressionController) UpdateExpression() {
 	if u, err := me.UpdateExpression(id, &expression); err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
-		c.SendObj(200, u)
+		c.SendMsg(200, u)
 	}
 }
 
@@ -147,7 +147,7 @@ func (c *ExpressionController) DeleteExpression() {
 
 	beego.Debug("delete success!")
 
-	c.SendObj(200, "delete success!")
+	c.SendMsg(200, "delete success!")
 }
 
 // #####################################

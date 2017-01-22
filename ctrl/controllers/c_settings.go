@@ -57,7 +57,7 @@ func (c *MainController) PostConfig() {
 	if err := me.ConfigSet(module, conf); err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendObj(200, "")
+		c.SendMsg(200, "")
 	}
 }
 
@@ -86,7 +86,7 @@ func (c *MainController) GetDebugAction() {
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendObj(200, obj)
+		c.SendMsg(200, obj)
 	}
 }
 
@@ -99,6 +99,7 @@ func populate() (interface{}, error) {
 		ret       string
 		err       error
 		items     []string
+		user      *models.User
 		tag_idx   = make(map[string]int64)
 		user_idx  = make(map[string]int64)
 		role_idx  = make(map[string]int64)
@@ -113,9 +114,10 @@ func populate() (interface{}, error) {
 		"test",
 	}
 	for _, item := range items {
-		if user_idx[item], err = admin.AddUser(&models.User{Name: item, Uuid: item}); err != nil {
+		if user, err = admin.AddUser(&models.User{Name: item, Uuid: item}); err != nil {
 			return nil, err
 		}
+		user_idx[item] = user.Id
 		ret = fmt.Sprintf("%sadd user(%s)\n", ret, item)
 	}
 

@@ -119,21 +119,9 @@ func configFilter(in interface{}) (out interface{}) {
 
 }
 
-func (c *BaseController) SendMsg(code int, msg string) {
-	c.Data["json"] = map[string]interface{}{
-		"code": code,
-		"msg":  msg,
-	}
-	//c.Ctx.ResponseWriter.WriteHeader(code)
-	beego.Debug(c.Data["json"])
-	c.ServeJSON()
-}
-
-func (c *BaseController) SendObj(code int, obj interface{}) {
-	c.Data["json"] = map[string]interface{}{
-		"code": code,
-		"data": obj,
-	}
+func (c *BaseController) SendMsg(code int, msg interface{}) {
+	c.Ctx.ResponseWriter.WriteHeader(code)
+	c.Data["json"] = msg
 	c.ServeJSON()
 }
 

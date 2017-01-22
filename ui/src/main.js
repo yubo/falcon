@@ -6,9 +6,9 @@ import app from './components/app'
 import store from './store'
 import router from './router'
 
-router.push('login')
-
 /* eslint-disable no-new */
+router.push('/meta/tag/list')
+
 new Vue({
   el: '#app',
   template: '<app/>',

@@ -30,7 +30,7 @@ func (c *UserController) CreateUser() {
 	if id, err := me.AddUser(&user); err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendObj(200, id)
+		c.SendMsg(200, id)
 	}
 }
 
@@ -47,7 +47,7 @@ func (c *UserController) GetUsersCnt() {
 	if cnt, err := me.GetUsersCnt(query); err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendObj(200, cnt)
+		c.SendMsg(200, cnt)
 	}
 }
 
@@ -68,7 +68,7 @@ func (c *UserController) GetUsers() {
 	if users, err := me.GetUsers(query, per, offset); err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendObj(200, users)
+		c.SendMsg(200, users)
 	}
 }
 
@@ -87,7 +87,7 @@ func (c *UserController) GetUser() {
 		if user, err := me.GetUser(id); err != nil {
 			c.SendMsg(403, err.Error())
 		} else {
-			c.SendObj(200, user)
+			c.SendMsg(200, user)
 		}
 	}
 }
@@ -114,7 +114,7 @@ func (c *UserController) UpdateUser() {
 	if u, err := me.UpdateUser(id, &user); err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
-		c.SendObj(200, u)
+		c.SendMsg(200, u)
 	}
 }
 
@@ -137,7 +137,7 @@ func (c *UserController) DeleteUser() {
 		return
 	}
 
-	c.SendObj(200, "delete success!")
+	c.SendMsg(200, "delete success!")
 }
 
 // #####################################

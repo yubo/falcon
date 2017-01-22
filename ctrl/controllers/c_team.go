@@ -34,7 +34,7 @@ func (c *TeamController) CreateTeamUsers() {
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendObj(200, id)
+		c.SendMsg(200, id)
 	}
 }
 
@@ -52,7 +52,7 @@ func (c *TeamController) GetTeamsCnt() {
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendObj(200, cnt)
+		c.SendMsg(200, cnt)
 	}
 }
 
@@ -74,7 +74,7 @@ func (c *TeamController) GetTeams() {
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendObj(200, teams)
+		c.SendMsg(200, teams)
 	}
 }
 
@@ -95,7 +95,7 @@ func (c *TeamController) GetTeam() {
 		if err != nil {
 			c.SendMsg(403, err.Error())
 		} else {
-			c.SendObj(200, mt)
+			c.SendMsg(200, mt)
 		}
 	}
 }
@@ -122,7 +122,7 @@ func (c *TeamController) UpdateTeam() {
 	if u, err := me.UpdateTeamUsers(id, &team); err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
-		c.SendObj(200, u)
+		c.SendMsg(200, u)
 	}
 }
 
@@ -148,7 +148,7 @@ func (c *TeamController) DeleteTeam() {
 
 	beego.Debug("delete success!")
 
-	c.SendObj(200, "delete success!")
+	c.SendMsg(200, "delete success!")
 }
 
 // #####################################

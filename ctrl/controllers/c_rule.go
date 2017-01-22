@@ -33,7 +33,7 @@ func (c *RuleController) CreateRule() {
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendObj(200, id)
+		c.SendMsg(200, id)
 	}
 }
 
@@ -51,7 +51,7 @@ func (c *RuleController) GetRulesCnt() {
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendObj(200, cnt)
+		c.SendMsg(200, cnt)
 	}
 }
 
@@ -73,7 +73,7 @@ func (c *RuleController) GetRules() {
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendObj(200, rules)
+		c.SendMsg(200, rules)
 	}
 }
 
@@ -94,7 +94,7 @@ func (c *RuleController) GetRule() {
 		if err != nil {
 			c.SendMsg(403, err.Error())
 		} else {
-			c.SendObj(200, rule)
+			c.SendMsg(200, rule)
 		}
 	}
 }
@@ -121,7 +121,7 @@ func (c *RuleController) UpdateRule() {
 	if u, err := me.UpdateRule(id, &rule); err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
-		c.SendObj(200, u)
+		c.SendMsg(200, u)
 	}
 }
 
@@ -147,7 +147,7 @@ func (c *RuleController) DeleteRule() {
 
 	beego.Debug("delete success!")
 
-	c.SendObj(200, "delete success!")
+	c.SendMsg(200, "delete success!")
 }
 
 // #####################################

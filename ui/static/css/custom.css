@@ -61,7 +61,7 @@ div#rMenu ul li{
     display: block;
     padding: 20px;
     overflow-x: hidden;
-    overflow-y: auto; 
+    overflow-y: auto;
     background-color: #f5f5f5;
     border-right: 1px solid #eee;
   }

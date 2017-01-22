@@ -33,7 +33,7 @@ func (c *RoleController) CreateRole() {
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendObj(200, id)
+		c.SendMsg(200, id)
 	}
 }
 
@@ -51,7 +51,7 @@ func (c *RoleController) GetRolesCnt() {
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendObj(200, cnt)
+		c.SendMsg(200, cnt)
 	}
 }
 
@@ -73,7 +73,7 @@ func (c *RoleController) GetRoles() {
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendObj(200, roles)
+		c.SendMsg(200, roles)
 	}
 }
 
@@ -94,7 +94,7 @@ func (c *RoleController) GetRole() {
 		if err != nil {
 			c.SendMsg(403, err.Error())
 		} else {
-			c.SendObj(200, role)
+			c.SendMsg(200, role)
 		}
 	}
 }
@@ -121,7 +121,7 @@ func (c *RoleController) UpdateRole() {
 	if u, err := me.UpdateRole(id, &role); err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
-		c.SendObj(200, u)
+		c.SendMsg(200, u)
 	}
 }
 
@@ -147,7 +147,7 @@ func (c *RoleController) DeleteRole() {
 
 	beego.Debug("delete success!")
 
-	c.SendObj(200, "delete success!")
+	c.SendMsg(200, "delete success!")
 }
 
 // #####################################

@@ -1,5 +1,9 @@
-import * as types from '../mutation-types'
 import { fetch } from '../utils'
+import {
+  MUT_LOGIN,
+  MUT_LOGOUT,
+  MUT_NOTIFICATION_SET
+} from '../mutation-types'
 
 // initial state
 // shape: [{ id, quantity }]
@@ -14,6 +18,26 @@ const getters = {
 
 // actions
 const actions = {
+  logout ({ commit, state }) {
+    fetch({
+      method: 'get',
+      url: 'auth/logout'
+    }).then((res) => {
+      commit(MUT_LOGOUT)
+      commit(MUT_NOTIFICATION_SET, { level: 'SUCCESS', msg: 'logout Success!' })
+    })
+    .catch((err) => {
+      commit(MUT_NOTIFICATION_SET, { level: 'ERROR', msg: err.response.data })
+    })
+  },
+  login_quiet ({ commit, state }) {
+    fetch({
+      method: 'post',
+      url: 'auth/login'
+    }).then(() => {
+      commit(MUT_LOGIN)
+    })
+  },
   login ({ commit, state }, args) {
     fetch({
       method: 'post',
@@ -23,36 +47,20 @@ const actions = {
         password: args.password,
         method: args.method
       }
-    })
-    .then((res) => {
-      commit(types.LOGIN_SUCCESS, {
-        data: res.data,
-        router: args.router
-      })
-    })
-    .catch((err) => {
-      commit(types.LOGIN_FAIL, {
-        err
-      })
+    }).then((res) => {
+      commit(MUT_LOGIN)
+      commit(MUT_NOTIFICATION_SET, { level: 'SUCCESS', msg: 'login Success!' })
+      setTimeout(() => { args.router.push('/meta/tag') }, 2000)
+    }).catch((err) => {
+      commit(MUT_NOTIFICATION_SET, { level: 'ERROR', msg: err.response.data })
     })
   }
 }
 
 // mutations
 const mutations = {
-  [types.LOGIN_SUCCESS] (state, { data, router }) {
-    window.Cookies.set('name', data.name)
-    window.Cookies.set('sig', data.sig)
-    state.notification = 'Log in Success!'
-    state.status = true
-    setTimeout(() => {
-      router.push('/graph')
-    }, 2000)
-  },
-  [types.LOGIN_FAIL] (state, { err }) {
-    state.notification = 'Username or Password error'
-    state.status = false
-  }
+  [MUT_LOGOUT] (state) { state.status = false },
+  [MUT_LOGIN] (state) { state.status = true }
 }
 
 export default {

@@ -7,7 +7,6 @@ package routers
 import (
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/context"
-	"github.com/astaxie/beego/plugins/cors"
 	"github.com/yubo/falcon/ctrl/controllers"
 	"github.com/yubo/falcon/ctrl/models"
 )
@@ -17,14 +16,6 @@ const (
 )
 
 func init() {
-
-	beego.InsertFilter("*", beego.BeforeRouter, cors.Allow(&cors.Options{
-		AllowOrigins:     []string{"*"},
-		AllowMethods:     []string{"*"},
-		AllowHeaders:     []string{"ApiToken"},
-		ExposeHeaders:    []string{"*"},
-		AllowCredentials: true,
-	}))
 
 	beego.InsertFilter("/*", beego.BeforeRouter, profileFilter)
 

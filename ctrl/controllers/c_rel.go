@@ -67,7 +67,7 @@ func (c *RelController) CreateTagHosts() {
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendObj(200, n)
+		c.SendMsg(200, n)
 	}
 }
 
@@ -86,7 +86,7 @@ func (c *RelController) CreateTagRoleUsers() {
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendObj(200, n)
+		c.SendMsg(200, n)
 	}
 }
 
@@ -105,7 +105,7 @@ func (c *RelController) CreateTagRoleTokens() {
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendObj(200, n)
+		c.SendMsg(200, n)
 	}
 }
 
@@ -124,7 +124,7 @@ func (c *RelController) DelTagHost() {
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendObj(200, nil)
+		c.SendMsg(200, nil)
 	}
 }
 
@@ -143,7 +143,7 @@ func (c *RelController) DelTagRoleUser() {
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendObj(200, nil)
+		c.SendMsg(200, nil)
 	}
 }
 
@@ -162,7 +162,7 @@ func (c *RelController) DelTagRoleToken() {
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendObj(200, nil)
+		c.SendMsg(200, nil)
 	}
 }
 

@@ -35,15 +35,16 @@ func (u *User) IsAdmin() bool {
 	return u.Id < 3
 }
 
-func (u *User) AddUser(user *User) (id int64, err error) {
-	if id, err = orm.NewOrm().Insert(user); err != nil {
-		return
+func (u *User) AddUser(user *User) (*User, error) {
+	id, err := orm.NewOrm().Insert(user)
+	if err != nil {
+		return nil, err
 	}
 	user.Id = id
 	cacheModule[CTL_M_USER].set(id, user)
 
 	DbLog(u.Id, CTL_M_USER, id, CTL_A_ADD, jsonStr(user))
-	return
+	return user, nil
 }
 
 // just called from profileFilter()

@@ -33,7 +33,7 @@ func (c *TriggerController) CreateTrigger() {
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendObj(200, id)
+		c.SendMsg(200, id)
 	}
 }
 
@@ -51,7 +51,7 @@ func (c *TriggerController) GetTriggersCnt() {
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendObj(200, cnt)
+		c.SendMsg(200, cnt)
 	}
 }
 
@@ -73,7 +73,7 @@ func (c *TriggerController) GetTriggers() {
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendObj(200, triggers)
+		c.SendMsg(200, triggers)
 	}
 }
 
@@ -94,7 +94,7 @@ func (c *TriggerController) GetTrigger() {
 		if err != nil {
 			c.SendMsg(403, err.Error())
 		} else {
-			c.SendObj(200, trigger)
+			c.SendMsg(200, trigger)
 		}
 	}
 }
@@ -121,7 +121,7 @@ func (c *TriggerController) UpdateTrigger() {
 	if u, err := me.UpdateTrigger(id, &trigger); err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
-		c.SendObj(200, u)
+		c.SendMsg(200, u)
 	}
 }
 
@@ -147,7 +147,7 @@ func (c *TriggerController) DeleteTrigger() {
 
 	beego.Debug("delete success!")
 
-	c.SendObj(200, "delete success!")
+	c.SendMsg(200, "delete success!")
 }
 
 // #####################################

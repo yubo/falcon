@@ -6,8 +6,7 @@
 package controllers
 
 import (
-	"fmt"
-
+	"github.com/astaxie/beego"
 	"github.com/yubo/falcon/ctrl/models"
 )
 
@@ -38,8 +37,8 @@ func (c *AuthController) GetLogin() {
 // @Param	username	query	string	true	"username for login"
 // @Param	password	query	string	true	"passworld for login"
 // @Param	method		query	string	true	"login method"
-// @Success 200 {uid:string, uuid:string} models.User.Id, models.User.Uuid
-// @Failure 406 {string} error
+// @Success 200 models.User
+// @Failure 406 error
 // @router /login [post]
 func (c *AuthController) PostLogin() {
 	var (
@@ -50,35 +49,41 @@ func (c *AuthController) PostLogin() {
 		auth         models.AuthInterface
 	)
 	if id, ok := c.GetSession("uid").(int64); ok {
+
 		if user, err = models.GetUser(id); err == nil {
-			c.Data["json"] = fmt.Errorf("%s(%s/%s)",
-				models.ErrLogged.Error(), user.Name, user.Uuid)
-			goto out_err
+			goto out
+			/*
+				err = fmt.Errorf("%s(%s/%s)",
+					models.ErrLogged.Error(), user.Name, user.Uuid)
+				goto out_err
+			*/
 		}
 	}
 
 	if method = c.GetString("method"); method == "" {
-		c.Data["json"] = models.ErrNoExits.Error()
+		err = models.ErrNoExits
 		goto out_err
 	}
 
 	if auth, ok = models.AuthMap[method]; !ok {
-		c.Data["json"] = models.ErrNoExits.Error()
+		err = models.ErrNoExits
 		goto out_err
 	}
 
 	if ok, uuid, err = auth.Verify(c); !ok {
-		c.Data["json"] = models.ErrAuthFailed.Error()
+		err = models.ErrAuthFailed
 		goto out_err
 	}
 
-	c.Access(uuid)
-	c.Ctx.Redirect(302, "/")
+	user, _ = c.Access(uuid)
+out:
+	beego.Debug(user)
+	c.SendMsg(200, user)
 	return
 
 out_err:
-	c.Ctx.ResponseWriter.WriteHeader(406)
-	c.ServeJSON()
+	beego.Debug(err)
+	c.SendMsg(405, err.Error())
 }
 
 // @Title Auth module callback handle
@@ -102,23 +107,22 @@ func (c *AuthController) Callback() {
 func (c *AuthController) Logout() {
 	if uid := c.GetSession("uid"); uid != nil {
 		c.DelSession("uid")
-		c.SendObj(200, "logout success!")
+		c.SendMsg(200, "logout success!")
 	} else {
 		c.SendMsg(405, models.ErrNoLogged.Error())
 	}
 }
 
-func (c *AuthController) Access(uuid string) (id int64) {
+func (c *AuthController) Access(uuid string) (user *models.User, err error) {
 	me, _ := c.Ctx.Input.GetData("me").(*models.User)
-	user, err := me.GetUserByUuid(uuid)
+	user, err = me.GetUserByUuid(uuid)
 	if err != nil {
 		sys, _ := models.GetUser(1)
-		id, err = sys.AddUser(&models.User{Uuid: uuid, Name: uuid})
+		user, err = sys.AddUser(&models.User{Uuid: uuid, Name: uuid})
 		if err != nil {
-			return -1
+			return
 		}
-		user, err = me.GetUser(id)
 	}
 	c.SetSession("uid", user.Id)
-	return user.Id
+	return
 }

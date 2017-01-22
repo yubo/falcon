@@ -33,7 +33,7 @@ func (c *TokenController) CreateToken() {
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendObj(200, id)
+		c.SendMsg(200, id)
 	}
 }
 
@@ -51,7 +51,7 @@ func (c *TokenController) GetTokensCnt() {
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendObj(200, cnt)
+		c.SendMsg(200, cnt)
 	}
 }
 
@@ -73,7 +73,7 @@ func (c *TokenController) GetTokens() {
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendObj(200, tokens)
+		c.SendMsg(200, tokens)
 	}
 }
 
@@ -94,7 +94,7 @@ func (c *TokenController) GetToken() {
 		if err != nil {
 			c.SendMsg(403, err.Error())
 		} else {
-			c.SendObj(200, token)
+			c.SendMsg(200, token)
 		}
 	}
 }
@@ -121,7 +121,7 @@ func (c *TokenController) UpdateToken() {
 	if u, err := me.UpdateToken(id, &token); err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
-		c.SendObj(200, u)
+		c.SendMsg(200, u)
 	}
 }
 
@@ -147,7 +147,7 @@ func (c *TokenController) DeleteToken() {
 
 	beego.Debug("delete success!")
 
-	c.SendObj(200, "delete success!")
+	c.SendMsg(200, "delete success!")
 }
 
 // #####################################

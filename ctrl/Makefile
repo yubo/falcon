@@ -1,6 +1,6 @@
 all: ctrl swagger/swagger.json
-WORKDIR=$(shell readlink -f .)
-VENDOR=$(shell readlink -f ${WORKDIR}/../vendor)
+WORKDIR=$(shell pwd)
+VENDOR=${WORKDIR}/../vendor
 
 .PHONY: db dev
 
@@ -10,10 +10,11 @@ ctrl: *.go */*.go
 swagger/swagger.json: routers/router.go
 	bee generate docs
 
+#cd ${WORKDIR} &&\
+#echo ${WORKDIR} && \ 
+
 dev:
-	#export GOPATH=${VENDOR} && cd ${WORKDIR} &&
-	cd ${WORKDIR} &&\
-	echo ${WORKDIR} &&\
+	export GOPATH=${VENDOR} && cd ${WORKDIR} && \
 	bee run -gendoc=true -downdoc=true
 
 db:

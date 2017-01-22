@@ -32,7 +32,7 @@ func (c *TagController) CreateTag() {
 	if id, err := me.AddTag(&tag); err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendObj(200, id)
+		c.SendMsg(200, id)
 	}
 }
 
@@ -50,7 +50,7 @@ func (c *TagController) GetTagsCnt() {
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendObj(200, cnt)
+		c.SendMsg(200, cnt)
 	}
 }
 
@@ -72,7 +72,7 @@ func (c *TagController) GetTags() {
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendObj(200, tags)
+		c.SendMsg(200, tags)
 	}
 }
 
@@ -91,7 +91,7 @@ func (c *TagController) GetTag() {
 		if tag, err := me.GetTag(id); err != nil {
 			c.SendMsg(403, err.Error())
 		} else {
-			c.SendObj(200, tag)
+			c.SendMsg(200, tag)
 		}
 	}
 }
@@ -118,7 +118,7 @@ func (c *TagController) UpdateTag() {
 	if u, err := me.UpdateTag(id, &tag); err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
-		c.SendObj(200, u)
+		c.SendMsg(200, u)
 	}
 }
 
@@ -144,7 +144,7 @@ func (c *TagController) DeleteTag() {
 
 	beego.Debug("delete success!")
 
-	c.SendObj(200, "delete success!")
+	c.SendMsg(200, "delete success!")
 }
 
 // #####################################
