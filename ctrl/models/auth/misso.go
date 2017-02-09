@@ -42,6 +42,7 @@ func init() {
 	models.RegisterAuth(_misso)
 }
 
+/*
 func (p *missoAuth) LoginHtml(_c interface{}) string {
 	c := _c.(*controllers.AuthController)
 	ctx := c.Ctx
@@ -55,6 +56,7 @@ func (p *missoAuth) LoginHtml(_c interface{}) string {
 	return fmt.Sprintf("<a href='%s&callback=http://%s/v1.0/auth/callback/"+
 		"%s'>mioss</a>", login_url, base_url, p.Name)
 }
+*/
 
 func (p *missoAuth) CallBack(_c interface{}) {
 	var (

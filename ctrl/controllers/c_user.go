@@ -20,25 +20,25 @@ type UserController struct {
 // @Title CreateUser
 // @Description create users
 // @Param	body		body 	models.User	true		"body for user content"
-// @Success {code:200, data:int} models.User.Id
-// @Failure {code:int, msg:string}
+// @Success 200 {id:int} Id
+// @Failure 403 string error
 // @router / [post]
 func (c *UserController) CreateUser() {
 	var user models.User
 	json.Unmarshal(c.Ctx.Input.RequestBody, &user)
 	me, _ := c.Ctx.Input.GetData("me").(*models.User)
-	if id, err := me.AddUser(&user); err != nil {
+	if u, err := me.AddUser(&user); err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendMsg(200, id)
+		c.SendMsg(200, models.Id{Id: u.Id})
 	}
 }
 
 // @Title GetUsersCnt
 // @Description get Users number
 // @Param   query     query   string  false       "user name/email"
-// @Success {code:200, data:int} user number
-// @Failure {code:int, msg:string}
+// @Success 200  {total:int} user total number
+// @Failure 403 string error
 // @router /cnt [get]
 func (c *UserController) GetUsersCnt() {
 	query := strings.TrimSpace(c.GetString("query"))
@@ -47,7 +47,7 @@ func (c *UserController) GetUsersCnt() {
 	if cnt, err := me.GetUsersCnt(query); err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendMsg(200, cnt)
+		c.SendMsg(200, totalObj(cnt))
 	}
 }
 
@@ -56,8 +56,8 @@ func (c *UserController) GetUsersCnt() {
 // @Param   query     query   string  false       "user name/email"
 // @Param   per       query   int     false       "per page number"
 // @Param   offset    query   int     false       "offset  number"
-// @Success {code:200, data:object} models.User
-// @Failure {code:int, msg:string}
+// @Success 200 {object} models.User
+// @Failure 403 error string
 // @router /search [get]
 func (c *UserController) GetUsers() {
 	query := strings.TrimSpace(c.GetString("query"))
@@ -75,8 +75,8 @@ func (c *UserController) GetUsers() {
 // @Title Get
 // @Description get user by id
 // @Param	id		path 	int	true		"The key for staticblock"
-// @Success {code:200, data:object} models.User
-// @Failure {code:int, msg:string}
+// @Success 200 {object} models.User
+// @Failure 403 error string
 // @router /:id [get]
 func (c *UserController) GetUser() {
 	id, err := c.GetInt64(":id")
@@ -96,8 +96,8 @@ func (c *UserController) GetUser() {
 // @Description update the user
 // @Param	id		path 	string	true		"The id you want to update"
 // @Param	body		body 	models.User	true		"body for user content"
-// @Success {code:200, data:object} models.User
-// @Failure {code:int, msg:string}
+// @Success 200 {object} models.User
+// @Failure 403 string   error
 // @router /:id [put]
 func (c *UserController) UpdateUser() {
 	var user models.User
@@ -112,7 +112,7 @@ func (c *UserController) UpdateUser() {
 
 	me, _ := c.Ctx.Input.GetData("me").(*models.User)
 	if u, err := me.UpdateUser(id, &user); err != nil {
-		c.SendMsg(400, err.Error())
+		c.SendMsg(403, err.Error())
 	} else {
 		c.SendMsg(200, u)
 	}
@@ -122,7 +122,7 @@ func (c *UserController) UpdateUser() {
 // @Description delete the user
 // @Param	id		path 	string	true		"The id you want to delete"
 // @Success {code:200, data:string} delete success!
-// @Failure {code:int, msg:string}
+// @Failure 403 error string
 // @router /:id [delete]
 func (c *UserController) DeleteUser() {
 	id, err := c.GetInt64(":id")
@@ -138,71 +138,4 @@ func (c *UserController) DeleteUser() {
 	}
 
 	c.SendMsg(200, "delete success!")
-}
-
-// #####################################
-// #############  render ###############
-// #####################################
-func (c *MainController) GetUser() {
-	var users []*models.User
-
-	query := strings.TrimSpace(c.GetString("query"))
-	per, _ := c.GetInt("per", models.PAGE_PER)
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
-
-	qs := me.QueryUsers(query)
-	total, err := qs.Count()
-	if err != nil {
-		goto out
-	}
-
-	_, err = qs.Limit(per,
-		c.SetPaginator(per, total).Offset()).All(&users)
-	if err != nil {
-		goto out
-	}
-
-	c.PrepareEnv(headLinks[HEAD_LINK_IDX_META].SubLinks, "User")
-	c.Data["Users"] = users
-	c.Data["Query"] = query
-	c.Data["Search"] = Search{"query", "user name or email"}
-
-	c.TplName = "user/list.tpl"
-	return
-
-out:
-	c.SendMsg(400, err.Error())
-}
-
-func (c *MainController) EditUser() {
-	var me, user *models.User
-
-	id, err := c.GetInt64(":id")
-	if err != nil {
-		goto out
-	}
-
-	me, _ = c.Ctx.Input.GetData("me").(*models.User)
-	if user, err = me.GetUser(id); err != nil {
-		goto out
-	}
-
-	c.PrepareEnv(headLinks[HEAD_LINK_IDX_META].SubLinks, "User")
-	c.Data["User"] = user
-	c.Data["H1"] = "edit user"
-	c.Data["Method"] = "put"
-	c.Data["EditUser"] = true
-	c.TplName = "user/edit.tpl"
-	return
-out:
-	c.SendMsg(400, err.Error())
-}
-
-func (c *MainController) AddUser() {
-
-	c.PrepareEnv(headLinks[HEAD_LINK_IDX_META].SubLinks, "User")
-	c.Data["Method"] = "post"
-	c.Data["H1"] = "add user"
-	c.Data["EditUser"] = true
-	c.TplName = "user/edit.tpl"
 }

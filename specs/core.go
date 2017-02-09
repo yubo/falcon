@@ -8,6 +8,7 @@ package specs
 import (
 	"flag"
 	"fmt"
+	"strings"
 
 	"github.com/yubo/gotool/flags"
 )
@@ -44,18 +45,18 @@ type CmdOpts struct {
 }
 
 type ModuleParams struct {
-	Debug       int
-	ConnTimeout int
-	CallTimeout int
-	Concurrency int
-	Disabled    bool
-	Http        bool
-	Rpc         bool
-	Name        string
-	Host        string
-	HttpAddr    string
-	RpcAddr     string
-	CtrlAddr    string
+	Debug       int    `json:"debug"`
+	ConnTimeout int    `json:"connTimeout"`
+	CallTimeout int    `json:"callTimeout"`
+	Concurrency int    `json:"concurrency"`
+	Disabled    bool   `json:"disabled"`
+	Http        bool   `json:"http"`
+	Rpc         bool   `json:"rpc"`
+	Name        string `json:"name"`
+	Host        string `json:"host"`
+	HttpAddr    string `json:"httpAddr"`
+	RpcAddr     string `json:"rpcAddr"`
+	CtrlAddr    string `json:"ctrlAddr"`
 }
 
 func (p ModuleParams) String() string {
@@ -160,3 +161,181 @@ func Git(arg interface{}) {
 func Changelog(arg interface{}) {
 	fmt.Println(CHANGELOG)
 }
+
+/*******************************
+	CONFIG
+********************************/
+type ConfLb struct {
+	Params      ModuleParams `json:"params"`
+	PayloadSize int          `json:"payloadSize"`
+	Backends    []Backend    `json:"backends"`
+}
+
+type ConfAgent struct {
+	Params      ModuleParams `json:"params"`
+	Interval    int          `json:"interval"`
+	PayloadSize int          `json:"payloadSize"`
+	IfPre       []string     `json:"ifPre"`
+	Upstreams   []string     `json:"upstreams"`
+}
+
+func (c ConfAgent) String() string {
+	return fmt.Sprintf("%s (\n%s\n)\n"+
+		"%-17s %s\n"+
+		"%-17s %d\n"+
+		"%-17s %d\n"+
+		"%-17s %s",
+		"params", IndentLines(1, c.Params.String()),
+		"ifprefix", strings.Join(c.IfPre, ", "),
+		"interval", c.Interval,
+		"payloadSize", c.PayloadSize,
+		"upstreams", strings.Join(c.Upstreams, ", "))
+}
+
+type Storage struct {
+	Type   string   `json:"type"`
+	Hdisks []string `json:"hdisks"`
+}
+
+func (o Storage) String() string {
+	return fmt.Sprintf("%-12s %s\n%-12s %s",
+		"type", o.Type,
+		"hdisks", strings.Join(o.Hdisks, ", "))
+}
+
+type ConfBackend struct {
+	Params          ModuleParams `json:"params"`
+	Migrate         Migrate      `json:"migrate"`
+	Idx             bool         `json:"idx"`
+	IdxInterval     int          `json:"idxInterval"`
+	IdxFullInterval int          `json:"idxFullInterval"`
+	Dsn             string       `json:"dsn"`
+	DbMaxIdle       int          `json:"dbMaxIdle"`
+	ShmMagic        uint32       `json:"shmMagic"`
+	ShmKey          int          `json:"shmKey"`
+	ShmSize         int          `json:"shmSize"`
+	Storage         Storage      `json:"storage"`
+}
+
+func (c ConfBackend) String() string {
+	http := c.Params.HttpAddr
+	rpc := c.Params.RpcAddr
+
+	if !c.Params.Http {
+		http += "(disabled)"
+	}
+	if !c.Params.Rpc {
+		rpc += "(disabled)"
+	}
+	return fmt.Sprintf("%s (\n%s\n)\n"+
+		"%-17s %v\n"+
+		"%-17s %d\n"+
+		"%-17s %d\n"+
+		"%-17s %s\n"+
+		"%-17s %d\n"+
+		"%-17s 0x%x\n"+
+		"%-17s 0x%x\n"+
+		"%-17s %d\n"+
+		"%s (\n%s\n)\n"+
+		"%s (\n%s\n)",
+		"params", IndentLines(1, c.Params.String()),
+		"idx", c.Idx,
+		"idx_interval", c.IdxInterval,
+		"idx_full_interval", c.IdxFullInterval,
+		"dsn", c.Dsn,
+		"dbmaxidle", c.DbMaxIdle,
+		"magic_code", c.ShmMagic,
+		"key_start_id", c.ShmKey,
+		"segment_size", c.ShmSize,
+		"migrate", IndentLines(1, c.Migrate.String()),
+		"storage", IndentLines(1, c.Storage.String()))
+}
+
+type ConfCtrl struct {
+	Params ModuleParams `json:"params"`
+}
+
+var (
+	ConfAgentDef = ConfAgent{
+		Params: ModuleParams{
+			Debug:       0,
+			ConnTimeout: 1000,
+			CallTimeout: 5000,
+			Concurrency: 2,
+			Name:        "Agent Module",
+			Disabled:    false,
+			Http:        true,
+			Rpc:         true,
+			HttpAddr:    "127.0.0.1:1988",
+			RpcAddr:     "127.0.0.1:1989",
+			CtrlAddr:    "127.0.0.1:8001",
+		},
+		Interval:    60,
+		PayloadSize: 16,
+		IfPre:       []string{"eth", "em"},
+		Upstreams:   []string{},
+	}
+
+	ConfBackendDef = ConfBackend{
+		Params: ModuleParams{
+			Debug:       0,
+			ConnTimeout: 1000,
+			CallTimeout: 5000,
+			Concurrency: 2,
+			Disabled:    false,
+			Http:        true,
+			Rpc:         true,
+			HttpAddr:    "0.0.0.0:7021",
+			RpcAddr:     "0.0.0.0:7020",
+			CtrlAddr:    "",
+		},
+		Migrate: Migrate{
+			Disabled:  false,
+			Upstreams: map[string]string{},
+		},
+		Idx:             true,
+		IdxInterval:     30,
+		IdxFullInterval: 86400,
+		Dsn:             "falcon:1234@tcp(127.0.0.1:3306)/falcon?loc=Local&parseTime=true",
+		DbMaxIdle:       4,
+		ShmMagic:        0x80386,
+		ShmKey:          0x7020,
+		ShmSize:         256 * (1 << 20), // 256m
+		Storage: Storage{
+			Type: "rrd",
+		},
+	}
+
+	ConfLbDef = ConfLb{
+		Params: ModuleParams{
+			Debug:       0,
+			ConnTimeout: 1000,
+			CallTimeout: 5000,
+			Concurrency: 2,
+			Disabled:    false,
+			Http:        true,
+			HttpAddr:    "0.0.0.0:6060",
+			Rpc:         true,
+			RpcAddr:     "0.0.0.0:8433",
+			CtrlAddr:    "",
+		},
+		PayloadSize: 16,
+		Backends:    make([]Backend, 0),
+	}
+
+	ConfCtrlDef = ConfCtrl{
+		Params: ModuleParams{
+			Debug:       0,
+			ConnTimeout: 1000,
+			CallTimeout: 5000,
+			Concurrency: 2,
+			Name:        "Control Module",
+			Disabled:    false,
+			Http:        true,
+			HttpAddr:    "0.0.0.0:6060",
+			Rpc:         true,
+			RpcAddr:     "0.0.0.0:8433",
+			CtrlAddr:    "N/A",
+		},
+	}
+)

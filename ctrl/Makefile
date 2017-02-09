@@ -2,7 +2,7 @@ all: ctrl swagger/swagger.json
 WORKDIR=$(shell pwd)
 VENDOR=${WORKDIR}/../vendor
 
-.PHONY: db dev
+.PHONY: db dev doc
 
 ctrl: *.go */*.go
 	go build
@@ -10,11 +10,14 @@ ctrl: *.go */*.go
 swagger/swagger.json: routers/router.go
 	bee generate docs
 
+doc:
+	bee generate docs
+
 #cd ${WORKDIR} &&\
 #echo ${WORKDIR} && \ 
+# export GOPATH=${VENDOR} && cd ${WORKDIR} && \
 
 dev:
-	export GOPATH=${VENDOR} && cd ${WORKDIR} && \
 	bee run -gendoc=true -downdoc=true
 
 db:

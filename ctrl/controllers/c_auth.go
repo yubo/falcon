@@ -10,26 +10,9 @@ import (
 	"github.com/yubo/falcon/ctrl/models"
 )
 
+// Operations about Auth
 type AuthController struct {
 	BaseController
-}
-
-// @Title Auth Login page
-// @Description auth login page render, for test
-// @router /login [get]
-func (c *AuthController) GetLogin() {
-	modules := make([]*models.AuthModule, 0)
-
-	for _, auth := range models.Auths {
-		modules = append(modules,
-			&models.AuthModule{Name: auth.GetName(),
-				Html: auth.LoginHtml(c),
-			})
-	}
-
-	c.PrepareEnv(nil, "")
-	c.Data["Modules"] = modules
-	c.TplName = "login.tpl"
 }
 
 // @Title AuthLogin
@@ -37,7 +20,7 @@ func (c *AuthController) GetLogin() {
 // @Param	username	query	string	true	"username for login"
 // @Param	password	query	string	true	"passworld for login"
 // @Param	method		query	string	true	"login method"
-// @Success 200 models.User
+// @Success 200 {object} models.User
 // @Failure 406 error
 // @router /login [post]
 func (c *AuthController) PostLogin() {
@@ -77,7 +60,6 @@ func (c *AuthController) PostLogin() {
 
 	user, _ = c.Access(uuid)
 out:
-	beego.Debug(user)
 	c.SendMsg(200, user)
 	return
 
@@ -88,6 +70,7 @@ out_err:
 
 // @Title Auth module callback handle
 // @Description Auth module callback handle
+// @Param	module	path	string	true	"the module you want to use"
 // @router /callback/:module [get]
 func (c *AuthController) Callback() {
 	module := c.Ctx.Input.Param(":module")
@@ -101,8 +84,8 @@ func (c *AuthController) Callback() {
 
 // @Title Auth Logout
 // @Description user logout, reset cookie
-// @Success {code:200, data:string} logout success!
-// @Failure {code:405, msg:string} Method Not Allowed
+// @Success 200 {string} logout success!
+// @Failure 405 {string} Method Not Allowed
 // @router /logout [get]
 func (c *AuthController) Logout() {
 	if uid := c.GetSession("uid"); uid != nil {

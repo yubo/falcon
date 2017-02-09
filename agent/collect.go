@@ -25,7 +25,7 @@ func Collector_Register(c Collector) {
 
 func (p *Agent) collectStart() {
 	ticker := time.NewTicker(time.Second *
-		time.Duration(p.Interval)).C
+		time.Duration(p.Conf.Interval)).C
 	go func() {
 		for {
 			select {
@@ -36,8 +36,8 @@ func (p *Agent) collectStart() {
 			case <-ticker:
 				vs := []*specs.MetaData{}
 				for _, c := range collectors {
-					if items, err := c.Collect(p.Interval,
-						p.Params.Host); err == nil {
+					if items, err := c.Collect(p.Conf.Interval,
+						p.Conf.Params.Host); err == nil {
 						vs = append(vs, items...)
 					}
 				}

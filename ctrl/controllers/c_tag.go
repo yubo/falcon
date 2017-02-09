@@ -21,8 +21,8 @@ type TagController struct {
 // @Title CreateTag
 // @Description create tags
 // @Param	body	body 	models.Tag	true	"body for tag content"
-// @Success {code:200, data:int} models.Tag.Id
-// @Failure {code:int, msg:string}
+// @Success 200 {id:int} Id
+// @Failure 403 string error
 // @router / [post]
 func (c *TagController) CreateTag() {
 	var tag models.Tag
@@ -32,15 +32,15 @@ func (c *TagController) CreateTag() {
 	if id, err := me.AddTag(&tag); err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendMsg(200, id)
+		c.SendMsg(200, models.Id{Id: id})
 	}
 }
 
 // @Title GetTagsCnt
 // @Description get Tags number
 // @Param   query     query   string  false       "tag name"
-// @Success {code:200, data:int} tag number
-// @Failure {code:int, msg:string}
+// @Success 200  {total:int} tag total number
+// @Failure 403 string error
 // @router /cnt [get]
 func (c *TagController) GetTagsCnt() {
 	query := strings.TrimSpace(c.GetString("query"))
@@ -50,7 +50,7 @@ func (c *TagController) GetTagsCnt() {
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendMsg(200, cnt)
+		c.SendMsg(200, totalObj(cnt))
 	}
 }
 
@@ -59,8 +59,8 @@ func (c *TagController) GetTagsCnt() {
 // @Param   query     query   string  false       "tag name"
 // @Param   per       query   int     false       "per page number"
 // @Param   offset    query   int     false       "offset  number"
-// @Success {code:200, data:object} models.Tag
-// @Failure {code:int, msg:string}
+// @Success 200 [object] []models.Tag
+// @Failure 403 string error
 // @router /search [get]
 func (c *TagController) GetTags() {
 	query := strings.TrimSpace(c.GetString("query"))
@@ -79,8 +79,8 @@ func (c *TagController) GetTags() {
 // @Title Get
 // @Description get tag by id
 // @Param	id		path 	int	true		"The key for staticblock"
-// @Success {code:200, data:object} models.Tag
-// @Failure {code:int, msg:string}
+// @Success 200 {object} models.tag
+// @Failure 403 string error
 // @router /:id [get]
 func (c *TagController) GetTag() {
 	id, err := c.GetInt64(":id")
@@ -100,8 +100,8 @@ func (c *TagController) GetTag() {
 // @Description update the tag
 // @Param	id		path 	string	true		"The id you want to update"
 // @Param	body		body 	models.Tag	true		"body for tag content"
-// @Success {code:200, data:object} models.Tag
-// @Failure {code:int, msg:string}
+// @Success 200 {object} models.Tag
+// @Failure 403 string error
 // @router /:id [put]
 func (c *TagController) UpdateTag() {
 	var tag models.Tag
@@ -116,7 +116,7 @@ func (c *TagController) UpdateTag() {
 	json.Unmarshal(c.Ctx.Input.RequestBody, &tag)
 
 	if u, err := me.UpdateTag(id, &tag); err != nil {
-		c.SendMsg(400, err.Error())
+		c.SendMsg(403, err.Error())
 	} else {
 		c.SendMsg(200, u)
 	}
@@ -124,9 +124,9 @@ func (c *TagController) UpdateTag() {
 
 // @Title DeleteTag
 // @Description delete the tag
-// @Param	id		path 	string	true		"The id you want to delete"
-// @Success {code:200, data:"delete success!"} delete success!
-// @Failure {code:403, msg:string}
+// @Param	id	path	string	true	"The id you want to delete"
+// @Success 200 string "delete success!"
+// @Failure 403 string error
 // @router /:id [delete]
 func (c *TagController) DeleteTag() {
 	id, err := c.GetInt64(":id")
@@ -145,70 +145,4 @@ func (c *TagController) DeleteTag() {
 	beego.Debug("delete success!")
 
 	c.SendMsg(200, "delete success!")
-}
-
-// #####################################
-// #############  render ###############
-// #####################################
-func (c *MainController) GetTag() {
-	var tags []*models.Tag
-
-	query := strings.TrimSpace(c.GetString("query"))
-	per, _ := c.GetInt("per", models.PAGE_PER)
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
-
-	qs := me.QueryTags(query)
-	total, err := qs.Count()
-	if err != nil {
-		goto out
-	}
-
-	_, err = qs.Limit(per,
-		c.SetPaginator(per, total).Offset()).All(&tags)
-	if err != nil {
-		goto out
-	}
-
-	c.PrepareEnv(headLinks[HEAD_LINK_IDX_META].SubLinks, "Tag")
-	c.Data["Tags"] = tags
-	c.Data["Query"] = query
-	c.Data["Search"] = Search{"query", "tag name"}
-
-	c.TplName = "tag/list.tpl"
-	return
-
-out:
-	c.SendMsg(400, err.Error())
-}
-
-func (c *MainController) EditTag() {
-	var tag *models.Tag
-	var me *models.User
-
-	id, err := c.GetInt64(":id")
-	if err != nil {
-		goto out
-	}
-
-	me, _ = c.Ctx.Input.GetData("me").(*models.User)
-	if tag, err = me.GetTag(id); err != nil {
-		goto out
-	}
-
-	c.PrepareEnv(headLinks[HEAD_LINK_IDX_META].SubLinks, "Tag")
-	c.Data["Tag"] = tag
-	c.Data["H1"] = "edit tag"
-	c.Data["Method"] = "put"
-	c.TplName = "tag/edit.tpl"
-	return
-out:
-	c.SendMsg(400, err.Error())
-}
-
-func (c *MainController) AddTag() {
-
-	c.PrepareEnv(headLinks[HEAD_LINK_IDX_META].SubLinks, "Tag")
-	c.Data["Method"] = "post"
-	c.Data["H1"] = "add tag"
-	c.TplName = "tag/edit.tpl"
 }

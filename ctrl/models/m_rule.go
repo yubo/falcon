@@ -5,6 +5,7 @@
  */
 package models
 
+/*
 import (
 	"time"
 
@@ -22,7 +23,7 @@ type Rule struct {
 	Pid            int64     `json:"pid"`
 	Action_id      int64     `json:"-"`
 	Create_user_id int64     `json:"-"`
-	Create_time    time.Time `json:"-"`
+	Create_time    time.Time `json:"ctime"`
 }
 
 type Action struct {
@@ -64,9 +65,8 @@ func (u *User) QueryRules(query string) orm.QuerySeter {
 	return qs
 }
 
-func (u *User) GetRulesCnt(query string) (int, error) {
-	cnt, err := u.QueryRules(query).Count()
-	return int(cnt), err
+func (u *User) GetRulesCnt(query string) (int64, error) {
+	return u.QueryRules(query).Count()
 }
 
 func (u *User) GetRules(query string, limit, offset int) (rules []*Rule, err error) {
@@ -124,3 +124,4 @@ func (u *User) BindTokenRule(token_id, rule_id, tag_id int64) (err error) {
 	}
 	return nil
 }
+*/

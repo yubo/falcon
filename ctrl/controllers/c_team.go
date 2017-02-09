@@ -7,10 +7,8 @@ package controllers
 
 import (
 	"encoding/json"
-	"fmt"
 	"strings"
 
-	"github.com/astaxie/beego"
 	"github.com/yubo/falcon/ctrl/models"
 )
 
@@ -22,55 +20,59 @@ type TeamController struct {
 // @Title CreateTeam
 // @Description create teams
 // @Param	body	body 	models.Team	true	"body for team content"
-// @Success {code:200, data:int} models.Team.Id
-// @Failure {code:int, msg:string}
+// @Success 200 {id:int} Id
+// @Failure 403 string error
 // @router / [post]
-func (c *TeamController) CreateTeamUsers() {
-	var tu models.TeamUsers
+func (c *TeamController) CreateTeam() {
+	var team models.Team
 	me, _ := c.Ctx.Input.GetData("me").(*models.User)
-	json.Unmarshal(c.Ctx.Input.RequestBody, &tu)
 
-	id, err := me.AddTeamUsers(&tu)
+	json.Unmarshal(c.Ctx.Input.RequestBody, &team)
+	team.Creator = me.Id
+	id, err := me.AddTeam(&team)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendMsg(200, id)
+		c.SendMsg(200, models.Id{Id: id})
 	}
 }
 
 // @Title GetTeamsCnt
 // @Description get Teams number
 // @Param   query     query   string  false    "team name"
-// @Success {code:200, data:int} team number
-// @Failure {code:int, msg:string}
+// @Success 200  {total:int} team total number
+// @Failure 403 string error
 // @router /cnt [get]
 func (c *TeamController) GetTeamsCnt() {
 	query := strings.TrimSpace(c.GetString("query"))
+	own, _ := c.GetBool("own", false)
 	me, _ := c.Ctx.Input.GetData("me").(*models.User)
 
-	cnt, err := me.GetTeamsCnt(query)
+	cnt, err := me.GetTeamsCnt(query, own)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendMsg(200, cnt)
+		c.SendMsg(200, totalObj(cnt))
 	}
 }
 
 // @Title GetTeams
 // @Description get all Teams
 // @Param   query     query   string  false    "team name"
+// @Param   own       query   bool    false    "check if the creator is yourself"
 // @Param   per       query   int     false    "per page number"
 // @Param   offset    query   int     false    "offset  number"
-// @Success {code:200, data:object} models.Team
-// @Failure {code:int, msg:string}
+// @Success 200 {object} models.Team
+// @Failure 403 error string
 // @router /search [get]
 func (c *TeamController) GetTeams() {
 	query := strings.TrimSpace(c.GetString("query"))
+	own, _ := c.GetBool("own", false)
 	per, _ := c.GetInt("per", models.PAGE_PER)
 	offset, _ := c.GetInt("offset", 0)
 	me, _ := c.Ctx.Input.GetData("me").(*models.User)
 
-	teams, err := me.GetTeams(query, per, offset)
+	teams, err := me.GetTeams(query, own, per, offset)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -78,59 +80,99 @@ func (c *TeamController) GetTeams() {
 	}
 }
 
-// @Title Get
+// @Title Get team by id
 // @Description get team by id
-// @Param	id		path 	int	true		"The key for staticblock"
-// @Success {code:200, data:object} models.Team
-// @Failure {code:int, msg:string}
+// @Param	id	path 	int	true	"team id"
+// @Success 200 {object} models.Team
+// @Failure 403 string   error
 // @router /:id [get]
 func (c *TeamController) GetTeam() {
 	id, err := c.GetInt64(":id")
-
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
 		me, _ := c.Ctx.Input.GetData("me").(*models.User)
-		mt, err := me.GetTeamUsers(id)
-		if err != nil {
+		if t, err := me.GetTeam(id); err != nil {
 			c.SendMsg(403, err.Error())
 		} else {
-			c.SendMsg(200, mt)
+			c.SendMsg(200, t)
+		}
+	}
+}
+
+// @Title Get team member
+// @Description get team by id
+// @Param	id	path 	int	true	"team id"
+// @Success 200 users models.User
+// @Failure 403 string   error
+// @router /:id/member [get]
+func (c *TeamController) GetMember() {
+	id, err := c.GetInt64(":id")
+	if err != nil {
+		c.SendMsg(403, err.Error())
+	} else {
+		me, _ := c.Ctx.Input.GetData("me").(*models.User)
+		if users, err := me.GetMember(id); err != nil {
+			c.SendMsg(403, err.Error())
+		} else {
+			c.SendMsg(200, map[string]interface{}{"users": users})
 		}
 	}
 }
 
 // @Title UpdateTeam
 // @Description update the team
-// @Param	id		path 	string	true		"The id you want to update"
-// @Param	body		body 	models.Team	true		"body for team content"
-// @Success {code:200, data:object} models.Team
-// @Failure {code:int, msg:string}
+// @Param	id	path 	string		true	"The id you want to update"
+// @Param	body	body 	models.Team	true	"body for team content"
+// @Success 200 {object} models.Team
+// @Failure 403 string error
 // @router /:id [put]
 func (c *TeamController) UpdateTeam() {
-	var team models.TeamUsers
+	var team models.Team
 
 	id, err := c.GetInt64(":id")
 	if err != nil {
 		c.SendMsg(403, err.Error())
 		return
 	}
-
+	me, _ := c.Ctx.Input.GetData("me").(*models.User)
 	json.Unmarshal(c.Ctx.Input.RequestBody, &team)
 
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
-	if u, err := me.UpdateTeamUsers(id, &team); err != nil {
+	if t, err := me.UpdateTeam(id, &team); err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
-		c.SendMsg(200, u)
+		c.SendMsg(200, t)
+	}
+}
+
+// @Title update Team members
+// @Description create teams
+// @Param	body	body 	models.Team	true	"body for team content"
+// @Success 200 {object} models.Member
+// @Failure 403 string   error
+// @router /:id/member [put]
+func (c *TeamController) UpdateMember() {
+	var member models.Member
+	id, err := c.GetInt64(":id")
+	if err != nil {
+		c.SendMsg(403, err.Error())
+		return
+	}
+	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	json.Unmarshal(c.Ctx.Input.RequestBody, &member)
+
+	if m, err := me.UpdateMember(id, &member); err != nil {
+		c.SendMsg(403, err.Error())
+	} else {
+		c.SendMsg(200, m)
 	}
 }
 
 // @Title DeleteTeam
 // @Description delete the team
 // @Param	id		path 	string	true		"The id you want to delete"
-// @Success {code:200, data:"delete success!"} delete success!
-// @Failure {code:403, msg:string}
+// @Success 200 string "delete success!"
+// @Failure 403 string error
 // @router /:id [delete]
 func (c *TeamController) DeleteTeam() {
 	id, err := c.GetInt64(":id")
@@ -145,88 +187,5 @@ func (c *TeamController) DeleteTeam() {
 		c.SendMsg(403, err.Error())
 		return
 	}
-
-	beego.Debug("delete success!")
-
 	c.SendMsg(200, "delete success!")
-}
-
-// #####################################
-// #############  render ###############
-// #####################################
-func (c *MainController) GetTeam() {
-	var teams []*models.Team
-
-	query := strings.TrimSpace(c.GetString("query"))
-	per, _ := c.GetInt("per", models.PAGE_PER)
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
-
-	qs := me.QueryTeams(query)
-	total, err := qs.Count()
-	if err != nil {
-		goto out
-	}
-
-	_, err = qs.Limit(per,
-		c.SetPaginator(per, total).Offset()).All(&teams)
-	if err != nil {
-		goto out
-	}
-
-	c.PrepareEnv(headLinks[HEAD_LINK_IDX_META].SubLinks, "Team")
-	c.Data["Teams"] = teams
-	c.Data["Query"] = query
-	c.Data["Search"] = Search{"query", "team name"}
-
-	c.TplName = "team/list.tpl"
-	return
-
-out:
-	c.SendMsg(400, err.Error())
-}
-
-//	beego.Router("/teamusers/edit/:id([0-9]+)", mc, "get:EditTeamUsers")
-func (c *MainController) EditTeamUsers() {
-	var (
-		ids string
-		i   int
-		id  int64
-		err error
-		tu  *models.TeamUsers
-		me  *models.User
-	)
-
-	id, err = c.GetInt64(":id")
-	if err != nil {
-		goto out
-	}
-
-	me, _ = c.Ctx.Input.GetData("me").(*models.User)
-	tu, err = me.GetTeamUsers(id)
-	if err != nil {
-		goto out
-	}
-
-	for i = 0; i < len(tu.Users); i++ {
-		ids = fmt.Sprintf("%s%d,", ids, tu.Users[i].Id)
-	}
-
-	c.PrepareEnv(headLinks[HEAD_LINK_IDX_META].SubLinks, "Team")
-	c.Data["TeamUsers"] = tu
-	c.Data["User_ids"] = ids[:len(ids)-1]
-	c.Data["H1"] = "edit team"
-	c.Data["Method"] = "put"
-	c.TplName = "team/edit.tpl"
-	return
-out:
-	c.SendMsg(400, err.Error())
-}
-
-// beego.Router("/teamusers/add", mc, "get:AddTeamUsers")
-func (c *MainController) AddTeamUsers() {
-
-	c.PrepareEnv(headLinks[HEAD_LINK_IDX_META].SubLinks, "Team")
-	c.Data["Method"] = "post"
-	c.Data["H1"] = "add team"
-	c.TplName = "team/edit.tpl"
 }

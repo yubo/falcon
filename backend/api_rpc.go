@@ -67,7 +67,7 @@ func demoValue(idx int64, i int) float64 {
 
 func (p *Bkd) demoStart() {
 	items := make([]*specs.RrdItem, DEBUG_SAMPLE_NB)
-	ticker := falconTicker(time.Second*DEBUG_STEP, p.backend.Params.Debug)
+	ticker := falconTicker(time.Second*DEBUG_STEP, p.backend.Conf.Params.Debug)
 	step := DEBUG_STEP
 	j := 0
 	for {
@@ -144,7 +144,7 @@ func (p *Backend) queryGetData(param *specs.RrdQuery, resp *specs.RrdResp,
 	flag := atomic.LoadUint32(&e.flag)
 	caches, _ = e._getData(uint32(e.e.commitId), uint32(e.e.dataId))
 
-	if !p.Migrate.Disabled && flag&RRD_F_MISS != 0 {
+	if !p.Conf.Migrate.Disabled && flag&RRD_F_MISS != 0 {
 		node, _ := p.storageMigrateConsistent.Get(param.Id())
 		done := make(chan error, 1)
 		res := &specs.RrdRespCsum{}
@@ -461,11 +461,11 @@ func (p *Backend) getLastRaw(csum string) *specs.RRDData {
 func (p *Backend) rpcStart() (err error) {
 	var addr *net.TCPAddr
 
-	if !p.Params.Rpc {
+	if !p.Conf.Params.Rpc {
 		return nil
 	}
 
-	addr, err = net.ResolveTCPAddr("tcp", p.Params.RpcAddr)
+	addr, err = net.ResolveTCPAddr("tcp", p.Conf.Params.RpcAddr)
 	if err != nil {
 		glog.Fatalf(MODULE_NAME+"rpc.Start error, net.ResolveTCPAddr failed, %s", err)
 	}
@@ -479,9 +479,9 @@ func (p *Backend) rpcStart() (err error) {
 	p.rpcListener, err = net.ListenTCP("tcp", addr)
 	if err != nil {
 		glog.Fatalf(MODULE_NAME+"rpc.Start error, listen %s failed, %s",
-			p.Params.RpcAddr, err)
+			p.Conf.Params.RpcAddr, err)
 	} else {
-		glog.Infof(MODULE_NAME+"%s rpcStart ok, listening on %s", p.Params.Name, p.Params.RpcAddr)
+		glog.Infof(MODULE_NAME+"%s rpcStart ok, listening on %s", p.Conf.Params.Name, p.Conf.Params.RpcAddr)
 	}
 
 	go func() {
@@ -512,7 +512,7 @@ func (p *Backend) rpcStart() (err error) {
 		}
 	}()
 
-	if p.Params.Debug > 1 {
+	if p.Conf.Params.Debug > 1 {
 		go p.rpcBkd.demoStart()
 	}
 
@@ -524,7 +524,7 @@ func (p *Backend) rpcStop() (err error) {
 		return specs.ErrNoent
 	}
 
-	if p.Params.Debug > 1 {
+	if p.Conf.Params.Debug > 1 {
 		p.rpcBkd.demoStop()
 	}
 

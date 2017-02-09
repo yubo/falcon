@@ -16,7 +16,7 @@ type Token struct {
 	Name        string    `json:"name"`
 	Cname       string    `json:"cname"`
 	Note        string    `json:"note"`
-	Create_time time.Time `json:"-"`
+	Create_time time.Time `json:"ctime"`
 }
 
 func (u *User) AddToken(s *Token) (id int64, err error) {
@@ -57,9 +57,8 @@ func (u *User) QueryTokens(query string) orm.QuerySeter {
 	return qs
 }
 
-func (u *User) GetTokensCnt(query string) (int, error) {
-	cnt, err := u.QueryTokens(query).Count()
-	return int(cnt), err
+func (u *User) GetTokensCnt(query string) (int64, error) {
+	return u.QueryTokens(query).Count()
 }
 
 func (u *User) GetTokens(query string, limit, offset int) (tokens []*Token, err error) {

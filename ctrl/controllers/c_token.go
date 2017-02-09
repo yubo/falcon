@@ -21,8 +21,8 @@ type TokenController struct {
 // @Title CreateToken
 // @Description create tokens
 // @Param	body	body 	models.Token	true	"body for token content"
-// @Success {code:200, data:int} models.Token.Id
-// @Failure {code:int, msg:string}
+// @Success 200 {id:int} Id
+// @Failure 403 string error
 // @router / [post]
 func (c *TokenController) CreateToken() {
 	var token models.Token
@@ -33,15 +33,15 @@ func (c *TokenController) CreateToken() {
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendMsg(200, id)
+		c.SendMsg(200, models.Id{Id: id})
 	}
 }
 
 // @Title GetTokensCnt
 // @Description get Tokens number
 // @Param   query     query   string  false       "token name"
-// @Success {code:200, data:int} token number
-// @Failure {code:int, msg:string}
+// @Success 200  {total:int} token total number
+// @Failure 403 string error
 // @router /cnt [get]
 func (c *TokenController) GetTokensCnt() {
 	query := strings.TrimSpace(c.GetString("query"))
@@ -51,7 +51,7 @@ func (c *TokenController) GetTokensCnt() {
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendMsg(200, cnt)
+		c.SendMsg(200, totalObj(cnt))
 	}
 }
 
@@ -60,8 +60,8 @@ func (c *TokenController) GetTokensCnt() {
 // @Param   query     query   string  false       "token name"
 // @Param   per       query   int     false       "per page number"
 // @Param   offset    query   int     false       "offset  number"
-// @Success {code:200, data:object} models.Token
-// @Failure {code:int, msg:string}
+// @Success 200 {object} models.Token
+// @Failure 403 error string
 // @router /search [get]
 func (c *TokenController) GetTokens() {
 	query := strings.TrimSpace(c.GetString("query"))
@@ -80,8 +80,8 @@ func (c *TokenController) GetTokens() {
 // @Title Get
 // @Description get token by id
 // @Param	id		path 	int	true		"The key for staticblock"
-// @Success {code:200, data:object} models.Token
-// @Failure {code:int, msg:string}
+// @Success 200 {object} models.Token
+// @Failure 403 error string
 // @router /:id [get]
 func (c *TokenController) GetToken() {
 	id, err := c.GetInt64(":id")
@@ -103,8 +103,8 @@ func (c *TokenController) GetToken() {
 // @Description update the token
 // @Param	id		path 	string	true		"The id you want to update"
 // @Param	body		body 	models.Token	true		"body for token content"
-// @Success {code:200, data:object} models.Token
-// @Failure {code:int, msg:string}
+// @Success 200 {object} models.Token
+// @Failure 403 error string
 // @router /:id [put]
 func (c *TokenController) UpdateToken() {
 	var token models.Token
@@ -148,71 +148,4 @@ func (c *TokenController) DeleteToken() {
 	beego.Debug("delete success!")
 
 	c.SendMsg(200, "delete success!")
-}
-
-// #####################################
-// #############  render ###############
-// #####################################
-func (c *MainController) GetToken() {
-	var tokens []*models.Token
-
-	query := strings.TrimSpace(c.GetString("query"))
-	per, _ := c.GetInt("per", models.PAGE_PER)
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
-
-	qs := me.QueryTokens(query)
-	total, err := qs.Count()
-	if err != nil {
-		goto out
-	}
-
-	_, err = qs.Limit(per,
-		c.SetPaginator(per, total).Offset()).All(&tokens)
-	if err != nil {
-		goto out
-	}
-
-	c.PrepareEnv(headLinks[HEAD_LINK_IDX_META].SubLinks, "Token")
-	c.Data["Tokens"] = tokens
-	c.Data["Query"] = query
-	c.Data["Search"] = Search{"query", "tag name"}
-
-	c.TplName = "token/list.tpl"
-	return
-
-out:
-	c.SendMsg(400, err.Error())
-}
-
-func (c *MainController) EditToken() {
-	var token *models.Token
-	var me *models.User
-
-	id, err := c.GetInt64(":id")
-	if err != nil {
-		goto out
-	}
-
-	me, _ = c.Ctx.Input.GetData("me").(*models.User)
-	token, err = me.GetToken(id)
-	if err != nil {
-		goto out
-	}
-
-	c.PrepareEnv(headLinks[HEAD_LINK_IDX_META].SubLinks, "Token")
-	c.Data["Token"] = token
-	c.Data["H1"] = "edit token"
-	c.Data["Method"] = "put"
-	c.TplName = "token/edit.tpl"
-	return
-out:
-	c.SendMsg(400, err.Error())
-}
-
-func (c *MainController) AddToken() {
-	c.PrepareEnv(headLinks[HEAD_LINK_IDX_META].SubLinks, "Token")
-	c.Data["H1"] = "add token"
-	c.Data["Method"] = "post"
-	c.TplName = "token/edit.tpl"
-	return
 }

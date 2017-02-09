@@ -8,7 +8,7 @@ const (
 	CHANGELOG = \`
 EOF
 
-git log --format='* %cd %aN%n- (%h) %s%d%n' --date=local | grep 'feature\|bugfix\|change' | sed -r 's/[0-9]+:[0-9]+:[0-9]+ //' >> $output
+git log --format='* %cd %aN%n- (%h) %s%d%n' --date=local | grep 'feature\|bugfix\|change' | sed 's/[0-9]+:[0-9]+:[0-9]+ //' >> $output
 
 cat <<'EOF' >> $output
 `

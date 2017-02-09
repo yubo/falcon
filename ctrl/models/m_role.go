@@ -16,7 +16,7 @@ type Role struct {
 	Name        string    `json:"name"`
 	Cname       string    `json:"cname"`
 	Note        string    `json:"note"`
-	Create_time time.Time `json:"-"`
+	Create_time time.Time `json:"ctime"`
 }
 
 func (u *User) AddRole(r *Role) (id int64, err error) {
@@ -50,9 +50,8 @@ func (u *User) QueryRoles(query string) orm.QuerySeter {
 	return qs
 }
 
-func (u *User) GetRolesCnt(query string) (int, error) {
-	cnt, err := u.QueryRoles(query).Count()
-	return int(cnt), err
+func (u *User) GetRolesCnt(query string) (int64, error) {
+	return u.QueryRoles(query).Count()
 }
 
 func (u *User) GetRoles(query string, limit, offset int) (roles []*Role, err error) {

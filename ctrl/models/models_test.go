@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	token_test_init bool
+	test_db_init bool
 )
 
 func init() {
@@ -40,7 +40,7 @@ func init() {
 		return
 	}
 	//orm.Debug = true
-	token_test_init = true
+	test_db_init = true
 }
 
 func testTokenInitDb(t *testing.T, o orm.Ormer) (err error) {
@@ -79,8 +79,8 @@ func TestToken(t *testing.T) {
 	role_idx := make(map[string]int64)
 	token_idx := make(map[string]int64)
 
-	if !token_test_init {
-		t.Logf("token orm not inited, skip testing\n")
+	if !test_db_init {
+		t.Logf("test db not inited, skip test token\n")
 		return
 	}
 	o := orm.NewOrm()
@@ -111,8 +111,10 @@ func TestToken(t *testing.T) {
 		"u1",
 	}
 	for _, item := range items {
-		if user_idx[item], err = admin.AddUser(&User{Name: item}); err != nil {
+		if u, err := admin.AddUser(&User{Name: item}); err != nil {
 			t.Error(err)
+		} else {
+			user_idx[item] = u.Id
 		}
 	}
 

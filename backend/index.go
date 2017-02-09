@@ -149,7 +149,7 @@ func (this *Backend) indexTrashWorker() {
 		p, _p *list.ListHead
 	)
 	ticker := falconTicker(time.Second*INDEX_TRASH_LOOPTIME,
-		this.Params.Debug)
+		this.Conf.Params.Debug)
 	q0 := &this.cache.idx0q
 	q2 := &this.cache.idx2q
 	for {
@@ -180,7 +180,7 @@ func (p *Backend) indexWorker() {
 		l   *list.ListHead
 		now int64
 	)
-	ticker := falconTicker(time.Second/INDEX_QPS, p.Params.Debug)
+	ticker := falconTicker(time.Second/INDEX_QPS, p.Conf.Params.Debug)
 	q0 := &p.cache.idx0q
 	q1 := &p.cache.idx1q
 	q2 := &p.cache.idx2q
@@ -234,12 +234,12 @@ func (p *Backend) updateWorker() {
 func (p *Backend) indexStart() {
 	var err error
 
-	p.indexDb, err = sql.Open("mysql", p.Dsn)
+	p.indexDb, err = sql.Open("mysql", p.Conf.Dsn)
 	if err != nil {
 		glog.Fatal(MODULE_NAME, err)
 	}
 
-	p.indexDb.SetMaxIdleConns(p.DbMaxIdle)
+	p.indexDb.SetMaxIdleConns(p.Conf.DbMaxIdle)
 	p.indexDb.SetMaxOpenConns(0)
 
 	err = p.indexDb.Ping()

@@ -7,10 +7,11 @@ package models
 
 import (
 	"encoding/json"
+	"fmt"
+	"sort"
 	"strings"
 	"time"
 
-	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/orm"
 )
 
@@ -56,31 +57,24 @@ func DbLog(uid, module, module_id, action int64, data string) {
 	orm.NewOrm().Insert(log)
 }
 
-/* dst <- src format tpl */
-func kvOverlay(dst, src, tpl *ConfigEntry) ConfigEntry {
-	tplValue := tpl.Value.([]ConfigEntry)
-	dstValue := dst.Value.([]ConfigEntry)
-	beego.Debug(src)
-	srcValue := src.Value.([]ConfigEntry)
-	ret := make([]ConfigEntry, len(tplValue))
-
-	for idx, v := range tplValue {
-		for _, v1 := range srcValue {
-			if v.Key == v1.Key {
-				ret[idx] = v1
-				goto next
-			}
-		}
-		ret[idx] = dstValue[idx]
-	next:
+func array2sql(array []int64) string {
+	var ret string
+	if len(array) == 0 {
+		return "()"
 	}
-	return ConfigEntry{Key: tpl.Key, Note: tpl.Note, Value: ret}
+
+	for i := 0; i < len(array); i++ {
+		ret += fmt.Sprintf("%d,", array[i])
+	}
+	return fmt.Sprintf("(%s)", ret[:len(ret)-1])
 }
 
 func stringscmp(a, b []string) (ret int) {
 	if ret = len(a) - len(b); ret != 0 {
 		return
 	}
+	sort.Strings(a)
+	sort.Strings(b)
 	for i := 0; i < len(a); i++ {
 		if ret = strings.Compare(a[i], b[i]); ret != 0 {
 			return

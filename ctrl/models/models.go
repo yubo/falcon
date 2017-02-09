@@ -29,6 +29,7 @@ const (
 	CTL_M_TOKEN
 	CTL_M_TPL
 	CTL_M_RULE
+	CTL_M_TEMPLATE
 	CTL_M_TRIGGER
 	CTL_M_EXPRESSION
 	CTL_M_TEAM
@@ -57,6 +58,14 @@ const (
 	KV_T_CACHE
 )
 
+type Id struct {
+	Id int64 `json:"id"`
+}
+
+type Total struct {
+	Total int64 `json:"total"`
+}
+
 var (
 	cacheModule  [CTL_M_SIZE]cache
 	sysTagSchema *TagSchema
@@ -82,9 +91,11 @@ var (
 	ErrNoModule     = errors.New("module not exists")
 	ErrNoRel        = errors.New("relation not exists")
 	ErrNoRule       = errors.New("rule not exists")
+	ErrNoTemplate   = errors.New("template not exists")
 	ErrNoTrigger    = errors.New("trigger not exists")
 	ErrNoExpression = errors.New("expression not exists")
 	ErrNoTeam       = errors.New("team not exists")
+	ErrNoStrategy   = errors.New("strategy not exists")
 	ErrNoLogged     = errors.New("not logged in")
 	ErrRePreStart   = errors.New("multiple times PreStart")
 	ErrUnsupported  = errors.New("unsupported")
@@ -135,8 +146,8 @@ func init() {
 		new(User), new(Host), new(Tag),
 		new(Role), new(Token), new(Log),
 		new(Tag_rel), new(Tpl_rel), new(Team),
-		new(Rule), new(Trigger), new(Expression),
-		new(Action))
+		new(Template), new(Trigger), new(Expression),
+		new(Action), new(Strategy))
 
 	// tag
 	sysTagSchema, _ = NewTagSchema(SYS_TAG_SCHEMA)
@@ -162,7 +173,9 @@ func start() (err error) {
 	CacheInit()
 
 	PluginStart()
-	err = ConfigStart()
+	// err = ConfigStart()
+
+	metricInit(beego.AppConfig.String("metricfile"))
 
 	return
 }

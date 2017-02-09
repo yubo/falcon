@@ -17,13 +17,19 @@ import (
 )
 
 const (
-	MODULE_NAME = "\x1B[32m[LB]\x1B[0m "
+	MODULE_NAME     = "\x1B[32m[LB]\x1B[0m "
+	CONN_RETRY      = 2
+	DEBUG_STAT_STEP = 60
+	CTRL_STEP       = 360
 )
 
 type Lb struct {
-	Params   specs.ModuleParams
-	Batch    int
-	Backends []specs.Backend
+	Conf specs.ConfLb
+	/*
+		Params      specs.ModuleParams
+		PayloadSize int
+		Backends    []specs.Backend
+	*/
 	// runtime
 	status        uint32
 	running       chan struct{}
@@ -36,12 +42,12 @@ type Lb struct {
 }
 
 func (p Lb) Desc() string {
-	return fmt.Sprintf("%s", p.Params.Name)
+	return fmt.Sprintf("%s", p.Conf.Params.Name)
 }
 
 func (p Lb) String() string {
 	var s string
-	for _, v := range p.Backends {
+	for _, v := range p.Conf.Backends {
 		s += fmt.Sprintf("\n%s", specs.IndentLines(1, v.String()))
 	}
 	if s != "" {
@@ -50,13 +56,13 @@ func (p Lb) String() string {
 	return fmt.Sprintf("%s (\n%s\n)\n"+
 		"%-17s %d\n"+
 		"%s (%s)",
-		"params", specs.IndentLines(1, p.Params.String()),
-		"batch", p.Batch,
+		"params", specs.IndentLines(1, p.Conf.Params.String()),
+		"payloadSize", p.Conf.PayloadSize,
 		"backends", s)
 }
 
 func (p *Lb) Init() error {
-	glog.V(3).Infof(MODULE_NAME+"%s Init()", p.Params.Name)
+	glog.V(3).Infof(MODULE_NAME+"%s Init()", p.Conf.Params.Name)
 
 	// rpc
 	p.rpcConnects = connList{list: list.New()}
@@ -71,7 +77,7 @@ func (p *Lb) Init() error {
 }
 
 func (p *Lb) Start() error {
-	glog.V(3).Infof(MODULE_NAME+"%s Start()", p.Params.Name)
+	glog.V(3).Infof(MODULE_NAME+"%s Start()", p.Conf.Params.Name)
 	p.status = specs.APP_STATUS_PENDING
 	p.running = make(chan struct{}, 0)
 	p.statStart()
@@ -83,7 +89,7 @@ func (p *Lb) Start() error {
 }
 
 func (p *Lb) Stop() error {
-	glog.V(3).Infof(MODULE_NAME+"%s Stop()", p.Params.Name)
+	glog.V(3).Infof(MODULE_NAME+"%s Stop()", p.Conf.Params.Name)
 	p.status = specs.APP_STATUS_EXIT
 	close(p.running)
 	p.upstreamStop()
@@ -94,12 +100,12 @@ func (p *Lb) Stop() error {
 }
 
 func (p *Lb) Reload() error {
-	glog.V(3).Infof(MODULE_NAME+"%s Reload()", p.Params.Name)
+	glog.V(3).Infof(MODULE_NAME+"%s Reload()", p.Conf.Params.Name)
 	return nil
 
 }
 
 func (p *Lb) Signal(sig os.Signal) error {
-	glog.V(3).Infof(MODULE_NAME+"%s signal %v", p.Params.Name, sig)
+	glog.V(3).Infof(MODULE_NAME+"%s signal %v", p.Conf.Params.Name, sig)
 	return nil
 }

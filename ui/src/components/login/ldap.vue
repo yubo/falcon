@@ -17,7 +17,7 @@ export default {
   },
   methods: {
     login () {
-      this.$store.dispatch('login', {
+      this.$store.dispatch('login/login', {
         username: this.$refs.username.value,
         password: this.$refs.password.value,
         method: 'ldap',

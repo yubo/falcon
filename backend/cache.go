@@ -177,13 +177,13 @@ func (p *Backend) importBlocks() (int, error) {
 	defer cache.Unlock()
 
 	for {
-		shmid, size, err = Shmget(cache.endkey, p.ShmSize, C.IPC_CREAT|0700)
+		shmid, size, err = Shmget(cache.endkey, p.Conf.ShmSize, C.IPC_CREAT|0700)
 		if err != nil {
 			return cache.endkey - cache.startkey, err
 		}
 		cache.endkey++
 
-		if size != p.ShmSize {
+		if size != p.Conf.ShmSize {
 			glog.Errorf(MODULE_NAME+"segment size error, remove "+
 				"segment from 0x%x and retry", cache.endkey)
 			cleanBlocks(cache.endkey)
@@ -197,10 +197,10 @@ func (p *Backend) importBlocks() (int, error) {
 
 		block = (*C.struct_cache_block)(unsafe.Pointer(addr))
 
-		for uint32(block.magic) != p.ShmMagic {
+		for uint32(block.magic) != p.Conf.ShmMagic {
 			glog.Infof(MODULE_NAME+"set magic head at 0x%x",
 				shmid)
-			block.magic = C.uint32_t(p.ShmMagic)
+			block.magic = C.uint32_t(p.Conf.ShmMagic)
 			return cache.endkey - cache.startkey, specs.EFMT
 		}
 
@@ -256,9 +256,9 @@ func (p *Backend) cacheReset() error {
 	cache.idx0q.init()
 	cache.idx1q.init()
 	cache.idx2q.init()
-	cache.startkey = p.ShmKey
-	cache.endkey = p.ShmKey
-	cache.cache_entry_nb = (p.ShmSize - C.sizeof_struct_cache_block) /
+	cache.startkey = p.Conf.ShmKey
+	cache.endkey = p.Conf.ShmKey
+	cache.cache_entry_nb = (p.Conf.ShmSize - C.sizeof_struct_cache_block) /
 		C.sizeof_struct_cache_entry
 	n, err := cleanBlocks(cache.startkey)
 	if err != nil {
@@ -325,22 +325,22 @@ func (p *Backend) allocPool() (err error) {
 	cache.Lock()
 	defer cache.Unlock()
 
-	shmid, size, err = Shmget(cache.endkey, p.ShmSize, C.IPC_CREAT|0700)
+	shmid, size, err = Shmget(cache.endkey, p.Conf.ShmSize, C.IPC_CREAT|0700)
 	if err != nil {
 		glog.Errorf(MODULE_NAME+"shmget(%d, %d, ipc_create ) err %s",
-			cache.endkey, p.ShmSize, err)
+			cache.endkey, p.Conf.ShmSize, err)
 		return err
 	}
 	cache.endkey++
 
-	if size != p.ShmSize {
+	if size != p.Conf.ShmSize {
 		glog.Errorf(MODULE_NAME+"alloc shm size %d want %d, remove and try again",
-			size, p.ShmSize)
+			size, p.Conf.ShmSize)
 		cleanBlocks(cache.endkey)
-		shmid, _, err = Shmget(cache.endkey, p.ShmSize, C.IPC_CREAT|0700)
+		shmid, _, err = Shmget(cache.endkey, p.Conf.ShmSize, C.IPC_CREAT|0700)
 		if err != nil {
 			glog.Errorf(MODULE_NAME+"shmget(%d, %d, ipc_create ) err %s",
-				cache.endkey, p.ShmSize, err)
+				cache.endkey, p.Conf.ShmSize, err)
 			return err
 		}
 	}
@@ -352,7 +352,7 @@ func (p *Backend) allocPool() (err error) {
 	}
 	block = (*C.struct_cache_block)(unsafe.Pointer(addr))
 
-	if uint32(block.magic) == p.ShmMagic {
+	if uint32(block.magic) == p.Conf.ShmMagic {
 		Shmdt(addr)
 		glog.Errorf(MODULE_NAME+"magic head already set at shmid %d", shmid)
 		return specs.ErrExist
@@ -363,8 +363,8 @@ func (p *Backend) allocPool() (err error) {
 	cache.shmaddrs = append(cache.shmaddrs, addr)
 	cache.shmids = append(cache.shmids, shmid)
 
-	block.magic = C.uint32_t(p.ShmMagic)
-	block.block_size = C.int(p.ShmSize)
+	block.magic = C.uint32_t(p.Conf.ShmMagic)
+	block.block_size = C.int(p.Conf.ShmSize)
 	block.cache_entry_nb = C.int(cache.cache_entry_nb)
 
 	list := &cache.poolq
@@ -434,7 +434,7 @@ func (p *Backend) createEntry(key string, item *specs.RrdItem) (*cacheEntry, err
 	cache.dataq.enqueue(&e.list_data)
 	cache.idx0q.enqueue(&e.list_idx)
 
-	if !p.Migrate.Disabled {
+	if !p.Conf.Migrate.Disabled {
 		_, err := os.Stat(e.filename(p))
 		if os.IsNotExist(err) {
 			e.flag = RRD_F_MISS
@@ -669,9 +669,9 @@ func (p *Backend) cacheInit() error {
 		hash:     make(map[string]*cacheEntry),
 		shmaddrs: make([]uintptr, 0),
 		shmids:   make([]int, 0),
-		startkey: p.ShmKey,
-		endkey:   p.ShmKey,
-		cache_entry_nb: (p.ShmSize -
+		startkey: p.Conf.ShmKey,
+		endkey:   p.Conf.ShmKey,
+		cache_entry_nb: (p.Conf.ShmSize -
 			C.sizeof_struct_cache_block) /
 			C.sizeof_struct_cache_entry,
 	}

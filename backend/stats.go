@@ -177,8 +177,8 @@ func statGet(idx int) uint64 {
 }
 
 func (p *Backend) statStart() {
-	if p.Params.Debug > 0 {
-		ticker := falconTicker(time.Second*DEBUG_STAT_STEP, p.Params.Debug)
+	if p.Conf.Params.Debug > 0 {
+		ticker := falconTicker(time.Second*DEBUG_STAT_STEP, p.Conf.Params.Debug)
 		go func() {
 			for {
 				select {

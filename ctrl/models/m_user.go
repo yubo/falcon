@@ -8,6 +8,7 @@ package models
 import (
 	"time"
 
+	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/orm"
 )
 
@@ -26,13 +27,13 @@ type User struct {
 	Phone       string    `json:"phone"`
 	IM          string    `json:"im" orm:"column(im)"`
 	QQ          string    `json:"qq" orm:"column(qq)"`
-	Create_time time.Time `json:"-"`
+	Create_time time.Time `json:"ctime"`
 }
 
 func (u *User) IsAdmin() bool {
 	// 1: system
 	// 2: admin(first user)
-	return u.Id < 3
+	return u.Id < 1000
 }
 
 func (u *User) AddUser(user *User) (*User, error) {
@@ -42,6 +43,7 @@ func (u *User) AddUser(user *User) (*User, error) {
 	}
 	user.Id = id
 	cacheModule[CTL_M_USER].set(id, user)
+	beego.Debug(u)
 
 	DbLog(u.Id, CTL_M_USER, id, CTL_A_ADD, jsonStr(user))
 	return user, nil
@@ -78,9 +80,8 @@ func (u *User) QueryUsers(query string) orm.QuerySeter {
 	return qs
 }
 
-func (u *User) GetUsersCnt(query string) (int, error) {
-	cnt, err := u.QueryUsers(query).Count()
-	return int(cnt), err
+func (u *User) GetUsersCnt(query string) (int64, error) {
+	return u.QueryUsers(query).Count()
 }
 
 func (u *User) GetUsers(query string, limit, offset int) (users []*User, err error) {
@@ -93,7 +94,7 @@ func (u *User) UpdateUser(id int64, _u *User) (user *User, err error) {
 		return nil, ErrNoUsr
 	}
 
-	if _u.Name != "" {
+	if _u.Name != "" && user.Name == "" {
 		user.Name = _u.Name
 	}
 	if _u.Cname != "" {

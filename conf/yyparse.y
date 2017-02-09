@@ -10,17 +10,10 @@ import (
 	"os"
 	"fmt"
 	"github.com/golang/glog"
-	"github.com/yubo/falcon/agent"
 	"github.com/yubo/falcon/backend"
-	"github.com/yubo/falcon/ctrl/core"
 	"github.com/yubo/falcon/lb"
 	"github.com/yubo/falcon/specs"
 )
-
-
-// The parser expects the lexer to return 0 on EOF.  Give it a name
-// for clarity.
-//const eof = 0
 
 %}
 
@@ -39,15 +32,13 @@ import (
 
 %token '{' '}' ';'
 %token PID_FILE AGENT DEBUG HOST HTTP HTTP_ADDR RPC RPC_ADDR CTRL CTRL_ADDR
-%token INTERVAL IFACE_PREFIX DISABLED BATCH CONN_TIMEOUT CALL_TIMEOUT UPSTREAMS LB 
+%token INTERVAL IFACE_PREFIX DISABLED PAYLOAD_SIZE CONN_TIMEOUT CALL_TIMEOUT UPSTREAMS LB 
 %token CONCURRENCY BACKENDS LBS TSDB FALCON 
 %token BACKEND DSN DB_MAX_IDLE SHM_MAGIC_CODE SHM_KEY_START_ID
 %token SHM_SEGMENT_SIZE MIGRATE STORAGE RRD HDISKS
 %token ON YES OFF NO INCLUDE ROOT
 
 %%
-
-
 
 config: 
 | config conf
@@ -91,7 +82,7 @@ conf: ';'
 	}
 	if !yy_mod_params.Disabled || yy.debug {
 		conf.Modules = append(conf.Modules, &conf.Agent)
-		if conf.Agent.Params.CtrlAddr == ""{
+		if conf.Agent.Conf.Params.CtrlAddr == ""{
 			yy.Error("ctrlAddr empty")
 		}
 	}
@@ -128,8 +119,8 @@ agent_mod:
 ;
 
 agent_start: AGENT {
-	conf.Agent       = agent.DefaultAgent
-	yy_mod_params    = &conf.Agent.Params
+	conf.Agent.Conf  = specs.ConfAgentDef
+	yy_mod_params    = &conf.Agent.Conf.Params
 }
 ;
 
@@ -139,10 +130,10 @@ mod_name:
 
 agent_mod_item:
    mod_item
- | INTERVAL num { conf.Agent.Interval = $2 }
- | BATCH num { conf.Agent.Batch = $2 }
+ | INTERVAL num { conf.Agent.Conf.Interval = $2 }
+ | PAYLOAD_SIZE num { conf.Agent.Conf.PayloadSize = $2 }
  | IFACE_PREFIX as {
-	conf.Agent.IfPre = yy_as
+	conf.Agent.Conf.IfPre = yy_as
 	yy_as = make([]string, 0)
 }
 ;
@@ -173,38 +164,51 @@ ctrl_mod:
 ;
 
 ctrl_start: CTRL {
-	conf.Ctrl        = ctrl.DefaultCtrl
-	yy_mod_params    = &conf.Ctrl.Params
-	yy_specs_backend = &specs.Backend{}
+	conf.Ctrl.Conf   = specs.ConfCtrlDef
+	yy_mod_params    = &conf.Ctrl.Conf.Params
 }
 ;
 
 ctrl_mod_item:
    mod_item
- | BACKENDS '{' ctrl_backends '}'
- | MIGRATE '{' ctrl_migrate '}'
- | LBS as {
-	conf.Ctrl.Lbs = yy_as
-	yy_as = make([]string, 0)
+;
+
+lb_mod: lb_start mod_name '{'
+| lb_mod lb_mod_item ';'
+| lb_mod INCLUDE text ';'  { yy.include($3) }
+;
+
+lb_start: LB {
+	conf.Lb          = append(conf.Lb, lb.Lb{})
+	yy_lb            = &conf.Lb[len(conf.Lb)-1]
+	yy_specs_backend = &specs.Backend{}
+	yy_lb.Conf       = specs.ConfLbDef
+	yy_mod_params    = &yy_lb.Conf.Params
 }
 ;
 
-ctrl_backends:
-|ctrl_backends ctrl_backends_item ';'
+lb_mod_item:
+   mod_item
+ | PAYLOAD_SIZE num { yy_lb.Conf.PayloadSize = $2 }
+ | BACKENDS '{' lb_backends '}'
 ;
 
-ctrl_backends_item:
-| TSDB backend_name '{' ctrl_backend '}' { 
+lb_backends:
+| lb_backends lb_backends_item ';'
+;
+
+lb_backends_item:
+| TSDB backend_name '{' lb_backend '}' { 
 	yy_specs_backend.Type = "tsdb"
 	if !yy_specs_backend.Disabled || yy.debug {
-		conf.Ctrl.Backends = append(conf.Ctrl.Backends, *yy_specs_backend)
+		yy_lb.Conf.Backends = append(yy_lb.Conf.Backends, *yy_specs_backend)
 	}
 	yy_specs_backend = &specs.Backend{}
 }
-| FALCON backend_name '{' ctrl_backend '}'{
+| FALCON backend_name '{' lb_backend '}'{
 	yy_specs_backend.Type = "falcon"
 	if !yy_specs_backend.Disabled || yy.debug {
-		conf.Ctrl.Backends = append(conf.Ctrl.Backends, *yy_specs_backend)
+		yy_lb.Conf.Backends = append(yy_lb.Conf.Backends, *yy_specs_backend)
 	}
 	yy_specs_backend = &specs.Backend{}
 }
@@ -216,11 +220,11 @@ backend_name:
 }
 ;
 
-ctrl_backend:
-| ctrl_backend ctrl_backend_item ';'
+lb_backend:
+| lb_backend lb_backend_item ';'
 ;
 
-ctrl_backend_item:
+lb_backend_item:
 | DISABLED bool { yy_specs_backend.Disabled = $2 }
 | UPSTREAMS '{' ss '}' { 
 	yy_specs_backend.Upstreams = yy_ss
@@ -229,63 +233,45 @@ ctrl_backend_item:
 }
 ;
 
-ctrl_migrate:
-| ctrl_migrate ctrl_migrate_item ';'
-
-ctrl_migrate_item:
-| DISABLED bool { conf.Ctrl.Migrate.Disabled = $2 }
-| UPSTREAMS '{' ss '}' {
-	conf.Ctrl.Migrate.Upstreams = yy_ss
-	glog.V(4).Infof("upstreams %v yy_ss %v", conf.Ctrl.Migrate.Upstreams, yy_ss)
-	yy_ss = make(map[string]string)
-}
-;
-
-lb_mod: lb_start mod_name '{'
-| lb_mod lb_mod_item ';'
-| lb_mod INCLUDE text ';'  { yy.include($3) }
-;
-
-lb_start: LB {
-	conf.Lb       = append(conf.Lb, lb.DefaultLb)
-	yy_lb         = &conf.Lb[len(conf.Lb)-1]
-	yy_mod_params = &yy_lb.Params
-}
-;
-
-lb_mod_item:
-   mod_item
- | BATCH num { yy_lb.Batch = $2 }
-;
-
-
 backend_mod: backend_start mod_name '{'
 | backend_mod backend_mod_item ';'
 | backend_mod INCLUDE text ';'  { yy.include($3) }
 ;
 
 backend_start: BACKEND {
-	conf.Backend     = append(conf.Backend, backend.DefaultBackend)
-	yy_backend       = &conf.Backend[len(conf.Backend)-1]
-	yy_mod_params    = &yy_backend.Params
+	conf.Backend    = append(conf.Backend, backend.Backend{})
+	yy_backend      = &conf.Backend[len(conf.Backend)-1]
+	yy_backend.Conf = specs.ConfBackendDef
+	yy_mod_params   = &yy_backend.Conf.Params
 }
 ;
 
 backend_mod_item:
   mod_item
-| DSN text { yy_backend.Dsn = $2 }
-| DB_MAX_IDLE num { yy_backend.DbMaxIdle = $2 }
-| SHM_MAGIC_CODE num { yy_backend.ShmMagic = uint32($2) }
-| SHM_KEY_START_ID num { yy_backend.ShmKey = $2 }
-| SHM_SEGMENT_SIZE num { yy_backend.ShmSize = $2 }
-| STORAGE RRD '{' backend_storage '}' { yy_backend.Storage.Type = "rrd" }
+| DSN text { yy_backend.Conf.Dsn = $2 }
+| DB_MAX_IDLE num { yy_backend.Conf.DbMaxIdle = $2 }
+| SHM_MAGIC_CODE num { yy_backend.Conf.ShmMagic = uint32($2) }
+| SHM_KEY_START_ID num { yy_backend.Conf.ShmKey = $2 }
+| SHM_SEGMENT_SIZE num { yy_backend.Conf.ShmSize = $2 }
+| MIGRATE '{' backend_migrate '}'
+| STORAGE RRD '{' backend_storage '}' { yy_backend.Conf.Storage.Type = "rrd" }
 ;
 
+backend_migrate:
+| backend_migrate backend_migrate_item ';'
 
+backend_migrate_item:
+| DISABLED bool { yy_backend.Conf.Migrate.Disabled = $2 }
+| UPSTREAMS '{' ss '}' {
+	yy_backend.Conf.Migrate.Upstreams = yy_ss
+	glog.V(4).Infof("upstreams %v yy_ss %v", yy_backend.Conf.Migrate.Upstreams, yy_ss)
+	yy_ss = make(map[string]string)
+}
+;
 
 backend_storage:
 | HDISKS as ';' {
-	yy_backend.Storage.Hdisks = yy_as
+	yy_backend.Conf.Storage.Hdisks = yy_as
 	yy_as = make([]string, 0)
 }
 

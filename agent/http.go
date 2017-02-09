@@ -52,12 +52,12 @@ func (p *Agent) httpRoutes() {
 }
 
 func (p *Agent) httpStart() {
-	if !p.Params.Http {
+	if !p.Conf.Params.Http {
 		glog.Info(MODULE_NAME + "http.Start warning, not enabled")
 		return
 	}
 
-	addr := p.Params.HttpAddr
+	addr := p.Conf.Params.HttpAddr
 	if addr == "" {
 		return
 	}
@@ -65,7 +65,7 @@ func (p *Agent) httpStart() {
 		Addr:           addr,
 		MaxHeaderBytes: 1 << 30,
 	}
-	glog.Infof(MODULE_NAME+"%s http listening %s", p.Params.Name, addr)
+	glog.Infof(MODULE_NAME+"%s http listening %s", p.Conf.Params.Name, addr)
 
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {

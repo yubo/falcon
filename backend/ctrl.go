@@ -14,7 +14,7 @@ import (
 
 func (p *Backend) scanCtrl() error {
 
-	client, err := dial(p.Params.CtrlAddr, p.Params.ConnTimeout)
+	client, err := dial(p.Conf.Params.CtrlAddr, p.Conf.Params.ConnTimeout)
 	if err != nil {
 		return err
 	}
@@ -22,11 +22,11 @@ func (p *Backend) scanCtrl() error {
 
 	m := specs.Migrate{}
 	err = netRpcCall(client, "CTRL.ListMigrate", specs.Null{}, &m,
-		time.Duration(p.Params.CallTimeout)*time.Millisecond)
+		time.Duration(p.Conf.Params.CallTimeout)*time.Millisecond)
 	if err != nil {
 		return err
 	}
-	p.Migrate = m
+	p.Conf.Migrate = m
 
 	return nil
 }

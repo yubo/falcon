@@ -41,12 +41,12 @@ func (ln tcpKeepAliveListener) Accept() (c net.Conn, err error) {
 }
 
 func (p *Ctrl) httpStart() {
-	if !p.Params.Http {
+	if !p.Conf.Params.Http {
 		glog.Info(MODULE_NAME + "http.Start warning, not enabled")
 		return
 	}
 
-	addr := p.Params.HttpAddr
+	addr := p.Conf.Params.HttpAddr
 	if addr == "" {
 		return
 	}
@@ -55,7 +55,7 @@ func (p *Ctrl) httpStart() {
 		Addr:           addr,
 		MaxHeaderBytes: 1 << 30,
 	}
-	glog.Infof(MODULE_NAME+"%s httpStart listening %s", p.Params.Name, addr)
+	glog.Infof(MODULE_NAME+"%s httpStart listening %s", p.Conf.Params.Name, addr)
 
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {

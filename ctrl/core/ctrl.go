@@ -11,7 +11,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"strings"
 
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/orm"
@@ -24,7 +23,9 @@ import (
 )
 
 const (
-	MODULE_NAME = "\x1B[32m[CTRL]\x1B[0m "
+	MODULE_NAME     = "\x1B[32m[CTRL]\x1B[0m "
+	CONN_RETRY      = 2
+	DEBUG_STAT_STEP = 60
 )
 
 type lb struct {
@@ -43,11 +44,14 @@ type backend struct {
 }
 
 type Ctrl struct {
-	Params     specs.ModuleParams
-	ConfigFile string
-	Migrate    specs.Migrate
-	Backends   []specs.Backend
-	Lbs        []string
+	Conf specs.ConfCtrl
+	/*
+		Params     specs.ModuleParams
+		ConfigFile string
+		Migrate    specs.Migrate
+		Backends   []specs.Backend
+		Lbs        []string
+	*/
 
 	// runtime
 	status       uint32
@@ -58,42 +62,17 @@ type Ctrl struct {
 	rpcConnects  connList
 }
 
-/*
-func list_lb_entry(l *list.ListHead) *lb {
-	return (*lb)(unsafe.Pointer((uintptr(unsafe.Pointer(l)) -
-		unsafe.Offsetof(((*lb)(nil)).list))))
-}
-
-func list_backend_entry(l *list.ListHead) *backend {
-	return (*backend)(unsafe.Pointer((uintptr(unsafe.Pointer(l)) -
-		unsafe.Offsetof(((*backend)(nil)).list))))
-}
-*/
-
 func (p Ctrl) Desc() string {
-	return fmt.Sprintf("%s", p.Params.Name)
+	return fmt.Sprintf("%s", p.Conf.Params.Name)
 }
 
 func (p Ctrl) String() string {
-	var s string
-	for _, v := range p.Backends {
-		s += fmt.Sprintf("%s\n", specs.IndentLines(1, v.String()))
-	}
-	if s != "" {
-		s = fmt.Sprintf("\n%s\n", specs.IndentLines(1, s))
-	}
-	return fmt.Sprintf("%s (\n%s\n)\n"+
-		"%s (\n%s\n)\n"+
-		"%s (%s)\n"+
-		"%-17s %s\n",
-		"params", specs.IndentLines(1, p.Params.String()),
-		"migrate", specs.IndentLines(1, p.Migrate.String()),
-		"backends", s,
-		"lbs", strings.Join(p.Lbs, ", "))
+	return fmt.Sprintf("%s (\n%s\n)",
+		"params", specs.IndentLines(1, p.Conf.Params.String()))
 }
 
 func (p *Ctrl) Init() error {
-	glog.V(3).Infof(MODULE_NAME+"%s Init()", p.Params.Name)
+	glog.V(3).Infof(MODULE_NAME+"%s Init()", p.Conf.Params.Name)
 
 	// rpc
 	p.rpcConnects = connList{list: list.New()}
@@ -106,7 +85,7 @@ func (p *Ctrl) Init() error {
 }
 
 func (p *Ctrl) Start() error {
-	glog.V(3).Infof(MODULE_NAME+"%s Start()", p.Params.Name)
+	glog.V(3).Infof(MODULE_NAME+"%s Start()", p.Conf.Params.Name)
 
 	p.status = specs.APP_STATUS_PENDING
 	p.running = make(chan struct{}, 0)
@@ -120,7 +99,7 @@ func (p *Ctrl) Start() error {
 	orm.RegisterDriver("mysql", orm.DRMySQL)
 	orm.RegisterDataBase("default", "mysql", dsn, maxIdle, maxConn)
 
-	p.rpcStart()
+	// p.rpcStart()
 	p.httpStart()
 	p.statStart()
 	go beego.Run()
@@ -128,21 +107,21 @@ func (p *Ctrl) Start() error {
 }
 
 func (p *Ctrl) Stop() error {
-	glog.V(3).Infof(MODULE_NAME+"%s Stop()", p.Params.Name)
+	glog.V(3).Infof(MODULE_NAME+"%s Stop()", p.Conf.Params.Name)
 	p.status = specs.APP_STATUS_EXIT
 	close(p.running)
 	p.statStop()
 	p.httpStop()
-	p.rpcStop()
+	// p.rpcStop()
 	return nil
 }
 
 func (p *Ctrl) Reload() error {
-	glog.V(3).Infof(MODULE_NAME+"%s Reload", p.Params.Name)
+	glog.V(3).Infof(MODULE_NAME+"%s Reload", p.Conf.Params.Name)
 	return nil
 }
 
 func (p *Ctrl) Signal(sig os.Signal) error {
-	glog.V(3).Infof(MODULE_NAME+"%s signal %v", p.Params.Name, sig)
+	glog.V(3).Infof(MODULE_NAME+"%s signal %v", p.Conf.Params.Name, sig)
 	return nil
 }

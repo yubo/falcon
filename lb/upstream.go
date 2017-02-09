@@ -58,7 +58,7 @@ type upstreamFalcon struct {
 	concurrency int
 	connTimeout int
 	callTimeout int
-	batch       int
+	payloadSize int
 	clients     map[string]rpcClients
 	chans       map[string]chan *specs.MetaData
 }
@@ -66,10 +66,10 @@ type upstreamFalcon struct {
 func newUpstreamFalcon(p *Lb) *upstreamFalcon {
 	return &upstreamFalcon{
 		name:        "falcon",
-		concurrency: p.Params.Concurrency,
-		connTimeout: p.Params.ConnTimeout,
-		callTimeout: p.Params.CallTimeout,
-		batch:       p.Batch,
+		concurrency: p.Conf.Params.Concurrency,
+		connTimeout: p.Conf.Params.ConnTimeout,
+		callTimeout: p.Conf.Params.CallTimeout,
+		payloadSize: p.Conf.PayloadSize,
 		clients:     make(map[string]rpcClients),
 		chans:       make(map[string]chan *specs.MetaData),
 	}
@@ -103,7 +103,7 @@ func (p *upstreamFalcon) start(name string) error {
 			go falconUpstreamWorker(name, i,
 				ch, &p.clients[node].cli[i],
 				p.clients[node].addr,
-				p.connTimeout, p.callTimeout, p.batch)
+				p.connTimeout, p.callTimeout, p.payloadSize)
 		}
 	}
 	return nil
@@ -199,10 +199,10 @@ out:
 }
 
 func falconUpstreamWorker(name string, idx int, ch chan *specs.MetaData,
-	client **rpc.Client, addr string, connTimeout, callTimeout, batch int) {
+	client **rpc.Client, addr string, connTimeout, callTimeout, payloadSize int) {
 	var err error
 	var i int
-	rrds := make([]*specs.RrdItem, batch)
+	rrds := make([]*specs.RrdItem, payloadSize)
 	for {
 		select {
 		case item, ok := <-ch:
@@ -213,9 +213,9 @@ func falconUpstreamWorker(name string, idx int, ch chan *specs.MetaData,
 				continue
 			}
 			i++
-			if i == batch {
+			if i == payloadSize {
 				statInc(ST_UPSTREAM_PUT, 1)
-				statInc(ST_UPSTREAM_PUT_ITEM, batch)
+				statInc(ST_UPSTREAM_PUT_ITEM, payloadSize)
 				if err = putRpcBackendData(client, rrds,
 					addr, connTimeout, callTimeout); err != nil {
 					statInc(ST_UPSTREAM_PUT_ERR, 1)
@@ -240,9 +240,9 @@ type upstreamTsdb struct {
 func newUpstreamTsdb(p *Lb) *upstreamTsdb {
 	return &upstreamTsdb{
 		name:        "tsdb",
-		concurrency: p.Params.Concurrency,
-		connTimeout: p.Params.ConnTimeout,
-		callTimeout: p.Params.CallTimeout,
+		concurrency: p.Conf.Params.Concurrency,
+		connTimeout: p.Conf.Params.ConnTimeout,
+		callTimeout: p.Conf.Params.CallTimeout,
 		clients:     make(map[string]netClients),
 		chans:       make(map[string]chan *specs.MetaData),
 	}
@@ -293,7 +293,7 @@ func (p *upstreamTsdb) start(name string) error {
 				p.clients[node].addr,
 				p.connTimeout,
 				p.callTimeout,
-				p.batch)
+				p.payloadSize)
 		}
 	}
 	return nil
@@ -311,10 +311,10 @@ func (p *upstreamTsdb) stop() error {
 
 func tsdbUpstreamWorker(name string, idx int,
 	ch chan *specs.MetaData, client *net.Conn,
-	addr string, connTimeout, callTimeout, batch int) {
+	addr string, connTimeout, callTimeout, payloadSize int) {
 	var err error
 	var i int
-	items := make([]*specs.MetaData, batch)
+	items := make([]*specs.MetaData, payloadSize)
 	for {
 		select {
 		case item, ok := <-ch:
@@ -323,9 +323,9 @@ func tsdbUpstreamWorker(name string, idx int,
 			}
 			items[i] = item
 			i++
-			if i == batch {
+			if i == payloadSize {
 				statInc(ST_UPSTREAM_PUT, 1)
-				statInc(ST_UPSTREAM_PUT_ITEM, batch)
+				statInc(ST_UPSTREAM_PUT_ITEM, payloadSize)
 				if err = putTsdbData(client, items,
 					addr, connTimeout, callTimeout); err != nil {
 					statInc(ST_UPSTREAM_PUT_ERR, 1)
@@ -446,7 +446,7 @@ func (p *Lb) loadBalancerWorkerStop() {
 
 func (p *Lb) upstreamStart() error {
 	p.bs = make([]*backend, 0)
-	for _, v := range p.Backends {
+	for _, v := range p.Conf.Backends {
 		if v.Disabled {
 			continue
 		}
@@ -469,7 +469,7 @@ func (p *Lb) upstreamStart() error {
 		p.bs = append(p.bs, b)
 	}
 
-	glog.V(3).Infof(MODULE_NAME+"%s upstreamStart len(bs) %d", p.Params.Name, len(p.bs))
+	glog.V(3).Infof(MODULE_NAME+"%s upstreamStart len(bs) %d", p.Conf.Params.Name, len(p.bs))
 
 	p.upstreamWorkerStart()
 	p.loadBalancerWorkerStart()

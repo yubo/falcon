@@ -32,12 +32,12 @@ func init() {
 	host, _ := os.Hostname()
 
 	flag.StringVar(&pidfile, "p", "/tmp/ctrl.pid", "pid file path")
-	flag.IntVar(&ct.Params.Debug, "d", 0, "debug level")
-	flag.StringVar(&ct.Params.Host, "host", host, "hostname")
-	flag.BoolVar(&ct.Params.Rpc, "rpc", true, "enable rpc")
-	flag.BoolVar(&ct.Params.Http, "http", false, "enable http")
-	flag.StringVar(&ct.Params.RpcAddr, "ra", "127.0.0.1:1988", "rpc addr")
-	flag.StringVar(&ct.Params.HttpAddr, "ha", "127.0.0.1:1989", "http addr")
+	flag.IntVar(&ct.Conf.Params.Debug, "d", 0, "debug level")
+	flag.StringVar(&ct.Conf.Params.Host, "host", host, "hostname")
+	flag.BoolVar(&ct.Conf.Params.Rpc, "rpc", true, "enable rpc")
+	flag.BoolVar(&ct.Conf.Params.Http, "http", false, "enable http")
+	flag.StringVar(&ct.Conf.Params.RpcAddr, "ra", "127.0.0.1:1988", "rpc addr")
+	flag.StringVar(&ct.Conf.Params.HttpAddr, "ha", "127.0.0.1:1989", "http addr")
 	flag.StringVar(&opts.ConfigFile, "config",
 		"/etc/falcon/ctrl.conf", "ctrl config file")
 

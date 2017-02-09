@@ -85,13 +85,13 @@ type netTask struct {
 func (p *Backend) ktofname(key string) string {
 	csum, _ := strconv.ParseUint(key[0:2], 16, 64)
 	return fmt.Sprintf("%s/%s/%s.rrd",
-		p.Storage.Hdisks[int(csum)%len(p.Storage.Hdisks)],
+		p.Conf.Storage.Hdisks[int(csum)%len(p.Conf.Storage.Hdisks)],
 		key[0:2], key)
 }
 
 func (p *Backend) ktoch(key string) chan *ioTask {
 	csum, _ := strconv.ParseUint(key[0:2], 16, 64)
-	return p.storageIoTaskCh[int(csum)%len(p.Storage.Hdisks)]
+	return p.storageIoTaskCh[int(csum)%len(p.Conf.Storage.Hdisks)]
 }
 
 func (p *Backend) rrdCreate(filename string, e *cacheEntry) error {
@@ -305,12 +305,12 @@ func (p *Backend) reconnection(client **rpc.Client, addr string) {
 		(*client).Close()
 	}
 
-	*client, err = dial(addr, p.Params.ConnTimeout)
+	*client, err = dial(addr, p.Conf.Params.ConnTimeout)
 
 	for err != nil {
 		//danger!! block routine
 		time.Sleep(time.Millisecond * 500)
-		*client, err = dial(addr, p.Params.ConnTimeout)
+		*client, err = dial(addr, p.Conf.Params.ConnTimeout)
 	}
 }
 
@@ -380,7 +380,7 @@ func (p *Backend) netRrdFetch(client **rpc.Client, e *cacheEntry, addr string) e
 
 	for i = 0; i < CONN_RETRY; i++ {
 		err = netRpcCall(*client, "Storage.GetRrd", e.hashkey, &rrdfile,
-			time.Duration(p.Params.CallTimeout)*time.Millisecond)
+			time.Duration(p.Conf.Params.CallTimeout)*time.Millisecond)
 
 		if err == nil {
 			done := make(chan error, 1)
@@ -437,7 +437,7 @@ func (p *Backend) netSendData(client **rpc.Client, e *cacheEntry, addr string) e
 
 	for i = 0; i < CONN_RETRY; i++ {
 		err = netRpcCall(*client, "Storage.Send", items, resp,
-			time.Duration(p.Params.CallTimeout)*time.Millisecond)
+			time.Duration(p.Conf.Params.CallTimeout)*time.Millisecond)
 
 		if err == nil {
 			e._dequeueAll()
@@ -460,7 +460,7 @@ func (p *Backend) netQueryData(client **rpc.Client, addr string,
 
 	for i := 0; i < CONN_RETRY; i++ {
 		err = netRpcCall(*client, "Storage.Query", args, resp,
-			time.Duration(p.Params.CallTimeout)*time.Millisecond)
+			time.Duration(p.Conf.Params.CallTimeout)*time.Millisecond)
 
 		if err == nil {
 			break
@@ -594,7 +594,7 @@ func (p *Backend) commitCache() {
 		flag := atomic.LoadUint32(&e.flag)
 
 		//write err data to local filename
-		if !p.Migrate.Disabled && flag&RRD_F_MISS != 0 {
+		if !p.Conf.Migrate.Disabled && flag&RRD_F_MISS != 0 {
 			//PullByKey(key)
 			lastTs = int64(e.e.commitTs)
 			if lastTs == 0 {
@@ -630,7 +630,7 @@ func (p *Backend) commitCache() {
 func (p *Backend) commitCacheWorker() {
 	var init bool
 
-	ticker := falconTicker(time.Second*FIRST_FLUSH_DISK, p.Params.Debug)
+	ticker := falconTicker(time.Second*FIRST_FLUSH_DISK, p.Conf.Params.Debug)
 
 	for {
 		select {
@@ -641,7 +641,7 @@ func (p *Backend) commitCacheWorker() {
 		case <-ticker:
 			if !init {
 				ticker = falconTicker(time.Second*
-					FLUSH_DISK_STEP, p.Params.Debug)
+					FLUSH_DISK_STEP, p.Conf.Params.Debug)
 				init = true
 			}
 			p.commitCache()
@@ -662,9 +662,9 @@ func storageCheckHds(hds []string) error {
 }
 
 func (p *Backend) rrdStart() {
-	glog.V(3).Infof(MODULE_NAME+"%s rrdStart", p.Params.Name)
+	glog.V(3).Infof(MODULE_NAME+"%s rrdStart", p.Conf.Params.Name)
 
-	hds := p.Storage.Hdisks
+	hds := p.Conf.Storage.Hdisks
 
 	err := storageCheckHds(hds)
 	if err != nil {
@@ -676,18 +676,18 @@ func (p *Backend) rrdStart() {
 		p.storageIoTaskCh[i] = make(chan *ioTask, 16)
 	}
 
-	if !p.Migrate.Disabled {
+	if !p.Conf.Migrate.Disabled {
 		p.storageMigrateConsistent.NumberOfReplicas = specs.REPLICAS
 
-		for node, addr := range p.Migrate.Upstreams {
+		for node, addr := range p.Conf.Migrate.Upstreams {
 			p.storageMigrateConsistent.Add(node)
 			p.storageNetTaskCh[node] = make(chan *netTask, 16)
 			p.storageMigrateClients[node] = make([]*rpc.Client,
-				p.Params.Concurrency)
+				p.Conf.Params.Concurrency)
 
-			for i := 0; i < p.Params.Concurrency; i++ {
+			for i := 0; i < p.Conf.Params.Concurrency; i++ {
 				p.storageMigrateClients[node][i], err = dial(addr,
-					p.Params.ConnTimeout)
+					p.Conf.Params.ConnTimeout)
 				if err != nil {
 					glog.Fatalf(MODULE_NAME+"node:%s addr:%s err:%s\n",
 						node, addr, err)
@@ -713,7 +713,7 @@ func (p *Backend) rrdStart() {
 }
 
 func (p *Backend) rrdStop() {
-	for i, _ := range p.Storage.Hdisks {
+	for i, _ := range p.Conf.Storage.Hdisks {
 		close(p.storageIoTaskCh[i])
 	}
 }

@@ -34,3 +34,8 @@ func TestExprText(t *testing.T) {
 		}
 	}
 }
+
+func TestParse(t *testing.T) {
+	conf := Parse("../etc/falcon.conf", true)
+	fmt.Printf("conf:\n%s\n", conf)
+}

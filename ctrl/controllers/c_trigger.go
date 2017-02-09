@@ -21,8 +21,8 @@ type TriggerController struct {
 // @Title CreateTrigger
 // @Description create triggers
 // @Param	body	body 	models.Trigger	true	"body for trigger content"
-// @Success {code:200, data:int} models.Trigger.Id
-// @Failure {code:int, msg:string}
+// @Success 200 {id:int} Id
+// @Failure 403 string error
 // @router / [post]
 func (c *TriggerController) CreateTrigger() {
 	var trigger models.Trigger
@@ -33,15 +33,15 @@ func (c *TriggerController) CreateTrigger() {
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendMsg(200, id)
+		c.SendMsg(200, models.Id{Id: id})
 	}
 }
 
 // @Title GetTriggersCnt
 // @Description get Triggers number
 // @Param   query     query   string  false    "trigger name"
-// @Success {code:200, data:int} trigger number
-// @Failure {code:int, msg:string}
+// @Success 200  {total:int} trigger total number
+// @Failure 403 string error
 // @router /cnt [get]
 func (c *TriggerController) GetTriggersCnt() {
 	query := strings.TrimSpace(c.GetString("query"))
@@ -51,7 +51,7 @@ func (c *TriggerController) GetTriggersCnt() {
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendMsg(200, cnt)
+		c.SendMsg(200, totalObj(cnt))
 	}
 }
 
@@ -60,8 +60,8 @@ func (c *TriggerController) GetTriggersCnt() {
 // @Param   query     query   string  false    "trigger name"
 // @Param   per       query   int     false    "per page number"
 // @Param   offset    query   int     false    "offset  number"
-// @Success {code:200, data:object} models.Trigger
-// @Failure {code:int, msg:string}
+// @Success 200 {object} models.Trigger
+// @Failure 403 error string
 // @router /search [get]
 func (c *TriggerController) GetTriggers() {
 	query := strings.TrimSpace(c.GetString("query"))
@@ -80,8 +80,8 @@ func (c *TriggerController) GetTriggers() {
 // @Title Get
 // @Description get trigger by id
 // @Param	id		path 	int	true		"The key for staticblock"
-// @Success {code:200, data:object} models.Trigger
-// @Failure {code:int, msg:string}
+// @Success 200 {object} models.Trigger
+// @Failure 403 error string
 // @router /:id [get]
 func (c *TriggerController) GetTrigger() {
 	id, err := c.GetInt64(":id")
@@ -103,8 +103,8 @@ func (c *TriggerController) GetTrigger() {
 // @Description update the trigger
 // @Param	id		path 	string	true		"The id you want to update"
 // @Param	body		body 	models.Trigger	true		"body for trigger content"
-// @Success {code:200, data:object} models.Trigger
-// @Failure {code:int, msg:string}
+// @Success 200 {object} models.Trigger
+// @Failure 403 error string
 // @router /:id [put]
 func (c *TriggerController) UpdateTrigger() {
 	var trigger models.Trigger
@@ -148,71 +148,4 @@ func (c *TriggerController) DeleteTrigger() {
 	beego.Debug("delete success!")
 
 	c.SendMsg(200, "delete success!")
-}
-
-// #####################################
-// #############  render ###############
-// #####################################
-func (c *MainController) GetTrigger() {
-	var triggers []*models.Trigger
-
-	query := strings.TrimSpace(c.GetString("query"))
-	per, _ := c.GetInt("per", models.PAGE_PER)
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
-
-	qs := me.QueryTriggers(query)
-	total, err := qs.Count()
-	if err != nil {
-		goto out
-	}
-
-	_, err = qs.Limit(per,
-		c.SetPaginator(per, total).Offset()).All(&triggers)
-	if err != nil {
-		goto out
-	}
-
-	c.PrepareEnv(headLinks[HEAD_LINK_IDX_META].SubLinks, "Trigger")
-	c.Data["Triggers"] = triggers
-	c.Data["Query"] = query
-	c.Data["Search"] = Search{"query", "trigger name"}
-
-	c.TplName = "trigger/list.tpl"
-	return
-
-out:
-	c.SendMsg(400, err.Error())
-}
-
-func (c *MainController) EditTrigger() {
-	var trigger *models.Trigger
-	var me *models.User
-
-	id, err := c.GetInt64(":id")
-	if err != nil {
-		goto out
-	}
-
-	me, _ = c.Ctx.Input.GetData("me").(*models.User)
-	trigger, err = me.GetTrigger(id)
-	if err != nil {
-		goto out
-	}
-
-	c.PrepareEnv(headLinks[HEAD_LINK_IDX_META].SubLinks, "Trigger")
-	c.Data["Trigger"] = trigger
-	c.Data["H1"] = "edit trigger"
-	c.Data["Method"] = "put"
-	c.TplName = "trigger/edit.tpl"
-	return
-out:
-	c.SendMsg(400, err.Error())
-}
-
-func (c *MainController) AddTrigger() {
-
-	c.PrepareEnv(headLinks[HEAD_LINK_IDX_META].SubLinks, "Trigger")
-	c.Data["Method"] = "post"
-	c.Data["H1"] = "add trigger"
-	c.TplName = "trigger/edit.tpl"
 }

@@ -27,30 +27,13 @@ type ldapAuth struct {
 
 var (
 	_ldap = &ldapAuth{
-		AuthModule: models.AuthModule{
-			Name: "ldap",
-			Html: `
-      <form class="form-signin" action="/login" method="post">
-        <label for="inputUsername" class="sr-only">Username</label>
-        <input name="username" type="text" class="form-control" placeholder="Username " required autofocus>
-        <label for="inputPassword" class="sr-only">Password</label>
-        <input name="password" type="password" class="form-control" placeholder="Password" required>
-        <div class="checkbox">
-          <label>
-            <input name="remember-me" type="checkbox" value="remember-me"> Remember me
-          </label>
-        </div>
-	<input type="hidden" name="method" value="ldap">
-        <button class="btn btn-lg btn-primary btn-block" type="submit">Sign in</button>
-      </form>
-`,
-		},
-		addr:    "localhost:389",
-		baseDN:  "dc=yubo,dc=org",
-		bindDN:  "cn=admin,dc=yubo,dc=org",
-		bindPwd: "12341234",
-		filter:  "(&(objectClass=posixAccount)(cn=%s))",
-		tls:     false,
+		AuthModule: models.AuthModule{Name: "ldap"},
+		addr:       "localhost:389",
+		baseDN:     "dc=yubo,dc=org",
+		bindDN:     "cn=admin,dc=yubo,dc=org",
+		bindPwd:    "12341234",
+		filter:     "(&(objectClass=posixAccount)(cn=%s))",
+		tls:        false,
 	}
 )
 

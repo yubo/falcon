@@ -14,88 +14,103 @@ import (
 	"github.com/astaxie/beego/orm"
 )
 
-type TeamUsers struct {
-	Team     Team    `json:"team"`
-	User_ids []int64 `json:"user_ids"`
-	Users    []User  `json:"-"`
+type Member struct {
+	Uids []int64 `json:"uids"`
 }
 
 type Team struct {
 	Id          int64     `json:"id"`
 	Name        string    `json:"name"`
 	Note        string    `json:"note"`
-	Create_time time.Time `json:"-"`
+	Create_time time.Time `json:"ctime"`
+	Creator     int64     `json:"-"`
 }
 
-func (u *User) AddTeamUsers(tu *TeamUsers) (id int64, err error) {
-	id, err = orm.NewOrm().Insert(&tu.Team)
+func (u *User) AddTeam(t *Team) (id int64, err error) {
+	id, err = orm.NewOrm().Insert(t)
 	if err != nil {
+		beego.Error(err)
 		return
 	}
 
-	_, err = u.BindTeamUsers(id, tu.User_ids)
-	if err != nil {
-		orm.NewOrm().Delete(&Team{Id: id})
-		return
-	}
-	tu.Team.Id = id
-	DbLog(u.Id, CTL_M_TEAM, id, CTL_A_ADD, jsonStr(tu))
+	t.Id = id
+	cacheModule[CTL_M_TEAM].set(id, t)
+	DbLog(u.Id, CTL_M_TEAM, id, CTL_A_ADD, jsonStr(t))
 	return
 }
 
-func (u *User) GetTeamUsers(id int64) (tu *TeamUsers, err error) {
-	t := &Team{Id: id}
-	err = orm.NewOrm().Read(t, "Id")
-	if err != nil {
-		return
+func (u *User) GetTeam(id int64) (*Team, error) {
+	if t, ok := cacheModule[CTL_M_TEAM].get(id).(*Team); ok {
+		return t, nil
 	}
+	t := &Team{Id: id}
+	err := orm.NewOrm().Read(t, "Id")
+	if err == nil {
+		cacheModule[CTL_M_TEAM].set(id, t)
+	}
+	return t, err
+}
 
-	tu = &TeamUsers{Team: *t}
-	_, err = orm.NewOrm().Raw("SELECT `b`.`id`, `b`.`uuid`, `b`.`name`, `b`.`cname`, `b`.`email`, `b`.`phone`, `b`.`im`, `b`.`qq`, `b`.`create_time`  "+
+func (u *User) GetMember(id int64) ([]User, error) {
+	users := []User{}
+	_, err := orm.NewOrm().Raw("SELECT `b`.`id`, `b`.`name` "+
 		"FROM `team_user` `a` LEFT JOIN `user` `b` "+
 		"ON `a`.`user_id` = `b`.`id` WHERE `a`.`team_id` = ? ",
-		id).QueryRows(&tu.Users)
-	if err == nil {
-		for i := 0; i < len(tu.Users); i++ {
-			tu.User_ids = append(tu.User_ids, tu.Users[i].Id)
-		}
-	}
-	return
+		id).QueryRows(&users)
+	return users, err
 }
 
-func (u *User) QueryTeams(query string) orm.QuerySeter {
+func (u *User) QueryTeams(query string, own bool) orm.QuerySeter {
 	qs := orm.NewOrm().QueryTable(new(Team))
 	if query != "" {
 		qs = qs.Filter("Name__icontains", query)
 	}
+	if own {
+		qs = qs.Filter("Creator", u.Id)
+	}
 	return qs
 }
 
-func (u *User) GetTeamsCnt(query string) (int, error) {
-	cnt, err := u.QueryTeams(query).Count()
-	return int(cnt), err
+func (u *User) GetTeamsCnt(query string, own bool) (int64, error) {
+	return u.QueryTeams(query, own).Count()
 }
 
-func (u *User) GetTeams(query string, limit, offset int) (teams []*Team, err error) {
-	_, err = u.QueryTeams(query).Limit(limit, offset).All(&teams)
+func (u *User) GetTeams(query string, own bool, limit, offset int) (teams []*Team, err error) {
+	_, err = u.QueryTeams(query, own).Limit(limit, offset).All(&teams)
 	return
 }
 
-func (u *User) UpdateTeamUsers(id int64, _tu *TeamUsers) (tu *TeamUsers, err error) {
-	if tu, err = u.GetTeamUsers(id); err != nil {
+func (u *User) UpdateTeam(id int64, _t *Team) (t *Team, err error) {
+	if t, err = u.GetTeam(id); err != nil {
 		return nil, ErrNoTeam
 	}
 
-	if _tu.Team.Name != "" {
-		tu.Team.Name = _tu.Team.Name
+	if _t.Name != "" {
+		t.Name = _t.Name
 	}
-	if _tu.Team.Note != "" {
-		tu.Team.Note = _tu.Team.Note
+	if _t.Note != "" {
+		t.Note = _t.Note
 	}
-	if _, err = orm.NewOrm().Update(&tu.Team); err != nil {
-		return
+	_, err = orm.NewOrm().Update(t)
+	cacheModule[CTL_M_TEAM].set(id, t)
+	DbLog(u.Id, CTL_M_TEAM, id, CTL_A_SET, jsonStr(_t))
+	return t, err
+}
+
+func (u *User) UpdateMember(id int64, _m *Member) (m *Member, err error) {
+	var users []User
+
+	if users, err = u.GetMember(id); err != nil {
+		return nil, ErrNoTeam
 	}
-	add, del := MdiffInt(tu.User_ids, _tu.User_ids)
+
+	m = &Member{}
+	m.Uids = make([]int64, len(users))
+	for i, v := range users {
+		m.Uids[i] = v.Id
+	}
+
+	add, del := MdiffInt(m.Uids, _m.Uids)
 	beego.Debug("add", add)
 	beego.Debug("del", del)
 	if len(add) > 0 {
@@ -116,10 +131,8 @@ func (u *User) UpdateTeamUsers(id int64, _tu *TeamUsers) (tu *TeamUsers, err err
 			return
 		}
 	}
-	tu.User_ids = _tu.User_ids
-
-	DbLog(u.Id, CTL_M_TEAM, id, CTL_A_SET, jsonStr(_tu))
-
+	m.Uids = _m.Uids
+	DbLog(u.Id, CTL_M_TEAM, id, CTL_A_SET, jsonStr(_m))
 	return
 }
 

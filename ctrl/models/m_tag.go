@@ -17,7 +17,7 @@ import (
 type Tag struct {
 	Id          int64     `json:"id"`
 	Name        string    `json:"name"`
-	Create_time time.Time `json:"-"`
+	Create_time time.Time `json:"ctime"`
 }
 
 type Tag_rel struct {
@@ -189,6 +189,10 @@ func TagParent(t string) string {
 	}
 }
 
+func TagLast(t string) string {
+	return t[strings.LastIndexAny(t, ",")+1:]
+}
+
 func (u *User) addTag(t *Tag, schema *TagSchema) (id int64, err error) {
 	if t.Name, err = schema.Fmt(t.Name, false); err != nil {
 		return
@@ -271,9 +275,8 @@ func (u *User) QueryTags(query string) orm.QuerySeter {
 	return qs
 }
 
-func (u *User) GetTagsCnt(query string) (int, error) {
-	cnt, err := u.QueryTags(query).Count()
-	return int(cnt), err
+func (u *User) GetTagsCnt(query string) (int64, error) {
+	return u.QueryTags(query).Count()
 }
 
 func (u *User) GetTags(query string, limit, offset int) (tags []*Tag, err error) {

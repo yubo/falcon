@@ -25,7 +25,7 @@
             <li><router-link to="/rel/tag-host">Tag Host</router-link></li>
             <li><router-link to="/rel/tag-role-user">Tag Role User</router-link></li>
             <li><router-link to="/rel/tag-role-token">Tag Role Token</router-link></li>
-            <li><router-link to="/rel/tag-rule-trigger">Tag Template Trigger</router-link></li>
+            <li><router-link to="/rel/tag-template-trigger">Tag Template Trigger</router-link></li>
           </ul>
         </li>
         <li class="dropdown">
@@ -40,7 +40,7 @@
             <li><router-link to="/meta/token/list">Token</router-link></li>
             <li role="separator" class="divider"></li>
             <li><router-link to="/meta/team/list">Team</router-link></li>
-            <li><router-link to="/meta/rule/list">Template</router-link></li>
+            <li><router-link to="/meta/template/list">Template</router-link></li>
             <li class="disabled"><router-link to="#">Trigger</router-link></li>
             <li><router-link to="/meta/expression/list">Expression</router-link></li>
           </ul>
@@ -91,7 +91,7 @@ export default {
   },
   computed: {
     login () {
-      return this.$store.state.login.status
+      return this.$store.state.login.login
     },
     links () {
       var url = ''
@@ -106,7 +106,7 @@ export default {
   },
   methods: {
     logout () {
-      this.$store.dispatch('logout')
+      this.$store.dispatch('login/logout', {router: this.$router})
     }
   }
 }

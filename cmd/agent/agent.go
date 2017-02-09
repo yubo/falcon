@@ -30,20 +30,22 @@ var (
 
 func init() {
 	host, _ := os.Hostname()
+	def := specs.ConfAgentDef
 
 	flag.StringVar(&pidfile, "p", "/tmp/agnet.pid", "pid file path")
-	flag.IntVar(&ag.Params.Debug, "d", 0, "debug level")
-	flag.StringVar(&ag.Params.Host, "host", host, "hostname")
-	flag.BoolVar(&ag.Params.Rpc, "rpc", true, "enable rpc")
-	flag.BoolVar(&ag.Params.Http, "http", true, "enable http")
-	flag.StringVar(&ag.Params.RpcAddr, "ra", "127.0.0.1:1988", "rpc addr")
-	flag.StringVar(&ag.Params.HttpAddr, "ha", "127.0.0.1:1989", "http addr")
-	flag.StringVar(&ag.Params.CtrlAddr, "ca", "127.0.0.1:8001", "ctrl addr")
-	flag.StringVar(&ifpre, "if", "eth,em", "interface prefix")
-	flag.IntVar(&ag.Interval, "interval", 60, "interval for collecting data(s)")
-	flag.IntVar(&ag.Batch, "batch", 60, "batch number per send")
-	flag.IntVar(&ag.Params.ConnTimeout, "conntimeout", 1000, "conntimeout(ms)")
-	flag.IntVar(&ag.Params.CallTimeout, "calltimeout", 5000, "calltimeout(ms)")
+	flag.IntVar(&ag.Conf.Params.Debug, "d", def.Params.Debug, "debug level")
+	flag.StringVar(&ag.Conf.Params.Host, "host", host, "hostname")
+	flag.BoolVar(&ag.Conf.Params.Rpc, "rpc", def.Params.Rpc, "enable rpc")
+	flag.BoolVar(&ag.Conf.Params.Http, "http", def.Params.Http, "enable http")
+	flag.StringVar(&ag.Conf.Params.RpcAddr, "ra", def.Params.RpcAddr, "rpc addr")
+	flag.StringVar(&ag.Conf.Params.HttpAddr, "ha", def.Params.HttpAddr, "http addr")
+	flag.StringVar(&ag.Conf.Params.CtrlAddr, "ca", def.Params.CtrlAddr, "ctrl addr")
+	flag.StringVar(&ifpre, "if", strings.Join(def.IfPre, ","), "interface prefix")
+	flag.StringVar(&upstreams, "upstreams", strings.Join(def.Upstreams, ","), "interface prefix")
+	flag.IntVar(&ag.Conf.Interval, "interval", def.Interval, "interval for collecting data(s)")
+	flag.IntVar(&ag.Conf.PayloadSize, "payloadSize", def.PayloadSize, "meta number per rpc call")
+	flag.IntVar(&ag.Conf.Params.ConnTimeout, "conntimeout", def.Params.ConnTimeout, "conntimeout(ms)")
+	flag.IntVar(&ag.Conf.Params.CallTimeout, "calltimeout", def.Params.CallTimeout, "calltimeout(ms)")
 
 	flags.CommandLine.Usage = fmt.Sprintf("Usage: %s [OPTIONS] COMMAND ",
 		"start|stop\n", os.Args[0])
@@ -63,7 +65,8 @@ func start(arg interface{}) {
 		glog.Fatal(specs.ErrParam)
 	}
 
-	ag.IfPre = strings.Split(ifpre, ",")
+	ag.Conf.IfPre = strings.Split(ifpre, ",")
+	ag.Conf.Upstreams = strings.Split(upstreams, ",")
 
 	app := specs.NewProcess(pidfile, []specs.Module{specs.Module(&ag)})
 

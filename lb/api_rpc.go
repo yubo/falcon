@@ -107,13 +107,13 @@ func (p *LB) Update(args []*specs.MetaData,
 func (p *Lb) rpcStart() (err error) {
 
 	var addr *net.TCPAddr
-	if !p.Params.Rpc {
+	if !p.Conf.Params.Rpc {
 		return nil
 	}
 	lb := &LB{lb: p}
 	rpc.Register(lb)
 
-	addr, err = net.ResolveTCPAddr("tcp", p.Params.RpcAddr)
+	addr, err = net.ResolveTCPAddr("tcp", p.Conf.Params.RpcAddr)
 	if err != nil {
 		glog.Fatalf(MODULE_NAME+"rpc.Start error, net.ResolveTCPAddr failed, %s", err)
 	}
@@ -121,9 +121,9 @@ func (p *Lb) rpcStart() (err error) {
 	p.rpcListener, err = net.ListenTCP("tcp", addr)
 	if err != nil {
 		glog.Fatalf(MODULE_NAME+"rpc.Start error, listen %s failed, %s",
-			p.Params.RpcAddr, err)
+			p.Conf.Params.RpcAddr, err)
 	} else {
-		glog.Infof(MODULE_NAME+"%s rpcStart ok, listening on %s", p.Params.Name, p.Params.RpcAddr)
+		glog.Infof(MODULE_NAME+"%s rpcStart ok, listening on %s", p.Conf.Params.Name, p.Conf.Params.RpcAddr)
 	}
 
 	go func() {

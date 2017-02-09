@@ -3,7 +3,7 @@
 # license that can be found in the LICENSE file.
 .PHONY: clean run
 MODULES=agent ctrl falcon
-VENDOR=$(shell readlink -f ./vendor)
+VENDOR=$(shell pwd)/vendor
 VERSION=$(shell cat VERSION)
 TARGETS=$(MODULES:%=bin/%)
 ORG_PATH=github.com/yubo/falcon

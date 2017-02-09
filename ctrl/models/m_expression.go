@@ -16,7 +16,7 @@ type Expression struct {
 	Name        string    `json:"name"`
 	Cname       string    `json:"cname"`
 	Note        string    `json:"note"`
-	Create_time time.Time `json:"-"`
+	Create_time time.Time `json:"ctime"`
 }
 
 func (u *User) AddExpression(r *Expression) (id int64, err error) {

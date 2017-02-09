@@ -59,7 +59,7 @@ func statGet(idx int) uint64 {
 }
 
 func (p *Ctrl) statStart() {
-	if p.Params.Debug > 0 {
+	if p.Conf.Params.Debug > 0 {
 		ticker := time.NewTicker(time.Second * DEBUG_STAT_STEP).C
 		go func() {
 			for {

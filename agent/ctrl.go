@@ -14,8 +14,8 @@ import (
 
 func (p *Agent) scanCtrl() error {
 
-	client, err := rpcDial(p.Params.CtrlAddr,
-		time.Duration(p.Params.ConnTimeout)*time.Millisecond)
+	client, err := rpcDial(p.Conf.Params.CtrlAddr,
+		time.Duration(p.Conf.Params.ConnTimeout)*time.Millisecond)
 	if err != nil {
 		return err
 	}
@@ -23,12 +23,12 @@ func (p *Agent) scanCtrl() error {
 
 	resp := []string{}
 	err = netRpcCall(client, "CTRL.ListLb", specs.Null{}, &resp,
-		time.Duration(p.Params.CallTimeout)*time.Millisecond)
+		time.Duration(p.Conf.Params.CallTimeout)*time.Millisecond)
 	if err != nil {
 		return err
 	}
 
-	p.Upstreams = resp
+	p.Conf.Upstreams = resp
 	return nil
 }
 

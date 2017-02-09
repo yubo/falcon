@@ -16,7 +16,7 @@ type Trigger struct {
 	Name        string    `json:"name"`
 	Cname       string    `json:"cname"`
 	Note        string    `json:"note"`
-	Create_time time.Time `json:"-"`
+	Create_time time.Time `json:"ctime"`
 }
 
 func (u *User) AddTrigger(r *Trigger) (id int64, err error) {
@@ -50,9 +50,8 @@ func (u *User) QueryTriggers(query string) orm.QuerySeter {
 	return qs
 }
 
-func (u *User) GetTriggersCnt(query string) (int, error) {
-	cnt, err := u.QueryTriggers(query).Count()
-	return int(cnt), err
+func (u *User) GetTriggersCnt(query string) (int64, error) {
+	return u.QueryTriggers(query).Count()
 }
 
 func (u *User) GetTriggers(query string, limit, offset int) (triggers []*Trigger, err error) {

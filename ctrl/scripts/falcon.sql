@@ -171,6 +171,7 @@ CREATE TABLE `team` (
   `id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
   `name` VARCHAR(32) NOT NULL,
   `note` VARCHAR(255) NOT NULL DEFAULT '',
+  `creator` INT(11) UNSIGNED NOT NULL,
   `create_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE INDEX `index_name` (`name`)
@@ -290,8 +291,6 @@ CREATE TABLE `trigger` (
 ) ENGINE=InnoDB DEFAULT CHARACTER SET = utf8 COLLATE=utf8_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
-
-
 --
 -- Table structure for table `expression`
 --
@@ -316,7 +315,73 @@ CREATE TABLE `expression` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
+--
+-- Table structure for table `action`
+--
 
+DROP TABLE IF EXISTS `action`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `action` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `uic` varchar(255) COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
+  `url` varchar(255) COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
+  `send_sms` tinyint(4) NOT NULL DEFAULT '0',
+  `send_mail` tinyint(4) NOT NULL DEFAULT '0',
+  `callback` tinyint(4) NOT NULL DEFAULT '0',
+  `before_callback_sms` tinyint(4) NOT NULL DEFAULT '0',
+  `before_callback_mail` tinyint(4) NOT NULL DEFAULT '0',
+  `after_callback_sms` tinyint(4) NOT NULL DEFAULT '0',
+  `after_callback_mail` tinyint(4) NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `strategy`
+--
+
+DROP TABLE IF EXISTS `strategy`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `strategy` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `metric_id` int(10) unsigned NOT NULL DEFAULT '0',
+  `tags` varchar(2048) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `max_step` int(11) NOT NULL DEFAULT '1',
+  `priority` tinyint(4) NOT NULL DEFAULT '0',
+  `func` varchar(16) COLLATE utf8_unicode_ci NOT NULL DEFAULT 'last(#1)',
+  `op` varchar(8) COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
+  `condition` varchar(64) COLLATE utf8_unicode_ci NOT NULL,
+  `note` varchar(128) COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
+  `metric` varchar(1024) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `run_begin` varchar(16) COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
+  `run_end` varchar(16) COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
+  `tpl_id` int(10) unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id`),
+  KEY `idx_strategy_tpl_id` (`tpl_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `template`
+--
+
+DROP TABLE IF EXISTS `template`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `template` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) NOT NULL DEFAULT '',
+  `parent_id` int(10) unsigned NOT NULL DEFAULT '0',
+  `action_id` int(10) unsigned NOT NULL DEFAULT '0',
+  `create_user_id` int(10) unsigned NOT NULL DEFAULT '0',
+  `create_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_name` (`name`),
+  KEY `idx_tpl_create_user` (`create_user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
 
 

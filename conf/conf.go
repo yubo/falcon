@@ -16,7 +16,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/yubo/falcon/agent"
 	"github.com/yubo/falcon/backend"
-	"github.com/yubo/falcon/ctrl/core"
+	ctrl "github.com/yubo/falcon/ctrl/core"
 	"github.com/yubo/falcon/lb"
 	"github.com/yubo/falcon/specs"
 )
@@ -66,8 +66,8 @@ var (
 	conf             *Falcon
 	yy               *yyLex
 	yy_lb            *lb.Lb
-	yy_specs_backend *specs.Backend
 	yy_backend       *backend.Backend
+	yy_specs_backend *specs.Backend
 	yy_mod_params    *specs.ModuleParams
 	yy_ss            map[string]string
 	yy_as            []string
@@ -98,7 +98,7 @@ var (
 		"interval":         INTERVAL,
 		"iface_prefix":     IFACE_PREFIX,
 		"disabled":         DISABLED,
-		"batch":            BATCH,
+		"payload_size":     PAYLOAD_SIZE,
 		"conn_timeout":     CONN_TIMEOUT,
 		"call_timeout":     CALL_TIMEOUT,
 		"upstreams":        UPSTREAMS,

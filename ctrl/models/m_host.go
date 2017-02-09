@@ -20,7 +20,7 @@ type Host struct {
 	Status      string    `json:"status"`
 	Loc         string    `json:"loc"`
 	Idc         string    `json:"idc"`
-	Create_time time.Time `json:"-"`
+	Create_time time.Time `json:"ctime"`
 }
 
 func (u *User) AddHost(h *Host) (id int64, err error) {
@@ -64,9 +64,8 @@ func (u *User) QueryHosts(query string) orm.QuerySeter {
 	return qs
 }
 
-func (u *User) GetHostsCnt(query string) (int, error) {
-	cnt, err := u.QueryHosts(query).Count()
-	return int(cnt), err
+func (u *User) GetHostsCnt(query string) (int64, error) {
+	return u.QueryHosts(query).Count()
 }
 
 func (u *User) GetHosts(query string, limit, offset int) (hosts []*Host, err error) {

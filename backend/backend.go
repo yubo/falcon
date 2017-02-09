@@ -18,7 +18,6 @@ import (
 	"net/http"
 	"net/rpc"
 	"os"
-	"strings"
 	"sync/atomic"
 	"time"
 
@@ -49,32 +48,25 @@ const (
 	DEBUG_STAT_MODULE       = ST_M_CACHE | ST_M_INDEX
 	DEBUG_STAT_STEP         = 60
 	MODULE_NAME             = "\x1B[32m[BACKEND]\x1B[0m "
+	CTRL_STEP               = 360
 )
-
-type Storage struct {
-	Type   string
-	Hdisks []string
-}
-
-func (o Storage) String() string {
-	return fmt.Sprintf("%-12s %s\n%-12s %s",
-		"type", o.Type,
-		"hdisks", strings.Join(o.Hdisks, ", "))
-}
 
 type Backend struct {
 	// config
-	Params          specs.ModuleParams
-	Migrate         specs.Migrate
-	Idx             bool
-	IdxInterval     int
-	IdxFullInterval int
-	Dsn             string
-	DbMaxIdle       int
-	ShmMagic        uint32
-	ShmKey          int
-	ShmSize         int
-	Storage         Storage
+	Conf specs.ConfBackend
+	/*
+		Params          specs.ModuleParams
+		Migrate         specs.Migrate
+		Idx             bool
+		IdxInterval     int
+		IdxFullInterval int
+		Dsn             string
+		DbMaxIdle       int
+		ShmMagic        uint32
+		ShmKey          int
+		ShmSize         int
+		Storage         specs.Storage
+	*/
 	// runtime
 	status                   uint32
 	running                  chan struct{}
@@ -97,45 +89,15 @@ type Backend struct {
 }
 
 func (p Backend) Desc() string {
-	return fmt.Sprintf("%s", p.Params.Name)
+	return fmt.Sprintf("%s", p.Conf.Params.Name)
 }
 
 func (p Backend) String() string {
-	http := p.Params.HttpAddr
-	rpc := p.Params.RpcAddr
-
-	if !p.Params.Http {
-		http += "(disabled)"
-	}
-	if !p.Params.Rpc {
-		rpc += "(disabled)"
-	}
-	return fmt.Sprintf("%s (\n%s\n)\n"+
-		"%-17s %v\n"+
-		"%-17s %d\n"+
-		"%-17s %d\n"+
-		"%-17s %s\n"+
-		"%-17s %d\n"+
-		"%-17s 0x%x\n"+
-		"%-17s 0x%x\n"+
-		"%-17s %d\n"+
-		"%s (\n%s\n)\n"+
-		"%s (\n%s\n)",
-		"params", specs.IndentLines(1, p.Params.String()),
-		"idx", p.Idx,
-		"idx_interval", p.IdxInterval,
-		"idx_full_interval", p.IdxFullInterval,
-		"dsn", p.Dsn,
-		"dbmaxidle", p.DbMaxIdle,
-		"magic_code", p.ShmMagic,
-		"key_start_id", p.ShmKey,
-		"segment_size", p.ShmSize,
-		"migrate", specs.IndentLines(1, p.Migrate.String()),
-		"storage", specs.IndentLines(1, p.Storage.String()))
+	return p.Conf.String()
 }
 
 func (p *Backend) Init() error {
-	glog.V(3).Infof(MODULE_NAME+"%s Init()", p.Params.Name)
+	glog.V(3).Infof(MODULE_NAME+"%s Init()", p.Conf.Params.Name)
 	// core
 
 	//cache
@@ -164,7 +126,7 @@ func (p *Backend) Init() error {
 }
 
 func (p *Backend) Start() error {
-	glog.V(3).Infof(MODULE_NAME+"%s Start()", p.Params.Name)
+	glog.V(3).Infof(MODULE_NAME+"%s Start()", p.Conf.Params.Name)
 	p.status = specs.APP_STATUS_PENDING
 	p.running = make(chan struct{}, 0)
 	p.timeStart()
@@ -179,7 +141,7 @@ func (p *Backend) Start() error {
 }
 
 func (p *Backend) Stop() error {
-	glog.V(3).Infof(MODULE_NAME+"%s Stop()", p.Params.Name)
+	glog.V(3).Infof(MODULE_NAME+"%s Stop()", p.Conf.Params.Name)
 	p.status = specs.APP_STATUS_EXIT
 	close(p.running)
 	p.cacheStop()
@@ -193,12 +155,12 @@ func (p *Backend) Stop() error {
 }
 
 func (p *Backend) Reload() error {
-	glog.V(3).Infof(MODULE_NAME+"%s Reload()", p.Params.Name)
+	glog.V(3).Infof(MODULE_NAME+"%s Reload()", p.Conf.Params.Name)
 	return nil
 }
 
 func (p *Backend) Signal(sig os.Signal) error {
-	glog.V(3).Infof(MODULE_NAME+"%s signal %v", p.Params.Name, sig)
+	glog.V(3).Infof(MODULE_NAME+"%s signal %v", p.Conf.Params.Name, sig)
 	return nil
 }
 
@@ -215,7 +177,7 @@ func (p *Backend) timeStart() {
 
 			case <-ticker:
 				now := time.Now().Unix()
-				if p.Params.Debug > 1 {
+				if p.Conf.Params.Debug > 1 {
 					atomic.StoreInt64(&p.ts,
 						start+(now-start)*DEBUG_MULTIPLES)
 				} else {

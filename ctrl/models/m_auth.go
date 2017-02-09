@@ -18,16 +18,11 @@ type Auth struct {
 
 type AuthModule struct {
 	Name       string
-	Html       string
 	Prestarted bool
 }
 
 func (p *AuthModule) GetName() string {
 	return p.Name
-}
-
-func (p *AuthModule) LoginHtml(c interface{}) string {
-	return p.Html
 }
 
 func (p *AuthModule) CallBack(c interface{}) {
@@ -47,7 +42,6 @@ func (p *AuthModule) PreStart() error {
 
 type AuthInterface interface {
 	GetName() string
-	LoginHtml(c interface{}) string
 	Verify(c interface{}) (success bool, uuid string, err error)
 	CallBack(c interface{})
 	PreStart() error

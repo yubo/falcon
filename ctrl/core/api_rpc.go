@@ -8,13 +8,7 @@ package ctrl
 import (
 	"container/list"
 	"net"
-	"net/rpc"
-	"net/rpc/jsonrpc"
 	"sync"
-	"time"
-
-	"github.com/golang/glog"
-	"github.com/yubo/falcon/specs"
 )
 
 var ()
@@ -35,6 +29,7 @@ func (l *connList) remove(e *list.Element) net.Conn {
 	return l.list.Remove(e).(net.Conn)
 }
 
+/*
 type CTRL struct {
 	ctrl *Ctrl
 }
@@ -44,30 +39,30 @@ func (p *CTRL) Ping(req specs.Null, resp *specs.RpcResp) error {
 }
 
 func (p *CTRL) ListLb(req specs.Null, resp *[]string) error {
-	*resp = p.ctrl.Lbs
+	*resp = p.ctrl.Conf.Lbs
 	return nil
 }
 
 func (p *CTRL) ListBackend(req specs.Null, resp *[]specs.Backend) error {
-	*resp = p.ctrl.Backends
+	*resp = p.ctrl.Conf.Backends
 	return nil
 }
 
 func (p *CTRL) ListMigrate(req specs.Null, resp *specs.Migrate) error {
-	*resp = p.ctrl.Migrate
+	*resp = p.ctrl.Conf.Migrate
 	return nil
 }
 
 func (p *Ctrl) rpcStart() (err error) {
 
 	var addr *net.TCPAddr
-	if !p.Params.Rpc {
+	if !p.Conf.Params.Rpc {
 		return nil
 	}
 	ctrl := &CTRL{ctrl: p}
 	rpc.Register(ctrl)
 
-	addr, err = net.ResolveTCPAddr("tcp", p.Params.RpcAddr)
+	addr, err = net.ResolveTCPAddr("tcp", p.Conf.Params.RpcAddr)
 	if err != nil {
 		glog.Fatalf(MODULE_NAME+"rpc.Start error, net.ResolveTCPAddr failed, %s",
 			err)
@@ -76,10 +71,10 @@ func (p *Ctrl) rpcStart() (err error) {
 	p.rpcListener, err = net.ListenTCP("tcp", addr)
 	if err != nil {
 		glog.Fatalf(MODULE_NAME+"rpc.Start error, listen %s failed, %s",
-			p.Params.RpcAddr, err)
+			p.Conf.Params.RpcAddr, err)
 	} else {
 		glog.Infof(MODULE_NAME+"%s rpcStart ok, listening on %s",
-			p.Params.Name, p.Params.RpcAddr)
+			p.Conf.Params.Name, p.Conf.Params.RpcAddr)
 	}
 
 	go func() {
@@ -126,3 +121,4 @@ func (p *Ctrl) rpcStop() (err error) {
 
 	return nil
 }
+*/

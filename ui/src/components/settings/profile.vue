@@ -1,0 +1,79 @@
+<template>
+<div id="content" class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+  <h1 class="page-header">edit profile</h1>
+  <div v-loading.lock="loading">
+    <el-form label-position="right" label-width="80px" :model="userform">
+      <el-form-item label="name">  <el-input :disabled="hasName" v-model="userform.name"> </el-input> </el-form-item>
+      <el-form-item label="uuid">  <el-input :disabled="true" v-model="userform.uuid"> </el-input> </el-form-item>
+      <el-form-item label="cname"> <el-input v-model="userform.cname"></el-input> </el-form-item>
+      <el-form-item label="email"> <el-input v-model="userform.email"></el-input> </el-form-item>
+      <el-form-item label="phone"> <el-input v-model="userform.phone"></el-input> </el-form-item>
+      <el-form-item label="im">    <el-input v-model="userform.im">   </el-input> </el-form-item>
+      <el-form-item label="qq">    <el-input v-model="userform.qq">   </el-input> </el-form-item>
+      <el-form-item>
+        <el-button type="primary" @click="putData">Update</el-button>
+        <el-button @click="fetchData">Reset</el-button>
+      </el-form-item>
+    </el-form>
+  </div>
+</div>
+</template>
+
+<script>
+import { Message } from 'element-ui'
+import { fetch } from 'src/utils'
+export default {
+  data () {
+    return {
+      loading: false,
+      hasName: true,
+      userform: {
+        id: 0,
+        name: '',
+        uuid: '',
+        cname: '',
+        email: '',
+        phone: '',
+        im: '',
+        qq: ''
+      }
+    }
+  },
+  created () {
+    this.fetchData()
+  },
+  methods: {
+    fetchData () {
+      if (!this.$store.state.login.login) {
+        return
+      }
+      for (var k in this.userform) {
+        this.userform[k] = this.$store.state.login.user[k]
+      }
+      this.hasName = (this.userform.name !== '')
+    },
+    putData () {
+      this.loading = true
+      console.log(this.userform)
+      // update
+      fetch({
+        router: this.$router,
+        method: 'put',
+        url: 'user/' + this.userform.id,
+        data: JSON.stringify(this.userform)
+      }).then((res) => {
+        Message.success('update success')
+        this.$store.commit('login/m_set_user', res.data)
+        this.loading = false
+      }).catch((err) => {
+        Message.error(err.response.data)
+        this.loading = false
+      })
+    }
+  }
+}
+</script>
+
+<!-- Add "scoped" attribute to limit CSS to this component only -->
+<style scoped>
+</style>

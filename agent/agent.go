@@ -10,26 +10,27 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"strings"
 
 	"github.com/golang/glog"
 	"github.com/yubo/falcon/specs"
 )
 
 const (
-	MODULE_NAME = "\x1B[32m[AGENT]\x1B[0m "
-)
-
-var (
-	appAgent Agent = DefaultAgent
+	MODULE_NAME     = "\x1B[32m[AGENT]\x1B[0m "
+	CONN_RETRY      = 2
+	DEBUG_STAT_STEP = 60
+	CTRL_STEP       = 360
 )
 
 type Agent struct {
-	Params    specs.ModuleParams
-	Interval  int
-	Batch     int
-	IfPre     []string
-	Upstreams []string
+	Conf specs.ConfAgent
+	/*
+		Params      specs.ModuleParams
+		Interval    int
+		PayloadSize int
+		IfPre       []string
+		Upstreams   []string
+	*/
 	// runtime
 	appUpdateChan chan *[]*specs.MetaData
 	httpListener  *net.TCPListener
@@ -38,24 +39,15 @@ type Agent struct {
 }
 
 func (p Agent) Desc() string {
-	return fmt.Sprintf("%s", p.Params.Name)
+	return fmt.Sprintf("%s", p.Conf.Params.Name)
 }
 
 func (p Agent) String() string {
-	return fmt.Sprintf("%s (\n%s\n)\n"+
-		"%-17s %s\n"+
-		"%-17s %d\n"+
-		"%-17s %d\n"+
-		"%-17s %s",
-		"params", specs.IndentLines(1, p.Params.String()),
-		"ifprefix", strings.Join(p.IfPre, ", "),
-		"interval", p.Interval,
-		"batch", p.Batch,
-		"upstreams", strings.Join(p.Upstreams, ", "))
+	return p.Conf.String()
 }
 
 func (p *Agent) Init() error {
-	glog.V(3).Infof(MODULE_NAME+"%s Init()", p.Params.Name)
+	glog.V(3).Infof(MODULE_NAME+"%s Init()", p.Conf.Params.Name)
 	// core
 	//runtime.GOMAXPROCS(runtime.NumCPU())
 
@@ -67,7 +59,7 @@ func (p *Agent) Init() error {
 }
 
 func (p *Agent) Start() error {
-	glog.V(3).Infof(MODULE_NAME+"%s Start()", p.Params.Name)
+	glog.V(3).Infof(MODULE_NAME+"%s Start()", p.Conf.Params.Name)
 	p.running = make(chan struct{}, 0)
 	p.ctrlStart()
 	p.statStart()
@@ -78,7 +70,7 @@ func (p *Agent) Start() error {
 }
 
 func (p *Agent) Stop() error {
-	glog.V(3).Infof(MODULE_NAME+"%s Stop()", p.Params.Name)
+	glog.V(3).Infof(MODULE_NAME+"%s Stop()", p.Conf.Params.Name)
 	close(p.running)
 	p.collectStop()
 	p.httpStop()
@@ -89,12 +81,12 @@ func (p *Agent) Stop() error {
 }
 
 func (p *Agent) Reload() error {
-	glog.V(3).Infof(MODULE_NAME+"%s Reload()", p.Params.Name)
+	glog.V(3).Infof(MODULE_NAME+"%s Reload()", p.Conf.Params.Name)
 	return nil
 }
 
 func (p *Agent) Signal(sig os.Signal) error {
-	glog.V(3).Infof(MODULE_NAME+"%s signal %v", p.Params.Name, sig)
+	glog.V(3).Infof(MODULE_NAME+"%s signal %v", p.Conf.Params.Name, sig)
 	return nil
 }
 

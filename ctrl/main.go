@@ -18,6 +18,8 @@ import (
 func main() {
 	if beego.BConfig.RunMode == "dev" {
 		orm.Debug = true
+		beego.BConfig.WebConfig.DirectoryIndex = true
+		beego.BConfig.WebConfig.StaticDir["/doc"] = "swagger"
 	}
 
 	dsn := beego.AppConfig.String("mysqldsn")
