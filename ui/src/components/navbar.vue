@@ -23,26 +23,25 @@
             aria-expanded="false">Relation<span class="caret"></span></a>
           <ul class="dropdown-menu">
             <li><router-link to="/rel/tag-host">Tag Host</router-link></li>
+            <li><router-link to="/rel/tag-template">Tag Template</router-link></li>
             <li><router-link to="/rel/tag-role-user">Tag Role User</router-link></li>
             <li><router-link to="/rel/tag-role-token">Tag Role Token</router-link></li>
-            <li><router-link to="/rel/tag-template-trigger">Tag Template Trigger</router-link></li>
           </ul>
         </li>
         <li class="dropdown">
           <a to="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true"
             aria-expanded="false">Meta<span class="caret"></span></a>
           <ul class="dropdown-menu">
-            <li><router-link to="/meta/tag/list">Tag</router-link></li>
-            <li><router-link to="/meta/host/list">Host</router-link></li>
+            <li><router-link to="/meta/tag">Tag</router-link></li>
+            <li><router-link to="/meta/host">Host</router-link></li>
             <li role="separator" class="divider"></li>
-            <li><router-link to="/meta/role/list">Role</router-link></li>
-            <li><router-link to="/meta/user/list">User</router-link></li>
-            <li><router-link to="/meta/token/list">Token</router-link></li>
+            <li><router-link to="/meta/role">Role</router-link></li>
+            <li><router-link to="/meta/user">User</router-link></li>
+            <li><router-link to="/meta/token">Token</router-link></li>
             <li role="separator" class="divider"></li>
-            <li><router-link to="/meta/team/list">Team</router-link></li>
-            <li><router-link to="/meta/template/list">Template</router-link></li>
-            <li class="disabled"><router-link to="#">Trigger</router-link></li>
-            <li><router-link to="/meta/expression/list">Expression</router-link></li>
+            <li><router-link to="/meta/team">Team</router-link></li>
+            <li><router-link to="/meta/template">Template</router-link></li>
+            <li><router-link to="/meta/expression">Expression</router-link></li>
           </ul>
         </li>
         <li class="dropdown" v-if="login">
@@ -63,12 +62,13 @@
           <a to="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true"
             aria-expanded="false">help<span class="caret"></span></a>
           <ul class="dropdown-menu">
-            <li><router-link to="/doc">doc</router-link></li>
+            <li><a href="/doc" target="_blank">doc</a></li>
             <li role="separator" class="divider"></li>
             <li><router-link to="/about">About Falcon</router-link></li>
         </li>
-        <li v-if="login"><a @click="logout">[logout]</a></li>
-        <li v-if="!login"><router-link to="/login/ldap">[login]</router-link></li>
+        <li v-if="login" class="dropdown">
+          <a class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" @click="logout">[logout]</a>
+        </li>
       </ul>
     </div>
   </div>
@@ -106,7 +106,7 @@ export default {
   },
   methods: {
     logout () {
-      this.$store.dispatch('login/logout', {router: this.$router})
+      this.$store.dispatch('login/logout')
     }
   }
 }

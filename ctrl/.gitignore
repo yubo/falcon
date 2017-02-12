@@ -1,7 +1,0 @@
-tmp/
-.gdbinit
-ctrl
-*.swp
-note.*
-static/tree
-routers/commentsRouter*

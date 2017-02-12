@@ -2,17 +2,20 @@
 <div id="app">
   <navbar></navbar>
   <router-view></router-view>
+  <login></login>
 </div>
 </template>
 
 <script>
 import navbar from './navbar'
+import login from './login'
 import { fetch } from 'src/utils'
 import { Message } from 'element-ui'
 
 export default {
   components: {
-    navbar
+    navbar,
+    login
   },
   data () {
     return { }
@@ -20,7 +23,6 @@ export default {
   create () {
     if (!this.$store.config) {
       fetch({
-        router: this.$router,
         method: 'get',
         url: 'settings/config/ui'
       }).then((res) => {

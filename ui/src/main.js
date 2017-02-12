@@ -20,7 +20,10 @@ import {
   Switch,
   RadioGroup,
   Radio,
-  Checkbox
+  Checkbox,
+  Tabs,
+  TabPane,
+  Dialog
 } from 'element-ui'
 
 /* eslint-disable no-new */
@@ -39,6 +42,9 @@ Vue.use(Switch)
 Vue.use(RadioGroup)
 Vue.use(Radio)
 Vue.use(Checkbox)
+Vue.use(Tabs)
+Vue.use(TabPane)
+Vue.use(Dialog)
 
 new Vue({
   el: '#app',

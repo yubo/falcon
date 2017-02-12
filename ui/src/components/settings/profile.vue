@@ -57,10 +57,9 @@ export default {
       console.log(this.userform)
       // update
       fetch({
-        router: this.$router,
         method: 'put',
         url: 'user/' + this.userform.id,
-        data: JSON.stringify(this.userform)
+        data: this.userform
       }).then((res) => {
         Message.success('update success')
         this.$store.commit('login/m_set_user', res.data)

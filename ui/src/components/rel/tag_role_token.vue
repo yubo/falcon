@@ -113,7 +113,6 @@ export default {
       if (query !== '') {
         this.sloading1 = true
         fetch({
-          router: this.$router,
           method: 'get',
           url: 'role/search',
           params: {
@@ -135,7 +134,6 @@ export default {
       if (query !== '') {
         this.sloading2 = true
         fetch({
-          router: this.$router,
           method: 'get',
           url: 'token/search',
           params: {
@@ -171,7 +169,6 @@ export default {
     reFetchData () {
       this.loading = true
       fetch({
-        router: this.$router,
         method: 'get',
         url: 'rel/tag/role/token/cnt',
         params: { global: this.global, tag_id: this.curTagId, query: this.query }
@@ -192,7 +189,6 @@ export default {
       per: this.per,
       offset: this.offset}) {
       fetch({
-        router: this.$router,
         method: 'get',
         url: 'rel/tag/role/token/search',
         params: opts
@@ -207,18 +203,17 @@ export default {
     handleBind (orgs) {
       this.loading = true
       fetch({
-        router: this.$router,
         method: 'post',
         url: 'rel/tag/role/token',
-        data: JSON.stringify({
+        data: {
           global: this.global,
           tag_id: this.curTagId,
           role_id: this.roleId,
           token_id: this.tokenId
-        })
+        }
       }).then((res) => {
         Message.success('success!')
-        this.total = this.total + 1
+        this.total++
         // loading will unset at fetchdata done
         this.fetchData()
       }).catch((err) => {
@@ -235,18 +230,17 @@ export default {
         console.log(obj)
         this.loading = true
         fetch({
-          router: this.$router,
           method: 'delete',
           url: 'rel/tag/role/token',
-          data: JSON.stringify({
+          data: {
             global: obj.global,
             tag_id: obj.tag_id,
             role_id: obj.role_id,
             token_id: obj.token_id
-          })
+          }
         }).then((res) => {
           Message.success('success!')
-          this.total = this.total - 1
+          this.total--
           this.fetchData()
         }).catch((err) => {
           Message.error(err.response.data)

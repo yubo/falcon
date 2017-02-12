@@ -228,26 +228,21 @@ CREATE TABLE `tpl_rel` (
 ) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8
 COLLATE = utf8_unicode_ci COMMENT = '节点上的模板关联(tag,tpl,sub_meta)';
 
---
--- Table structure for table `rule`
---
-
-DROP TABLE IF EXISTS `rule`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `rule` (
-  `id` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
-  `name` VARCHAR(255) NOT NULL DEFAULT '',
-  `pid` INT(10) UNSIGNED NOT NULL DEFAULT '0',
-  `action_id` INT(10) UNSIGNED NOT NULL DEFAULT '0',
-  `create_user_id` INT(10) UNSIGNED NOT NULL DEFAULT '0',
-  `create_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+-- -----------------------------------------------------
+-- Table `tag_tpl`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `tag_tpl`;
+CREATE TABLE `tag_tpl` (
+  `id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `tpl_id` INT(11) UNSIGNED NOT NULL,
+  `tag_id` INT(11) UNSIGNED NOT NULL,
+  `creator` INT(11) UNSIGNED NOT NULL,
   PRIMARY KEY (`id`),
-  INDEX `index_create_user_id` (`create_user_id`),
-  UNIQUE KEY `index_name` (`name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
+  INDEX `index_tpl_id` (`tpl_id`),
+  INDEX `index_tag_id` (`tag_id`),
+  INDEX `index_creator` (`creator`)
+) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8
+COLLATE = utf8_unicode_ci COMMENT = '节点上的策略模板';
 
 --
 -- Table structure for table `action`

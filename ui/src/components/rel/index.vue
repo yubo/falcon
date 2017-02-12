@@ -26,9 +26,9 @@ export default {
     return {
       links: [
       { url: '/rel/tag-host', text: 'host' },
+      { url: '/rel/tag-template', text: 'template' },
       { url: '/rel/tag-role-user', text: 'role user' },
-      { url: '/rel/tag-role-token', text: 'role token' },
-      { url: '/rel/tag-rule-trigger', text: 'template trigger' }
+      { url: '/rel/tag-role-token', text: 'role token' }
       ],
       props: {
         label: 'label',
@@ -40,32 +40,6 @@ export default {
     handleCurrentChange (val) {
       this.$store.commit('rel/m_cur_tag', val)
     }
-    /*,
-    loadNode (node, resolve) {
-      this.loading = true
-      fetch({
-        router: this.$router,
-        method: 'get',
-        url: 'rel/treeNode',
-        params: {id: node.id}
-      }).then((res) => {
-        if (res.data == null) {
-          res.data = []
-        }
-        var data = res.data.map((n) => {
-          return {
-            id: n.id,
-            name: n.name.substring(n.name.lastIndexOf(',') + 1)
-          }
-        })
-        resolve(data)
-        this.loading = false
-      }).catch((err) => {
-        Message.error(err)
-        this.loading = false
-      })
-    }
-    */
   },
   components: {
     liTpl
@@ -80,7 +54,7 @@ export default {
   },
   created () {
     if (!this.$store.state.rel.loaded) {
-      this.$store.commit('rel/m_load_tag', this.$router)
+      this.$store.commit('rel/m_load_tag')
     }
   }
 }

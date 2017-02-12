@@ -21,7 +21,6 @@ export default {
   methods: {
     debug (action) {
       fetch({
-        router: this.$router,
         method: 'get',
         url: '/settings/debug/' + action
       }).then((res) => {

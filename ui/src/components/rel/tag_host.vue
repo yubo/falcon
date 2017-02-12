@@ -102,7 +102,6 @@ export default {
       if (query !== '') {
         this.sloading = true
         fetch({
-          router: this.$router,
           method: 'get',
           url: 'host/search',
           params: {
@@ -137,7 +136,6 @@ export default {
 
     reFetchData () {
       fetch({
-        router: this.$router,
         method: 'get',
         url: 'rel/tag/host/cnt',
         params: { tag_id: this.curTagId, query: this.query }
@@ -157,7 +155,6 @@ export default {
       offset: this.offset}) {
       this.loading = true
       fetch({
-        router: this.$router,
         method: 'get',
         url: 'rel/tag/host/search',
         params: opts
@@ -172,13 +169,12 @@ export default {
     handleBind (orgs) {
       this.loading = true
       fetch({
-        router: this.$router,
         method: 'post',
         url: 'rel/tag/hosts',
-        data: JSON.stringify({tag_id: this.curTagId, host_ids: this.hosts})
+        data: {tag_id: this.curTagId, host_ids: this.hosts}
       }).then((res) => {
         Message.success('success!')
-        this.total = this.total + 1
+        this.total++
         // loading will unset at fetchdata done
         this.fetchData()
       }).catch((err) => {
@@ -194,16 +190,15 @@ export default {
       }).then(() => {
         this.loading = true
         fetch({
-          router: this.$router,
           method: 'delete',
           url: 'rel/tag/host',
-          data: JSON.stringify({
+          data: {
             tag_id: this.curTagId,
             host_id: host.id
-          })
+          }
         }).then((res) => {
           Message.success('success!')
-          this.total = this.total - 1
+          this.total--
           this.fetchData()
         }).catch((err) => {
           Message.error(err.response.data)
@@ -221,15 +216,12 @@ export default {
       }).then(() => {
         this.loading = true
         fetch({
-          router: this.$router,
           method: 'delete',
           url: 'rel/tag/hosts',
-          data: JSON.stringify({
+          data: {
             tag_id: this.curTagId,
-            host_ids: this.multipleSelection.map((val) => {
-              return val.id
-            })
-          })
+            host_ids: this.multipleSelection.map((val) => { return val.id })
+          }
         }).then((res) => {
           Message.success('success!')
           this.total = this.total - res.data.total

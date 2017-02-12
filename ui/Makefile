@@ -13,4 +13,4 @@ test:
 	npm test
 
 pkg:
-	tar --exclude=./node_modules --exclude=./ui.tar.gz -czvf ui.tar.gz . 
+	tar --exclude=./node_modules --exclude=./ui.tar.gz --exclude=./dist -czvf dist/ui.tar.gz . 

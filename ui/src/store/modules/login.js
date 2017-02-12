@@ -1,6 +1,5 @@
-import { vfetch, fetch } from 'src/utils'
+import { fetch } from 'src/utils'
 import { Message } from 'element-ui'
-const { _ } = window
 
 const state = {
   user: null,
@@ -29,21 +28,20 @@ const actions = {
     })
   },
   login ({ commit, state }, args = {}) {
-    var opts = {
-      commit,
-      mutation: 'm_login',
-      args: args,
+    commit('m_set_loading', true)
+    fetch({
+      url: 'auth/login',
       method: 'post',
-      url: 'auth/login'
-    }
-    if (args.username) {
-      opts.params = {
-        username: args.username,
-        password: args.password,
-        method: args.method
-      }
-    }
-    vfetch(opts)
+      params: args
+    }).then((res) => {
+      commit('m_login_success', res)
+      commit('m_set_loading', false)
+      Message.success('login success')
+    }).catch((err) => {
+      commit('m_login_fail', err)
+      commit('m_set_loading', false)
+      Message.error(err)
+    })
   }
 }
 
@@ -52,43 +50,21 @@ const mutations = {
   'm_set_user' (state, user) {
     state.user = user
   },
-  'm_set_callback' (state, cb) {
-    state.callback = cb
-  },
   'm_logout' (state) {
     state.login = false
     window.Cookies.remove('username')
   },
-  'm_login.start' (state) {
-    // console.log('login.start')
-    state.loading = true
+  'm_set_loading' (state, loading) {
+    state.loading = loading
   },
-  'm_login.success' (state, args = {}) {
-    // console.log('login.success', args)
+  'm_login_success' (state, res) {
     state.login = true
-    state.user = args.res.data
-    window.Cookies.set('username', args.res.data.name, {expires: 1})
-    Message.success('login success')
-    if (args.router) {
-      if (state.callback) {
-        args.router.push(state.callback)
-        state.callback = ''
-      } else {
-        args.router.push('/meta')
-      }
-    }
+    state.user = res.data
+    window.Cookies.set('username', res.data.name, {expires: 1})
   },
-  'm_login.fail' (state, args) {
+  'm_login_fail' (state, err) {
     state.login = false
     window.Cookies.remove('username')
-    Message.error(args.err)
-    if (args.router && (!_.startsWith(args.router.path, '/login'))) {
-      state.callback = args.router.fullPath
-      args.router.push({path: '/login'})
-    }
-  },
-  'm_login.end' (state) {
-    state.loading = false
   }
 }
 

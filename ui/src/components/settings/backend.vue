@@ -68,7 +68,6 @@ export default {
     fetchData () {
       this.loading = true
       fetch({
-        router: this.$router,
         method: 'get',
         url: 'settings/config/backend'
       }).then((res) => {
@@ -95,7 +94,6 @@ export default {
       this.loading = true
       // update
       fetch({
-        router: this.$router,
         method: 'put',
         url: 'settings/config/backend',
         data: JSON.stringify(this.form)

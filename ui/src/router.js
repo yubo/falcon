@@ -1,8 +1,6 @@
 import Vue from 'vue'
 import VueRouter from 'vue-router'
-import login from './components/login'
-import ldap from './components/login/ldap'
-import misso from './components/login/misso'
+
 import settings from './components/settings'
 import ctrl from './components/settings/ctrl'
 import agent from './components/settings/agent'
@@ -11,30 +9,22 @@ import backend from './components/settings/backend'
 import profile from './components/settings/profile'
 import aboutme from './components/settings/aboutme'
 import debug from './components/settings/debug'
+
 import meta from './components/meta'
-import expr from './components/meta/expression'
-import exprEdit from './components/meta/expression/edit'
+import expression from './components/meta/expression'
 import host from './components/meta/host'
-import hostEdit from './components/meta/host/edit'
 import role from './components/meta/role'
-import roleEdit from './components/meta/role/edit'
-import template from './components/meta/template'
-import templateEdit from './components/meta/template/edit'
 import tag from './components/meta/tag'
-import tagEdit from './components/meta/tag/edit'
 import team from './components/meta/team'
-import teamEdit from './components/meta/team/edit'
+import template from './components/meta/template'
 import token from './components/meta/token'
-import tokenEdit from './components/meta/token/edit'
 import user from './components/meta/user'
-import userEdit from './components/meta/user/edit'
+
 import rel from './components/rel'
 import tagHost from './components/rel/tag_host'
 import tagRoleUser from './components/rel/tag_role_user'
 import tagRoleToken from './components/rel/tag_role_token'
-import tagTemplateTrigger from './components/rel/tag_template_trigger'
-import store from './store'
-const { _ } = window
+import tagTemplate from './components/rel/tag_template'
 
 Vue.use(VueRouter)
 
@@ -42,15 +32,7 @@ const router = new VueRouter({
   routes:
   [{
     path: '/',
-    redirect: '/meta/tag/list'
-  }, {
-    path: '/login',
-    redirect: '/login/ldap',
-    component: login,
-    children: [
-    { path: 'ldap', component: ldap },
-    { path: 'misso', component: misso }
-    ]
+    redirect: '/meta/tag'
   }, {
     path: '/settings',
     redirect: '/settings/aboutme',
@@ -66,33 +48,17 @@ const router = new VueRouter({
     ]
   }, {
     path: '/meta',
-    redirect: '/meta/host/list',
+    redirect: '/meta/host',
     component: meta,
     children: [
-    { path: 'expression', redirect: 'expression/list' },
-    { path: 'expression/list', component: expr },
-    { path: 'expression/edit', component: exprEdit },
-    { path: 'host', redirect: 'host/list' },
-    { path: 'host/list', component: host },
-    { path: 'host/edit', component: hostEdit },
-    { path: 'role', redirect: 'role/list' },
-    { path: 'role/list', component: role },
-    { path: 'role/edit', component: roleEdit },
-    { path: 'template', redirect: 'template/list' },
-    { path: 'template/list', component: template },
-    { path: 'template/edit', component: templateEdit },
-    { path: 'tag', redirect: 'tag/list' },
-    { path: 'tag/list', component: tag },
-    { path: 'tag/edit', component: tagEdit },
-    { path: 'team', redirect: 'team/list' },
-    { path: 'team/list', component: team },
-    { path: 'team/edit', component: teamEdit },
-    { path: 'token', redirect: 'token/list' },
-    { path: 'token/list', component: token },
-    { path: 'token/edit', component: tokenEdit },
-    { path: 'user', redirect: 'user/list' },
-    { path: 'user/list', component: user },
-    { path: 'user/edit', component: userEdit }
+    { path: 'expression', component: expression },
+    { path: 'host', component: host },
+    { path: 'role', component: role },
+    { path: 'tag', component: tag },
+    { path: 'team', component: team },
+    { path: 'template', component: template },
+    { path: 'token', component: token },
+    { path: 'user', component: user }
     ]
   }, {
     path: '/rel',
@@ -102,11 +68,12 @@ const router = new VueRouter({
     { path: 'tag-host', component: tagHost },
     { path: 'tag-role-user', component: tagRoleUser },
     { path: 'tag-role-token', component: tagRoleToken },
-    { path: 'tag-template-trigger', component: tagTemplateTrigger }
+    { path: 'tag-template', component: tagTemplate }
     ]
   }]
 })
 
+/*
 router.beforeEach((to, from, next) => {
   console.log(to)
   if (store.state.login.login) {
@@ -131,5 +98,6 @@ router.beforeEach((to, from, next) => {
     vm.$router.push({path: '/login'})
   })
 })
+*/
 
 export default router

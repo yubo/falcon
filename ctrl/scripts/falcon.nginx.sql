@@ -7,4 +7,8 @@ server {
   location ^~ /v1.0 {
     proxy_pass http://localhost:8001;
   }
+
+  location ^~ /doc {
+    proxy_pass http://localhost:8001;
+  }
 }
