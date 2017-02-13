@@ -7,27 +7,23 @@ package main
 
 import (
 	"github.com/astaxie/beego"
-	"github.com/astaxie/beego/orm"
 	_ "github.com/astaxie/beego/session/mysql"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/yubo/falcon/ctrl/api/models"
 	_ "github.com/yubo/falcon/ctrl/api/models/auth"
 	//_ "github.com/yubo/falcon/ctrl/api/models/plugin/demo"
 	_ "github.com/yubo/falcon/ctrl/api/routers"
 )
 
-func main() {
-	if beego.BConfig.RunMode == "dev" {
-		orm.Debug = true
-		beego.BConfig.WebConfig.DirectoryIndex = true
-		beego.BConfig.WebConfig.StaticDir["/doc"] = "swagger"
+var (
+	conf = map[string]string{
+		"mysqldsn":     "root:12341234@tcp(localhost:3306)/falcon?loc=Local&charset=utf8",
+		"mysqlmaxidle": "30",
+		"mysqlmaxconn": "30",
 	}
+)
 
-	dsn := beego.AppConfig.String("mysqldsn")
-	maxIdle, _ := beego.AppConfig.Int("mysqlmaxidle")
-	maxConn, _ := beego.AppConfig.Int("mysqlmaxconn")
-
-	orm.RegisterDriver("mysql", orm.DRMySQL)
-	orm.RegisterDataBase("default", "mysql", dsn, maxIdle, maxConn)
-
+func main() {
+	models.ConfInit(conf)
 	beego.Run()
 }

@@ -185,7 +185,7 @@ export default {
       global: this.global,
       tag_id: this.curTagId,
       query: this.query,
-      own: this.own,
+      mine: this.mine,
       per: this.per,
       offset: this.offset}) {
       fetch({

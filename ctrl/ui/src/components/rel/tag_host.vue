@@ -78,6 +78,7 @@ export default {
       loading: false,
       sloading: false,
       global: false,
+      mine: true,
       hosts: [],
       optionHosts: [],
       query: '',
@@ -150,7 +151,7 @@ export default {
     fetchData (opts = {
       tag_id: this.curTagId,
       query: this.query,
-      own: this.own,
+      mine: this.mine,
       per: this.per,
       offset: this.offset}) {
       this.loading = true

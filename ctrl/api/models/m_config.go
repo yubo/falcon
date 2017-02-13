@@ -7,8 +7,11 @@ package models
 
 import (
 	"encoding/json"
+	"os"
 	"reflect"
+	"strconv"
 
+	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/orm"
 	"github.com/yubo/falcon/specs"
 )
@@ -31,7 +34,7 @@ type __ConfigEntry struct {
 	Value []ConfigEntry
 }
 
-func configGet(k string, def interface{}) interface{} {
+func ConfigGet(k string, def interface{}) interface{} {
 	var row _ConfigEntry
 	err := orm.NewOrm().Raw("SELECT `key`, `note`, `value` FROM `kv` where "+
 		"`key` = ? and `type_id` = ?", k, KV_T_CONFIG).QueryRow(&row)
@@ -52,13 +55,13 @@ func configGet(k string, def interface{}) interface{} {
 func (u *User) ConfigGet(k string) (interface{}, error) {
 	switch k {
 	case "ctrl":
-		return configGet(k, &specs.ConfCtrlDef), nil
+		return ConfigGet(k, &specs.ConfCtrlDef), nil
 	case "agent":
-		return configGet(k, &specs.ConfAgentDef), nil
+		return ConfigGet(k, &specs.ConfAgentDef), nil
 	case "lb":
-		return configGet(k, &specs.ConfLbDef), nil
+		return ConfigGet(k, &specs.ConfLbDef), nil
 	case "backend":
-		return configGet(k, &specs.ConfBackendDef), nil
+		return ConfigGet(k, &specs.ConfBackendDef), nil
 	default:
 		return nil, ErrNoModule
 	}
@@ -92,4 +95,49 @@ func (u *User) ConfigSet(k string, v []byte) (err error) {
 		" VALUES (?,?,?) ON DUPLICATE KEY UPDATE `value`=?",
 		k, s, KV_T_CONFIG, s).Exec()
 	return err
+}
+
+// ugly hack
+// should called by main package
+func ConfInit(conf map[string]string) {
+	var (
+		dsn     string
+		maxIdle int
+		maxConn int
+	)
+
+	if _, err := os.Stat("./conf/app.conf"); os.IsNotExist(err) {
+		dsn = conf["mysqldsn"]
+		maxIdle, _ = strconv.Atoi(conf["mysqlmaxidle"])
+		maxConn, _ = strconv.Atoi(conf["mysqlmaxconn"])
+
+		cfg := ConfigGet("ctrl", &specs.ConfCtrlDef).(*specs.ConfCtrl)
+		beego.BConfig.AppName = cfg.AppName
+		beego.BConfig.RunMode = cfg.RunMode
+		beego.BConfig.Listen.HTTPPort = cfg.HttpPort
+		beego.BConfig.WebConfig.EnableDocs = cfg.EnableDocs
+		beego.BConfig.WebConfig.Session.SessionName = cfg.SessionName
+		beego.BConfig.WebConfig.Session.SessionGCMaxLifetime = cfg.SessionGCMaxLifetime
+		beego.BConfig.WebConfig.Session.SessionCookieLifeTime = cfg.SessionCookieLifeTime
+	} else {
+		dsn = beego.AppConfig.String("mysqldsn")
+		maxIdle, _ = beego.AppConfig.Int("mysqlmaxidle")
+		maxConn, _ = beego.AppConfig.Int("mysqlmaxconn")
+	}
+
+	beego.BConfig.WebConfig.Session.SessionOn = true
+	beego.BConfig.WebConfig.Session.SessionProvider = "mysql"
+	beego.BConfig.WebConfig.Session.SessionProviderConfig = dsn
+	beego.BConfig.WebConfig.Session.SessionDisableHTTPOnly = false
+	beego.BConfig.WebConfig.StaticDir["/"] = "static"
+	beego.BConfig.WebConfig.StaticDir["/static"] = "static/static"
+
+	orm.RegisterDriver("mysql", orm.DRMySQL)
+	orm.RegisterDataBase("default", "mysql", dsn, maxIdle, maxConn)
+
+	if beego.BConfig.RunMode == "dev" {
+		orm.Debug = true
+		beego.BConfig.WebConfig.DirectoryIndex = true
+		beego.BConfig.WebConfig.StaticDir["/doc"] = "swagger"
+	}
 }

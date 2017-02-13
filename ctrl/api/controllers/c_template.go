@@ -27,8 +27,6 @@ func (c *TemplateController) CreateTemplate() {
 	var ta models.TemplateAction
 	me, _ := c.Ctx.Input.GetData("me").(*models.User)
 	json.Unmarshal(c.Ctx.Input.RequestBody, &ta)
-	ta.Template.Id = 0
-	ta.Action.Id = 0
 
 	id, err := me.AddAction(&ta.Action)
 	if err != nil {
@@ -67,7 +65,7 @@ func (c *TemplateController) GetTemplatesCnt() {
 // @Param   query     query   string  false    "template name"
 // @Param   per       query   int     false    "per page number"
 // @Param   offset    query   int     false    "offset  number"
-// @Success 200 {object} models.TemplateUi
+// @Success 200 [object] []models.TemplateUi
 // @Failure 403 string error
 // @router /search [get]
 func (c *TemplateController) GetTemplates() {

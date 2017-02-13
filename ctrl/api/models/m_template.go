@@ -119,25 +119,25 @@ func (u *User) CloneTemplate(id int64) (*TemplateAction, error) {
 }
 
 func (u *User) GetTemplate(id int64) (*TemplateAction, error) {
-	var ta TemplateAction
+	var ret TemplateAction
 
 	if t, err := u.getTemplate(id); err != nil {
 		return nil, err
 	} else {
-		ta.Template = *t
+		ret.Template = *t
 	}
 
-	if a, err := u.GetAction(ta.Template.ActionId); err != nil {
+	if a, err := u.GetAction(ret.Template.ActionId); err != nil {
 		return nil, err
 	} else {
-		ta.Action = *a
+		ret.Action = *a
 	}
 
-	if t, err := u.getTemplate(ta.Template.ParentId); err == nil {
-		ta.Pname = t.Name
+	if t, err := u.getTemplate(ret.Template.ParentId); err == nil {
+		ret.Pname = t.Name
 	}
 
-	return &ta, nil
+	return &ret, nil
 }
 
 func (u *User) getTemplate(id int64) (*Template, error) {
@@ -242,19 +242,5 @@ func (u *User) DeleteTemplate(id int64) error {
 	cacheModule[CTL_M_TEMPLATE].del(id)
 	DbLog(u.Id, CTL_M_TEMPLATE, id, CTL_A_DEL, "")
 
-	return nil
-}
-
-func (u *User) BindUserTemplate(user_id, template_id, tag_id int64) (err error) {
-	if _, err := orm.NewOrm().Raw("INSERT INTO `tag_template_user` (`tag_id`, `template_id`, `user_id`) VALUES (?, ?, ?)", tag_id, template_id, user_id).Exec(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (u *User) BindTokenTemplate(token_id, template_id, tag_id int64) (err error) {
-	if _, err := orm.NewOrm().Raw("INSERT INTO `tag_template_token` (`tag_id`, `template_id`, `token_id`) VALUES (?, ?, ?)", tag_id, template_id, token_id).Exec(); err != nil {
-		return err
-	}
 	return nil
 }

@@ -49,6 +49,7 @@ func init() {
 		beego.NSNamespace("/rel", beego.NSInclude(&controllers.RelController{})),
 		beego.NSNamespace("/team", beego.NSInclude(&controllers.TeamController{})),
 		beego.NSNamespace("/template", beego.NSInclude(&controllers.TemplateController{})),
+		beego.NSNamespace("/expression", beego.NSInclude(&controllers.ExpressionController{})),
 		beego.NSNamespace("/strategy", beego.NSInclude(&controllers.StrategyController{})),
 		beego.NSNamespace("/settings", beego.NSInclude(&controllers.SetController{})),
 		beego.NSNamespace("/metric", beego.NSInclude(&controllers.MetricController{})),

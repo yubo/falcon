@@ -5,6 +5,8 @@
         <input type="text" v-model="query" @keyup.enter="handleQuery" class="form-control" placeholder="template name">
       </div>
       <button type="button" @click="handleQuery" class="btn btn-primary">search</button>
+      <input type="checkbox" v-model="mine" class="form-control">
+      <span>mine</span>
       <div class="pull-right">
         <button type="button" @click="editObj" class="btn btn-default"><span class="glyphicon glyphicon-plus"></span>Add</button>
       </div>
@@ -38,7 +40,7 @@
 
 
     <!-- edit modal -->
-    <el-dialog :title="isEdit ? 'edit template' : 'add template'" v-model="editVisible" :close-on-click-modal="false">
+    <el-dialog size="large" :title="isEdit ? 'edit template' : 'add template'" v-model="editVisible" :close-on-click-modal="false">
       <div v-loading.lock="dloading">
         <el-form label-position="right" label-width="80px" :model="objForm">
 
@@ -203,6 +205,7 @@ export default {
       tloading: false,
       query: '',
       query2: '',
+      mine: true,
       per: 10,
       per2: 10,
       cur: 1,
@@ -227,8 +230,6 @@ export default {
       bcm: false,
       acs: false,
       acm: false,
-      templateId: 0,
-      strategyId: 0,
       pid: '',
       objForm: {
         template: {
@@ -434,6 +435,7 @@ export default {
       }).catch((err) => {
         Message.error(err.response.data)
         this.dloading = false
+        this.editVisible = false
       })
     },
     editObj (obj = {}, clone = false) {

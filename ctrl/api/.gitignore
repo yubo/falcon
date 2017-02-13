@@ -3,6 +3,7 @@ tmp/
 ctrl
 *.swp
 note.*
-static/tree
 routers/commentsRouter*
 swagger/
+api
+static/

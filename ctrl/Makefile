@@ -1,24 +1,19 @@
-all: ctrl swagger/swagger.json
+all: api/swagger/swagger.json
 WORKDIR=$(shell pwd)
 VENDOR=${WORKDIR}/../vendor
 
-.PHONY: db dev doc
-
-ctrl: *.go */*.go
-	go build
-
-swagger/swagger.json: routers/router.go
-	bee generate docs
+.PHONY: db dev doc web
 
 doc:
-	bee generate docs
+	make -C api doc
 
-#cd ${WORKDIR} &&\
-#echo ${WORKDIR} && \ 
-# export GOPATH=${VENDOR} && cd ${WORKDIR} && \
+web:
+	make -C ui build && \
+	rm -rf api/static && \
+	cp -a ui/dist api/static
 
 dev:
-	bee run -gendoc=true -downdoc=true
+	make -C api dev
 
 db:
 	mysql -uroot -p12341234 falcon < ./scripts/falcon.sql
@@ -27,3 +22,5 @@ db:
 env:
 	@echo export GOPATH=${VENDOR}
 
+pkg:
+	tar --exclude=./ui/node_modules -czvf /tmp/ui.tar.gz . 

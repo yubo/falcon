@@ -68,6 +68,6 @@ func TestTagTree(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	} else {
-		s, _ := json.Marshal(tree)
+		json.Marshal(tree)
 	}
 }

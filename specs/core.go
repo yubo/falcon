@@ -252,7 +252,24 @@ func (c ConfBackend) String() string {
 }
 
 type ConfCtrl struct {
-	Params ModuleParams `json:"params"`
+	Params                ModuleParams `json:"params"`
+	AppName               string       `json:"app_name"`
+	RunMode               string       `json:"run_mode"`
+	HttpPort              int          `json:"http_port"`
+	EnableDocs            bool         `json:"enable_docs"`
+	SessionName           string       `json:"session_name"`
+	SessionGCMaxLifetime  int64        `json:"session_gc_max_lifetime"`
+	SessionCookieLifeTime int          `json:"session_cookie_lifetime"`
+	MetricFile            string       `json:"metric_file"`
+	AuthModule            string       `json:"auth_module"`
+	CacheModule           string       `json:"cache_module"`
+	LdapAddr              string       `json:"ldap_addr"`
+	LdapBasedn            string       `json:"ldap_basedn"`
+	LdapBinddn            string       `json:"ldap_binddn"`
+	LdapBindpwd           string       `json:"ldap_bindpwd"`
+	LdapFilter            string       `json:"ldap_filter"`
+	LdapTls               bool         `json:"ldap_tls"`
+	LdapDebug             bool         `json:"ldap_debug"`
 }
 
 var (
@@ -337,5 +354,22 @@ var (
 			RpcAddr:     "0.0.0.0:8433",
 			CtrlAddr:    "N/A",
 		},
+		AppName:               "ctrl",
+		RunMode:               "dev",
+		HttpPort:              8001,
+		EnableDocs:            true,
+		SessionName:           "falconSessionId",
+		SessionGCMaxLifetime:  86400,
+		SessionCookieLifeTime: 86400,
+		MetricFile:            "./conf/metric_names",
+		AuthModule:            "ldap,misso",
+		CacheModule:           "host,role,system,tag,user",
+		LdapAddr:              "127.0.0.1:389",
+		LdapBasedn:            "dc=yubo,dc=org",
+		LdapBinddn:            "cn=admin,dc=yubo,dc=org",
+		LdapBindpwd:           "12341234",
+		LdapFilter:            "(&(objectClass=posixAccount)(cn=%s))",
+		LdapTls:               false,
+		LdapDebug:             true,
 	}
 )
