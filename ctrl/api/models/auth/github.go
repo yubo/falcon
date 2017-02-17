@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	baseURL = "https://api.github.com"
+	githubBaseURL = "https://api.github.com"
 )
 
 type githubAuth struct {
@@ -66,7 +66,7 @@ func (p *githubAuth) AuthorizeUrl(c interface{}) string {
 }
 
 func (p *githubAuth) CallBack(c interface{}) (uuid string, err error) {
-	var user user
+	var user githubUser
 
 	r := c.(*context.Context).Request
 	q := r.URL.Query()
@@ -92,15 +92,12 @@ func (p *githubAuth) CallBack(c interface{}) (uuid string, err error) {
 		return
 	}
 
-	if user.Name == "" {
-		err = fmt.Errorf("github: get empty username")
-		return
-	}
-	uuid = fmt.Sprintf("%s@%s", user.Name, p.GetName())
+	//beego.Debug(fmt.Sprintf("name:%s login:%s id:%d email:%s", user.Name, user.Login, user.ID, user.Email))
+	uuid = fmt.Sprintf("%s@%s", user.Login, p.GetName())
 	return
 }
 
-type user struct {
+type githubUser struct {
 	Name  string `json:"name"`
 	Login string `json:"login"`
 	ID    int    `json:"id"`
@@ -110,9 +107,9 @@ type user struct {
 // user queries the GitHub API for profile information using the provided client. The HTTP
 // client is expected to be constructed by the golang.org/x/oauth2 package, which inserts
 // a bearer token as part of the request.
-func (c *githubAuth) user(r *http.Request, client *http.Client) (user, error) {
-	var u user
-	req, err := http.NewRequest("GET", baseURL+"/user", nil)
+func (c *githubAuth) user(r *http.Request, client *http.Client) (githubUser, error) {
+	var u githubUser
+	req, err := http.NewRequest("GET", githubBaseURL+"/user", nil)
 	if err != nil {
 		return u, fmt.Errorf("github: new req: %v", err)
 	}
