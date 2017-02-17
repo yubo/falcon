@@ -1,11 +1,11 @@
 import Vue from 'vue'
 import Vuex from 'vuex'
-import login from './modules/login'
+import auth from './modules/auth'
 import rel from './modules/rel'
 
 Vue.use(Vuex)
 
-const modules = { login, rel }
+const modules = { auth, rel }
 
 const state = {
   config: null

@@ -36,11 +36,11 @@ const actions = {
     }).then((res) => {
       commit('m_login_success', res)
       commit('m_set_loading', false)
-      Message.success('login success')
+      Message.success('login success, hi ' + res.data.name)
     }).catch((err) => {
-      commit('m_login_fail', err)
+      commit('m_login_fail')
       commit('m_set_loading', false)
-      Message.error(err)
+      Message.error('login fail ' + err)
     })
   }
 }
@@ -49,6 +49,7 @@ const actions = {
 const mutations = {
   'm_set_user' (state, user) {
     state.user = user
+    state.username = state.user.name
   },
   'm_logout' (state) {
     state.login = false
@@ -60,9 +61,10 @@ const mutations = {
   'm_login_success' (state, res) {
     state.login = true
     state.user = res.data
+    state.username = state.user.name
     window.Cookies.set('username', res.data.name, {expires: 1})
   },
-  'm_login_fail' (state, err) {
+  'm_login_fail' (state) {
     state.login = false
     window.Cookies.remove('username')
   }

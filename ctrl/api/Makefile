@@ -1,6 +1,6 @@
 all: ctrl swagger/swagger.json
 WORKDIR=$(shell pwd)
-VENDOR=${WORKDIR}/../vendor
+VENDOR=${WORKDIR}/../../vendor
 
 .PHONY: db dev doc
 
@@ -16,6 +16,8 @@ doc:
 #cd ${WORKDIR} &&\
 #echo ${WORKDIR} && \ 
 # export GOPATH=${VENDOR} && cd ${WORKDIR} && \
+#	bee run -gendoc=true -downdoc=true
+#	bee run
 
 dev:
 	bee run -gendoc=true -downdoc=true

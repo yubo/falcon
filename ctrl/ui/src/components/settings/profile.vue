@@ -44,11 +44,11 @@ export default {
   },
   methods: {
     fetchData () {
-      if (!this.$store.state.login.login) {
+      if (!this.$store.state.auth.login) {
         return
       }
       for (var k in this.userform) {
-        this.userform[k] = this.$store.state.login.user[k]
+        this.userform[k] = this.$store.state.auth.user[k]
       }
       this.hasName = (this.userform.name !== '')
     },
@@ -62,7 +62,7 @@ export default {
         data: this.userform
       }).then((res) => {
         Message.success('update success')
-        this.$store.commit('login/m_set_user', res.data)
+        this.$store.commit('auth/m_set_user', res.data)
         this.loading = false
       }).catch((err) => {
         Message.error(err.response.data)

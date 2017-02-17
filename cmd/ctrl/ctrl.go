@@ -14,7 +14,7 @@ import (
 
 	"github.com/astaxie/beego"
 	"github.com/golang/glog"
-	"github.com/yubo/falcon/ctrl/core"
+	"github.com/yubo/falcon/ctrl"
 	"github.com/yubo/falcon/specs"
 	"github.com/yubo/gotool/flags"
 )

@@ -5,23 +5,86 @@
  */
 package controllers
 
-import (
-	"github.com/astaxie/beego"
-	"github.com/yubo/falcon/ctrl/api/models"
-)
+import "github.com/yubo/falcon/ctrl/api/models"
 
 // Operations about Auth
 type AuthController struct {
 	BaseController
 }
 
+// @Title get support auth modules
+// @Description get support auth modules
+// @Success 200 [string] []strins{module, ...}
+// @Failure 405 error
+// @router /modules [get]
+func (c *AuthController) Modules() {
+	m := []string{}
+	for k, _ := range models.Auths {
+		m = append(m, k)
+	}
+
+	c.SendMsg(200, m)
+}
+
+// @Title OAuth Login
+// @Description auth login
+// @Param	module	path	string	true	"the module you want to use(github/google)"
+// @Success 302 redirect
+// @Failure 405 error
+// @router /login/:module [get]
+func (c *AuthController) Authorize() {
+	module := c.GetString(":module")
+
+	auth, ok := models.Auths[module]
+	if !ok {
+		c.SendMsg(405, models.ErrNoModule.Error())
+		return
+	}
+
+	URL := auth.AuthorizeUrl(c.Ctx)
+	if URL == "" {
+		c.SendMsg(405, nil)
+		return
+	}
+
+	c.Ctx.Redirect(302, URL)
+}
+
+// @Title OAuth module callback handle
+// @Description Auth module callback handle
+// @Param	module	path	string	true	"the module you want to use"
+// @Success 302 redirect to RedirectUrl(default "/")
+// @Failure 406 not acceptable
+// @router /callback/:module [get]
+func (c *AuthController) Callback() {
+	auth, ok := models.Auths[c.GetString(":module")]
+	if !ok {
+		c.SendMsg(406, models.ErrNoModule.Error())
+		return
+	}
+	cb := c.GetString("cb")
+
+	uuid, err := auth.CallBack(c.Ctx)
+	if err != nil {
+		c.SendMsg(406, err.Error())
+		return
+	}
+
+	if _, err = c.Access(uuid); err != nil {
+		c.SendMsg(406, err.Error())
+		return
+	}
+
+	c.Ctx.Redirect(302, "/#"+cb)
+}
+
 // @Title AuthLogin
 // @Description auth login, such as ldap auth
-// @Param	username	query	string	true	"username for login"
-// @Param	password	query	string	true	"passworld for login"
-// @Param	method		query	string	true	"login method"
+// @Param	username	query	string	false	"username for login"
+// @Param	password	query	string	false	"passworld for login"
+// @Param	method		query	string	false	"login method"
 // @Success 200 {object} models.User
-// @Failure 406 error
+// @Failure 406 not acceptable
 // @router /login [post]
 func (c *AuthController) PostLogin() {
 	var (
@@ -48,13 +111,13 @@ func (c *AuthController) PostLogin() {
 		goto out_err
 	}
 
-	if auth, ok = models.AuthMap[method]; !ok {
+	if auth, ok = models.Auths[method]; !ok {
 		err = models.ErrNoExits
 		goto out_err
 	}
 
 	if ok, uuid, err = auth.Verify(c); !ok {
-		err = models.ErrAuthFailed
+		err = models.ErrLogin
 		goto out_err
 	}
 
@@ -64,22 +127,7 @@ out:
 	return
 
 out_err:
-	beego.Debug(err)
-	c.SendMsg(405, err.Error())
-}
-
-// @Title Auth module callback handle
-// @Description Auth module callback handle
-// @Param	module	path	string	true	"the module you want to use"
-// @router /callback/:module [get]
-func (c *AuthController) Callback() {
-	module := c.Ctx.Input.Param(":module")
-
-	if auth, ok := models.AuthMap[module]; !ok {
-		c.Ctx.Redirect(302, "/")
-	} else {
-		auth.CallBack(c)
-	}
+	c.SendMsg(406, err.Error())
 }
 
 // @Title Auth Logout

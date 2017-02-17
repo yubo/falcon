@@ -50,7 +50,7 @@
       </div>
     </div>
 
-    <el-table v-loading.fullscreen.lock="loading" :data="tableData" border style="width: 100%" class="mt20">
+    <el-table v-loading.lock="loading" :data="tableData" border style="width: 100%" class="mt20">
       <el-table-column :prop="curTag.name" :label="curTag.name" width="100%">
         <el-table-column type="selection" width="55"> </el-table-column>
         <el-table-column prop="user_name" label="user"> </el-table-column>

@@ -6,8 +6,8 @@
 package models
 
 var (
-	AuthMap map[string]AuthInterface
-	Auths   []AuthInterface
+	allAuths map[string]AuthInterface
+	Auths    map[string]AuthInterface
 )
 
 type Auth struct {
@@ -25,7 +25,13 @@ func (p *AuthModule) GetName() string {
 	return p.Name
 }
 
-func (p *AuthModule) CallBack(c interface{}) {
+func (p *AuthModule) AuthorizeUrl(ctx interface{}) string {
+	return ""
+}
+
+func (p *AuthModule) CallBack(ctx interface{}) (uuid string, err error) {
+	err = ErrNoModule
+	return
 }
 
 func (p *AuthModule) Verify(c interface{}) (bool, string, error) {
@@ -43,15 +49,16 @@ func (p *AuthModule) PreStart() error {
 type AuthInterface interface {
 	GetName() string
 	Verify(c interface{}) (success bool, uuid string, err error)
-	CallBack(c interface{})
+	CallBack(ctx interface{}) (uuid string, err error)
 	PreStart() error
+	AuthorizeUrl(ctx interface{}) string
 }
 
 func RegisterAuth(p AuthInterface) error {
-	if _, ok := AuthMap[p.GetName()]; ok {
+	if _, ok := allAuths[p.GetName()]; ok {
 		return ErrExist
 	} else {
-		AuthMap[p.GetName()] = p
+		allAuths[p.GetName()] = p
 		return nil
 	}
 }

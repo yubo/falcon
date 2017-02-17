@@ -17,7 +17,7 @@ import (
 
 var (
 	conf = map[string]string{
-		"mysqldsn":     "root:12341234@tcp(localhost:3306)/falcon?loc=Local&charset=utf8",
+		"mysqldsn":     "root:123456@tcp(localhost:3306)/yubo_falcon?loc=Local&charset=utf8",
 		"mysqlmaxidle": "30",
 		"mysqlmaxconn": "30",
 	}

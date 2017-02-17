@@ -57,13 +57,15 @@ func (p *ldapAuth) PreStart() error {
 
 func (p *ldapAuth) Verify(_c interface{}) (bool, string, error) {
 	c := _c.(*controllers.AuthController)
+	username := c.GetString("username")
+	password := c.GetString("password")
 
-	if beego.BConfig.RunMode == "dev" && c.GetString("username") == "test" {
+	if beego.BConfig.RunMode == "dev" && username == "test" {
 		return true, "test", nil
 	}
 
 	success, uuid, err := ldapUserAuthentication(p.addr, p.baseDN, p.filter,
-		c.GetString("username"), c.GetString("password"),
+		username, password,
 		p.bindDN, p.bindPwd, p.tls)
 	if success {
 		uuid = fmt.Sprintf("%s@%s", uuid, p.Name)

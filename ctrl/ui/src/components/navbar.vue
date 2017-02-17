@@ -52,9 +52,6 @@
             <li><router-link to="/settings/config/agent">agent</router-link></li>
             <li><router-link to="/settings/config/graph">graph</router-link></li>
             <li role="separator" class="divider"></li>
-            <li><router-link to="/settings/profile">Profile</router-link></li>
-            <li><router-link to="/settings/aboutme">About Me</router-link></li>
-            <li role="separator" class="divider"></li>
             <li><router-link to="/settings/debug">Debug</router-link></li>
           </ul>
         </li>
@@ -65,9 +62,16 @@
             <li><a href="/doc" target="_blank">doc</a></li>
             <li role="separator" class="divider"></li>
             <li><router-link to="/about">About Falcon</router-link></li>
+          </ul>
         </li>
         <li v-if="login" class="dropdown">
-          <a class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" @click="logout">[logout]</a>
+          <a to="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true"
+            aria-expanded="false">{{this.$store.state.auth.username}}<span class="caret"></span></a>
+          <ul class="dropdown-menu">
+            <li><router-link to="/settings/profile">Profile</router-link></li>
+            <li><router-link to="/settings/aboutme">About Me</router-link></li>
+            <li><a href="#" @click="logout">logout</a></li>
+          </ul>
         </li>
       </ul>
     </div>
@@ -91,7 +95,7 @@ export default {
   },
   computed: {
     login () {
-      return this.$store.state.login.login
+      return this.$store.state.auth.login
     },
     links () {
       var url = ''
@@ -106,7 +110,7 @@ export default {
   },
   methods: {
     logout () {
-      this.$store.dispatch('login/logout')
+      this.$store.dispatch('auth/logout')
     }
   }
 }

@@ -17,8 +17,8 @@ import (
 	_ "github.com/astaxie/beego/session/mysql"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/golang/glog"
-	_ "github.com/yubo/falcon/ctrl/models/auth"
-	_ "github.com/yubo/falcon/ctrl/routers"
+	_ "github.com/yubo/falcon/ctrl/api/models/auth"
+	_ "github.com/yubo/falcon/ctrl/api/routers"
 	"github.com/yubo/falcon/specs"
 )
 

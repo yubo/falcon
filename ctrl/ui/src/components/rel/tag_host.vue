@@ -35,7 +35,7 @@
     </div>
 
 
-    <el-table v-loading.fullscreen.lock="loading" :data="tableData" border style="width: 100%" class="mt20" @selection-change="handleSelectionChange">
+    <el-table v-loading.lock="loading" :data="tableData" border style="width: 100%" class="mt20" @selection-change="handleSelectionChange">
       <el-table-column :prop="curTag.name" :label="curTag.name" width="100%">
         <el-table-column type="selection"> </el-table-column>
         <el-table-column prop="name" label="host"> </el-table-column>

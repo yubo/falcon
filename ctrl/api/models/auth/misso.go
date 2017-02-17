@@ -8,18 +8,19 @@ package auth
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"strings"
 	"time"
 
 	"github.com/astaxie/beego"
+	"github.com/astaxie/beego/context"
 	"github.com/astaxie/beego/httplib"
-	"github.com/yubo/falcon/ctrl/api/controllers"
 	"github.com/yubo/falcon/ctrl/api/models"
 )
 
 type missoAuth struct {
 	models.AuthModule
-	callback string
+	RedirectURL string
 
 	CookieSecretKey string
 	missoAuthDomain string
@@ -42,36 +43,36 @@ func init() {
 	models.RegisterAuth(_misso)
 }
 
-/*
-func (p *missoAuth) LoginHtml(_c interface{}) string {
-	c := _c.(*controllers.AuthController)
-	ctx := c.Ctx
+func (p *missoAuth) PreStart() error {
+	if p.AuthModule.Prestarted {
+		return models.ErrRePreStart
+	}
+	p.AuthModule.Prestarted = true
+	p.RedirectURL = beego.AppConfig.String("missoredirecturl")
+	return nil
+}
 
-	//If not login, at first generate a key from sso system
+func (p *missoAuth) AuthorizeUrl(c interface{}) string {
+	ctx := c.(*context.Context)
+
 	p.Credential, _ = p.GenerateCredential()
 	ctx.SetCookie("broker_cookie", p.Credential)
-	base_url := ctx.Input.Context.Request.Host
 
-	login_url, _ := p.GetLoginUrl()
-	return fmt.Sprintf("<a href='%s&callback=http://%s/v1.0/auth/callback/"+
-		"%s'>mioss</a>", login_url, base_url, p.Name)
-}
-*/
+	v := url.Values{}
+	v.Set("callback", p.RedirectURL)
 
-func (p *missoAuth) CallBack(_c interface{}) {
-	var (
-		uuid string
-	)
-	c := _c.(*controllers.AuthController)
-	ctx := c.Ctx
-
-	remote_ips, ok := ctx.Input.Context.Request.Header["X-Forward-For"]
-	remote_ip := ""
-	if ok && len(remote_ips) > 0 {
-		remote_ip = remote_ips[0]
-	} else {
-		remote_ip = ctx.Input.IP()
+	url, err := p.GetLoginUrl()
+	if err != nil {
+		return ""
 	}
+
+	return fmt.Sprintf("%s&%s", url, v.Encode())
+}
+
+func (p *missoAuth) CallBack(c interface{}) (uuid string, err error) {
+	ctx := c.(*context.Context)
+
+	remote_ip := models.GetIPAdress(ctx.Input.Context.Request)
 
 	user_name, result := ctx.GetSecureCookie(p.CookieSecretKey, "user_name")
 	broker_cookie := ctx.GetCookie("broker_cookie")
@@ -79,17 +80,19 @@ func (p *missoAuth) CallBack(_c interface{}) {
 	//If can get user_name from cookie, user have logined
 	if result == true {
 		uuid = fmt.Sprintf("%s@%s", user_name, p.Name)
-		goto success_out
+		beego.Debug("----misso login success uuid:", uuid)
+		return
 	} else {
 		if broker_cookie == "" {
 			//cannot get broker_cookie, may first open in browser, or use service_account
 			//try to get user_name from sso, may be login use service account
 			authorization := ctx.Input.Header("Authorization")
 			if authorization != "" {
-				user_name, err := p.GetServiceUser(authorization, remote_ip)
+				uuid, err = p.GetServiceUser(authorization, remote_ip)
 				if err == nil && user_name != "" {
-					uuid = fmt.Sprintf("%s@%s", user_name, p.Name)
-					goto success_out
+					uuid = fmt.Sprintf("%s@%s", uuid, p.Name)
+					beego.Debug("----misso login success uuid:", uuid)
+					return
 				}
 			}
 		} else {
@@ -98,19 +101,13 @@ func (p *missoAuth) CallBack(_c interface{}) {
 				uuid = fmt.Sprintf("%s@%s", user_name, p.Name)
 				ctx.SetSecureCookie(p.CookieSecretKey,
 					"user_name", user_name)
-				goto success_out
+				beego.Debug("----misso login success uuid:", uuid)
+				return
 			}
 		}
 	}
-
-	ctx.Redirect(302, "/pub/auth/login")
+	err = models.ErrLogin
 	return
-success_out:
-	beego.Info("[Get user's user_name by broker_cookie][user_name:",
-		user_name, "remote_ip:", ctx.Input.IP())
-	//user_name
-	c.Access(uuid)
-	ctx.Redirect(302, "/")
 }
 
 /***********************

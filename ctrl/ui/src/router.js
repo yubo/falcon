@@ -73,31 +73,4 @@ const router = new VueRouter({
   }]
 })
 
-/*
-router.beforeEach((to, from, next) => {
-  console.log(to)
-  if (store.state.login.login) {
-    next()
-    return
-  }
-
-  if (_.startsWith(to.path, '/login') ||
-    _.startsWith(to.path, '/help')) {
-    next()
-    return
-  }
-
-  if (window.Cookies.get('username') !== undefined) {
-    next(vm => { vm.$store.dispatch('login/login', {router: vm.$router}) })
-    return
-  }
-
-  // next('/login/ldap')
-  next(vm => {
-    vm.$store.commit('login/m_set_callback', vm.$router.fullPath)
-    vm.$router.push({path: '/login'})
-  })
-})
-*/
-
 export default router

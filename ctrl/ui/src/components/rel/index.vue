@@ -2,10 +2,14 @@
   <div class="container-fluid">
     <div class="row">
       <div class="col-sm-3 col-md-3 sidebar">
+        <div class="pull-right">
+          <button type="button" @click="reload" class="btn btn-default"><span class="glyphicon glyphicon-refresh"></span></button>
+        </div>
         <el-tree v-loading="loading"
           :data="tagTree"
           :props="props"
           :highlight-current="true"
+          :expand-on-click-node="false"
           @current-change="handleCurrentChange">
         </el-tree>
       </div>
@@ -39,6 +43,9 @@ export default {
   methods: {
     handleCurrentChange (val) {
       this.$store.commit('rel/m_cur_tag', val)
+    },
+    reload () {
+      this.$store.commit('rel/m_load_tag')
     }
   },
   components: {

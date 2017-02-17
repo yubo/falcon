@@ -10,7 +10,7 @@ function fetch (opts = {}) {
       resolve(res)
     }).catch((err) => {
       if (err.response && err.response.status === 401) {
-        store.commit('login/m_logout')
+        store.commit('auth/m_logout')
       }
       reject(err)
     })

@@ -12,15 +12,6 @@ import (
 	"github.com/yubo/falcon/ctrl/api/models"
 )
 
-var (
-	rels = map[string]bool{
-		"tag_host":         true,
-		"tag_role_user":    true,
-		"tag_role_token":   true,
-		"tag_rule_trigger": true,
-	}
-)
-
 // Operations about Relations
 type RelController struct {
 	BaseController
@@ -196,6 +187,126 @@ func (c *RelController) DelTagHosts() {
 	json.Unmarshal(c.Ctx.Input.RequestBody, &rel)
 
 	n, err := me.DeleteTagHosts(rel)
+	if err != nil {
+		c.SendMsg(403, err.Error())
+	} else {
+		c.SendMsg(200, totalObj(n))
+	}
+}
+
+// @Title GetTagTemplateCnt
+// @Description get Tag-Template number
+// @Param	query	query   string  false	"template name"
+// @Param	tag_id	query   int	true	"tag id"
+// @Success 200 {total:int} total number
+// @Failure 403 string error
+// @router /tag/template/cnt [get]
+func (c *RelController) GetTagTplCnt() {
+	tag_id, _ := c.GetInt64("tag_id", 0)
+	query := strings.TrimSpace(c.GetString("query"))
+	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+
+	n, err := me.GetTagTplCnt(tag_id, query)
+	if err != nil {
+		c.SendMsg(403, err.Error())
+	} else {
+		c.SendMsg(200, totalObj(n))
+	}
+}
+
+// @Title GetTemplate
+// @Description get all Template
+// @Param	tag_id	query	int	true	"tag id"
+// @Param	query	query	string	false	"template name"
+// @Param	per	query	int	false	"per page number"
+// @Param	offset	query	int	false	"offset  number"
+// @Success 200 [object] []models.Template
+// @Failure 403 string error
+// @router /tag/template/search [get]
+func (c *RelController) GetTagTpl() {
+	tag_id, _ := c.GetInt64("tag_id", 0)
+	query := strings.TrimSpace(c.GetString("query"))
+	per, _ := c.GetInt("per", models.PAGE_PER)
+	offset, _ := c.GetInt("offset", 0)
+	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+
+	ret, err := me.GetTagTpl(tag_id, query, per, offset)
+	if err != nil {
+		c.SendMsg(403, err.Error())
+	} else {
+		c.SendMsg(200, ret)
+	}
+}
+
+// @Title create tag template relation
+// @Description create tag/template relation
+// @Param	body	body	models.RelTagTpl	true	""
+// @Success 200 {id:int} Id
+// @Failure 403 string error
+// @router /tag/template [post]
+func (c *RelController) CreateTagTpl() {
+	var rel models.RelTagTpl
+
+	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	json.Unmarshal(c.Ctx.Input.RequestBody, &rel)
+
+	if id, err := me.CreateTagTpl(rel); err != nil {
+		c.SendMsg(403, err.Error())
+	} else {
+		c.SendMsg(200, idObj(id))
+	}
+}
+
+// @Title create tag template relation
+// @Description create tag/templates relation
+// @Param	body	body	models.RelTagTpls	true	""
+// @Success 200 {id:int} Id
+// @Failure 403 string error
+// @router /tag/templates [post]
+func (c *RelController) CreateTagTpls() {
+	var rel models.RelTagTpls
+
+	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	json.Unmarshal(c.Ctx.Input.RequestBody, &rel)
+
+	if id, err := me.CreateTagTpls(rel); err != nil {
+		c.SendMsg(403, err.Error())
+	} else {
+		c.SendMsg(200, idObj(id))
+	}
+}
+
+// @Title delete tag template relation
+// @Description delete tag/template relation
+// @Param	body		body 	models.RelTagTpl	true	""
+// @Success 200 {total:int} affected number
+// @Failure 403 string error
+// @router /tag/template [delete]
+func (c *RelController) DelTagTpl() {
+	var rel models.RelTagTpl
+	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	json.Unmarshal(c.Ctx.Input.RequestBody, &rel)
+
+	n, err := me.DeleteTagTpl(rel)
+	if err != nil {
+		c.SendMsg(403, err.Error())
+	} else {
+		c.SendMsg(200, totalObj(n))
+	}
+}
+
+// @Title delete tag template relation
+// @Description delete tag/templates relation
+// @Param	body	body 	models.RelTagTpls	true	""
+// @Success 200 {total:int} affected number
+// @Failure 403 string error
+// @router /tag/templates [delete]
+func (c *RelController) DelTagTpls() {
+	var rel models.RelTagTpls
+	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	json.Unmarshal(c.Ctx.Input.RequestBody, &rel)
+
+	n, err := me.DeleteTagTpls(rel)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {

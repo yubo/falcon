@@ -8,6 +8,9 @@ package models
 import (
 	"encoding/json"
 	"fmt"
+	"math/rand"
+	"net"
+	"net/http"
 	"sort"
 	"strings"
 	"time"
@@ -23,6 +26,33 @@ type Log struct {
 	Action   int64
 	Data     string
 	Time     time.Time
+}
+
+var src = rand.NewSource(time.Now().UnixNano())
+
+const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+const (
+	letterIdxBits = 6                    // 6 bits to represent a letter index
+	letterIdxMask = 1<<letterIdxBits - 1 // All 1-bits, as many as letterIdxBits
+	letterIdxMax  = 63 / letterIdxBits   // # of letter indices fitting in 63 bits
+)
+
+func RandString(n int) string {
+	b := make([]byte, n)
+	// A src.Int63() generates 63 random bits, enough for letterIdxMax characters!
+	for i, cache, remain := n-1, src.Int63(), letterIdxMax; i >= 0; {
+		if remain == 0 {
+			cache, remain = src.Int63(), letterIdxMax
+		}
+		if idx := int(cache & letterIdxMask); idx < len(letterBytes) {
+			b[i] = letterBytes[idx]
+			i--
+		}
+		cache >>= letterIdxBits
+		remain--
+	}
+
+	return string(b)
 }
 
 type cache struct {
@@ -132,4 +162,24 @@ func MdiffInt(src, dst []int64) (add, del []int64) {
 		}
 	}
 	return
+}
+
+func GetIPAdress(r *http.Request) string {
+	var ipAddress string
+	for _, h := range []string{"X-Forwarded-For", "X-Real-Ip"} {
+		for _, ip := range strings.Split(r.Header.Get(h), ",") {
+			// header can contain spaces too, strip those out.
+			ip = strings.TrimSpace(ip)
+			realIP := net.ParseIP(ip)
+			if !realIP.IsGlobalUnicast() {
+				// bad address, go to next
+				continue
+			} else {
+				ipAddress = ip
+				goto Done
+			}
+		}
+	}
+Done:
+	return ipAddress
 }
