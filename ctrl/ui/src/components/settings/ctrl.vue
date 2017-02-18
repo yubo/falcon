@@ -3,51 +3,42 @@
   <h1 class="page-header">Ctrl Configurations</h1>
   <div v-loading.lock="loading">
     <el-tabs v-model="activeName" @tab-click="handleClick" >
-      <el-tab-pane label="core" name="core">
-        <el-form label-position="right" label-width="100px" :model="form">
-          <el-form-item label="name"> <el-input v-model="form.params.name"> </el-input> </el-form-item>
-          <el-form-item label="disabled"> <el-switch on-text="" off-text="" v-model="form.params.disabled"></el-switch> </el-form-item>
-          <el-form-item label="debug level"> <el-input v-model.number="form.params.debug" > </el-input> </el-form-item>
-          <el-form-item label="http"> <el-switch on-text="" off-text="" v-model="form.params.http"></el-switch> </el-form-item>
-          <el-form-item label="http addr"> <el-input v-model="form.params.httpAddr"> </el-input> </el-form-item>
-          <el-form-item label="rpc"> <el-switch on-text="" off-text="" v-model="form.params.rpc"></el-switch> </el-form-item>
-          <el-form-item label="rpc addr"> <el-input v-model="form.params.rpcAddr"> </el-input> </el-form-item>
-          <el-form-item label="conn timeout"> <el-input v-model.number="form.params.connTimeout"> </el-input> </el-form-item>
-          <el-form-item label="call timeout"> <el-input v-model.number="form.params.callTimeout"> </el-input> </el-form-item>
-          <el-form-item label="concurrency"> <el-input v-model.number="form.params.concurrency"> </el-input> </el-form-item>
+      <el-tab-pane label="global" name="global">
+        <el-form label-position="right" label-width="200px" :model="form">
+          <el-form-item label="run mode">
+            <el-select v-model="form.runmode" placeholder="select run mode">
+              <el-option v-for="item in optionRunModes" :label="item.name" :value="item.value"> </el-option>
+            </el-select>
+          </el-form-item>
+          <el-form-item label="enable docs"> <el-switch :disabled="disabled.enabledocs" on-text="" off-text="" v-model="enabledocs"></el-switch> </el-form-item>
+          <el-form-item label="cache module"><el-input :disabled="disabled.cachemodule" v-model="form.cachemodule"></el-input></el-form-item>
+          <el-form-item label="sess lifetime"> <el-input :disabled="disabled.sessiongcmaxlifetime" v-model="form.sessiongcmaxlifetime"></el-input></el-form-item>
+          <el-form-item label="cookie lifetime"> <el-input :disabled="disabled.sessioncookielifetime" v-model="form.sessioncookielifetime"></el-input></el-form-item>
         </el-form>
       </el-tab-pane>
 
-      <el-tab-pane label="webconfig" name="webconfig">
-        <el-form label-position="right" label-width="100px" :model="form">
-          <el-form-item label="app name"><el-input v-model="form.app_name"></el-input></el-form-item>
-          <el-form-item label="run mode"><el-input v-model="form.run_mode"></el-input></el-form-item>
-          <el-form-item label="http port"><el-input v-model.number="form.http_port"></el-input></el-form-item>
-          <el-form-item label="enable docs"><el-switch on-text="" off-text="" v-model="form.enable_docs"></el-switch></el-form-item>
-          <el-form-item label="sess name"><el-input v-model="form.session_name"></el-input></el-form-item>
-          <el-form-item label="sess gc lifetime"><el-input v-model.number="form.session_gc_max_lifetime"></el-input></el-form-item>
-          <el-form-item label="cookie lifetime"><el-input v-model.number="form.session_cookie_lifetime"></el-input></el-form-item>
-        </el-form>
-      </el-tab-pane>
+      <el-tab-pane label="auth" name="auth">
+        <el-form label-position="right" label-width="200px" :model="form">
+          <el-form-item label="auth module"><el-input :disabled="disabled.authmodule" v-model="form.authmodule"></el-input></el-form-item>
+          <el-form-item label="ldap addr"><el-input :disabled="disabled.ldapaddr" v-model="form.ldapaddr"></el-input></el-form-item>
+          <el-form-item label="ldap basedn"><el-input :disabled="disabled.ldapbasedn" v-model="form.ldapbasedn"></el-input></el-form-item>
+          <el-form-item label="ldap binddn"><el-input :disabled="disabled.ldapbinddn" v-model="form.ldapbinddn"></el-input></el-form-item>
+          <el-form-item label="ldap bindpwd"><el-input :disabled="disabled.ldapbindpwd" v-model="form.ldapbindpwd"></el-input></el-form-item>
+          <el-form-item label="ldap filter"><el-input :disabled="disabled.ldapfilter" v-model="form.ldapfilter"></el-input></el-form-item>
 
-      <el-tab-pane label="server" name="server">
-        <el-form label-position="right" label-width="100px" :model="form">
-          <el-form-item label="metric file"><el-input v-model="form.metric_file"></el-input></el-form-item>
-          <el-form-item label="auth module"><el-input v-model="form.auth_module"></el-input></el-form-item>
-          <el-form-item label="cache module"><el-input v-model="form.cache_module"></el-input></el-form-item>
-          <el-form-item label="ldap addr"><el-input v-model="form.ldap_addr"></el-input></el-form-item>
-          <el-form-item label="ldap basedn"><el-input v-model="form.ldap_basedn"></el-input></el-form-item>
-          <el-form-item label="ldap binddn"><el-input v-model="form.ldap_binddn"></el-input></el-form-item>
-          <el-form-item label="ldap bindpwd"><el-input v-model="form.ldap_bindpwd"></el-input></el-form-item>
-          <el-form-item label="ldap filter"><el-input v-model="form.ldap_filter"></el-input></el-form-item>
-          <el-form-item label="ldap tls"><el-switch on-text="" off-text="" v-model="form.ldap_tls"></el-switch></el-form-item>
-          <el-form-item label="ldap debug"><el-switch on-text="" off-text="" v-model="form.ldap_debug"></el-switch></el-form-item>
+          <el-form-item label="misso redirect url"><el-input :disabled="disabled.missoredirecturl" v-model="form.missoredirecturl"></el-input></el-form-item>
+          <el-form-item label="github client id"><el-input :disabled="disabled.githubclientid" v-model="form.githubclientid"></el-input></el-form-item>
+          <el-form-item label="github client secret"><el-input :disabled="disabled.githubclientsecret" v-model="form.githubclientsecret"></el-input></el-form-item>
+          <el-form-item label="github redirect url"><el-input :disabled="disabled.githubredirecturl" v-model="form.githubredirecturl"></el-input></el-form-item>
+          <el-form-item label="google client id"><el-input :disabled="disabled.googleclientid" v-model="form.googleclientid"></el-input></el-form-item>
+          <el-form-item label="google client secret"><el-input :disabled="disabled.googleclientsecret" v-model="form.googleclientsecret"></el-input></el-form-item>
+          <el-form-item label="google redirect url"><el-input :disabled="disabled.googleredirecturl" v-model="form.googleredirecturl"></el-input></el-form-item>
         </el-form>
       </el-tab-pane>
 
     </el-tabs>
 
-    <el-form label-position="right" label-width="100px" :model="form">
+    <el-form label-position="right" label-width="200px" :model="form">
       <el-form-item>
         <el-button type="primary" @click="putData">Update</el-button>
         <el-button @click="fetchData">Reset</el-button>
@@ -64,37 +55,51 @@ export default {
   data () {
     return {
       loading: false,
-      activeName: 'core',
+      activeName: '',
+      enabledocs: false,
+      optionRunModes: [{
+        name: 'production', value: 'prod'
+      }, { name: 'develop', value: 'dev'
+      }],
       form: {
-        params: {
-          debug: 0,
-          connTimeout: 0,
-          callTimeout: 0,
-          concurrency: 0,
-          disabled: false,
-          http: false,
-          httpAddr: '',
-          rpc: false,
-          rpcAddr: '',
-          name: ''
-        },
-        app_name: '',
-        run_mode: '',
-        http_port: 0,
-        enable_docs: false,
-        session_name: '',
-        session_gc_max_lifetime: 0,
-        session_cookie_lifetime: 0,
-        metric_file: '',
-        auth_module: '',
-        cache_module: '',
-        ldap_addr: '',
-        ldap_basedn: '',
-        ldap_binddn: '',
-        ldap_bindpwd: '',
-        ldap_filter: '',
-        ldap_tls: '',
-        ldap_debug: ''
+        runmode: '',
+        enabledocs: '',
+        sessiongcmaxlifetime: '',
+        sessioncookielifetime: '',
+        authmodule: '',
+        cachemodule: '',
+        ldapaddr: '',
+        ldapbasedn: '',
+        ldapbinddn: '',
+        ldapbindpwd: '',
+        ldapfilter: '',
+        missoredirecturl: '',
+        githubclientid: '',
+        githubclientsecret: '',
+        githubredirecturl: '',
+        googleclientid: '',
+        googleclientsecret: '',
+        googleredirecturl: ''
+      },
+      disabled: {
+        runmode: false,
+        enabledocs: false,
+        sessiongcmaxlifetime: false,
+        sessioncookielifetime: false,
+        authmodule: false,
+        cachemodule: false,
+        ldapaddr: false,
+        ldapbasedn: false,
+        ldapbinddn: false,
+        ldapbindpwd: false,
+        ldapfilter: false,
+        missoredirecturl: false,
+        githubclientid: false,
+        githubclientsecret: false,
+        githubredirecturl: false,
+        googleclientid: false,
+        googleclientsecret: false,
+        googleredirecturl: false
       }
     }
   },
@@ -103,7 +108,6 @@ export default {
   },
   methods: {
     handleClick (tab, event) {
-      console.log(tab, event)
     },
     fetchData () {
       this.loading = true
@@ -111,30 +115,42 @@ export default {
         method: 'get',
         url: 'settings/config/ctrl'
       }).then((res) => {
-        for (var k in this.form) {
-          if (typeof this.form[k] === 'object') {
-            for (var k1 in this.form[k]) {
-              if (res.data[k] && res.data[k][k1]) {
-                this.form[k][k1] = res.data[k][k1]
-              }
-            }
-          } else {
-            this.form[k] = res.data[k]
+        for (let k in this.disabled) {
+          this.disabled[k] = false
+        }
+        for (let k in this.form) {
+          if (res.data[2] && res.data[2][k]) {
+            this.form[k] = res.data[2][k]
+            this.disabled[k] = true
+          } else if (res.data[1] && res.data[1][k]) {
+            this.form[k] = res.data[1][k]
+          } else if (res.data[0] && res.data[0][k]) {
+            this.form[k] = res.data[0][k]
           }
         }
+        this.enabledocs = this.form.enabledocs === 'true'
         this.loading = false
       }).catch((err) => {
-        Message.error(err.response.data)
+        Message.error(err)
         this.loading = false
       })
     },
     putData () {
       this.loading = true
+      let conf = {}
+      this.form.enabledocs = this.enabledocs ? 'true' : 'false'
+
+      for (let k in this.form) {
+        if (!this.disabled[k] && this.form[k] !== '') {
+          conf[k] = this.form[k]
+        }
+      }
+
       // update
       fetch({
         method: 'put',
         url: 'settings/config/ctrl',
-        data: JSON.stringify(this.form)
+        data: JSON.stringify(conf)
       }).then((res) => {
         Message.success('update success')
         this.loading = false

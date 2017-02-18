@@ -8,8 +8,8 @@ package auth
 import (
 	"fmt"
 
-	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/context"
+	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/ctrl/api/models"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -25,29 +25,22 @@ type googleAuth struct {
 	config oauth2.Config
 }
 
-var (
-	_google = &googleAuth{
-		AuthModule: models.AuthModule{Name: "google"},
-		config: oauth2.Config{
-			Endpoint: google.Endpoint,
-			Scopes:   []string{googleOauth2.PlusMeScope, googleOauth2.UserinfoEmailScope},
-		},
-	}
-)
-
 func init() {
-	models.RegisterAuth(_google)
+	models.RegisterAuth(&googleAuth{AuthModule: models.AuthModule{Name: "google"}})
 }
 
-func (p *googleAuth) PreStart() error {
+func (p *googleAuth) PreStart(conf falcon.ConfCtrl) error {
 	if p.AuthModule.Prestarted {
 		return models.ErrRePreStart
 	}
 	p.AuthModule.Prestarted = true
-	p.config.ClientID = beego.AppConfig.String("googleclientid")
-	p.config.ClientSecret = beego.AppConfig.String("googleclientsecret")
-	p.config.RedirectURL = beego.AppConfig.String("googleredirecturl")
-	beego.Debug("clientid", p.config.ClientID)
+	p.config = oauth2.Config{
+		Endpoint:     google.Endpoint,
+		Scopes:       []string{googleOauth2.PlusMeScope, googleOauth2.UserinfoEmailScope},
+		ClientID:     conf.Ctrl.Str(falcon.C_GOOGLE_CLIENT_ID),
+		ClientSecret: conf.Ctrl.Str(falcon.C_GOOGLE_CLIENT_SECRET),
+		RedirectURL:  conf.Ctrl.Str(falcon.C_GOOGLE_REDIRECT_URL),
+	}
 	return nil
 }
 

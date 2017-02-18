@@ -16,8 +16,8 @@ dev:
 	make -C api dev
 
 db:
-	mysql -uroot -p123456 yubo_falcon < ./scripts/falcon.sql
-	mysql -uroot -p123456 yubo_falcon_test < ./scripts/falcon.sql
+	mysql -uroot -p12341234 falcon < ./scripts/falcon.sql
+	mysql -uroot -p12341234 falcon_test < ./scripts/falcon.sql
 
 env:
 	@echo export GOPATH=${VENDOR}

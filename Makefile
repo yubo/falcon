@@ -2,12 +2,11 @@
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 .PHONY: clean run
-MODULES=agent ctrl falcon
-VENDOR=$(shell pwd)/vendor
+MODULES=agent falcon
 VERSION=$(shell cat VERSION)
-TARGETS=$(MODULES:%=bin/%)
+TARGETS=$(MODULES:%=dist/%)
 ORG_PATH=github.com/yubo/falcon
-WORKDIR=${VENDOR}/src/${ORG_PATH}
+WORKDIR=${shell pwd}
 
 ifeq ($(strip $(OUTPUT_DIR)),)
   OUTPUT_DIR = .
@@ -15,41 +14,42 @@ endif
 
 all: $(TARGETS)
 
-$(TARGETS): conf/yyparse.go specs/git.go
-	export GOPATH=${VENDOR} && cd ${WORKDIR} &&\
-	go build -o ${OUTPUT_DIR}/$@ ./$(subst bin/,cmd/,$@)
+$(TARGETS): conf/yyparse.go git.go
+	export GOPATH=$(WORKDIR)/gopath:$$GOPATH &&\
+	go build -o ${OUTPUT_DIR}/$@ github.com/yubo/falcon/$(subst dist/,cmd/,$@)
 
 conf/yyparse.go: conf/yyparse.y
-	export GOPATH=${VENDOR} && cd ${WORKDIR} &&\
+	export GOPATH=${WORKDIR}/gopath:$$GOPATH &&\
 	go tool yacc -o conf/yyparse.go conf/yyparse.y
 
-specs/git.go: scripts/git.sh
+git.go: scripts/git.sh
 	/bin/sh scripts/git.sh
 
 clean:
-	rm -rf bin/* specs/git.go conf/yyparse.go conf/*.output
+	rm -rf dist/* git.go conf/yyparse.go y.output
 
 run:
-	./bin/falcon -config ./etc/falcon.conf -logtostderr -v 4 start 2>&1
+	./dist/falcon -config ./etc/falcon.conf -logtostderr -v 4 start 2>&1
 
 parse:
-	./bin/falcon -config ./etc/falcon.conf -logtostderr -v 3 parse 2>&1
+	./dist/falcon -config ./etc/falcon.conf -logtostderr -v 3 parse 2>&1
 #./bin/agent -http=false -v 4 start 2>&1
 
 tools:
-	go get -u github.com/tcnksm/ghr
+	go get -u github.com/tcnksm/ghr &&\
+	go get -u github.com/kardianos/govendor
 
 test:
-	export GOPATH=${VENDOR} && cd ${WORKDIR} &&\
+	export GOPATH=${WORKDIR}/gopath:$$GOPATH &&\
 	go test ./...
 
-coverage: conf/yyparse.go specs/git.go
-	export GOPATH=${VENDOR} && cd ${WORKDIR} &&\
+coverage: conf/yyparse.go git.go
+	export GOPATH=${WORKDIR}/gopath:$$GOPATH &&\
 	./scripts/test_coverage.sh
 	curl -s https://codecov.io/bash | bash
 
 compile:
-	mkdir -p "${OUTPUT_DIR}/bin"
+	mkdir -p "${OUTPUT_DIR}/dist"
 	make
 
 targz:

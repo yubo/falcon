@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/yubo/falcon/specs"
+	"github.com/yubo/falcon"
 )
 
 func falconTicker(t time.Duration, debug int) <-chan time.Time {
@@ -37,7 +37,7 @@ func renderJson(w http.ResponseWriter, v interface{}) {
 }
 
 func renderDataJson(w http.ResponseWriter, data interface{}) {
-	renderJson(w, specs.Dto{Msg: "success", Data: data})
+	renderJson(w, falcon.Dto{Msg: "success", Data: data})
 }
 
 func renderMsgJson(w http.ResponseWriter, msg string) {

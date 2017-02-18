@@ -12,9 +12,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/context"
 	"github.com/astaxie/beego/httplib"
+	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/ctrl/api/models"
 )
 
@@ -29,26 +29,22 @@ type missoAuth struct {
 	Credential      string
 }
 
-var (
-	_misso = &missoAuth{
+func init() {
+	models.RegisterAuth(&missoAuth{
 		AuthModule:      models.AuthModule{Name: "misso"},
 		CookieSecretKey: "secret-key-for-encrypt-cookie",
 		missoAuthDomain: "http://sso.pt.xiaomi.com",
 		BrokerName:      "test",
 		SecretKey:       "test",
-	}
-)
-
-func init() {
-	models.RegisterAuth(_misso)
+	})
 }
 
-func (p *missoAuth) PreStart() error {
+func (p *missoAuth) PreStart(conf falcon.ConfCtrl) error {
 	if p.AuthModule.Prestarted {
 		return models.ErrRePreStart
 	}
 	p.AuthModule.Prestarted = true
-	p.RedirectURL = beego.AppConfig.String("missoredirecturl")
+	p.RedirectURL = conf.Ctrl.Str(falcon.C_MISSO_REDIRECT_URL)
 	return nil
 }
 
@@ -80,7 +76,6 @@ func (p *missoAuth) CallBack(c interface{}) (uuid string, err error) {
 	//If can get user_name from cookie, user have logined
 	if result == true {
 		uuid = fmt.Sprintf("%s@%s", user_name, p.Name)
-		beego.Debug("----misso login success uuid:", uuid)
 		return
 	} else {
 		if broker_cookie == "" {
@@ -91,7 +86,6 @@ func (p *missoAuth) CallBack(c interface{}) (uuid string, err error) {
 				uuid, err = p.GetServiceUser(authorization, remote_ip)
 				if err == nil && user_name != "" {
 					uuid = fmt.Sprintf("%s@%s", uuid, p.Name)
-					beego.Debug("----misso login success uuid:", uuid)
 					return
 				}
 			}
@@ -101,7 +95,6 @@ func (p *missoAuth) CallBack(c interface{}) (uuid string, err error) {
 				uuid = fmt.Sprintf("%s@%s", user_name, p.Name)
 				ctx.SetSecureCookie(p.CookieSecretKey,
 					"user_name", user_name)
-				beego.Debug("----misso login success uuid:", uuid)
 				return
 			}
 		}

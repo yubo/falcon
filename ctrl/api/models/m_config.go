@@ -7,89 +7,80 @@ package models
 
 import (
 	"encoding/json"
-	"reflect"
 
 	"github.com/astaxie/beego/orm"
-	"github.com/yubo/falcon/specs"
+	"github.com/yubo/falcon"
 )
 
-type ConfigEntry struct {
-	Key   string
-	Note  string
-	Value interface{}
+type Kv struct {
+	Key     string
+	Section string
+	Value   string
 }
 
-type _ConfigEntry struct {
-	Key   string
-	Note  string
-	Value string
-}
+func GetDbConfig(module string) (ret map[string]string, err error) {
+	var row Kv
 
-type __ConfigEntry struct {
-	Key   string
-	Note  string
-	Value []ConfigEntry
-}
-
-func ConfigGet(k string, def interface{}) interface{} {
-	var row _ConfigEntry
-	err := orm.NewOrm().Raw("SELECT `key`, `note`, `value` FROM `kv` where "+
-		"`key` = ? and `type_id` = ?", k, KV_T_CONFIG).QueryRow(&row)
+	err = orm.NewOrm().Raw("SELECT `section`, `key`, `value` FROM `kv` where "+
+		"`section` = ? and `key` = 'config'", module).QueryRow(&row)
 	if err != nil {
-		return def
+		return nil, err
 	}
 
-	ptr := reflect.New(reflect.ValueOf(def).Elem().Type()).
-		Elem().Addr().Interface()
-
-	err = json.Unmarshal([]byte(row.Value), ptr)
+	err = json.Unmarshal([]byte(row.Value), &ret)
 	if err != nil {
-		return def
+		return nil, err
 	}
-	return ptr
+	return ret, nil
 }
 
-func (u *User) ConfigGet(k string) (interface{}, error) {
-	switch k {
-	case "ctrl":
-		return ConfigGet(k, &specs.ConfCtrlDef), nil
-	case "agent":
-		return ConfigGet(k, &specs.ConfAgentDef), nil
-	case "lb":
-		return ConfigGet(k, &specs.ConfLbDef), nil
-	case "backend":
-		return ConfigGet(k, &specs.ConfBackendDef), nil
-	default:
-		return nil, ErrNoModule
+func SetDbConfig(module string, conf map[string]string) error {
+	kv := make(map[string]string)
+	for k, v := range conf {
+		if v != "" {
+			kv[k] = v
+		}
 	}
-}
-
-func (u *User) ConfigSet(k string, v []byte) (err error) {
-	var conf interface{}
-	switch k {
-	case "ctrl":
-		conf = &specs.ConfCtrl{}
-		err = json.Unmarshal(v, conf)
-	case "agent":
-		conf = &specs.ConfAgent{}
-		err = json.Unmarshal(v, conf)
-	case "lb":
-		conf = &specs.ConfLb{}
-		err = json.Unmarshal(v, conf)
-	case "backend":
-		conf = &specs.ConfBackend{}
-		err = json.Unmarshal(v, conf)
-	default:
-		return ErrNoModule
-	}
-
-	v, err = json.Marshal(conf)
+	v, err := json.Marshal(kv)
 	if err != nil {
 		return err
 	}
 	s := string(v)
-	_, err = orm.NewOrm().Raw("INSERT INTO `kv`(`key`, `value`, `type_id`)"+
-		" VALUES (?,?,?) ON DUPLICATE KEY UPDATE `value`=?",
-		k, s, KV_T_CONFIG, s).Exec()
+	_, err = orm.NewOrm().Raw("INSERT INTO `kv`(`section`, `key`, `value`)"+
+		" VALUES (?,'config',?) ON DUPLICATE KEY UPDATE `value`=?",
+		module, s, s).Exec()
+
 	return err
+}
+
+func (u *User) ConfigGet(module string) (interface{}, error) {
+	var c *falcon.Configer
+
+	switch module {
+	case "ctrl":
+		c = &config.Ctrl
+	case "agent":
+		c = &config.Agent
+	case "lb":
+		c = &config.Lb
+	case "backend":
+		c = &config.Backend
+	default:
+		return nil, ErrNoModule
+	}
+
+	conf, err := GetDbConfig(module)
+	if err == nil {
+		c.Set(falcon.APP_CONF_DB, conf)
+	}
+	return c.Get(), nil
+}
+
+func (u *User) ConfigSet(module string, conf map[string]string) error {
+	switch module {
+	case "ctrl", "agent", "lb", "backend":
+		return SetDbConfig(module, conf)
+	default:
+		return ErrNoModule
+	}
 }

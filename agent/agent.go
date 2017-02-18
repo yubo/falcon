@@ -12,7 +12,7 @@ import (
 	"os"
 
 	"github.com/golang/glog"
-	"github.com/yubo/falcon/specs"
+	"github.com/yubo/falcon"
 )
 
 const (
@@ -23,16 +23,9 @@ const (
 )
 
 type Agent struct {
-	Conf specs.ConfAgent
-	/*
-		Params      specs.ModuleParams
-		Interval    int
-		PayloadSize int
-		IfPre       []string
-		Upstreams   []string
-	*/
+	Conf falcon.ConfAgent
 	// runtime
-	appUpdateChan chan *[]*specs.MetaData
+	appUpdateChan chan *[]*falcon.MetaData
 	httpListener  *net.TCPListener
 	httpMux       *http.ServeMux
 	running       chan struct{}
@@ -93,11 +86,11 @@ func (p *Agent) Signal(sig os.Signal) error {
 /*
 func Handle(arg interface{}) {
 
-	opts := arg.(*specs.CmdOpts)
+	opts := arg.(*falcon.CmdOpts)
 
-	//atomic.StoreUint32(&appStatus, specs.APP_STATUS_PENDING)
+	//atomic.StoreUint32(&appStatus, falcon.APP_STATUS_PENDING)
 	parse(&appConfig, opts.ConfigFile)
-	appProcess = specs.NewProcess(appConfig.PidFile)
+	appProcess = falcon.NewProcess(appConfig.PidFile)
 
 	cmd := "start"
 	if len(opts.Args) > 0 {
@@ -127,7 +120,7 @@ func Handle(arg interface{}) {
 
 		appProcess.StartSignal()
 	} else {
-		glog.Fatal(specs.ErrUnsupported)
+		glog.Fatal(falcon.ErrUnsupported)
 	}
 }
 */

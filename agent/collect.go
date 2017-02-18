@@ -8,11 +8,11 @@ package agent
 import (
 	"time"
 
-	"github.com/yubo/falcon/specs"
+	"github.com/yubo/falcon"
 )
 
 type Collector interface {
-	Collect(int, string) ([]*specs.MetaData, error)
+	Collect(int, string) ([]*falcon.MetaData, error)
 }
 
 var (
@@ -34,7 +34,7 @@ func (p *Agent) collectStart() {
 					return
 				}
 			case <-ticker:
-				vs := []*specs.MetaData{}
+				vs := []*falcon.MetaData{}
 				for _, c := range collectors {
 					if items, err := c.Collect(p.Conf.Interval,
 						p.Conf.Params.Host); err == nil {

@@ -25,7 +25,7 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/golang/glog"
-	"github.com/yubo/falcon/specs"
+	"github.com/yubo/falcon"
 )
 
 const (
@@ -53,10 +53,10 @@ const (
 
 type Backend struct {
 	// config
-	Conf specs.ConfBackend
+	Conf falcon.ConfBackend
 	/*
-		Params          specs.ModuleParams
-		Migrate         specs.Migrate
+		Params          falcon.ModuleParams
+		Migrate         falcon.Migrate
 		Idx             bool
 		IdxInterval     int
 		IdxFullInterval int
@@ -65,7 +65,7 @@ type Backend struct {
 		ShmMagic        uint32
 		ShmKey          int
 		ShmSize         int
-		Storage         specs.Storage
+		Storage         falcon.Storage
 	*/
 	// runtime
 	status                   uint32
@@ -120,14 +120,14 @@ func (p *Backend) Init() error {
 	if size < 0 {
 		glog.Fatalf(MODULE_NAME+"store.init, bad size %d\n", size)
 	}
-	p.status = specs.APP_STATUS_INIT
+	p.status = falcon.APP_STATUS_INIT
 	return nil
 
 }
 
 func (p *Backend) Start() error {
 	glog.V(3).Infof(MODULE_NAME+"%s Start()", p.Conf.Params.Name)
-	p.status = specs.APP_STATUS_PENDING
+	p.status = falcon.APP_STATUS_PENDING
 	p.running = make(chan struct{}, 0)
 	p.timeStart()
 	p.rrdStart()
@@ -136,13 +136,13 @@ func (p *Backend) Start() error {
 	p.httpStart()
 	p.statStart()
 	p.cacheStart()
-	p.status = specs.APP_STATUS_RUNING
+	p.status = falcon.APP_STATUS_RUNING
 	return nil
 }
 
 func (p *Backend) Stop() error {
 	glog.V(3).Infof(MODULE_NAME+"%s Stop()", p.Conf.Params.Name)
-	p.status = specs.APP_STATUS_EXIT
+	p.status = falcon.APP_STATUS_EXIT
 	close(p.running)
 	p.cacheStop()
 	p.statStop()

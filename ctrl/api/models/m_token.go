@@ -25,7 +25,7 @@ func (u *User) AddToken(o *Token) (id int64, err error) {
 		return
 	}
 	o.Id = id
-	cacheModule[CTL_M_TOKEN].set(id, o)
+	moduleCache[CTL_M_TOKEN].set(id, o)
 	DbLog(u.Id, CTL_M_TOKEN, id, CTL_A_ADD, jsonStr(o))
 	return
 }
@@ -33,13 +33,13 @@ func (u *User) AddToken(o *Token) (id int64, err error) {
 func (u *User) GetToken(id int64) (o *Token, err error) {
 	var ok bool
 
-	if o, ok = cacheModule[CTL_M_TOKEN].get(id).(*Token); ok {
+	if o, ok = moduleCache[CTL_M_TOKEN].get(id).(*Token); ok {
 		return
 	}
 	o = &Token{Id: id}
 	err = orm.NewOrm().Read(o, "Id")
 	if err == nil {
-		cacheModule[CTL_M_TOKEN].set(id, o)
+		moduleCache[CTL_M_TOKEN].set(id, o)
 	}
 	return
 }
@@ -82,7 +82,7 @@ func (u *User) UpdateToken(id int64, _tk *Token) (tk *Token, err error) {
 		tk.Note = _tk.Note
 	}
 	_, err = orm.NewOrm().Update(tk)
-	cacheModule[CTL_M_TOKEN].set(id, tk)
+	moduleCache[CTL_M_TOKEN].set(id, tk)
 	DbLog(u.Id, CTL_M_TOKEN, id, CTL_A_SET, "")
 	return tk, err
 }
@@ -92,7 +92,7 @@ func (u *User) DeleteToken(id int64) error {
 	if n, err := orm.NewOrm().Delete(&Token{Id: id}); err != nil || n == 0 {
 		return ErrNoExits
 	}
-	cacheModule[CTL_M_TOKEN].del(id)
+	moduleCache[CTL_M_TOKEN].del(id)
 	DbLog(u.Id, CTL_M_TOKEN, id, CTL_A_DEL, "")
 
 	return nil

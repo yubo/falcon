@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/yubo/falcon/specs"
+	"github.com/yubo/falcon"
 )
 
 func (p *Backend) scanCtrl() error {
@@ -20,8 +20,8 @@ func (p *Backend) scanCtrl() error {
 	}
 	defer client.Close()
 
-	m := specs.Migrate{}
-	err = netRpcCall(client, "CTRL.ListMigrate", specs.Null{}, &m,
+	m := falcon.Migrate{}
+	err = netRpcCall(client, "CTRL.ListMigrate", falcon.Null{}, &m,
 		time.Duration(p.Conf.Params.CallTimeout)*time.Millisecond)
 	if err != nil {
 		return err

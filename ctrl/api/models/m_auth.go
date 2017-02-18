@@ -5,6 +5,8 @@
  */
 package models
 
+import "github.com/yubo/falcon"
+
 var (
 	allAuths map[string]AuthInterface
 	Auths    map[string]AuthInterface
@@ -38,7 +40,7 @@ func (p *AuthModule) Verify(c interface{}) (bool, string, error) {
 	return false, "", EPERM
 }
 
-func (p *AuthModule) PreStart() error {
+func (p *AuthModule) PreStart(conf falcon.ConfCtrl) error {
 	if p.Prestarted {
 		return ErrRePreStart
 	}
@@ -50,7 +52,7 @@ type AuthInterface interface {
 	GetName() string
 	Verify(c interface{}) (success bool, uuid string, err error)
 	CallBack(ctx interface{}) (uuid string, err error)
-	PreStart() error
+	PreStart(conf falcon.ConfCtrl) error
 	AuthorizeUrl(ctx interface{}) string
 }
 

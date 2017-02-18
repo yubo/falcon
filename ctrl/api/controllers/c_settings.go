@@ -6,8 +6,10 @@
 package controllers
 
 import (
+	"encoding/json"
 	"fmt"
 
+	"github.com/astaxie/beego"
 	"github.com/yubo/falcon/ctrl/api/models"
 )
 
@@ -39,14 +41,24 @@ func (c *SetController) GetConfig() {
 // @Title update config
 // @Description get tag role user
 // @Param	module	path	string	true	"module"
+// @Param	body	body	map[string]string	true	""
 // @Success 200 string success
 // @Failure 403 string error
 // @router /config/:module [put]
 func (c *SetController) UpdateConfig() {
+	var conf map[string]string
+
 	module := c.GetString(":module")
 
+	beego.Debug(string(c.Ctx.Input.RequestBody))
+	err := json.Unmarshal(c.Ctx.Input.RequestBody, &conf)
+	if err != nil {
+		c.SendMsg(403, err.Error())
+		return
+	}
+
 	me, _ := c.Ctx.Input.GetData("me").(*models.User)
-	if err := me.ConfigSet(module, c.Ctx.Input.RequestBody); err != nil {
+	if err := me.ConfigSet(module, conf); err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
 		c.SendMsg(200, "success")

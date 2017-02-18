@@ -13,7 +13,7 @@ import (
 	"os"
 
 	"github.com/golang/glog"
-	"github.com/yubo/falcon/specs"
+	"github.com/yubo/falcon"
 )
 
 const (
@@ -24,11 +24,11 @@ const (
 )
 
 type Lb struct {
-	Conf specs.ConfLb
+	Conf falcon.ConfLb
 	/*
-		Params      specs.ModuleParams
+		Params      falcon.ModuleParams
 		PayloadSize int
-		Backends    []specs.Backend
+		Backends    []falcon.Backend
 	*/
 	// runtime
 	status        uint32
@@ -37,7 +37,7 @@ type Lb struct {
 	httpListener  *net.TCPListener
 	httpMux       *http.ServeMux
 	bs            []*backend
-	appUpdateChan chan *[]*specs.MetaData // upstreams
+	appUpdateChan chan *[]*falcon.MetaData // upstreams
 	rpcConnects   connList
 }
 
@@ -48,15 +48,15 @@ func (p Lb) Desc() string {
 func (p Lb) String() string {
 	var s string
 	for _, v := range p.Conf.Backends {
-		s += fmt.Sprintf("\n%s", specs.IndentLines(1, v.String()))
+		s += fmt.Sprintf("\n%s", falcon.IndentLines(1, v.String()))
 	}
 	if s != "" {
-		s = fmt.Sprintf("\n%s\n", specs.IndentLines(1, s))
+		s = fmt.Sprintf("\n%s\n", falcon.IndentLines(1, s))
 	}
 	return fmt.Sprintf("%s (\n%s\n)\n"+
 		"%-17s %d\n"+
 		"%s (%s)",
-		"params", specs.IndentLines(1, p.Conf.Params.String()),
+		"params", falcon.IndentLines(1, p.Conf.Params.String()),
 		"payloadSize", p.Conf.PayloadSize,
 		"backends", s)
 }
@@ -71,26 +71,26 @@ func (p *Lb) Init() error {
 	p.httpMux = http.NewServeMux()
 	p.httpRoutes()
 
-	p.status = specs.APP_STATUS_INIT
+	p.status = falcon.APP_STATUS_INIT
 	return nil
 
 }
 
 func (p *Lb) Start() error {
 	glog.V(3).Infof(MODULE_NAME+"%s Start()", p.Conf.Params.Name)
-	p.status = specs.APP_STATUS_PENDING
+	p.status = falcon.APP_STATUS_PENDING
 	p.running = make(chan struct{}, 0)
 	p.statStart()
 	p.rpcStart()
 	p.httpStart()
 	p.upstreamStart()
-	p.status = specs.APP_STATUS_RUNING
+	p.status = falcon.APP_STATUS_RUNING
 	return nil
 }
 
 func (p *Lb) Stop() error {
 	glog.V(3).Infof(MODULE_NAME+"%s Stop()", p.Conf.Params.Name)
-	p.status = specs.APP_STATUS_EXIT
+	p.status = falcon.APP_STATUS_EXIT
 	close(p.running)
 	p.upstreamStop()
 	p.httpStop()

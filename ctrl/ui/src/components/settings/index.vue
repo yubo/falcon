@@ -18,13 +18,13 @@ export default {
     return {
       links:
       [[
-      { url: '/settings/config/ctrl', text: 'Config Ctrl' },
-      { url: '/settings/config/agent', text: 'Config Agent' },
-      { url: '/settings/config/lb', text: 'Config Lb' },
-      { url: '/settings/config/backend', text: 'Config Backend' }
+      { url: '/settings/config/ctrl', text: 'Ctrl' },
+      { url: '/settings/config/agent', text: 'Agent' },
+      { url: '/settings/config/loadbalance', text: 'Load Balance' },
+      { url: '/settings/config/backend', text: 'Backend' }
       ], [
       { url: '/settings/profile', text: 'Profile' },
-      { url: '/settings/aboutme', text: 'About Me' }
+      { url: '/settings/about', text: 'About' }
       ], [
       { url: '/settings/debug', text: 'Debug' }
       ]]

@@ -58,7 +58,7 @@ func (u *User) AddTemplate(o *Template) (id int64, err error) {
 		return
 	}
 	o.Id = id
-	cacheModule[CTL_M_TEMPLATE].set(id, o)
+	moduleCache[CTL_M_TEMPLATE].set(id, o)
 	DbLog(u.Id, CTL_M_TEMPLATE, id, CTL_A_ADD, jsonStr(o))
 	return
 }
@@ -141,13 +141,13 @@ func (u *User) GetTemplate(id int64) (*TemplateAction, error) {
 }
 
 func (u *User) getTemplate(id int64) (*Template, error) {
-	if r, ok := cacheModule[CTL_M_TEMPLATE].get(id).(*Template); ok {
+	if r, ok := moduleCache[CTL_M_TEMPLATE].get(id).(*Template); ok {
 		return r, nil
 	}
 	r := &Template{Id: id}
 	err := orm.NewOrm().Read(r, "Id")
 	if err == nil {
-		cacheModule[CTL_M_TEMPLATE].set(id, r)
+		moduleCache[CTL_M_TEMPLATE].set(id, r)
 	}
 	return r, err
 }
@@ -239,7 +239,7 @@ func (u *User) DeleteTemplate(id int64) error {
 		return err
 	}
 
-	cacheModule[CTL_M_TEMPLATE].del(id)
+	moduleCache[CTL_M_TEMPLATE].del(id)
 	DbLog(u.Id, CTL_M_TEMPLATE, id, CTL_A_DEL, "")
 
 	return nil

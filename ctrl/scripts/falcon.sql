@@ -27,11 +27,12 @@ SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='TRADITIONAL,ALLOW_INVALID_DATES';
 -- -----------------------------------------------------
 DROP TABLE IF EXISTS `kv`;
 CREATE TABLE `kv` (
+  `section` VARCHAR(128) NOT NULL,
   `key` VARCHAR(128) NOT NULL,
-  `note` VARCHAR(128) NOT NULL DEFAULT '',
   `value` BLOB NOT NULL,
-  `type_id` TINYINT(4) NOT NULL,
-  PRIMARY KEY (`key`)
+  INDEX `index_section` (`section`),
+  INDEX `index_key` (`key`),
+  UNIQUE INDEX `index_section_key` (`section`, `key`)
 ) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8 COLLATE = utf8_unicode_ci;
 
 

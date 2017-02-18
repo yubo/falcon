@@ -5,11 +5,7 @@
  */
 package models
 
-import (
-	"bufio"
-	"os"
-	"strings"
-)
+import "strings"
 
 type Metric struct {
 	Name string `json:"name"`
@@ -19,17 +15,9 @@ var (
 	metrics []*Metric
 )
 
-func metricInit(path string) error {
-	file, err := os.Open(path)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-	scanner.Split(bufio.ScanLines)
-	for scanner.Scan() {
-		metrics = append(metrics, &Metric{Name: scanner.Text()})
+func metricInit(ms []string) error {
+	for _, m := range ms {
+		metrics = append(metrics, &Metric{Name: m})
 	}
 	return nil
 }

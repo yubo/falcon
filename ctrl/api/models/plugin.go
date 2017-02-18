@@ -8,17 +8,12 @@ package models
 type hookfunc func() error
 
 var (
-	hooks = make([]hookfunc, 0) //hook function slice to store the hookfunc
+	initHooks = make([]hookfunc, 0) //hook function slice to store the hookfunc
 )
 
 func RegisterPlugin(hf hookfunc) {
-	hooks = append(hooks, hf)
+	initHooks = append(initHooks, hf)
 }
 
 func PluginStart() {
-	for _, hk := range hooks {
-		if err := hk(); err != nil {
-			panic(err)
-		}
-	}
 }

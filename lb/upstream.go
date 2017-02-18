@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/yubo/falcon/specs"
+	"github.com/yubo/falcon"
 )
 
 type backend struct {
@@ -27,9 +27,9 @@ func (p *backend) String() string {
 	return fmt.Sprintf("%s", p.name)
 }
 
-func (p *backend) start(o specs.Backend) error {
+func (p *backend) start(o falcon.Backend) error {
 	for node, addr := range o.Upstreams {
-		ch := make(chan *specs.MetaData)
+		ch := make(chan *falcon.MetaData)
 		p.scheduler.addChan(node, ch)
 		p.streams.addClientChan(node, addr, ch)
 	}
@@ -50,7 +50,7 @@ type netClients struct {
 type upstream interface {
 	start(string) error
 	stop() error
-	addClientChan(string, string, chan *specs.MetaData) error
+	addClientChan(string, string, chan *falcon.MetaData) error
 }
 
 type upstreamFalcon struct {
@@ -60,7 +60,7 @@ type upstreamFalcon struct {
 	callTimeout int
 	payloadSize int
 	clients     map[string]rpcClients
-	chans       map[string]chan *specs.MetaData
+	chans       map[string]chan *falcon.MetaData
 }
 
 func newUpstreamFalcon(p *Lb) *upstreamFalcon {
@@ -71,7 +71,7 @@ func newUpstreamFalcon(p *Lb) *upstreamFalcon {
 		callTimeout: p.Conf.Params.CallTimeout,
 		payloadSize: p.Conf.PayloadSize,
 		clients:     make(map[string]rpcClients),
-		chans:       make(map[string]chan *specs.MetaData),
+		chans:       make(map[string]chan *falcon.MetaData),
 	}
 }
 
@@ -81,7 +81,7 @@ func (tpl *upstreamFalcon) dial(address string,
 }
 
 func (p *upstreamFalcon) addClientChan(key, addr string,
-	ch chan *specs.MetaData) (err error) {
+	ch chan *falcon.MetaData) (err error) {
 	p.chans[key] = ch
 	p.clients[key] = rpcClients{
 		addr: addr,
@@ -171,15 +171,15 @@ func netRpcCall(client *rpc.Client, method string, args interface{},
 	}
 }
 
-func putRpcBackendData(client **rpc.Client, items []*specs.RrdItem,
+func putRpcBackendData(client **rpc.Client, items []*falcon.RrdItem,
 	addr string, connTimeout, callTimeout int) error {
 	var (
 		err  error
-		resp *specs.RpcResp
+		resp *falcon.RpcResp
 		i    int
 	)
 
-	resp = &specs.RpcResp{}
+	resp = &falcon.RpcResp{}
 
 	for i = 0; i < CONN_RETRY; i++ {
 		err = netRpcCall(*client, "Backend.Put", items, resp,
@@ -198,11 +198,11 @@ out:
 	return err
 }
 
-func falconUpstreamWorker(name string, idx int, ch chan *specs.MetaData,
+func falconUpstreamWorker(name string, idx int, ch chan *falcon.MetaData,
 	client **rpc.Client, addr string, connTimeout, callTimeout, payloadSize int) {
 	var err error
 	var i int
-	rrds := make([]*specs.RrdItem, payloadSize)
+	rrds := make([]*falcon.RrdItem, payloadSize)
 	for {
 		select {
 		case item, ok := <-ch:
@@ -234,7 +234,7 @@ type upstreamTsdb struct {
 	connTimeout int
 	callTimeout int
 	clients     map[string]netClients
-	chans       map[string]chan *specs.MetaData
+	chans       map[string]chan *falcon.MetaData
 }
 
 func newUpstreamTsdb(p *Lb) *upstreamTsdb {
@@ -244,7 +244,7 @@ func newUpstreamTsdb(p *Lb) *upstreamTsdb {
 		connTimeout: p.Conf.Params.ConnTimeout,
 		callTimeout: p.Conf.Params.CallTimeout,
 		clients:     make(map[string]netClients),
-		chans:       make(map[string]chan *specs.MetaData),
+		chans:       make(map[string]chan *falcon.MetaData),
 	}
 }
 
@@ -270,7 +270,7 @@ func (tpl *upstreamTsdb) dial(address string, timeout int) (net.Conn, error) {
 }
 
 func (p *upstreamTsdb) addClientChan(key, addr string,
-	ch chan *specs.MetaData) (err error) {
+	ch chan *falcon.MetaData) (err error) {
 	p.chans[key] = ch
 	p.clients[key] = netClients{
 		addr: addr,
@@ -310,11 +310,11 @@ func (p *upstreamTsdb) stop() error {
 }
 
 func tsdbUpstreamWorker(name string, idx int,
-	ch chan *specs.MetaData, client *net.Conn,
+	ch chan *falcon.MetaData, client *net.Conn,
 	addr string, connTimeout, callTimeout, payloadSize int) {
 	var err error
 	var i int
-	items := make([]*specs.MetaData, payloadSize)
+	items := make([]*falcon.MetaData, payloadSize)
 	for {
 		select {
 		case item, ok := <-ch:
@@ -335,7 +335,7 @@ func tsdbUpstreamWorker(name string, idx int,
 	}
 }
 
-func putTsdbData(client *net.Conn, items []*specs.MetaData,
+func putTsdbData(client *net.Conn, items []*falcon.MetaData,
 	addr string, connTimeout, callTimeout int) (err error) {
 	var (
 		i          int
@@ -417,13 +417,13 @@ func (p *Lb) loadBalancerWorkerStart() {
 	var (
 		ok    bool
 		b     *backend
-		item  *specs.MetaData
-		items *[]*specs.MetaData
-		ch    chan *specs.MetaData
+		item  *falcon.MetaData
+		items *[]*falcon.MetaData
+		ch    chan *falcon.MetaData
 	)
 
 	// upstreams
-	p.appUpdateChan = make(chan *[]*specs.MetaData, 16)
+	p.appUpdateChan = make(chan *[]*falcon.MetaData, 16)
 
 	go func() {
 		for {
@@ -456,13 +456,13 @@ func (p *Lb) upstreamStart() error {
 		} else if v.Type == "tsdb" {
 			b.streams = newUpstreamTsdb(p)
 		} else {
-			glog.Fatal(MODULE_NAME, specs.ErrUnsupported)
+			glog.Fatal(MODULE_NAME, falcon.ErrUnsupported)
 		}
 
 		//if v.Sched == "consistent" {
 		b.scheduler = newSchedConsistent()
 		//} else {
-		//	glog.Fatal(specs.ErrUnsupported)
+		//	glog.Fatal(falcon.ErrUnsupported)
 		//}
 
 		b.start(v)

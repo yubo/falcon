@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/yubo/falcon/specs"
+	"github.com/yubo/falcon"
 )
 
 type tcpKeepAliveListener struct {
@@ -36,7 +36,7 @@ func (p *Agent) push_handle(w http.ResponseWriter, req *http.Request) {
 	}
 
 	decoder := json.NewDecoder(req.Body)
-	var meta []*specs.MetaData
+	var meta []*falcon.MetaData
 	err := decoder.Decode(&meta)
 	if err != nil {
 		http.Error(w, "connot decode body", http.StatusBadRequest)

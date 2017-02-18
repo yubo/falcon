@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/yubo/falcon/specs"
+	"github.com/yubo/falcon"
 )
 
 func (p *Lb) scanCtrl() error {
@@ -21,8 +21,8 @@ func (p *Lb) scanCtrl() error {
 	}
 	defer client.Close()
 
-	bs := []specs.Backend{}
-	err = netRpcCall(client, "CTRL.ListBackend", specs.Null{}, &bs,
+	bs := []falcon.Backend{}
+	err = netRpcCall(client, "CTRL.ListBackend", falcon.Null{}, &bs,
 		time.Duration(p.Conf.Params.CallTimeout)*time.Millisecond)
 	if err != nil {
 		return err

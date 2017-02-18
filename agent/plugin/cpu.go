@@ -17,8 +17,8 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
+	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/agent"
-	"github.com/yubo/falcon/specs"
 )
 
 const (
@@ -107,7 +107,7 @@ type cpuCollector struct {
 }
 
 func (p *cpuCollector) Collect(step int,
-	host string) (ret []*specs.MetaData, err error) {
+	host string) (ret []*falcon.MetaData, err error) {
 	p.last = p.cur
 	p.cur, err = p.collect()
 	if err != nil {
@@ -141,7 +141,7 @@ func (p *cpuCollector) collect() (*cpuStatSample, error) {
 }
 
 func (p *cpuCollector) stat(step int,
-	host string) (ret []*specs.MetaData, err error) {
+	host string) (ret []*falcon.MetaData, err error) {
 	var n float64
 	if p.last == nil {
 		return nil, errors.New("no data")

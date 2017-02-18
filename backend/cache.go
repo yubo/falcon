@@ -17,7 +17,7 @@ import (
 	"unsafe"
 
 	"github.com/golang/glog"
-	"github.com/yubo/falcon/specs"
+	"github.com/yubo/falcon"
 	"github.com/yubo/gotool/list"
 )
 
@@ -82,7 +82,7 @@ func (p *cacheEntry) typ() string {
 	return C.GoString((*C.char)(unsafe.Pointer(&p.e.typ[0])))
 }
 
-// should === specs.RrdItem.Id()
+// should === falcon.RrdItem.Id()
 func (p *cacheEntry) id() string {
 	return fmt.Sprintf("%s/%s/%s/%s/%d",
 		p.host(),
@@ -93,7 +93,7 @@ func (p *cacheEntry) id() string {
 }
 
 func (p *cacheEntry) csum() string {
-	return specs.Md5sum(p.id())
+	return falcon.Md5sum(p.id())
 }
 
 type cacheq struct {
@@ -201,7 +201,7 @@ func (p *Backend) importBlocks() (int, error) {
 			glog.Infof(MODULE_NAME+"set magic head at 0x%x",
 				shmid)
 			block.magic = C.uint32_t(p.Conf.ShmMagic)
-			return cache.endkey - cache.startkey, specs.EFMT
+			return cache.endkey - cache.startkey, falcon.EFMT
 		}
 
 		cache.shmaddrs = append(cache.shmaddrs, addr)
@@ -355,7 +355,7 @@ func (p *Backend) allocPool() (err error) {
 	if uint32(block.magic) == p.Conf.ShmMagic {
 		Shmdt(addr)
 		glog.Errorf(MODULE_NAME+"magic head already set at shmid %d", shmid)
-		return specs.ErrExist
+		return falcon.ErrExist
 	}
 	glog.V(5).Infof(MODULE_NAME+"alloc shm segment, endkey 0x%08x shmid %d len(shmaddr) %d",
 		cache.endkey, shmid, len(cache.shmaddrs))
@@ -388,7 +388,7 @@ func (p *Backend) getPoolEntry() (*cacheEntry, error) {
 	var e *list.ListHead
 	if e = p.cache.poolq.dequeue(); e == nil {
 		if err := p.allocPool(); err != nil {
-			return nil, fmt.Errorf("%s(%s)", specs.EALLOC, err)
+			return nil, fmt.Errorf("%s(%s)", falcon.EALLOC, err)
 		}
 		e = p.cache.poolq.dequeue()
 	}
@@ -403,7 +403,7 @@ func (p *Backend) putPoolEntry(e *cacheEntry) error {
 }
 
 // called by rpc
-func (p *Backend) createEntry(key string, item *specs.RrdItem) (*cacheEntry, error) {
+func (p *Backend) createEntry(key string, item *falcon.RrdItem) (*cacheEntry, error) {
 	var (
 		e     *cacheEntry
 		ok    bool
@@ -415,7 +415,7 @@ func (p *Backend) createEntry(key string, item *specs.RrdItem) (*cacheEntry, err
 
 	statInc(ST_CACHE_CREATE, 1)
 	if e, ok = cache.hash[key]; ok {
-		return e, specs.ErrExist
+		return e, falcon.ErrExist
 	}
 
 	e, err = p.getPoolEntry()
@@ -444,7 +444,7 @@ func (p *Backend) createEntry(key string, item *specs.RrdItem) (*cacheEntry, err
 }
 
 // called by rpc
-func (p *cacheEntry) put(item *specs.RrdItem) {
+func (p *cacheEntry) put(item *falcon.RrdItem) {
 	p.Lock()
 	defer p.Unlock()
 	p.e.lastTs = C.int64_t(item.TimeStemp)
@@ -474,7 +474,7 @@ func (p *cacheEntry) reset(createTs int64, _host, _name, _tags, _typ string,
 	C.free(unsafe.Pointer(typ))
 
 	if ret != 0 {
-		return specs.EINVAL
+		return falcon.EINVAL
 	}
 	return nil
 }
@@ -542,7 +542,7 @@ func (p *cacheEntry) filename(backend *Backend) string {
 
 // return [l, h)
 // h - l <= CACHE_SIZE
-func (p *cacheEntry) _getData(l, h uint32) (ret []*specs.RRDData,
+func (p *cacheEntry) _getData(l, h uint32) (ret []*falcon.RRDData,
 	overrun int) {
 
 	size := h - l
@@ -556,16 +556,16 @@ func (p *cacheEntry) _getData(l, h uint32) (ret []*specs.RRDData,
 		return
 	}
 
-	ret = make([]*specs.RRDData, size)
+	ret = make([]*falcon.RRDData, size)
 
 	//H := h & CACHE_SIZE_MASK
 	L := l & CACHE_SIZE_MASK
 
 	for i := uint32(0); i < size; i++ {
 		idx := (L + i) & CACHE_SIZE_MASK
-		ret[i] = &specs.RRDData{
+		ret[i] = &falcon.RRDData{
 			Ts: int64(p.e.time[idx]),
-			V:  specs.JsonFloat(p.e.value[idx]),
+			V:  falcon.JsonFloat(p.e.value[idx]),
 		}
 	}
 	/*
@@ -579,7 +579,7 @@ func (p *cacheEntry) _getData(l, h uint32) (ret []*specs.RRDData,
 	return
 }
 
-func (p *cacheEntry) _dequeueAll() []*specs.RRDData {
+func (p *cacheEntry) _dequeueAll() []*falcon.RRDData {
 	ret, over := p._getData(uint32(p.e.commitId), uint32(p.e.dataId))
 	p.e.commitId = p.e.dataId
 	if over > 0 {
@@ -589,19 +589,19 @@ func (p *cacheEntry) _dequeueAll() []*specs.RRDData {
 	return ret
 }
 
-func (p *cacheEntry) dequeueAll() []*specs.RRDData {
+func (p *cacheEntry) dequeueAll() []*falcon.RRDData {
 	p.Lock()
 	defer p.Unlock()
 
 	return p._dequeueAll()
 }
 
-func (p *cacheEntry) _getItems() (ret []*specs.RrdItem) {
+func (p *cacheEntry) _getItems() (ret []*falcon.RrdItem) {
 
 	rrds, _ := p._getData(0, uint32(p.e.dataId))
 
 	for _, v := range rrds {
-		ret = append(ret, &specs.RrdItem{
+		ret = append(ret, &falcon.RrdItem{
 			Host:      p.host(),
 			Name:      p.name(),
 			Tags:      p.tags(),
@@ -615,7 +615,7 @@ func (p *cacheEntry) _getItems() (ret []*specs.RrdItem) {
 	return ret
 }
 
-func (p *cacheEntry) getItems() (ret []*specs.RrdItem) {
+func (p *cacheEntry) getItems() (ret []*falcon.RrdItem) {
 	p.Lock()
 	defer p.Unlock()
 
@@ -623,13 +623,13 @@ func (p *cacheEntry) getItems() (ret []*specs.RrdItem) {
 }
 
 /* the last item(dequeue) */
-func (p *cacheEntry) getItem() (ret *specs.RrdItem) {
+func (p *cacheEntry) getItem() (ret *falcon.RrdItem) {
 	p.RLock()
 	defer p.RUnlock()
 
 	//p.dataId always > 0
 	idx := uint32(p.e.dataId-1) & CACHE_SIZE_MASK
-	return &specs.RrdItem{
+	return &falcon.RrdItem{
 		Host:      p.host(),
 		Name:      p.name(),
 		Tags:      p.tags(),
@@ -648,7 +648,7 @@ func (p *cacheEntry) String() string {
 		p.tags(), p.typ(), int(p.e.step))
 }
 
-func (p *Backend) getItems(key string) (ret []*specs.RrdItem) {
+func (p *Backend) getItems(key string) (ret []*falcon.RrdItem) {
 	e := p.cache.get(key)
 	if e == nil {
 		return
@@ -656,7 +656,7 @@ func (p *Backend) getItems(key string) (ret []*specs.RrdItem) {
 	return e.getItems()
 }
 
-func (p *Backend) getLastItem(key string) (ret *specs.RrdItem) {
+func (p *Backend) getLastItem(key string) (ret *falcon.RrdItem) {
 	e := p.cache.get(key)
 	if e == nil {
 		return
@@ -689,7 +689,7 @@ func (p *Backend) cacheStart() error {
 
 	n, err := p.importBlocks()
 
-	if err != specs.EFMT {
+	if err != falcon.EFMT {
 		return err
 	}
 	glog.V(3).Infof(MODULE_NAME+"import %d \n", n)

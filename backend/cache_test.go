@@ -9,26 +9,25 @@ import (
 	"fmt"
 	"runtime"
 	"testing"
-	"time"
 
-	"github.com/yubo/falcon/specs"
+	"github.com/yubo/falcon"
 )
 
 var (
 	cacheApp  *Backend
 	testEntry *cacheEntry
-	rrdItem   *specs.RrdItem
+	rrdItem   *falcon.RrdItem
 	err       error
 )
 
-func newRrdItem1(i int) *specs.RrdItem {
-	return &specs.RrdItem{
+func newRrdItem1(i int) *falcon.RrdItem {
+	return &falcon.RrdItem{
 		Host:      fmt.Sprintf("host_%d", i),
 		Name:      fmt.Sprintf("key_%d", i),
 		Value:     float64(i),
 		TimeStemp: int64(i) * DEBUG_STEP,
 		Step:      60,
-		Type:      specs.GAUGE,
+		Type:      falcon.GAUGE,
 		Tags:      "",
 		Heartbeat: 120,
 		Min:       "U",
@@ -38,16 +37,15 @@ func newRrdItem1(i int) *specs.RrdItem {
 
 func test_cache_init() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	cacheApp = &Backend{
+	cacheApp = new(Backend)
+	cacheApp.Conf = falcon.ConfBackend{
 		ShmMagic: 0x80386,
 		ShmKey:   0x6020,
 		ShmSize:  4096,
-		Storage: Storage{
+		Storage: falcon.Storage{
 			Type:   "rrd",
 			Hdisks: []string{"/tmp/falcon"},
 		},
-
-		ts: time.Now().Unix(),
 	}
 	cacheApp.cacheInit()
 	//cacheApp.cacheStart()
@@ -135,7 +133,7 @@ func TestCacheShm(t *testing.T) {
 		entry_nb int
 	)
 
-	cacheApp.ShmSize = 268435456
+	cacheApp.Conf.ShmSize = 268435456
 	cacheApp.cacheReset()
 	entry_nb = block_nb * cacheApp.cache.cache_entry_nb
 	fmt.Printf("entry_nb %d block_nb %d block_entry_nb %d\n",

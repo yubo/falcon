@@ -42,7 +42,7 @@ func (u *User) AddUser(user *User) (*User, error) {
 		return nil, err
 	}
 	user.Id = id
-	cacheModule[CTL_M_USER].set(id, user)
+	moduleCache[CTL_M_USER].set(id, user)
 
 	DbLog(u.Id, CTL_M_USER, id, CTL_A_ADD, jsonStr(user))
 	return user, nil
@@ -50,13 +50,13 @@ func (u *User) AddUser(user *User) (*User, error) {
 
 // just called from profileFilter()
 func GetUser(id int64) (*User, error) {
-	if user, ok := cacheModule[CTL_M_USER].get(id).(*User); ok {
+	if user, ok := moduleCache[CTL_M_USER].get(id).(*User); ok {
 		return user, nil
 	}
 	user := &User{Id: id}
 	err := orm.NewOrm().Read(user, "Id")
 	if err == nil {
-		cacheModule[CTL_M_USER].set(id, user)
+		moduleCache[CTL_M_USER].set(id, user)
 	}
 	return user, err
 }
@@ -112,7 +112,7 @@ func (u *User) UpdateUser(id int64, _u *User) (user *User, err error) {
 		user.Qq = _u.Qq
 	}
 	_, err = orm.NewOrm().Update(user)
-	cacheModule[CTL_M_USER].set(id, user)
+	moduleCache[CTL_M_USER].set(id, user)
 	DbLog(u.Id, CTL_M_USER, id, CTL_A_SET, "")
 	return user, err
 }
@@ -121,7 +121,7 @@ func (u *User) DeleteUser(id int64) error {
 	if n, err := orm.NewOrm().Delete(&User{Id: id}); err != nil || n == 0 {
 		return ErrNoExits
 	}
-	cacheModule[CTL_M_USER].del(id)
+	moduleCache[CTL_M_USER].del(id)
 	DbLog(u.Id, CTL_M_USER, id, CTL_A_DEL, "")
 
 	return nil

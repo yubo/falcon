@@ -1,7 +1,7 @@
 <template>
 <div id="app">
   <navbar></navbar>
-  <router-view></router-view>
+  <router-view v-if="login"></router-view>
   <login></login>
 </div>
 </template>
@@ -19,6 +19,11 @@ export default {
   },
   data () {
     return { }
+  },
+  computed: {
+    login () {
+      return this.$store.state.auth.login
+    }
   },
   create () {
     if (!this.$store.config) {

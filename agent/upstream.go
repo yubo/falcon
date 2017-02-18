@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/yubo/falcon/specs"
+	"github.com/yubo/falcon"
 )
 
 var (
@@ -91,17 +91,17 @@ func netRpcCall(client *rpc.Client, method string, args interface{},
 	}
 }
 
-func putRpcStorageData(client **rpc.Client, items *[]*specs.MetaData,
+func putRpcStorageData(client **rpc.Client, items *[]*falcon.MetaData,
 	connTimeout, callTimeout int) error {
 	var (
 		err  error
-		resp *specs.RpcResp
+		resp *falcon.RpcResp
 		i    int
 	)
 
 	statInc(ST_UPSTREAM_UPDATE, 1)
 	statInc(ST_UPSTREAM_UPDATE_ITEM, len(*items))
-	resp = &specs.RpcResp{}
+	resp = &falcon.RpcResp{}
 
 	for i = 0; i < CONN_RETRY; i++ {
 		err = netRpcCall(*client, "LB.Update", *items, resp,
@@ -129,7 +129,7 @@ func (p *Agent) upstreamStart() {
 		err    error
 		i      int
 	)
-	p.appUpdateChan = make(chan *[]*specs.MetaData, 16)
+	p.appUpdateChan = make(chan *[]*falcon.MetaData, 16)
 
 	streamPool = upstreamPool{}
 	streamPool.size = uint32(len(p.Conf.Upstreams))

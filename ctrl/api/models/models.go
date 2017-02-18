@@ -2,13 +2,9 @@ package models
 
 import (
 	"errors"
-	"os"
-	"strconv"
 	"strings"
 
-	"github.com/astaxie/beego"
-	"github.com/astaxie/beego/orm"
-	"github.com/yubo/falcon/specs"
+	"github.com/yubo/falcon"
 )
 
 const (
@@ -45,6 +41,7 @@ var (
 		"trigger",
 		"user",
 	}
+	config falcon.ConfCtrl
 )
 
 // ctl meta name
@@ -95,7 +92,7 @@ type Total struct {
 }
 
 var (
-	cacheModule  [CTL_M_SIZE]cache
+	moduleCache  [CTL_M_SIZE]cache
 	sysTagSchema *TagSchema
 
 	moduleName [CTL_M_SIZE]string = [CTL_M_SIZE]string{
@@ -176,94 +173,44 @@ func init() {
 	// auth
 	allAuths = make(map[string]AuthInterface)
 	Auths = make(map[string]AuthInterface)
-
-	// The hookfuncs will run in beego.Run()
-	beego.AddAPPStartHook(start)
 }
 
-func start() (err error) {
-	for _, auth := range strings.Split(beego.AppConfig.String("authmodule"), ",") {
+// called by process befor start
+func Init(conf falcon.ConfCtrl) (err error) {
+	config = conf
+
+	for _, auth := range strings.Split(config.Ctrl.Str(falcon.C_AUTH_MODULE), ",") {
 		if auth, ok := allAuths[auth]; ok {
-			if auth.PreStart() == nil {
+			if auth.PreStart(conf) == nil {
 				Auths[auth.GetName()] = auth
 			}
 		}
 	}
 
-	CacheInit()
+	cacheInit(config.Ctrl.Str(falcon.C_CACHE_MODULE))
 
-	PluginStart()
 	// err = ConfigStart()
+	for _, hk := range initHooks {
+		if err := hk(); err != nil {
+			panic(err)
+		}
+	}
 
-	metricInit(beego.AppConfig.String("metricfile"))
+	metricInit(config.Metrics)
 
 	return
 }
 
-func CacheInit() {
-	for _, module := range strings.Split(beego.AppConfig.String("cachemodule"), ",") {
+func cacheInit(c string) {
+	for _, module := range strings.Split(c, ",") {
 		for k, v := range moduleName {
 			if v == module {
-				cacheModule[k] = cache{
+				moduleCache[k] = cache{
 					enable: true,
 					data:   make(map[int64]interface{}),
 				}
 				break
 			}
 		}
-	}
-}
-
-// ugly hack
-// should called by main package
-func ConfInit(conf map[string]string) {
-	var (
-		dsn     string
-		maxIdle int
-		maxConn int
-	)
-
-	if _, err := os.Stat("./conf/app.conf"); os.IsNotExist(err) {
-		beego.Debug("not found ./conf/app.conf, load db conf")
-		dsn = conf["mysqldsn"]
-		maxIdle, _ = strconv.Atoi(conf["mysqlmaxidle"])
-		maxConn, _ = strconv.Atoi(conf["mysqlmaxconn"])
-
-		cfg := ConfigGet("ctrl", &specs.ConfCtrlDef).(*specs.ConfCtrl)
-		beego.BConfig.AppName = cfg.AppName
-		beego.BConfig.RunMode = cfg.RunMode
-		beego.BConfig.Listen.HTTPPort = cfg.HttpPort
-		beego.BConfig.WebConfig.EnableDocs = cfg.EnableDocs
-		beego.BConfig.WebConfig.Session.SessionName = cfg.SessionName
-		beego.BConfig.WebConfig.Session.SessionGCMaxLifetime = cfg.SessionGCMaxLifetime
-		beego.BConfig.WebConfig.Session.SessionCookieLifeTime = cfg.SessionCookieLifeTime
-	} else {
-		beego.Debug("load ./conf/app.conf done")
-		dsn = beego.AppConfig.String("mysqldsn")
-		maxIdle, _ = beego.AppConfig.Int("mysqlmaxidle")
-		maxConn, _ = beego.AppConfig.Int("mysqlmaxconn")
-	}
-
-	beego.BConfig.WebConfig.Session.SessionOn = true
-	beego.BConfig.WebConfig.Session.SessionProvider = "mysql"
-	beego.BConfig.WebConfig.Session.SessionProviderConfig = dsn
-	beego.BConfig.WebConfig.Session.SessionDisableHTTPOnly = false
-	beego.BConfig.WebConfig.StaticDir["/"] = "static"
-	beego.BConfig.WebConfig.StaticDir["/static"] = "static/static"
-
-	orm.RegisterDriver("mysql", orm.DRMySQL)
-	orm.RegisterDataBase("default", "mysql", dsn, maxIdle, maxConn)
-	orm.RegisterModelWithPrefix(DB_PREFIX,
-		new(User), new(Host), new(Tag),
-		new(Role), new(Token), new(Log),
-		new(Tag_rel), new(Tpl_rel), new(Team),
-		new(Template), new(Trigger), new(Expression),
-		new(Action), new(Strategy))
-
-	if beego.BConfig.RunMode == "dev" {
-		beego.Debug("orm debug on")
-		orm.Debug = true
-		beego.BConfig.WebConfig.DirectoryIndex = true
-		beego.BConfig.WebConfig.StaticDir["/doc"] = "swagger"
 	}
 }

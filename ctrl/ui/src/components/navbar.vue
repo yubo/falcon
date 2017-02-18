@@ -48,9 +48,10 @@
           <a to="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true"
             aria-expanded="false">Settings<span class="caret"></span></a>
           <ul class="dropdown-menu">
-            <li><router-link to="/settings/config/ctrl">ctrl</router-link></li>
-            <li><router-link to="/settings/config/agent">agent</router-link></li>
-            <li><router-link to="/settings/config/graph">graph</router-link></li>
+            <li><router-link to="/settings/config/ctrl">Ctrl</router-link></li>
+            <li><router-link to="/settings/config/agent">Agent</router-link></li>
+            <li><router-link to="/settings/config/loadbalance">Load Balance</router-link></li>
+            <li><router-link to="/settings/config/backend">Backend</router-link></li>
             <li role="separator" class="divider"></li>
             <li><router-link to="/settings/debug">Debug</router-link></li>
           </ul>
@@ -69,7 +70,6 @@
             aria-expanded="false">{{this.$store.state.auth.username}}<span class="caret"></span></a>
           <ul class="dropdown-menu">
             <li><router-link to="/settings/profile">Profile</router-link></li>
-            <li><router-link to="/settings/aboutme">About Me</router-link></li>
             <li><a href="#" @click="logout">logout</a></li>
           </ul>
         </li>

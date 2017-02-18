@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/yubo/falcon/specs"
+	"github.com/yubo/falcon"
 )
 
 func (p *Backend) count_handler(w http.ResponseWriter, r *http.Request) {
@@ -51,7 +51,7 @@ func (p *Backend) recv_hanlder(w http.ResponseWriter, r *http.Request) {
 		tags = args[6]
 	}
 
-	item := &specs.MetaData{
+	item := &falcon.MetaData{
 		Host:  host,
 		Name:  k,
 		Ts:    ts,
@@ -66,7 +66,7 @@ func (p *Backend) recv_hanlder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	p.handleItems([]*specs.RrdItem{gitem})
+	p.handleItems([]*falcon.RrdItem{gitem})
 	renderDataJson(w, "ok")
 }
 
@@ -88,7 +88,7 @@ func (p *Backend) recv2_handler(w http.ResponseWriter, r *http.Request) {
 
 	tags := r.Form["t"][0]
 
-	item := &specs.MetaData{
+	item := &falcon.MetaData{
 		Host:  host,
 		Name:  k,
 		Ts:    ts,
@@ -103,7 +103,7 @@ func (p *Backend) recv2_handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	p.handleItems([]*specs.RrdItem{gitem})
+	p.handleItems([]*falcon.RrdItem{gitem})
 	renderDataJson(w, "ok")
 }
 
@@ -140,7 +140,7 @@ func (p *Backend) httpRoutes() {
 
 	p.httpMux.HandleFunc("/version",
 		func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte(specs.VERSION))
+			w.Write([]byte(falcon.VERSION))
 		})
 
 	p.httpMux.HandleFunc("/config",

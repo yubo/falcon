@@ -14,14 +14,14 @@ import (
 	"syscall"
 
 	"github.com/golang/glog"
+	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/agent"
-	"github.com/yubo/falcon/specs"
 	"github.com/yubo/gotool/flags"
 )
 
 var (
-	opts      specs.CmdOpts
-	app       *specs.Process
+	opts      falcon.CmdOpts
+	app       *falcon.Process
 	ag        agent.Agent
 	pidfile   string
 	ifpre     string
@@ -30,7 +30,7 @@ var (
 
 func init() {
 	host, _ := os.Hostname()
-	def := specs.ConfAgentDef
+	def := falcon.ConfAgentDef
 
 	flag.StringVar(&pidfile, "p", "/tmp/agnet.pid", "pid file path")
 	flag.IntVar(&ag.Conf.Params.Debug, "d", def.Params.Debug, "debug level")
@@ -62,13 +62,13 @@ func init() {
 
 func start(arg interface{}) {
 	if ifpre == "" || upstreams == "" {
-		glog.Fatal(specs.ErrParam)
+		glog.Fatal(falcon.ErrParam)
 	}
 
 	ag.Conf.IfPre = strings.Split(ifpre, ",")
 	ag.Conf.Upstreams = strings.Split(upstreams, ",")
 
-	app := specs.NewProcess(pidfile, []specs.Module{specs.Module(&ag)})
+	app := falcon.NewProcess(pidfile, []falcon.Module{falcon.Module(&ag)})
 
 	if err := app.Check(); err != nil {
 		glog.Fatal(err)
@@ -83,7 +83,7 @@ func start(arg interface{}) {
 }
 
 func stop(arg interface{}) {
-	app := specs.NewProcess(pidfile, []specs.Module{specs.Module(&ag)})
+	app := falcon.NewProcess(pidfile, []falcon.Module{falcon.Module(&ag)})
 	if err := app.Kill(syscall.SIGTERM); err != nil {
 		glog.Fatal(err)
 	}

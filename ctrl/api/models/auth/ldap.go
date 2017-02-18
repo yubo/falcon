@@ -10,6 +10,7 @@ import (
 	"fmt"
 
 	"github.com/astaxie/beego"
+	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/ctrl/api/controllers"
 	"github.com/yubo/falcon/ctrl/api/models"
 	"gopkg.in/ldap.v2"
@@ -25,33 +26,20 @@ type ldapAuth struct {
 	tls     bool
 }
 
-var (
-	_ldap = &ldapAuth{
-		AuthModule: models.AuthModule{Name: "ldap"},
-		addr:       "localhost:389",
-		baseDN:     "dc=yubo,dc=org",
-		bindDN:     "cn=admin,dc=yubo,dc=org",
-		bindPwd:    "12341234",
-		filter:     "(&(objectClass=posixAccount)(cn=%s))",
-		tls:        false,
-	}
-)
-
 func init() {
-	models.RegisterAuth(_ldap)
+	models.RegisterAuth(&ldapAuth{AuthModule: models.AuthModule{Name: "ldap"}})
 }
 
-func (p *ldapAuth) PreStart() error {
+func (p *ldapAuth) PreStart(conf falcon.ConfCtrl) error {
 	if p.AuthModule.Prestarted {
 		return models.ErrRePreStart
 	}
 	p.AuthModule.Prestarted = true
-	p.addr = beego.AppConfig.String("ldapaddr")
-	p.baseDN = beego.AppConfig.String("ldapbasedn")
-	p.bindDN = beego.AppConfig.String("ldapbinddn")
-	p.bindPwd = beego.AppConfig.String("ldapbindpwd")
-	p.filter = beego.AppConfig.String("ldapfilter")
-	p.tls, _ = beego.AppConfig.Bool("ldaptls")
+	p.addr = conf.Ctrl.Str(falcon.C_LDAP_ADDR)
+	p.baseDN = conf.Ctrl.Str(falcon.C_LDAP_BASE_DN)
+	p.bindDN = conf.Ctrl.Str(falcon.C_LDAP_BIND_DN)
+	p.bindPwd = conf.Ctrl.Str(falcon.C_LDAP_BIND_PWD)
+	p.filter = conf.Ctrl.Str(falcon.C_LDAP_FILTER)
 	return nil
 }
 

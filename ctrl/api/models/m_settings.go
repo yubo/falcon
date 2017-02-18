@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"github.com/astaxie/beego/orm"
+	"github.com/yubo/falcon"
 )
 
 func Populate() (interface{}, error) {
@@ -290,7 +291,7 @@ func ResetDb() (interface{}, error) {
 	o.Insert(&Tag{Name: ""})
 
 	// reset cache
-	CacheInit()
+	cacheInit(config.Ctrl.Str(falcon.C_CACHE_MODULE))
 
 	return "reset db done", nil
 }

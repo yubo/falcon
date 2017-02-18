@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/yubo/falcon/specs"
+	"github.com/yubo/falcon"
 )
 
 const (
@@ -34,14 +34,14 @@ var (
 	es         [MAX_HD_NUMBER][benchSize]*cacheEntry
 )
 
-func newRrdItem2(i int, ts int64) *specs.RrdItem {
-	return &specs.RrdItem{
+func newRrdItem2(i int, ts int64) *falcon.RrdItem {
+	return &falcon.RrdItem{
 		Host:      fmt.Sprintf("host_%d", i),
 		Name:      fmt.Sprintf("key_%d", i),
 		Value:     float64(i),
 		TimeStemp: ts,
 		Step:      60,
-		Type:      specs.GAUGE,
+		Type:      falcon.GAUGE,
 		Tags:      "",
 		Heartbeat: 120,
 		Min:       "U",
@@ -55,11 +55,12 @@ func test_storage_init() (err error) {
 	flag.Set("v", "2")
 	flag.Parse()
 
-	storageApp = &Backend{
+	storageApp = new(Backend)
+	storageApp.Conf = falcon.ConfBackend{
 		ShmMagic: 0x80386,
 		ShmKey:   0x6020,
 		ShmSize:  1 << 28, // 256m
-		Storage: Storage{
+		Storage: falcon.Storage{
 			Type: "rrdlite",
 		},
 	}
@@ -107,7 +108,7 @@ func test_storage_init() (err error) {
 	return nil
 }
 
-func (p *Backend) rrdToEntry(item *specs.RrdItem) (*cacheEntry, error) {
+func (p *Backend) rrdToEntry(item *falcon.RrdItem) (*cacheEntry, error) {
 	e, err := p.getPoolEntry()
 	if err != nil {
 		glog.V(4).Infoln(err)
@@ -129,7 +130,7 @@ func testAdd(n int, t *testing.T) {
 		test_storage_init()
 	}
 
-	hds := &storageApp.Storage.Hdisks
+	hds := &storageApp.Conf.Storage.Hdisks
 	*hds = make([]string, n)
 	for i := 0; i < n; i++ {
 		(*hds)[i] = fmt.Sprintf("%s/%d", testDirs[i], n)
@@ -165,7 +166,7 @@ func testUpdate(n int, t *testing.T) {
 		test_storage_init()
 	}
 
-	hds := &storageApp.Storage.Hdisks
+	hds := &storageApp.Conf.Storage.Hdisks
 	*hds = make([]string, n)
 	for i := 0; i < n; i++ {
 		(*hds)[i] = fmt.Sprintf("%s/%d", testDirs[i], n)
@@ -202,7 +203,7 @@ func testFetch(n int, t *testing.T) {
 	if storageApp == nil {
 		test_storage_init()
 	}
-	hds := &storageApp.Storage.Hdisks
+	hds := &storageApp.Conf.Storage.Hdisks
 	*hds = make([]string, n)
 	for i := 0; i < n; i++ {
 		(*hds)[i] = fmt.Sprintf("%s/%d", testDirs[i], n)

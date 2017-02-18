@@ -10,9 +10,9 @@ import (
 	"os"
 	"fmt"
 	"github.com/golang/glog"
+	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/backend"
 	"github.com/yubo/falcon/lb"
-	"github.com/yubo/falcon/specs"
 )
 
 %}
@@ -34,9 +34,9 @@ import (
 %token PID_FILE AGENT DEBUG HOST HTTP HTTP_ADDR RPC RPC_ADDR CTRL CTRL_ADDR
 %token INTERVAL IFACE_PREFIX DISABLED PAYLOAD_SIZE CONN_TIMEOUT CALL_TIMEOUT UPSTREAMS LB 
 %token CONCURRENCY BACKENDS LBS TSDB FALCON 
-%token BACKEND DSN DB_MAX_IDLE SHM_MAGIC_CODE SHM_KEY_START_ID
+%token BACKEND DSN DB_MAX_IDLE DB_MAX_CONN CONTAINER SHM_MAGIC_CODE SHM_KEY_START_ID
 %token SHM_SEGMENT_SIZE MIGRATE STORAGE RRD HDISKS
-%token ON YES OFF NO INCLUDE ROOT
+%token ON YES OFF NO INCLUDE ROOT METRICS
 
 %%
 
@@ -63,10 +63,14 @@ NUM { $$ = yy.i }
 
 ss:
 | ss text text ';' { yy_ss[$2] = $3 }
+| ss text num ';'  { yy_ss[$2] = fmt.Sprintf("%d", $3) }
+| ss text bool ';' { yy_ss[$2] = fmt.Sprintf("%s", $3) }
+| ss INCLUDE text ';' { yy.include($3) }
 ;
 
 as:
-| as text { yy_as = append(yy_as, $2) }
+| as text          { yy_as = append(yy_as, $2) }
+| as INCLUDE text ';' { yy.include($3) }
 ;
 
 conf: ';'
@@ -87,11 +91,11 @@ conf: ';'
 		}
 	}
 }| ctrl_mod '}' {
-	if yy_mod_params.Host == ""{
-		yy_mod_params.Host, _ = os.Hostname()
+	if conf.Ctrl.Conf.Host == ""{
+		conf.Ctrl.Conf.Host, _ = os.Hostname()
 	}
-	if !yy_mod_params.Disabled || yy.debug {
-		conf.Modules = append([]specs.Module{&conf.Ctrl}, conf.Modules...)
+	if !conf.Ctrl.Conf.Disabled || yy.debug {
+		conf.Modules = append([]falcon.Module{&conf.Ctrl}, conf.Modules...)
 	}
 }| lb_mod '}' {
 	yy_mod_params.Name = fmt.Sprintf("lb %s", yy_mod_params.Name)
@@ -119,7 +123,7 @@ agent_mod:
 ;
 
 agent_start: AGENT {
-	conf.Agent.Conf  = specs.ConfAgentDef
+	conf.Agent.Conf  = falcon.ConfAgentDef
 	yy_mod_params    = &conf.Agent.Conf.Params
 }
 ;
@@ -158,19 +162,35 @@ mod_item:
 ;
 
 ctrl_mod:
-  ctrl_start mod_name '{' 
+  ctrl_start text '{'        { conf.Ctrl.Conf.Name = $2 }
 | ctrl_mod ctrl_mod_item ';'
 | ctrl_mod INCLUDE text ';'  { yy.include($3) }
 ;
 
 ctrl_start: CTRL {
-	conf.Ctrl.Conf   = specs.ConfCtrlDef
-	yy_mod_params    = &conf.Ctrl.Conf.Params
+	conf.Ctrl.Conf   = falcon.ConfCtrlDef
 }
 ;
 
 ctrl_mod_item:
-   mod_item
+ | ROOT text { 
+	if err := os.Chdir($2); err != nil {
+		yy.Error(err.Error())
+	}
+}| DISABLED bool   { conf.Ctrl.Conf.Disabled = $2 }
+ | DEBUG           { conf.Ctrl.Conf.Debug = 1 }
+ | DEBUG num       { conf.Ctrl.Conf.Debug = $2 }
+ | HOST text       { conf.Ctrl.Conf.Host = $2 }
+ | DSN text        { conf.Ctrl.Conf.Dsn = $2 }
+ | DB_MAX_IDLE num { conf.Ctrl.Conf.DbMaxIdle = $2 }
+ | DB_MAX_CONN num { conf.Ctrl.Conf.DbMaxConn = $2 }
+ | CONTAINER '{' ss '}' { 
+ 	conf.Ctrl.Conf.Ctrl.Set(falcon.APP_CONF_FILE, yy_ss)
+	yy_ss = make(map[string]string)
+}| METRICS '{' as '}' {
+ 	conf.Ctrl.Conf.Metrics = yy_as
+	yy_as = make([]string, 0)
+}
 ;
 
 lb_mod: lb_start mod_name '{'
@@ -181,8 +201,8 @@ lb_mod: lb_start mod_name '{'
 lb_start: LB {
 	conf.Lb          = append(conf.Lb, lb.Lb{})
 	yy_lb            = &conf.Lb[len(conf.Lb)-1]
-	yy_specs_backend = &specs.Backend{}
-	yy_lb.Conf       = specs.ConfLbDef
+	yy_specs_backend = &falcon.Backend{}
+	yy_lb.Conf       = falcon.ConfLbDef
 	yy_mod_params    = &yy_lb.Conf.Params
 }
 ;
@@ -203,14 +223,14 @@ lb_backends_item:
 	if !yy_specs_backend.Disabled || yy.debug {
 		yy_lb.Conf.Backends = append(yy_lb.Conf.Backends, *yy_specs_backend)
 	}
-	yy_specs_backend = &specs.Backend{}
+	yy_specs_backend = &falcon.Backend{}
 }
 | FALCON backend_name '{' lb_backend '}'{
 	yy_specs_backend.Type = "falcon"
 	if !yy_specs_backend.Disabled || yy.debug {
 		yy_lb.Conf.Backends = append(yy_lb.Conf.Backends, *yy_specs_backend)
 	}
-	yy_specs_backend = &specs.Backend{}
+	yy_specs_backend = &falcon.Backend{}
 }
 ;
 
@@ -241,7 +261,7 @@ backend_mod: backend_start mod_name '{'
 backend_start: BACKEND {
 	conf.Backend    = append(conf.Backend, backend.Backend{})
 	yy_backend      = &conf.Backend[len(conf.Backend)-1]
-	yy_backend.Conf = specs.ConfBackendDef
+	yy_backend.Conf = falcon.ConfBackendDef
 	yy_mod_params   = &yy_backend.Conf.Params
 }
 ;

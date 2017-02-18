@@ -31,19 +31,19 @@ func (u *User) AddHost(h *Host) (id int64, err error) {
 		return
 	}
 	h.Id = id
-	cacheModule[CTL_M_HOST].set(id, h)
+	moduleCache[CTL_M_HOST].set(id, h)
 	DbLog(u.Id, CTL_M_HOST, id, CTL_A_ADD, jsonStr(h))
 	return
 }
 
 func (u *User) GetHost(id int64) (*Host, error) {
-	if h, ok := cacheModule[CTL_M_HOST].get(id).(*Host); ok {
+	if h, ok := moduleCache[CTL_M_HOST].get(id).(*Host); ok {
 		return h, nil
 	}
 	h := &Host{Id: id}
 	err := orm.NewOrm().Read(h, "Id")
 	if err == nil {
-		cacheModule[CTL_M_HOST].set(id, h)
+		moduleCache[CTL_M_HOST].set(id, h)
 	}
 	return h, err
 }
@@ -100,7 +100,7 @@ func (u *User) UpdateHost(id int64, _h *Host) (h *Host, err error) {
 		h.Idc = _h.Idc
 	}
 	_, err = orm.NewOrm().Update(h)
-	cacheModule[CTL_M_HOST].set(id, h)
+	moduleCache[CTL_M_HOST].set(id, h)
 	DbLog(u.Id, CTL_M_HOST, id, CTL_A_SET, "")
 	return h, err
 }
@@ -109,7 +109,7 @@ func (u *User) DeleteHost(id int64) error {
 	if n, err := orm.NewOrm().Delete(&Host{Id: id}); err != nil || n == 0 {
 		return err
 	}
-	cacheModule[CTL_M_HOST].del(id)
+	moduleCache[CTL_M_HOST].del(id)
 	DbLog(u.Id, CTL_M_HOST, id, CTL_A_DEL, "")
 
 	return nil

@@ -11,7 +11,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/yubo/falcon/specs"
+	"github.com/yubo/falcon"
 )
 
 func RenderJson(w http.ResponseWriter, v interface{}) {
@@ -25,7 +25,7 @@ func RenderJson(w http.ResponseWriter, v interface{}) {
 }
 
 func RenderDataJson(w http.ResponseWriter, data interface{}) {
-	RenderJson(w, specs.Dto{Msg: "success", Data: data})
+	RenderJson(w, falcon.Dto{Msg: "success", Data: data})
 }
 
 func RenderMsgJson(w http.ResponseWriter, msg string) {

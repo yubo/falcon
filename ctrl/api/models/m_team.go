@@ -35,19 +35,19 @@ func (u *User) AddTeam(t *Team) (id int64, err error) {
 	}
 
 	t.Id = id
-	cacheModule[CTL_M_TEAM].set(id, t)
+	moduleCache[CTL_M_TEAM].set(id, t)
 	DbLog(u.Id, CTL_M_TEAM, id, CTL_A_ADD, jsonStr(t))
 	return
 }
 
 func (u *User) GetTeam(id int64) (*Team, error) {
-	if t, ok := cacheModule[CTL_M_TEAM].get(id).(*Team); ok {
+	if t, ok := moduleCache[CTL_M_TEAM].get(id).(*Team); ok {
 		return t, nil
 	}
 	t := &Team{Id: id}
 	err := orm.NewOrm().Read(t, "Id")
 	if err == nil {
-		cacheModule[CTL_M_TEAM].set(id, t)
+		moduleCache[CTL_M_TEAM].set(id, t)
 	}
 	return t, err
 }
@@ -93,7 +93,7 @@ func (u *User) UpdateTeam(id int64, _t *Team) (t *Team, err error) {
 		t.Note = _t.Note
 	}
 	_, err = orm.NewOrm().Update(t)
-	cacheModule[CTL_M_TEAM].set(id, t)
+	moduleCache[CTL_M_TEAM].set(id, t)
 	DbLog(u.Id, CTL_M_TEAM, id, CTL_A_SET, jsonStr(_t))
 	return t, err
 }

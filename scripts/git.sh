@@ -1,8 +1,8 @@
 #!/bin/sh
 commit=$(git log -1 --pretty=%h)
-output='specs/git.go'
+output='./git.go'
 cat <<EOF > $output
-package specs
+package falcon
 const (
 	COMMIT = "$commit"
 	CHANGELOG = \`

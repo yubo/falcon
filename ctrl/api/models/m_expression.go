@@ -51,19 +51,19 @@ func (u *User) AddExpression(r *Expression) (id int64, err error) {
 		return
 	}
 	r.Id = id
-	cacheModule[CTL_M_EXPRESSION].set(id, r)
+	moduleCache[CTL_M_EXPRESSION].set(id, r)
 	DbLog(u.Id, CTL_M_EXPRESSION, id, CTL_A_ADD, jsonStr(r))
 	return
 }
 
 func (u *User) getExpression(id int64) (*Expression, error) {
-	if r, ok := cacheModule[CTL_M_EXPRESSION].get(id).(*Expression); ok {
+	if r, ok := moduleCache[CTL_M_EXPRESSION].get(id).(*Expression); ok {
 		return r, nil
 	}
 	r := &Expression{Id: id}
 	err := orm.NewOrm().Read(r, "Id")
 	if err == nil {
-		cacheModule[CTL_M_EXPRESSION].set(id, r)
+		moduleCache[CTL_M_EXPRESSION].set(id, r)
 	}
 	return r, err
 }
@@ -142,7 +142,7 @@ func (u *User) PauseExpression(id int64, pause int) (o *Expression, err error) {
 	}
 	o.Pause = pause
 	_, err = orm.NewOrm().Update(o)
-	cacheModule[CTL_M_EXPRESSION].set(id, o)
+	moduleCache[CTL_M_EXPRESSION].set(id, o)
 	DbLog(u.Id, CTL_M_EXPRESSION, id, CTL_A_SET, "")
 	return o, err
 }
@@ -162,7 +162,7 @@ func (u *User) UpdateExpression(id int64, _o *Expression) (o *Expression, err er
 	o.Pause = _o.Pause
 
 	_, err = orm.NewOrm().Update(o)
-	cacheModule[CTL_M_EXPRESSION].set(id, o)
+	moduleCache[CTL_M_EXPRESSION].set(id, o)
 	DbLog(u.Id, CTL_M_EXPRESSION, id, CTL_A_SET, "")
 	return o, err
 }
@@ -181,7 +181,7 @@ func (u *User) DeleteExpression(id int64) error {
 		return err
 	}
 
-	cacheModule[CTL_M_EXPRESSION].del(id)
+	moduleCache[CTL_M_EXPRESSION].del(id)
 	DbLog(u.Id, CTL_M_EXPRESSION, id, CTL_A_DEL, "")
 
 	return nil

@@ -26,19 +26,19 @@ func (u *User) AddRole(r *Role) (id int64, err error) {
 		return
 	}
 	r.Id = id
-	cacheModule[CTL_M_ROLE].set(id, r)
+	moduleCache[CTL_M_ROLE].set(id, r)
 	DbLog(u.Id, CTL_M_ROLE, id, CTL_A_ADD, jsonStr(r))
 	return
 }
 
 func (u *User) GetRole(id int64) (*Role, error) {
-	if r, ok := cacheModule[CTL_M_ROLE].get(id).(*Role); ok {
+	if r, ok := moduleCache[CTL_M_ROLE].get(id).(*Role); ok {
 		return r, nil
 	}
 	r := &Role{Id: id}
 	err := orm.NewOrm().Read(r, "Id")
 	if err == nil {
-		cacheModule[CTL_M_ROLE].set(id, r)
+		moduleCache[CTL_M_ROLE].set(id, r)
 	}
 	return r, err
 }
@@ -75,7 +75,7 @@ func (u *User) UpdateRole(id int64, _r *Role) (r *Role, err error) {
 		r.Note = _r.Note
 	}
 	_, err = orm.NewOrm().Update(r)
-	cacheModule[CTL_M_ROLE].set(id, r)
+	moduleCache[CTL_M_ROLE].set(id, r)
 	DbLog(u.Id, CTL_M_ROLE, id, CTL_A_SET, "")
 	return r, err
 }
@@ -84,7 +84,7 @@ func (u *User) DeleteRole(id int64) error {
 	if n, err := orm.NewOrm().Delete(&Role{Id: id}); err != nil || n == 0 {
 		return err
 	}
-	cacheModule[CTL_M_ROLE].del(id)
+	moduleCache[CTL_M_ROLE].del(id)
 	DbLog(u.Id, CTL_M_ROLE, id, CTL_A_DEL, "")
 
 	return nil

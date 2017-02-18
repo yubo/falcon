@@ -7,6 +7,9 @@ VENDOR=${WORKDIR}/../../vendor
 ctrl: *.go */*.go
 	go build
 
+api: *.go */*.go
+	go build
+
 swagger/swagger.json: routers/router.go
 	bee generate docs
 
@@ -22,9 +25,13 @@ doc:
 dev:
 	bee run -gendoc=true -downdoc=true
 
+run: api
+	./api -logtostderr -v=5 start
+
+
 db:
-	mysql -uroot -p12341234 falcon < ./scripts/falcon.sql
-	mysql -uroot -p12341234 falcon_test < ./scripts/falcon.sql
+	mysql -uroot -p123456 falcon < ../scripts/falcon.sql
+	mysql -uroot -p123456 falcon_test < ../scripts/falcon.sql
 
 env:
 	@echo export GOPATH=${VENDOR}

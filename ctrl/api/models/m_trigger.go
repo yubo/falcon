@@ -26,19 +26,19 @@ func (u *User) AddTrigger(r *Trigger) (id int64, err error) {
 		return
 	}
 	r.Id = id
-	cacheModule[CTL_M_TRIGGER].set(id, r)
+	moduleCache[CTL_M_TRIGGER].set(id, r)
 	DbLog(u.Id, CTL_M_TRIGGER, id, CTL_A_ADD, jsonStr(r))
 	return
 }
 
 func (u *User) GetTrigger(id int64) (*Trigger, error) {
-	if r, ok := cacheModule[CTL_M_TRIGGER].get(id).(*Trigger); ok {
+	if r, ok := moduleCache[CTL_M_TRIGGER].get(id).(*Trigger); ok {
 		return r, nil
 	}
 	r := &Trigger{Id: id}
 	err := orm.NewOrm().Read(r, "Id")
 	if err == nil {
-		cacheModule[CTL_M_TRIGGER].set(id, r)
+		moduleCache[CTL_M_TRIGGER].set(id, r)
 	}
 	return r, err
 }
@@ -75,7 +75,7 @@ func (u *User) UpdateTrigger(id int64, _r *Trigger) (r *Trigger, err error) {
 		r.Note = _r.Note
 	}
 	_, err = orm.NewOrm().Update(r)
-	cacheModule[CTL_M_TRIGGER].set(id, r)
+	moduleCache[CTL_M_TRIGGER].set(id, r)
 	DbLog(u.Id, CTL_M_TRIGGER, id, CTL_A_SET, "")
 	return r, err
 }
@@ -84,7 +84,7 @@ func (u *User) DeleteTrigger(id int64) error {
 	if n, err := orm.NewOrm().Delete(&Trigger{Id: id}); err != nil || n == 0 {
 		return err
 	}
-	cacheModule[CTL_M_TRIGGER].del(id)
+	moduleCache[CTL_M_TRIGGER].del(id)
 	DbLog(u.Id, CTL_M_TRIGGER, id, CTL_A_DEL, "")
 
 	return nil

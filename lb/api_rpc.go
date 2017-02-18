@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/yubo/falcon/specs"
+	"github.com/yubo/falcon"
 )
 
 var ()
@@ -39,16 +39,16 @@ type LB struct {
 	lb *Lb
 }
 
-func (p *LB) Ping(req specs.Null, resp *specs.RpcResp) error {
+func (p *LB) Ping(req falcon.Null, resp *falcon.RpcResp) error {
 	return nil
 }
 
-func (p *LB) Update(args []*specs.MetaData,
-	reply *specs.LbResp) error {
+func (p *LB) Update(args []*falcon.MetaData,
+	reply *falcon.LbResp) error {
 	reply.Invalid = 0
 	now := time.Now().Unix()
 
-	items := []*specs.MetaData{}
+	items := []*falcon.MetaData{}
 	for _, v := range args {
 		if v == nil {
 			reply.Invalid += 1
@@ -60,9 +60,9 @@ func (p *LB) Update(args []*specs.MetaData,
 			continue
 		}
 
-		if v.Type != specs.COUNTER &&
-			v.Type != specs.GAUGE &&
-			v.Type != specs.DERIVE {
+		if v.Type != falcon.COUNTER &&
+			v.Type != falcon.GAUGE &&
+			v.Type != falcon.DERIVE {
 			reply.Invalid += 1
 			continue
 		}
@@ -81,7 +81,7 @@ func (p *LB) Update(args []*specs.MetaData,
 			v.Ts = now
 		}
 
-		items = append(items, &specs.MetaData{
+		items = append(items, &falcon.MetaData{
 			Name: v.Name,
 			Host: v.Host,
 			Ts:   v.Ts,
@@ -131,7 +131,7 @@ func (p *Lb) rpcStart() (err error) {
 		for {
 			conn, err := p.rpcListener.Accept()
 			if err != nil {
-				if p.status == specs.APP_STATUS_EXIT {
+				if p.status == falcon.APP_STATUS_EXIT {
 					return
 				}
 				if tempDelay == 0 {
@@ -158,7 +158,7 @@ func (p *Lb) rpcStart() (err error) {
 
 func (p *Lb) rpcStop() (err error) {
 	if p.rpcListener == nil {
-		return specs.ErrNoent
+		return falcon.ErrNoent
 	}
 
 	p.rpcListener.Close()

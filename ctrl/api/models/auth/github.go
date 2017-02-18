@@ -12,8 +12,8 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/context"
+	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/ctrl/api/models"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/github"
@@ -28,29 +28,22 @@ type githubAuth struct {
 	config oauth2.Config
 }
 
-var (
-	_github = &githubAuth{
-		AuthModule: models.AuthModule{Name: "github"},
-		config: oauth2.Config{
-			Endpoint: github.Endpoint,
-			Scopes:   []string{"user:email"},
-		},
-	}
-)
-
 func init() {
-	models.RegisterAuth(_github)
+	models.RegisterAuth(&githubAuth{AuthModule: models.AuthModule{Name: "github"}})
 }
 
-func (p *githubAuth) PreStart() error {
+func (p *githubAuth) PreStart(conf falcon.ConfCtrl) error {
 	if p.AuthModule.Prestarted {
 		return models.ErrRePreStart
 	}
 	p.AuthModule.Prestarted = true
-	p.config.ClientID = beego.AppConfig.String("githubclientid")
-	p.config.ClientSecret = beego.AppConfig.String("githubclientsecret")
-	p.config.RedirectURL = beego.AppConfig.String("githubredirecturl")
-	beego.Debug("clientid", p.config.ClientID)
+	p.config = oauth2.Config{
+		Endpoint:     github.Endpoint,
+		Scopes:       []string{"user:email"},
+		ClientID:     conf.Ctrl.Str(falcon.C_GITHUB_CLIENT_ID),
+		ClientSecret: conf.Ctrl.Str(falcon.C_GITHUB_CLIENT_SECRET),
+		RedirectURL:  conf.Ctrl.Str(falcon.C_GITHUB_REDIRECT_URL),
+	}
 	return nil
 }
 

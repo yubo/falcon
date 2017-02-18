@@ -20,9 +20,8 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	"github.com/yubo/falcon"
 	"github.com/yubo/rrdlite"
-
-	"github.com/yubo/falcon/specs"
 )
 
 const (
@@ -63,7 +62,7 @@ type rrdCheckout struct {
 	start    int64
 	end      int64
 	step     int
-	data     []*specs.RRDData
+	data     []*falcon.RRDData
 }
 
 type ioTask struct {
@@ -129,7 +128,7 @@ func (p *Backend) rrdCreate(filename string, e *cacheEntry) error {
 	return c.Create(true)
 }
 
-func rrdUpdate(filename string, dsType string, ds []*specs.RRDData) error {
+func rrdUpdate(filename string, dsType string, ds []*falcon.RRDData) error {
 	var i bool
 	u := rrdlite.NewUpdater(filename)
 
@@ -181,7 +180,7 @@ func (p *Backend) ioRrdAdd(e *cacheEntry) (err error) {
 	/*
 		_, err = os.Stat(filename)
 		if !os.IsNotExist(err) {
-			return specs.ErrExist
+			return falcon.ErrExist
 		}
 	*/
 
@@ -201,7 +200,7 @@ func (p *Backend) ioRrdAdd(e *cacheEntry) (err error) {
 
 func (p *Backend) ioRrdUpdate(e *cacheEntry) (err error) {
 	if e == nil || e.e.dataId == 0 {
-		return specs.ErrEmpty
+		return falcon.ErrEmpty
 	}
 	filename := e.filename(p)
 	ds := e.dequeueAll()
@@ -241,7 +240,7 @@ func (p *Backend) ioRrdUpdate(e *cacheEntry) (err error) {
 
 // call by  ioWorker
 func ioRrdFetch(filename string, cf string, start, end int64,
-	step int) ([]*specs.RRDData, error) {
+	step int) ([]*falcon.RRDData, error) {
 	start_t := time.Unix(start, 0)
 	end_t := time.Unix(end, 0)
 	step_t := time.Duration(step) * time.Second
@@ -250,23 +249,23 @@ func ioRrdFetch(filename string, cf string, start, end int64,
 	fetchRes, err := rrdlite.Fetch(filename, cf, start_t, end_t, step_t)
 	if err != nil {
 		statInc(ST_RRD_FETCH_ERR, 1)
-		return []*specs.RRDData{}, err
+		return []*falcon.RRDData{}, err
 	}
 
 	defer fetchRes.FreeValues()
 
 	values := fetchRes.Values()
 	size := len(values)
-	ret := make([]*specs.RRDData, size)
+	ret := make([]*falcon.RRDData, size)
 
 	start_ts := fetchRes.Start.Unix()
 	step_s := fetchRes.Step.Seconds()
 
 	for i, val := range values {
 		ts := start_ts + int64(i+1)*int64(step_s)
-		d := &specs.RRDData{
+		d := &falcon.RRDData{
 			Ts: ts,
-			V:  specs.JsonFloat(val),
+			V:  falcon.JsonFloat(val),
 		}
 		ret[i] = d
 	}
@@ -318,18 +317,18 @@ func (p *Backend) taskFileRead(key string) ([]byte, error) {
 	done := make(chan error, 1)
 	task := &ioTask{
 		method: IO_TASK_M_FILE_READ,
-		args:   &specs.File{Filename: p.ktofname(key)},
+		args:   &falcon.File{Filename: p.ktofname(key)},
 		done:   done,
 	}
 
 	p.ktoch(key) <- task
 	err := <-done
-	return task.args.(*specs.File).Data, err
+	return task.args.(*falcon.File).Data, err
 }
 
 // get local data
 func (p *Backend) taskRrdFetch(key string, cf string, start, end int64,
-	step int) ([]*specs.RRDData, error) {
+	step int) ([]*falcon.RRDData, error) {
 	done := make(chan error, 1)
 	task := &ioTask{
 		method: IO_TASK_M_RRD_FETCH,
@@ -371,7 +370,7 @@ func (p *Backend) netRrdFetch(client **rpc.Client, e *cacheEntry, addr string) e
 		err     error
 		flag    uint32
 		i       int
-		rrdfile specs.File
+		rrdfile falcon.File
 	)
 
 	flag = atomic.LoadUint32(&e.flag)
@@ -386,7 +385,7 @@ func (p *Backend) netRrdFetch(client **rpc.Client, e *cacheEntry, addr string) e
 			done := make(chan error, 1)
 			p.ktoch(e.hashkey()) <- &ioTask{
 				method: IO_TASK_M_FILE_WRITE,
-				args: &specs.File{
+				args: &falcon.File{
 					Filename: e.filename(p),
 					Data:     rrdfile.Data[:],
 				},
@@ -418,7 +417,7 @@ func (p *Backend) netSendData(client **rpc.Client, e *cacheEntry, addr string) e
 	var (
 		err  error
 		flag uint32
-		resp *specs.RpcResp
+		resp *falcon.RpcResp
 		i    int
 	)
 
@@ -433,7 +432,7 @@ func (p *Backend) netSendData(client **rpc.Client, e *cacheEntry, addr string) e
 	if items_size == 0 {
 		goto out
 	}
-	resp = &specs.RpcResp{}
+	resp = &falcon.RpcResp{}
 
 	for i = 0; i < CONN_RETRY; i++ {
 		err = netRpcCall(*client, "Storage.Send", items, resp,
@@ -518,13 +517,13 @@ func (p *Backend) ioWorker(ch chan *ioTask) {
 				return
 			}
 			if task.method == IO_TASK_M_FILE_READ {
-				if args, ok := task.args.(*specs.File); ok {
+				if args, ok := task.args.(*falcon.File); ok {
 					args.Data, err = ioutil.ReadFile(args.Filename)
 					task.done <- err
 				}
 			} else if task.method == IO_TASK_M_FILE_WRITE {
 				//filename must not exist
-				if args, ok := task.args.(*specs.File); ok {
+				if args, ok := task.args.(*falcon.File); ok {
 					_, err := os.Stat(path.Dir(args.Filename))
 					if os.IsNotExist(err) {
 						task.done <- err
@@ -553,7 +552,7 @@ func (p *Backend) ioWorker(ch chan *ioTask) {
 
 type commitCacheArg struct {
 	migrate bool
-	p       *specs.Process
+	p       *falcon.Process
 }
 
 /* called by  commitCacheWorker per FLUSH_DISK_STEP
@@ -569,7 +568,7 @@ func (p *Backend) commitCache() {
 	nloop := len(p.cache.hash) / (CACHE_TIME / FLUSH_DISK_STEP)
 	n := 0
 
-	if p.status == specs.APP_STATUS_EXIT {
+	if p.status == falcon.APP_STATUS_EXIT {
 		percent = len(p.cache.hash) / 100
 		exit = true
 	}
@@ -608,7 +607,7 @@ func (p *Backend) commitCache() {
 				lastTs = int64(e.e.createTs)
 			}
 			if err := e.commit(p); err != nil {
-				if err != specs.ErrEmpty {
+				if err != falcon.ErrEmpty {
 					glog.Warning(MODULE_NAME, err)
 				}
 			}
@@ -651,7 +650,7 @@ func (p *Backend) commitCacheWorker() {
 
 func storageCheckHds(hds []string) error {
 	if len(hds) == 0 {
-		return specs.ErrEmpty
+		return falcon.ErrEmpty
 	}
 	for _, dir := range hds {
 		if _, err := os.Stat(dir); err != nil {
@@ -677,7 +676,7 @@ func (p *Backend) rrdStart() {
 	}
 
 	if !p.Conf.Migrate.Disabled {
-		p.storageMigrateConsistent.NumberOfReplicas = specs.REPLICAS
+		p.storageMigrateConsistent.NumberOfReplicas = falcon.REPLICAS
 
 		for node, addr := range p.Conf.Migrate.Upstreams {
 			p.storageMigrateConsistent.Add(node)

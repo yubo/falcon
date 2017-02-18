@@ -4,10 +4,10 @@ import VueRouter from 'vue-router'
 import settings from './components/settings'
 import ctrl from './components/settings/ctrl'
 import agent from './components/settings/agent'
-import lb from './components/settings/lb'
+import loadbalance from './components/settings/loadbalance'
 import backend from './components/settings/backend'
 import profile from './components/settings/profile'
-import aboutme from './components/settings/aboutme'
+import about from './components/settings/about'
 import debug from './components/settings/debug'
 
 import meta from './components/meta'
@@ -35,15 +35,15 @@ const router = new VueRouter({
     redirect: '/meta/tag'
   }, {
     path: '/settings',
-    redirect: '/settings/aboutme',
+    redirect: '/settings/about',
     component: settings,
     children: [
     { path: 'config/ctrl', component: ctrl },
     { path: 'config/agent', component: agent },
-    { path: 'config/lb', component: lb },
+    { path: 'config/loadbalance', component: loadbalance },
     { path: 'config/backend', component: backend },
     { path: 'profile', component: profile },
-    { path: 'aboutme', component: aboutme },
+    { path: 'about', component: about },
     { path: 'debug', component: debug }
     ]
   }, {

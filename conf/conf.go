@@ -14,11 +14,11 @@ import (
 	"strconv"
 
 	"github.com/golang/glog"
+	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/agent"
 	"github.com/yubo/falcon/backend"
 	"github.com/yubo/falcon/ctrl"
 	"github.com/yubo/falcon/lb"
-	"github.com/yubo/falcon/specs"
 )
 
 const (
@@ -50,14 +50,14 @@ type Falcon struct {
 	Ctrl    ctrl.Ctrl
 	Lb      []lb.Lb
 	Backend []backend.Backend
-	Modules []specs.Module
+	Modules []falcon.Module
 }
 
 func (p Falcon) String() string {
 	ret := fmt.Sprintf("%-17s %s", "pidfile", p.PidFile)
 	for _, v := range p.Modules {
 		ret += fmt.Sprintf("\n%s (\n%s\n)",
-			v.Desc(), specs.IndentLines(1, v.String()))
+			v.Desc(), falcon.IndentLines(1, v.String()))
 	}
 	return ret
 }
@@ -67,8 +67,8 @@ var (
 	yy               *yyLex
 	yy_lb            *lb.Lb
 	yy_backend       *backend.Backend
-	yy_specs_backend *specs.Backend
-	yy_mod_params    *specs.ModuleParams
+	yy_specs_backend *falcon.Backend
+	yy_mod_params    *falcon.ModuleParams
 	yy_ss            map[string]string
 	yy_as            []string
 )
@@ -111,6 +111,8 @@ var (
 		"backend":          BACKEND,
 		"dsn":              DSN,
 		"db_max_idle":      DB_MAX_IDLE,
+		"db_max_conn":      DB_MAX_CONN,
+		"container":        CONTAINER,
 		"shm_magic_code":   SHM_MAGIC_CODE,
 		"shm_key_start_id": SHM_KEY_START_ID,
 		"shm_segment_size": SHM_SEGMENT_SIZE,
@@ -124,6 +126,7 @@ var (
 		"no":               NO,
 		"include":          INCLUDE,
 		"root":             ROOT,
+		"metrics":          METRICS,
 	}
 )
 

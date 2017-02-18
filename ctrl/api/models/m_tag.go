@@ -237,7 +237,7 @@ func (u *User) addTag(t *Tag, schema *TagSchema) (id int64, err error) {
 	}
 
 	t.Id = id
-	cacheModule[CTL_M_TAG].set(id, t)
+	moduleCache[CTL_M_TAG].set(id, t)
 	DbLog(u.Id, CTL_M_TAG, id, CTL_A_ADD, "")
 
 	return id, err
@@ -248,13 +248,13 @@ func (u *User) AddTag(t *Tag) (id int64, err error) {
 }
 
 func (u *User) GetTag(id int64) (*Tag, error) {
-	if t, ok := cacheModule[CTL_M_TAG].get(id).(*Tag); ok {
+	if t, ok := moduleCache[CTL_M_TAG].get(id).(*Tag); ok {
 		return t, nil
 	}
 	t := &Tag{Id: id}
 	err := orm.NewOrm().Read(t, "Id")
 	if err == nil {
-		cacheModule[CTL_M_TAG].set(id, t)
+		moduleCache[CTL_M_TAG].set(id, t)
 	}
 	return t, err
 }
@@ -298,7 +298,7 @@ func (u *User) UpdateTag(id int64, _t *Tag) (t *Tag, err error) {
 		t.Name = _t.Name
 	}
 	_, err = orm.NewOrm().Update(t)
-	cacheModule[CTL_M_TAG].set(id, t)
+	moduleCache[CTL_M_TAG].set(id, t)
 	DbLog(u.Id, CTL_M_TAG, id, CTL_A_SET, "")
 	return t, err
 }
@@ -319,7 +319,7 @@ func (u *User) DeleteTag(id int64) (err error) {
 	if n, err = orm.NewOrm().Delete(&Tag{Id: id}); err != nil || n == 0 {
 		return ErrNoExits
 	}
-	cacheModule[CTL_M_TAG].del(id)
+	moduleCache[CTL_M_TAG].del(id)
 	DbLog(u.Id, CTL_M_TAG, id, CTL_A_DEL, "")
 
 	return nil
