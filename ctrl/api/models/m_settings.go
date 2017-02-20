@@ -8,11 +8,10 @@ package models
 import (
 	"fmt"
 
-	"github.com/astaxie/beego/orm"
 	"github.com/yubo/falcon/ctrl"
 )
 
-func Populate() (interface{}, error) {
+func (op *Operator) Populate() (interface{}, error) {
 	var (
 		ret       string
 		err       error
@@ -28,7 +27,6 @@ func Populate() (interface{}, error) {
 		tpl_idx   = make(map[string]int64)
 		test_user = "test01"
 	)
-	admin, _ := GetUser(1)
 	tag_idx["/"] = 1
 
 	// user
@@ -43,7 +41,7 @@ func Populate() (interface{}, error) {
 		"user6",
 	}
 	for _, item := range items {
-		if user, err = admin.AddUser(&User{Name: item, Uuid: item}); err != nil {
+		if user, err = op.AddUser(&User{Name: item, Uuid: item}); err != nil {
 			return nil, err
 		}
 		user_idx[item] = user.Id
@@ -58,7 +56,7 @@ func Populate() (interface{}, error) {
 		"team4",
 	}
 	for _, item := range items {
-		if id, err = admin.AddTeam(&Team{Name: item, Creator: admin.Id}); err != nil {
+		if id, err = op.AddTeam(&Team{Name: item, Creator: op.User.Id}); err != nil {
 			fmt.Printf("add team(%s)\n", item)
 			return nil, err
 		}
@@ -79,7 +77,7 @@ func Populate() (interface{}, error) {
 		for i := 0; i < len(uids); i++ {
 			uids[i] = user_idx[item.users[i]]
 		}
-		if _, err = admin.UpdateMember(team_idx[item.team],
+		if _, err = op.UpdateMember(team_idx[item.team],
 			&Member{Uids: uids}); err != nil {
 			return nil, err
 		}
@@ -95,7 +93,7 @@ func Populate() (interface{}, error) {
 		"cop=xiaomi,owt=miliao,pdl=micloud",
 	}
 	for _, item := range items {
-		if tag_idx[item], err = admin.AddTag(&Tag{Name: item}); err != nil {
+		if tag_idx[item], err = op.AddTag(&Tag{Name: item}); err != nil {
 			return nil, err
 		}
 		ret = fmt.Sprintf("%sadd tag(%s)\n", ret, item)
@@ -120,11 +118,11 @@ func Populate() (interface{}, error) {
 		{"cop=xiaomi,owt=miliao,pdl=micloud", "miliao.cloud3.bj"},
 	}
 	for _, item2 := range items2 {
-		if host_idx[item2[1]], err = admin.AddHost(&Host{Name: item2[1]}); err != nil {
+		if host_idx[item2[1]], err = op.AddHost(&Host{Name: item2[1]}); err != nil {
 			return nil, err
 		}
 
-		if _, err = admin.CreateTagHost(RelTagHost{TagId: tag_idx[item2[0]],
+		if _, err = op.CreateTagHost(RelTagHost{TagId: tag_idx[item2[0]],
 			HostId: host_idx[item2[1]]}); err != nil {
 			return nil, err
 		}
@@ -138,10 +136,10 @@ func Populate() (interface{}, error) {
 		"tpl3",
 	}
 	for _, item := range items {
-		if id, err = admin.AddAction(&Action{}); err != nil {
+		if id, err = op.AddAction(&Action{}); err != nil {
 			return nil, err
 		}
-		if tpl_idx[item], err = admin.AddTemplate(&Template{Name: item,
+		if tpl_idx[item], err = op.AddTemplate(&Template{Name: item,
 			ActionId: id}); err != nil {
 			return nil, err
 		}
@@ -160,7 +158,7 @@ func Populate() (interface{}, error) {
 		{"tpl3", "cpu.idle"},
 	}
 	for _, item2 := range items2 {
-		if _, err = admin.AddStrategy(&Strategy{Metric: item2[1],
+		if _, err = op.AddStrategy(&Strategy{Metric: item2[1],
 			TplId: tpl_idx[item2[0]]}); err != nil {
 			return nil, err
 		}
@@ -175,7 +173,7 @@ func Populate() (interface{}, error) {
 		"tpl3",
 	}
 	for _, item := range items {
-		if _, err = admin.CloneTemplate(tpl_idx[item]); err != nil {
+		if _, err = op.CloneTemplate(tpl_idx[item]); err != nil {
 			return nil, err
 		}
 		ret = fmt.Sprintf("%s clone template(%s)\n", ret, item)
@@ -194,7 +192,7 @@ func Populate() (interface{}, error) {
 		{"cop=xiaomi,owt=miliao,pdl=op", "tpl3"},
 	}
 	for _, item2 := range items2 {
-		if _, err = admin.CreateTagTpl(RelTagTpl{TagId: tag_idx[item2[0]],
+		if _, err = op.CreateTagTpl(RelTagTpl{TagId: tag_idx[item2[0]],
 			TplId: tpl_idx[item2[1]]}); err != nil {
 			return nil, err
 		}
@@ -209,7 +207,7 @@ func Populate() (interface{}, error) {
 		"usr",
 	}
 	for _, item := range items {
-		if role_idx[item], err = admin.AddRole(&Role{Name: item}); err != nil {
+		if role_idx[item], err = op.AddRole(&Role{Name: item}); err != nil {
 			return nil, err
 		}
 		ret = fmt.Sprintf("%sadd role(%s)\n", ret, item)
@@ -222,7 +220,7 @@ func Populate() (interface{}, error) {
 		SYS_A_TOKEN,
 	}
 	for _, item := range items {
-		if token_idx[item], err = admin.AddToken(&Token{Name: item}); err != nil {
+		if token_idx[item], err = op.AddToken(&Token{Name: item}); err != nil {
 			return nil, err
 		}
 		ret = fmt.Sprintf("%sadd token(%s)\n", ret, item)
@@ -236,7 +234,7 @@ func Populate() (interface{}, error) {
 		{"cop=xiaomi,owt=miliao", test_user, "usr"},
 	}
 	for _, s := range binds {
-		if err := admin.BindAclUser(tag_idx[s[0]], role_idx[s[2]],
+		if err := op.BindAclUser(tag_idx[s[0]], role_idx[s[2]],
 			user_idx[s[1]]); err != nil {
 			return nil, err
 		}
@@ -259,7 +257,7 @@ func Populate() (interface{}, error) {
 		{SYS_A_TOKEN, "usr", "cop=xiaomi,owt=miliao"},
 	}
 	for _, s := range binds {
-		if err := admin.BindAclToken(tag_idx[s[2]], role_idx[s[1]],
+		if err := op.BindAclToken(tag_idx[s[2]], role_idx[s[1]],
 			token_idx[s[0]]); err != nil {
 			return nil, err
 		}
@@ -270,23 +268,22 @@ func Populate() (interface{}, error) {
 	return ret, nil
 }
 
-func ResetDb() (interface{}, error) {
+func (op *Operator) ResetDb() (interface{}, error) {
 	var err error
-	o := orm.NewOrm()
 
-	o.Raw("SET FOREIGN_KEY_CHECKS=0").Exec()
+	op.O.Raw("SET FOREIGN_KEY_CHECKS=0").Exec()
 	for _, table := range dbTables {
-		if _, err = o.Raw("TRUNCATE TABLE `" + table + "`").Exec(); err != nil {
+		if _, err = op.O.Raw("TRUNCATE TABLE `" + table + "`").Exec(); err != nil {
 			return nil, err
 		}
 	}
-	o.Raw("SET FOREIGN_KEY_CHECKS=1").Exec()
+	op.O.Raw("SET FOREIGN_KEY_CHECKS=1").Exec()
 
 	// init admin
-	o.Insert(&User{Name: "system"})
+	op.O.Insert(&User{Name: "system"})
 
 	// init root tree tag
-	o.Insert(&Tag{Name: ""})
+	op.O.Insert(&Tag{Name: ""})
 
 	// reset cache
 	// ugly hack

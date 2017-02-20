@@ -19,49 +19,49 @@ type Trigger struct {
 	CreateTime time.Time `json:"ctime"`
 }
 
-func (u *User) AddTrigger(r *Trigger) (id int64, err error) {
+func (op *Operator) AddTrigger(r *Trigger) (id int64, err error) {
 	r.Id = 0
-	id, err = orm.NewOrm().Insert(r)
+	id, err = op.O.Insert(r)
 	if err != nil {
 		return
 	}
 	r.Id = id
 	moduleCache[CTL_M_TRIGGER].set(id, r)
-	DbLog(u.Id, CTL_M_TRIGGER, id, CTL_A_ADD, jsonStr(r))
+	DbLog(op.User.Id, CTL_M_TRIGGER, id, CTL_A_ADD, jsonStr(r))
 	return
 }
 
-func (u *User) GetTrigger(id int64) (*Trigger, error) {
+func (op *Operator) GetTrigger(id int64) (*Trigger, error) {
 	if r, ok := moduleCache[CTL_M_TRIGGER].get(id).(*Trigger); ok {
 		return r, nil
 	}
 	r := &Trigger{Id: id}
-	err := orm.NewOrm().Read(r, "Id")
+	err := op.O.Read(r, "Id")
 	if err == nil {
 		moduleCache[CTL_M_TRIGGER].set(id, r)
 	}
 	return r, err
 }
 
-func (u *User) QueryTriggers(query string) orm.QuerySeter {
-	qs := orm.NewOrm().QueryTable(new(Trigger))
+func (op *Operator) QueryTriggers(query string) orm.QuerySeter {
+	qs := op.O.QueryTable(new(Trigger))
 	if query != "" {
 		qs = qs.Filter("Name__icontains", query)
 	}
 	return qs
 }
 
-func (u *User) GetTriggersCnt(query string) (int64, error) {
-	return u.QueryTriggers(query).Count()
+func (op *Operator) GetTriggersCnt(query string) (int64, error) {
+	return op.QueryTriggers(query).Count()
 }
 
-func (u *User) GetTriggers(query string, limit, offset int) (triggers []*Trigger, err error) {
-	_, err = u.QueryTriggers(query).Limit(limit, offset).All(&triggers)
+func (op *Operator) GetTriggers(query string, limit, offset int) (triggers []*Trigger, err error) {
+	_, err = op.QueryTriggers(query).Limit(limit, offset).All(&triggers)
 	return
 }
 
-func (u *User) UpdateTrigger(id int64, _r *Trigger) (r *Trigger, err error) {
-	if r, err = u.GetTrigger(id); err != nil {
+func (op *Operator) UpdateTrigger(id int64, _r *Trigger) (r *Trigger, err error) {
+	if r, err = op.GetTrigger(id); err != nil {
 		return nil, ErrNoTrigger
 	}
 
@@ -74,31 +74,31 @@ func (u *User) UpdateTrigger(id int64, _r *Trigger) (r *Trigger, err error) {
 	if _r.Note != "" {
 		r.Note = _r.Note
 	}
-	_, err = orm.NewOrm().Update(r)
+	_, err = op.O.Update(r)
 	moduleCache[CTL_M_TRIGGER].set(id, r)
-	DbLog(u.Id, CTL_M_TRIGGER, id, CTL_A_SET, "")
+	DbLog(op.User.Id, CTL_M_TRIGGER, id, CTL_A_SET, "")
 	return r, err
 }
 
-func (u *User) DeleteTrigger(id int64) error {
-	if n, err := orm.NewOrm().Delete(&Trigger{Id: id}); err != nil || n == 0 {
+func (op *Operator) DeleteTrigger(id int64) error {
+	if n, err := op.O.Delete(&Trigger{Id: id}); err != nil || n == 0 {
 		return err
 	}
 	moduleCache[CTL_M_TRIGGER].del(id)
-	DbLog(u.Id, CTL_M_TRIGGER, id, CTL_A_DEL, "")
+	DbLog(op.User.Id, CTL_M_TRIGGER, id, CTL_A_DEL, "")
 
 	return nil
 }
 
-func (u *User) BindUserTrigger(user_id, trigger_id, tag_id int64) (err error) {
-	if _, err := orm.NewOrm().Raw("INSERT INTO `tag_trigger_user` (`tag_id`, `trigger_id`, `user_id`) VALUES (?, ?, ?)", tag_id, trigger_id, user_id).Exec(); err != nil {
+func (op *Operator) BindUserTrigger(user_id, trigger_id, tag_id int64) (err error) {
+	if _, err := op.O.Raw("INSERT INTO `tag_trigger_user` (`tag_id`, `trigger_id`, `user_id`) VALUES (?, ?, ?)", tag_id, trigger_id, user_id).Exec(); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (u *User) BindTokenTrigger(token_id, trigger_id, tag_id int64) (err error) {
-	if _, err := orm.NewOrm().Raw("INSERT INTO `tag_trigger_token` (`tag_id`, `trigger_id`, `token_id`) VALUES (?, ?, ?)", tag_id, trigger_id, token_id).Exec(); err != nil {
+func (op *Operator) BindTokenTrigger(token_id, trigger_id, tag_id int64) (err error) {
+	if _, err := op.O.Raw("INSERT INTO `tag_trigger_token` (`tag_id`, `trigger_id`, `token_id`) VALUES (?, ?, ?)", tag_id, trigger_id, token_id).Exec(); err != nil {
 		return err
 	}
 	return nil

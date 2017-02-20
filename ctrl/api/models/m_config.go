@@ -54,7 +54,7 @@ func SetDbConfig(module string, conf map[string]string) error {
 	return err
 }
 
-func (u *User) ConfigGet(module string) (interface{}, error) {
+func (op *Operator) ConfigGet(module string) (interface{}, error) {
 	var c *falcon.Configer
 
 	switch module {
@@ -77,7 +77,7 @@ func (u *User) ConfigGet(module string) (interface{}, error) {
 	return c.Get(), nil
 }
 
-func (u *User) ConfigSet(module string, conf map[string]string) error {
+func (op *Operator) ConfigSet(module string, conf map[string]string) error {
 	switch module {
 	case "ctrl", "agent", "lb", "backend":
 		return SetDbConfig(module, conf)

@@ -24,10 +24,10 @@ type RelController struct {
 // @Failure 403 string error
 // @router /treeNode [get]
 func (c *RelController) GetTreeNodes() {
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	tag_id, _ := c.GetInt64("id", 0)
 
-	nodes, err := me.GetTreeNodes(tag_id)
+	nodes, err := op.GetTreeNodes(tag_id)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -41,8 +41,8 @@ func (c *RelController) GetTreeNodes() {
 // @Failure 403 string error
 // @router /tree [get]
 func (c *RelController) GetTree() {
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
-	tree, err := me.GetTree()
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
+	tree, err := op.GetTree()
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -60,12 +60,12 @@ func (c *RelController) GetTree() {
 // @Failure 403 error string
 // @router /zTreeNodes [post]
 func (c *RelController) GetzTreeNodes() {
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	tag_id, _ := c.GetInt64("id", 0)
 	//name := c.GetString("name")
 	//lv, _ := c.GetInt("lv")
 
-	nodes, err := me.GetTagTags(tag_id)
+	nodes, err := op.GetTagTags(tag_id)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -84,9 +84,9 @@ func (c *RelController) GetzTreeNodes() {
 func (c *RelController) GetTagHostCnt() {
 	tag_id, _ := c.GetInt64("tag_id", 0)
 	query := strings.TrimSpace(c.GetString("query"))
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	n, err := me.GetTagHostCnt(tag_id, query)
+	n, err := op.GetTagHostCnt(tag_id, query)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -108,9 +108,9 @@ func (c *RelController) GetTagHost() {
 	query := strings.TrimSpace(c.GetString("query"))
 	per, _ := c.GetInt("per", models.PAGE_PER)
 	offset, _ := c.GetInt("offset", 0)
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	ret, err := me.GetTagHost(tag_id, query, per, offset)
+	ret, err := op.GetTagHost(tag_id, query, per, offset)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -127,10 +127,10 @@ func (c *RelController) GetTagHost() {
 func (c *RelController) CreateTagHost() {
 	var rel models.RelTagHost
 
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	json.Unmarshal(c.Ctx.Input.RequestBody, &rel)
 
-	if id, err := me.CreateTagHost(rel); err != nil {
+	if id, err := op.CreateTagHost(rel); err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
 		c.SendMsg(200, idObj(id))
@@ -146,10 +146,10 @@ func (c *RelController) CreateTagHost() {
 func (c *RelController) CreateTagHosts() {
 	var rel models.RelTagHosts
 
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	json.Unmarshal(c.Ctx.Input.RequestBody, &rel)
 
-	if id, err := me.CreateTagHosts(rel); err != nil {
+	if id, err := op.CreateTagHosts(rel); err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
 		c.SendMsg(200, idObj(id))
@@ -164,10 +164,10 @@ func (c *RelController) CreateTagHosts() {
 // @router /tag/host [delete]
 func (c *RelController) DelTagHost() {
 	var rel models.RelTagHost
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	json.Unmarshal(c.Ctx.Input.RequestBody, &rel)
 
-	n, err := me.DeleteTagHost(rel)
+	n, err := op.DeleteTagHost(rel)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -183,10 +183,10 @@ func (c *RelController) DelTagHost() {
 // @router /tag/hosts [delete]
 func (c *RelController) DelTagHosts() {
 	var rel models.RelTagHosts
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	json.Unmarshal(c.Ctx.Input.RequestBody, &rel)
 
-	n, err := me.DeleteTagHosts(rel)
+	n, err := op.DeleteTagHosts(rel)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -204,9 +204,9 @@ func (c *RelController) DelTagHosts() {
 func (c *RelController) GetTagTplCnt() {
 	tag_id, _ := c.GetInt64("tag_id", 0)
 	query := strings.TrimSpace(c.GetString("query"))
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	n, err := me.GetTagTplCnt(tag_id, query)
+	n, err := op.GetTagTplCnt(tag_id, query)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -228,9 +228,9 @@ func (c *RelController) GetTagTpl() {
 	query := strings.TrimSpace(c.GetString("query"))
 	per, _ := c.GetInt("per", models.PAGE_PER)
 	offset, _ := c.GetInt("offset", 0)
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	ret, err := me.GetTagTpl(tag_id, query, per, offset)
+	ret, err := op.GetTagTpl(tag_id, query, per, offset)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -247,10 +247,10 @@ func (c *RelController) GetTagTpl() {
 func (c *RelController) CreateTagTpl() {
 	var rel models.RelTagTpl
 
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	json.Unmarshal(c.Ctx.Input.RequestBody, &rel)
 
-	if id, err := me.CreateTagTpl(rel); err != nil {
+	if id, err := op.CreateTagTpl(rel); err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
 		c.SendMsg(200, idObj(id))
@@ -266,10 +266,10 @@ func (c *RelController) CreateTagTpl() {
 func (c *RelController) CreateTagTpls() {
 	var rel models.RelTagTpls
 
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	json.Unmarshal(c.Ctx.Input.RequestBody, &rel)
 
-	if id, err := me.CreateTagTpls(rel); err != nil {
+	if id, err := op.CreateTagTpls(rel); err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
 		c.SendMsg(200, idObj(id))
@@ -284,10 +284,10 @@ func (c *RelController) CreateTagTpls() {
 // @router /tag/template [delete]
 func (c *RelController) DelTagTpl() {
 	var rel models.RelTagTpl
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	json.Unmarshal(c.Ctx.Input.RequestBody, &rel)
 
-	n, err := me.DeleteTagTpl(rel)
+	n, err := op.DeleteTagTpl(rel)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -303,10 +303,10 @@ func (c *RelController) DelTagTpl() {
 // @router /tag/templates [delete]
 func (c *RelController) DelTagTpls() {
 	var rel models.RelTagTpls
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	json.Unmarshal(c.Ctx.Input.RequestBody, &rel)
 
-	n, err := me.DeleteTagTpls(rel)
+	n, err := op.DeleteTagTpls(rel)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -325,9 +325,9 @@ func (c *RelController) GetTagRoleUserCnt() {
 	global, _ := c.GetBool("global", false)
 	tag_id, _ := c.GetInt64("tag_id", 0)
 	query := strings.TrimSpace(c.GetString("query"))
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	n, err := me.GetTagRoleUserCnt(global, tag_id, query)
+	n, err := op.GetTagRoleUserCnt(global, tag_id, query)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -350,9 +350,9 @@ func (c *RelController) GetTagRoleUser() {
 	query := strings.TrimSpace(c.GetString("query"))
 	per, _ := c.GetInt("per", models.PAGE_PER)
 	offset, _ := c.GetInt("offset", 0)
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	ret, err := me.GetTagRoleUser(global, tag_id, query, per, offset)
+	ret, err := op.GetTagRoleUser(global, tag_id, query, per, offset)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -368,10 +368,10 @@ func (c *RelController) GetTagRoleUser() {
 // @router /tag/role/user [post]
 func (c *RelController) CreateTagRoleUser() {
 	var rel models.RelTagRoleUser
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	json.Unmarshal(c.Ctx.Input.RequestBody, &rel)
 
-	n, err := me.CreateTagRoleUser(rel)
+	n, err := op.CreateTagRoleUser(rel)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -387,10 +387,10 @@ func (c *RelController) CreateTagRoleUser() {
 // @router /tag/role/user [delete]
 func (c *RelController) DelTagRoleUser() {
 	var rel models.RelTagRoleUser
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	json.Unmarshal(c.Ctx.Input.RequestBody, &rel)
 
-	n, err := me.DeleteTagRoleUser(rel)
+	n, err := op.DeleteTagRoleUser(rel)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -409,9 +409,9 @@ func (c *RelController) GetTagRoleTokenCnt() {
 	global, _ := c.GetBool("global", false)
 	tag_id, _ := c.GetInt64("tag_id", 0)
 	query := strings.TrimSpace(c.GetString("query"))
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	n, err := me.GetTagRoleTokenCnt(global, tag_id, query)
+	n, err := op.GetTagRoleTokenCnt(global, tag_id, query)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -434,9 +434,9 @@ func (c *RelController) GetTagRoleToken() {
 	query := strings.TrimSpace(c.GetString("query"))
 	per, _ := c.GetInt("per", models.PAGE_PER)
 	offset, _ := c.GetInt("offset", 0)
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	ret, err := me.GetTagRoleToken(global, tag_id, query, per, offset)
+	ret, err := op.GetTagRoleToken(global, tag_id, query, per, offset)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -452,10 +452,10 @@ func (c *RelController) GetTagRoleToken() {
 // @router /tag/role/token [post]
 func (c *RelController) CreateTagRoleToken() {
 	var rel models.RelTagRoleToken
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	json.Unmarshal(c.Ctx.Input.RequestBody, &rel)
 
-	n, err := me.CreateTagRoleToken(rel)
+	n, err := op.CreateTagRoleToken(rel)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -471,10 +471,10 @@ func (c *RelController) CreateTagRoleToken() {
 // @router /tag/role/token [delete]
 func (c *RelController) DelTagRoleToken() {
 	var rel models.RelTagRoleToken
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	json.Unmarshal(c.Ctx.Input.RequestBody, &rel)
 
-	n, err := me.DeleteTagRoleToken(rel)
+	n, err := op.DeleteTagRoleToken(rel)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {

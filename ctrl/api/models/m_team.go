@@ -26,9 +26,9 @@ type Team struct {
 	CreateTime time.Time `json:"ctime"`
 }
 
-func (u *User) AddTeam(t *Team) (id int64, err error) {
+func (op *Operator) AddTeam(t *Team) (id int64, err error) {
 	t.Id = 0
-	id, err = orm.NewOrm().Insert(t)
+	id, err = op.O.Insert(t)
 	if err != nil {
 		beego.Error(err)
 		return
@@ -36,53 +36,53 @@ func (u *User) AddTeam(t *Team) (id int64, err error) {
 
 	t.Id = id
 	moduleCache[CTL_M_TEAM].set(id, t)
-	DbLog(u.Id, CTL_M_TEAM, id, CTL_A_ADD, jsonStr(t))
+	DbLog(op.User.Id, CTL_M_TEAM, id, CTL_A_ADD, jsonStr(t))
 	return
 }
 
-func (u *User) GetTeam(id int64) (*Team, error) {
+func (op *Operator) GetTeam(id int64) (*Team, error) {
 	if t, ok := moduleCache[CTL_M_TEAM].get(id).(*Team); ok {
 		return t, nil
 	}
 	t := &Team{Id: id}
-	err := orm.NewOrm().Read(t, "Id")
+	err := op.O.Read(t, "Id")
 	if err == nil {
 		moduleCache[CTL_M_TEAM].set(id, t)
 	}
 	return t, err
 }
 
-func (u *User) GetMember(id int64) ([]User, error) {
+func (op *Operator) GetMember(id int64) ([]User, error) {
 	users := []User{}
-	_, err := orm.NewOrm().Raw("SELECT `b`.`id`, `b`.`name` "+
+	_, err := op.O.Raw("SELECT `b`.`id`, `b`.`name` "+
 		"FROM `team_user` `a` LEFT JOIN `user` `b` "+
 		"ON `a`.`user_id` = `b`.`id` WHERE `a`.`team_id` = ? ",
 		id).QueryRows(&users)
 	return users, err
 }
 
-func (u *User) QueryTeams(query string, own bool) orm.QuerySeter {
-	qs := orm.NewOrm().QueryTable(new(Team))
+func (op *Operator) QueryTeams(query string, own bool) orm.QuerySeter {
+	qs := op.O.QueryTable(new(Team))
 	if query != "" {
 		qs = qs.Filter("Name__icontains", query)
 	}
 	if own {
-		qs = qs.Filter("Creator", u.Id)
+		qs = qs.Filter("Creator", op.User.Id)
 	}
 	return qs
 }
 
-func (u *User) GetTeamsCnt(query string, own bool) (int64, error) {
-	return u.QueryTeams(query, own).Count()
+func (op *Operator) GetTeamsCnt(query string, own bool) (int64, error) {
+	return op.QueryTeams(query, own).Count()
 }
 
-func (u *User) GetTeams(query string, own bool, limit, offset int) (teams []*Team, err error) {
-	_, err = u.QueryTeams(query, own).Limit(limit, offset).All(&teams)
+func (op *Operator) GetTeams(query string, own bool, limit, offset int) (teams []*Team, err error) {
+	_, err = op.QueryTeams(query, own).Limit(limit, offset).All(&teams)
 	return
 }
 
-func (u *User) UpdateTeam(id int64, _t *Team) (t *Team, err error) {
-	if t, err = u.GetTeam(id); err != nil {
+func (op *Operator) UpdateTeam(id int64, _t *Team) (t *Team, err error) {
+	if t, err = op.GetTeam(id); err != nil {
 		return nil, ErrNoTeam
 	}
 
@@ -92,16 +92,16 @@ func (u *User) UpdateTeam(id int64, _t *Team) (t *Team, err error) {
 	if _t.Note != "" {
 		t.Note = _t.Note
 	}
-	_, err = orm.NewOrm().Update(t)
+	_, err = op.O.Update(t)
 	moduleCache[CTL_M_TEAM].set(id, t)
-	DbLog(u.Id, CTL_M_TEAM, id, CTL_A_SET, jsonStr(_t))
+	DbLog(op.User.Id, CTL_M_TEAM, id, CTL_A_SET, jsonStr(_t))
 	return t, err
 }
 
-func (u *User) UpdateMember(id int64, _m *Member) (m *Member, err error) {
+func (op *Operator) UpdateMember(id int64, _m *Member) (m *Member, err error) {
 	var users []User
 
-	if users, err = u.GetMember(id); err != nil {
+	if users, err = op.GetMember(id); err != nil {
 		return nil, ErrNoTeam
 	}
 
@@ -117,7 +117,7 @@ func (u *User) UpdateMember(id int64, _m *Member) (m *Member, err error) {
 		for i := 0; i < len(vs); i++ {
 			vs[i] = fmt.Sprintf("(%d, %d)", id, add[i])
 		}
-		if _, err = orm.NewOrm().Raw("INSERT `team_user` (`team_id`, `user_id`) VALUES " + strings.Join(vs, ", ")).Exec(); err != nil {
+		if _, err = op.O.Raw("INSERT `team_user` (`team_id`, `user_id`) VALUES " + strings.Join(vs, ", ")).Exec(); err != nil {
 			return
 		}
 	}
@@ -126,38 +126,38 @@ func (u *User) UpdateMember(id int64, _m *Member) (m *Member, err error) {
 		for i := 0; i < len(del)-1; i++ {
 			ids += fmt.Sprintf("%s, %d", ids, del[i])
 		}
-		if _, err = orm.NewOrm().Raw("DELETE from `team_user` WHERE team_id = ? and user_id in ("+ids+")", id).Exec(); err != nil {
+		if _, err = op.O.Raw("DELETE from `team_user` WHERE team_id = ? and user_id in ("+ids+")", id).Exec(); err != nil {
 			return
 		}
 	}
 	m.Uids = _m.Uids
-	DbLog(u.Id, CTL_M_TEAM, id, CTL_A_SET, jsonStr(_m))
+	DbLog(op.User.Id, CTL_M_TEAM, id, CTL_A_SET, jsonStr(_m))
 	return
 }
 
-func (u *User) DeleteTeam(id int64) error {
-	if n, err := orm.NewOrm().Delete(&Team{Id: id}); err != nil || n == 0 {
+func (op *Operator) DeleteTeam(id int64) error {
+	if n, err := op.O.Delete(&Team{Id: id}); err != nil || n == 0 {
 		return err
 	}
-	DbLog(u.Id, CTL_M_TEAM, id, CTL_A_DEL, "")
+	DbLog(op.User.Id, CTL_M_TEAM, id, CTL_A_DEL, "")
 
 	return nil
 }
 
-func (u *User) BindTeamUser(team_id, user_id int64) (err error) {
-	if _, err := orm.NewOrm().Raw("INSERT INTO `team_user` (`team_id`, `user_id`) VALUES (?, ?)", team_id, user_id).Exec(); err != nil {
+func (op *Operator) BindTeamUser(team_id, user_id int64) (err error) {
+	if _, err := op.O.Raw("INSERT INTO `team_user` (`team_id`, `user_id`) VALUES (?, ?)", team_id, user_id).Exec(); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (u *User) BindTeamUsers(team_id int64, user_ids []int64) (int64, error) {
+func (op *Operator) BindTeamUsers(team_id int64, user_ids []int64) (int64, error) {
 	vs := make([]string, len(user_ids))
 	for i := 0; i < len(vs); i++ {
 		vs[i] = fmt.Sprintf("(%d, %d)", team_id, user_ids[i])
 	}
 
-	if res, err := orm.NewOrm().Raw("INSERT `team_user` (`team_id`, `user_id`) VALUES " + strings.Join(vs, ", ")).Exec(); err != nil {
+	if res, err := op.O.Raw("INSERT `team_user` (`team_id`, `user_id`) VALUES " + strings.Join(vs, ", ")).Exec(); err != nil {
 		return 0, err
 	} else {
 		return res.RowsAffected()

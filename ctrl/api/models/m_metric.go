@@ -33,10 +33,10 @@ func queryMetrics(query string, limit, offset int) (ret []*Metric) {
 	return
 }
 
-func (u *User) GetMetricsCnt(query string) (int64, error) {
+func (op *Operator) GetMetricsCnt(query string) (int64, error) {
 	return int64(len(queryMetrics(query, -1, 0))), nil
 }
 
-func (u *User) GetMetrics(query string, limit, offset int) (metrics []*Metric, err error) {
+func (op *Operator) GetMetrics(query string, limit, offset int) (metrics []*Metric, err error) {
 	return queryMetrics(query, limit, offset), nil
 }

@@ -44,7 +44,7 @@ type Expression struct {
 	CreateUserId    int64  `json:"-"`
 }
 
-func (u *User) AddExpression(r *Expression) (id int64, err error) {
+func (op *Operator) AddExpression(r *Expression) (id int64, err error) {
 	r.Id = 0
 	id, err = orm.NewOrm().Insert(r)
 	if err != nil {
@@ -52,11 +52,11 @@ func (u *User) AddExpression(r *Expression) (id int64, err error) {
 	}
 	r.Id = id
 	moduleCache[CTL_M_EXPRESSION].set(id, r)
-	DbLog(u.Id, CTL_M_EXPRESSION, id, CTL_A_ADD, jsonStr(r))
+	DbLog(op.User.Id, CTL_M_EXPRESSION, id, CTL_A_ADD, jsonStr(r))
 	return
 }
 
-func (u *User) getExpression(id int64) (*Expression, error) {
+func (op *Operator) getExpression(id int64) (*Expression, error) {
 	if r, ok := moduleCache[CTL_M_EXPRESSION].get(id).(*Expression); ok {
 		return r, nil
 	}
@@ -68,16 +68,16 @@ func (u *User) getExpression(id int64) (*Expression, error) {
 	return r, err
 }
 
-func (u *User) GetExpressionAction(id int64) (*ExpressionAction, error) {
+func (op *Operator) GetExpressionAction(id int64) (*ExpressionAction, error) {
 	var ret ExpressionAction
 
-	if e, err := u.getExpression(id); err != nil {
+	if e, err := op.getExpression(id); err != nil {
 		return nil, err
 	} else {
 		ret.Expression = *e
 	}
 
-	if a, err := u.GetAction(ret.Expression.ActionId); err != nil {
+	if a, err := op.GetAction(ret.Expression.ActionId); err != nil {
 		return nil, err
 	} else {
 		ret.Action = *a
@@ -106,13 +106,13 @@ func queryExpressions(query string, user_id int64) (where string, args []interfa
 	return
 }
 
-func (u *User) GetExpressionsCnt(query string, user_id int64) (cnt int64, err error) {
+func (op *Operator) GetExpressionsCnt(query string, user_id int64) (cnt int64, err error) {
 	sql, sql_args := queryExpressions(query, user_id)
 	err = orm.NewOrm().Raw("SELECT count(*) FROM expression a "+sql, sql_args...).QueryRow(&cnt)
 	return
 }
 
-func (u *User) GetExpressions(query string, user_id int64, limit, offset int) (ret []ExpressionUi, err error) {
+func (op *Operator) GetExpressions(query string, user_id int64, limit, offset int) (ret []ExpressionUi, err error) {
 	sql, sql_args := queryExpressions(query, user_id)
 	sql = "SELECT a.id as id, a.name as name, a.expression as expression, a.op as op, a.`condition` as `condition`, a.max_step as max_step, a.priority as priority, a.msg as msg, a.action_threshold as action_threshold, a.pause as pause, b.uic as uic, c.name as creator from expression a LEFT JOIN action b ON a.action_id = b.id LEFT JOIN user c ON a.create_user_id = c.id " + sql + " ORDER BY a.name LIMIT ? OFFSET ?"
 	sql_args = append(sql_args, limit, offset)
@@ -121,14 +121,14 @@ func (u *User) GetExpressions(query string, user_id int64, limit, offset int) (r
 	return
 }
 
-func (u *User) UpdateExpressionAction(id int64, _o *ExpressionAction) (o *Expression, err error) {
+func (op *Operator) UpdateExpressionAction(id int64, _o *ExpressionAction) (o *Expression, err error) {
 	var e *Expression
-	e, err = u.UpdateExpression(id, &_o.Expression)
+	e, err = op.UpdateExpression(id, &_o.Expression)
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = u.UpdateAction(e.ActionId, &_o.Action)
+	_, err = op.UpdateAction(e.ActionId, &_o.Action)
 	if err != nil {
 		return nil, err
 	}
@@ -136,19 +136,19 @@ func (u *User) UpdateExpressionAction(id int64, _o *ExpressionAction) (o *Expres
 	return e, err
 }
 
-func (u *User) PauseExpression(id int64, pause int) (o *Expression, err error) {
-	if o, err = u.getExpression(id); err != nil {
+func (op *Operator) PauseExpression(id int64, pause int) (item *Expression, err error) {
+	if item, err = op.getExpression(id); err != nil {
 		return nil, ErrNoExpression
 	}
-	o.Pause = pause
-	_, err = orm.NewOrm().Update(o)
-	moduleCache[CTL_M_EXPRESSION].set(id, o)
-	DbLog(u.Id, CTL_M_EXPRESSION, id, CTL_A_SET, "")
-	return o, err
+	item.Pause = pause
+	_, err = op.O.Update(item)
+	moduleCache[CTL_M_EXPRESSION].set(id, item)
+	DbLog(op.User.Id, CTL_M_EXPRESSION, id, CTL_A_SET, "")
+	return item, err
 }
 
-func (u *User) UpdateExpression(id int64, _o *Expression) (o *Expression, err error) {
-	if o, err = u.getExpression(id); err != nil {
+func (op *Operator) UpdateExpression(id int64, _o *Expression) (o *Expression, err error) {
+	if o, err = op.getExpression(id); err != nil {
 		return nil, ErrNoExpression
 	}
 
@@ -161,28 +161,28 @@ func (u *User) UpdateExpression(id int64, _o *Expression) (o *Expression, err er
 	o.ActionThreshold = _o.ActionThreshold
 	o.Pause = _o.Pause
 
-	_, err = orm.NewOrm().Update(o)
+	_, err = op.O.Update(o)
 	moduleCache[CTL_M_EXPRESSION].set(id, o)
-	DbLog(u.Id, CTL_M_EXPRESSION, id, CTL_A_SET, "")
+	DbLog(op.User.Id, CTL_M_EXPRESSION, id, CTL_A_SET, "")
 	return o, err
 }
 
-func (u *User) DeleteExpression(id int64) error {
-	expression, err := u.getExpression(id)
+func (op *Operator) DeleteExpression(id int64) error {
+	expression, err := op.getExpression(id)
 	if err != nil {
 		return err
 	}
 
-	if _, err = orm.NewOrm().Delete(&Action{Id: expression.ActionId}); err != nil {
+	if _, err = op.O.Delete(&Action{Id: expression.ActionId}); err != nil {
 		return err
 	}
 
-	if _, err := orm.NewOrm().Delete(&Expression{Id: id}); err != nil {
+	if _, err := op.O.Delete(&Expression{Id: id}); err != nil {
 		return err
 	}
 
 	moduleCache[CTL_M_EXPRESSION].del(id)
-	DbLog(u.Id, CTL_M_EXPRESSION, id, CTL_A_DEL, "")
+	DbLog(op.User.Id, CTL_M_EXPRESSION, id, CTL_A_DEL, "")
 
 	return nil
 }

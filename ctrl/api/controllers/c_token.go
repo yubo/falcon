@@ -26,11 +26,11 @@ type TokenController struct {
 // @router / [post]
 func (c *TokenController) CreateToken() {
 	var token models.Token
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	json.Unmarshal(c.Ctx.Input.RequestBody, &token)
 	token.Id = 0
 
-	id, err := me.AddToken(&token)
+	id, err := op.AddToken(&token)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -46,9 +46,9 @@ func (c *TokenController) CreateToken() {
 // @router /cnt [get]
 func (c *TokenController) GetTokensCnt() {
 	query := strings.TrimSpace(c.GetString("query"))
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	cnt, err := me.GetTokensCnt(query)
+	cnt, err := op.GetTokensCnt(query)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -68,9 +68,9 @@ func (c *TokenController) GetTokens() {
 	query := strings.TrimSpace(c.GetString("query"))
 	per, _ := c.GetInt("per", models.PAGE_PER)
 	offset, _ := c.GetInt("offset", 0)
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	tokens, err := me.GetTokens(query, per, offset)
+	tokens, err := op.GetTokens(query, per, offset)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -90,8 +90,8 @@ func (c *TokenController) GetToken() {
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		me, _ := c.Ctx.Input.GetData("me").(*models.User)
-		token, err := me.GetToken(id)
+		op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
+		token, err := op.GetToken(id)
 		if err != nil {
 			c.SendMsg(403, err.Error())
 		} else {
@@ -118,8 +118,8 @@ func (c *TokenController) UpdateToken() {
 
 	json.Unmarshal(c.Ctx.Input.RequestBody, &token)
 
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
-	if u, err := me.UpdateToken(id, &token); err != nil {
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
+	if u, err := op.UpdateToken(id, &token); err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
 		c.SendMsg(200, u)
@@ -139,8 +139,8 @@ func (c *TokenController) DeleteToken() {
 		return
 	}
 
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
-	err = me.DeleteToken(id)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
+	err = op.DeleteToken(id)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 		return

@@ -28,9 +28,9 @@ func (c *SetController) GetConfig() {
 	var err error
 
 	module := c.GetString(":module")
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	conf, err := me.ConfigGet(module)
+	conf, err := op.ConfigGet(module)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -57,8 +57,8 @@ func (c *SetController) UpdateConfig() {
 		return
 	}
 
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
-	if err := me.ConfigSet(module, conf); err != nil {
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
+	if err := op.ConfigSet(module, conf); err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
 		c.SendMsg(200, "success")
@@ -75,12 +75,13 @@ func (c *SetController) GetDebugAction() {
 	var err error
 	var obj interface{}
 	action := c.GetString(":action")
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
 	switch action {
 	case "populate":
-		obj, err = models.Populate()
+		obj, err = op.Populate()
 	case "reset_db":
-		obj, err = models.ResetDb()
+		obj, err = op.ResetDb()
 	default:
 		err = fmt.Errorf("%s %s", models.ErrUnsupported.Error(), action)
 	}

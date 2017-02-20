@@ -19,56 +19,56 @@ type Token struct {
 	CreateTime time.Time `json:"ctime"`
 }
 
-func (u *User) AddToken(o *Token) (id int64, err error) {
+func (op *Operator) AddToken(o *Token) (id int64, err error) {
 	o.Id = 0
-	if id, err = orm.NewOrm().Insert(o); err != nil {
+	if id, err = op.O.Insert(o); err != nil {
 		return
 	}
 	o.Id = id
 	moduleCache[CTL_M_TOKEN].set(id, o)
-	DbLog(u.Id, CTL_M_TOKEN, id, CTL_A_ADD, jsonStr(o))
+	DbLog(op.User.Id, CTL_M_TOKEN, id, CTL_A_ADD, jsonStr(o))
 	return
 }
 
-func (u *User) GetToken(id int64) (o *Token, err error) {
+func (op *Operator) GetToken(id int64) (o *Token, err error) {
 	var ok bool
 
 	if o, ok = moduleCache[CTL_M_TOKEN].get(id).(*Token); ok {
 		return
 	}
 	o = &Token{Id: id}
-	err = orm.NewOrm().Read(o, "Id")
+	err = op.O.Read(o, "Id")
 	if err == nil {
 		moduleCache[CTL_M_TOKEN].set(id, o)
 	}
 	return
 }
 
-func (u *User) GetTokenByName(token string) (o *Token, err error) {
+func (op *Operator) GetTokenByName(token string) (o *Token, err error) {
 	o = &Token{Name: token}
-	err = orm.NewOrm().Read(o, "Name")
+	err = op.O.Read(o, "Name")
 	return
 }
 
-func (u *User) QueryTokens(query string) orm.QuerySeter {
-	qs := orm.NewOrm().QueryTable(new(Token))
+func (op *Operator) QueryTokens(query string) orm.QuerySeter {
+	qs := op.O.QueryTable(new(Token))
 	if query != "" {
 		qs = qs.Filter("Name__icontains", query)
 	}
 	return qs
 }
 
-func (u *User) GetTokensCnt(query string) (int64, error) {
-	return u.QueryTokens(query).Count()
+func (op *Operator) GetTokensCnt(query string) (int64, error) {
+	return op.QueryTokens(query).Count()
 }
 
-func (u *User) GetTokens(query string, limit, offset int) (tokens []*Token, err error) {
-	_, err = u.QueryTokens(query).Limit(limit, offset).All(&tokens)
+func (op *Operator) GetTokens(query string, limit, offset int) (tokens []*Token, err error) {
+	_, err = op.QueryTokens(query).Limit(limit, offset).All(&tokens)
 	return
 }
 
-func (u *User) UpdateToken(id int64, _tk *Token) (tk *Token, err error) {
-	if tk, err = u.GetToken(id); err != nil {
+func (op *Operator) UpdateToken(id int64, _tk *Token) (tk *Token, err error) {
+	if tk, err = op.GetToken(id); err != nil {
 		return nil, ErrNoToken
 	}
 
@@ -81,19 +81,19 @@ func (u *User) UpdateToken(id int64, _tk *Token) (tk *Token, err error) {
 	if _tk.Note != "" {
 		tk.Note = _tk.Note
 	}
-	_, err = orm.NewOrm().Update(tk)
+	_, err = op.O.Update(tk)
 	moduleCache[CTL_M_TOKEN].set(id, tk)
-	DbLog(u.Id, CTL_M_TOKEN, id, CTL_A_SET, "")
+	DbLog(op.User.Id, CTL_M_TOKEN, id, CTL_A_SET, "")
 	return tk, err
 }
 
-func (u *User) DeleteToken(id int64) error {
+func (op *Operator) DeleteToken(id int64) error {
 
-	if n, err := orm.NewOrm().Delete(&Token{Id: id}); err != nil || n == 0 {
+	if n, err := op.O.Delete(&Token{Id: id}); err != nil || n == 0 {
 		return ErrNoExits
 	}
 	moduleCache[CTL_M_TOKEN].del(id)
-	DbLog(u.Id, CTL_M_TOKEN, id, CTL_A_DEL, "")
+	DbLog(op.User.Id, CTL_M_TOKEN, id, CTL_A_DEL, "")
 
 	return nil
 }

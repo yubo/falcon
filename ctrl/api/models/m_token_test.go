@@ -83,7 +83,7 @@ func TestToken(t *testing.T) {
 		if u, err := admin.AddUser(&User{Name: item}); err != nil {
 			t.Error(err)
 		} else {
-			user_idx[item] = u.Id
+			user_idx[item] = op.User.Id
 		}
 	}
 
@@ -155,6 +155,7 @@ func TestToken(t *testing.T) {
 		{name: "case1-2", uid: user_idx["u1"], token_id: token_idx["token1"], tid: tag_idx["a=1,b=2"], want: tag_idx["a=1,b=2"], wante: nil},
 		{name: "case1-3", uid: user_idx["u1"], token_id: token_idx["token1"], tid: tag_idx["a=1,b=2,c=1"], want: tag_idx["a=1,b=2"], wante: nil},
 		{name: "case1-4", uid: user_idx["u1"], token_id: token_idx["token1"], tid: tag_idx["a=1,b=2,c=2"], want: tag_idx["a=1,b=2"], wante: nil},
+		{name: "case1-5", uid: user_idx["u1"], token_id: token_idx["token1"], tid: 0, want: tag_idx["a=1,b=2"], wante: nil},
 		//case2
 		{name: "case2-1", uid: user_idx["u1"], token_id: token_idx["token2"], tid: tag_idx["a=1"], want: 0, wante: EACCES},
 		{name: "case2-2", uid: user_idx["u1"], token_id: token_idx["token2"], tid: tag_idx["a=1,b=2"], want: tag_idx["a=1"], wante: nil},

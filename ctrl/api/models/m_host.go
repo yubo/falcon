@@ -23,58 +23,58 @@ type Host struct {
 	CreateTime time.Time `json:"ctime"`
 }
 
-func (u *User) AddHost(h *Host) (id int64, err error) {
+func (op *Operator) AddHost(h *Host) (id int64, err error) {
 	h.Id = 0
-	id, err = orm.NewOrm().Insert(h)
+	id, err = op.O.Insert(h)
 	if err != nil {
 		beego.Error(err)
 		return
 	}
 	h.Id = id
 	moduleCache[CTL_M_HOST].set(id, h)
-	DbLog(u.Id, CTL_M_HOST, id, CTL_A_ADD, jsonStr(h))
+	DbLog(op.User.Id, CTL_M_HOST, id, CTL_A_ADD, jsonStr(h))
 	return
 }
 
-func (u *User) GetHost(id int64) (*Host, error) {
+func (op *Operator) GetHost(id int64) (*Host, error) {
 	if h, ok := moduleCache[CTL_M_HOST].get(id).(*Host); ok {
 		return h, nil
 	}
 	h := &Host{Id: id}
-	err := orm.NewOrm().Read(h, "Id")
+	err := op.O.Read(h, "Id")
 	if err == nil {
 		moduleCache[CTL_M_HOST].set(id, h)
 	}
 	return h, err
 }
 
-func (u *User) GetHostByUuid(uuid string) (h *Host, err error) {
+func (op *Operator) GetHostByUuid(uuid string) (h *Host, err error) {
 	h = &Host{Uuid: uuid}
-	err = orm.NewOrm().Read(h, "Uuid")
+	err = op.O.Read(h, "Uuid")
 	return h, err
 }
 
-func (u *User) QueryHosts(query string) orm.QuerySeter {
+func (op *Operator) QueryHosts(query string) orm.QuerySeter {
 	// TODO: acl filter
 	// just for admin?
-	qs := orm.NewOrm().QueryTable(new(Host))
+	qs := op.O.QueryTable(new(Host))
 	if query != "" {
 		qs = qs.Filter("Name__icontains", query)
 	}
 	return qs
 }
 
-func (u *User) GetHostsCnt(query string) (int64, error) {
-	return u.QueryHosts(query).Count()
+func (op *Operator) GetHostsCnt(query string) (int64, error) {
+	return op.QueryHosts(query).Count()
 }
 
-func (u *User) GetHosts(query string, limit, offset int) (hosts []*Host, err error) {
-	_, err = u.QueryHosts(query).Limit(limit, offset).All(&hosts)
+func (op *Operator) GetHosts(query string, limit, offset int) (hosts []*Host, err error) {
+	_, err = op.QueryHosts(query).Limit(limit, offset).All(&hosts)
 	return
 }
 
-func (u *User) UpdateHost(id int64, _h *Host) (h *Host, err error) {
-	if h, err = u.GetHost(id); err != nil {
+func (op *Operator) UpdateHost(id int64, _h *Host) (h *Host, err error) {
+	if h, err = op.GetHost(id); err != nil {
 		return nil, ErrNoHost
 	}
 
@@ -99,18 +99,18 @@ func (u *User) UpdateHost(id int64, _h *Host) (h *Host, err error) {
 	if _h.Idc != "" {
 		h.Idc = _h.Idc
 	}
-	_, err = orm.NewOrm().Update(h)
+	_, err = op.O.Update(h)
 	moduleCache[CTL_M_HOST].set(id, h)
-	DbLog(u.Id, CTL_M_HOST, id, CTL_A_SET, "")
+	DbLog(op.User.Id, CTL_M_HOST, id, CTL_A_SET, "")
 	return h, err
 }
 
-func (u *User) DeleteHost(id int64) error {
-	if n, err := orm.NewOrm().Delete(&Host{Id: id}); err != nil || n == 0 {
+func (op *Operator) DeleteHost(id int64) error {
+	if n, err := op.O.Delete(&Host{Id: id}); err != nil || n == 0 {
 		return err
 	}
 	moduleCache[CTL_M_HOST].del(id)
-	DbLog(u.Id, CTL_M_HOST, id, CTL_A_DEL, "")
+	DbLog(op.User.Id, CTL_M_HOST, id, CTL_A_DEL, "")
 
 	return nil
 }

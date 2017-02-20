@@ -26,11 +26,11 @@ type HostController struct {
 func (c *HostController) CreateHost() {
 	var host models.Host
 
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	json.Unmarshal(c.Ctx.Input.RequestBody, &host)
 	host.Id = 0
 
-	if id, err := me.AddHost(&host); err != nil {
+	if id, err := op.AddHost(&host); err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
 		c.SendMsg(200, models.Id{Id: id})
@@ -45,9 +45,9 @@ func (c *HostController) CreateHost() {
 // @router /cnt [get]
 func (c *HostController) GetHostsCnt() {
 	query := strings.TrimSpace(c.GetString("query"))
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	cnt, err := me.GetHostsCnt(query)
+	cnt, err := op.GetHostsCnt(query)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -67,9 +67,9 @@ func (c *HostController) GetHosts() {
 	query := strings.TrimSpace(c.GetString("query"))
 	per, _ := c.GetInt("per", models.PAGE_PER)
 	offset, _ := c.GetInt("offset", 0)
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	hosts, err := me.GetHosts(query, per, offset)
+	hosts, err := op.GetHosts(query, per, offset)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -88,8 +88,8 @@ func (c *HostController) GetHost() {
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		me, _ := c.Ctx.Input.GetData("me").(*models.User)
-		host, err := me.GetHost(id)
+		op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
+		host, err := op.GetHost(id)
 		if err != nil {
 			c.SendMsg(403, err.Error())
 		} else {
@@ -107,7 +107,7 @@ func (c *HostController) GetHost() {
 // @router /:id [put]
 func (c *HostController) UpdateHost() {
 	var host models.Host
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
 	id, err := c.GetInt64(":id")
 	if err != nil {
@@ -117,7 +117,7 @@ func (c *HostController) UpdateHost() {
 
 	json.Unmarshal(c.Ctx.Input.RequestBody, &host)
 
-	if u, err := me.UpdateHost(id, &host); err != nil {
+	if u, err := op.UpdateHost(id, &host); err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
 		c.SendMsg(200, u)
@@ -137,8 +137,8 @@ func (c *HostController) DeleteHost() {
 		return
 	}
 
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
-	err = me.DeleteHost(id)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
+	err = op.DeleteHost(id)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 		return

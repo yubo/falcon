@@ -32,6 +32,13 @@ const (
 	SYS_F_A_TOKEN
 )
 
+const (
+	_ = iota
+	SYS_IDX_R_TOKEN
+	SYS_IDX_O_TOKEN
+	SYS_IDX_A_TOKEN
+)
+
 var (
 	dbTables = []string{
 		"action",
@@ -89,6 +96,12 @@ type Id struct {
 
 type Total struct {
 	Total int64 `json:"total"`
+}
+
+type Operator struct {
+	User  *User
+	Token int
+	O     orm.Ormer
 }
 
 var (

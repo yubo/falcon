@@ -25,11 +25,11 @@ type TeamController struct {
 // @router / [post]
 func (c *TeamController) CreateTeam() {
 	var team models.Team
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
 	json.Unmarshal(c.Ctx.Input.RequestBody, &team)
-	team.Creator = me.Id
-	id, err := me.AddTeam(&team)
+	team.Creator = op.User.Id
+	id, err := op.AddTeam(&team)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -46,9 +46,9 @@ func (c *TeamController) CreateTeam() {
 func (c *TeamController) GetTeamsCnt() {
 	query := strings.TrimSpace(c.GetString("query"))
 	own, _ := c.GetBool("own", false)
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	cnt, err := me.GetTeamsCnt(query, own)
+	cnt, err := op.GetTeamsCnt(query, own)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -70,9 +70,9 @@ func (c *TeamController) GetTeams() {
 	own, _ := c.GetBool("own", false)
 	per, _ := c.GetInt("per", models.PAGE_PER)
 	offset, _ := c.GetInt("offset", 0)
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	teams, err := me.GetTeams(query, own, per, offset)
+	teams, err := op.GetTeams(query, own, per, offset)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -91,8 +91,8 @@ func (c *TeamController) GetTeam() {
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		me, _ := c.Ctx.Input.GetData("me").(*models.User)
-		if t, err := me.GetTeam(id); err != nil {
+		op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
+		if t, err := op.GetTeam(id); err != nil {
 			c.SendMsg(403, err.Error())
 		} else {
 			c.SendMsg(200, t)
@@ -100,7 +100,7 @@ func (c *TeamController) GetTeam() {
 	}
 }
 
-// @Title Get team member
+// @Title Get team op.ber
 // @Description get team by id
 // @Param	id	path 	int	true	"team id"
 // @Success 200 users models.User
@@ -111,8 +111,8 @@ func (c *TeamController) GetMember() {
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		me, _ := c.Ctx.Input.GetData("me").(*models.User)
-		if users, err := me.GetMember(id); err != nil {
+		op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
+		if users, err := op.GetMember(id); err != nil {
 			c.SendMsg(403, err.Error())
 		} else {
 			c.SendMsg(200, map[string]interface{}{"users": users})
@@ -135,17 +135,17 @@ func (c *TeamController) UpdateTeam() {
 		c.SendMsg(403, err.Error())
 		return
 	}
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	json.Unmarshal(c.Ctx.Input.RequestBody, &team)
 
-	if t, err := me.UpdateTeam(id, &team); err != nil {
+	if t, err := op.UpdateTeam(id, &team); err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
 		c.SendMsg(200, t)
 	}
 }
 
-// @Title update Team members
+// @Title update Team op.bers
 // @Description create teams
 // @Param	body	body 	models.Team	true	"body for team content"
 // @Success 200 {object} models.Member
@@ -158,10 +158,10 @@ func (c *TeamController) UpdateMember() {
 		c.SendMsg(403, err.Error())
 		return
 	}
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	json.Unmarshal(c.Ctx.Input.RequestBody, &member)
 
-	if m, err := me.UpdateMember(id, &member); err != nil {
+	if m, err := op.UpdateMember(id, &member); err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
 		c.SendMsg(200, m)
@@ -181,8 +181,8 @@ func (c *TeamController) DeleteTeam() {
 		return
 	}
 
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
-	err = me.DeleteTeam(id)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
+	err = op.DeleteTeam(id)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 		return

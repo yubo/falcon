@@ -26,7 +26,7 @@ func init() {
 		return defaultValue
 	}
 	user := env("MYSQL_TEST_USER", "root")
-	pass := env("MYSQL_TEST_PASS", "123456")
+	pass := env("MYSQL_TEST_PASS", "12341234")
 	prot := env("MYSQL_TEST_PROT", "tcp")
 	addr := env("MYSQL_TEST_ADDR", "localhost:3306")
 	dbname := env("MYSQL_TEST_DBNAME", "falcon_test")

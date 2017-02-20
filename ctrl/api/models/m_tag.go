@@ -189,7 +189,7 @@ func TagLast(t string) string {
 	return t[strings.LastIndexAny(t, ",")+1:]
 }
 
-func (u *User) addTag(t *Tag, schema *TagSchema) (id int64, err error) {
+func (op *Operator) addTag(t *Tag, schema *TagSchema) (id int64, err error) {
 	if schema != nil {
 		t.Name, err = schema.Fmt(t.Name, false)
 		if err != nil {
@@ -198,13 +198,13 @@ func (u *User) addTag(t *Tag, schema *TagSchema) (id int64, err error) {
 	}
 
 	// TODO: check parent exist/acl
-	if _, err = u.Access(SYS_O_TOKEN,
+	if _, err = op.Access(SYS_O_TOKEN,
 		TagParent(t.Name), false); err != nil {
 		return
 	}
 
 	t.Id = 0
-	if id, err = orm.NewOrm().Insert(t); err != nil {
+	if id, err = op.O.Insert(t); err != nil {
 		return
 	}
 
@@ -218,7 +218,7 @@ func (u *User) addTag(t *Tag, schema *TagSchema) (id int64, err error) {
 			arg[i] = v
 		}
 
-		_, err = orm.NewOrm().QueryTable(new(Tag)).
+		_, err = op.O.QueryTable(new(Tag)).
 			Filter("Name__in", arg...).All(&tags)
 		if err != nil {
 			return
@@ -230,7 +230,7 @@ func (u *User) addTag(t *Tag, schema *TagSchema) (id int64, err error) {
 				SupTagId: tag.Id,
 				Offset:   int64(len(tags) - 1 - i)}
 		}
-		_, err = orm.NewOrm().InsertMulti(10, tag_rels)
+		_, err = op.O.InsertMulti(10, tag_rels)
 		if err != nil {
 			return
 		}
@@ -238,58 +238,58 @@ func (u *User) addTag(t *Tag, schema *TagSchema) (id int64, err error) {
 
 	t.Id = id
 	moduleCache[CTL_M_TAG].set(id, t)
-	DbLog(u.Id, CTL_M_TAG, id, CTL_A_ADD, "")
+	DbLog(op.User.Id, CTL_M_TAG, id, CTL_A_ADD, "")
 
 	return id, err
 }
 
-func (u *User) AddTag(t *Tag) (id int64, err error) {
-	return u.addTag(t, sysTagSchema)
+func (op *Operator) AddTag(t *Tag) (id int64, err error) {
+	return op.addTag(t, sysTagSchema)
 }
 
-func (u *User) GetTag(id int64) (*Tag, error) {
+func (op *Operator) GetTag(id int64) (*Tag, error) {
 	if t, ok := moduleCache[CTL_M_TAG].get(id).(*Tag); ok {
 		return t, nil
 	}
 	t := &Tag{Id: id}
-	err := orm.NewOrm().Read(t, "Id")
+	err := op.O.Read(t, "Id")
 	if err == nil {
 		moduleCache[CTL_M_TAG].set(id, t)
 	}
 	return t, err
 }
 
-func (u *User) GetTagByName(tag string) (t *Tag, err error) {
+func (op *Operator) GetTagByName(tag string) (t *Tag, err error) {
 	t = &Tag{Name: tag}
 
-	err = orm.NewOrm().Read(t, "Name")
+	err = op.O.Read(t, "Name")
 	return
 }
 
-func (u *User) QueryTags(query string) orm.QuerySeter {
+func (op *Operator) QueryTags(query string) orm.QuerySeter {
 	// TODO: acl filter
-	qs := orm.NewOrm().QueryTable(new(Tag))
+	qs := op.O.QueryTable(new(Tag))
 	if query != "" {
 		qs = qs.Filter("Name__icontains", query)
 	}
 	return qs
 }
 
-func (u *User) GetTagsCnt(query string) (int64, error) {
-	return u.QueryTags(query).Count()
+func (op *Operator) GetTagsCnt(query string) (int64, error) {
+	return op.QueryTags(query).Count()
 }
 
-func (u *User) GetTags(query string, limit, offset int) (tags []*Tag, err error) {
-	_, err = u.QueryTags(query).Limit(limit, offset).All(&tags)
+func (op *Operator) GetTags(query string, limit, offset int) (tags []*Tag, err error) {
+	_, err = op.QueryTags(query).Limit(limit, offset).All(&tags)
 	return
 }
 
-func (u *User) UpdateTag(id int64, _t *Tag) (t *Tag, err error) {
-	if t, err = u.GetTag(id); err != nil {
+func (op *Operator) UpdateTag(id int64, _t *Tag) (t *Tag, err error) {
+	if t, err = op.GetTag(id); err != nil {
 		return
 	}
 
-	if _, err = u.Access(SYS_O_TOKEN,
+	if _, err = op.Access(SYS_O_TOKEN,
 		TagParent(t.Name), true); err != nil {
 		return
 	}
@@ -297,30 +297,30 @@ func (u *User) UpdateTag(id int64, _t *Tag) (t *Tag, err error) {
 	if _t.Name != "" {
 		t.Name = _t.Name
 	}
-	_, err = orm.NewOrm().Update(t)
+	_, err = op.O.Update(t)
 	moduleCache[CTL_M_TAG].set(id, t)
-	DbLog(u.Id, CTL_M_TAG, id, CTL_A_SET, "")
+	DbLog(op.User.Id, CTL_M_TAG, id, CTL_A_SET, "")
 	return t, err
 }
 
-func (u *User) DeleteTag(id int64) (err error) {
+func (op *Operator) DeleteTag(id int64) (err error) {
 	var n int64
 	var tag *Tag
 
-	if tag, err = u.GetTag(id); err != nil {
+	if tag, err = op.GetTag(id); err != nil {
 		return
 	}
 
-	if _, err = u.Access(SYS_O_TOKEN,
+	if _, err = op.Access(SYS_O_TOKEN,
 		TagParent(tag.Name), false); err != nil {
 		return
 	}
 
-	if n, err = orm.NewOrm().Delete(&Tag{Id: id}); err != nil || n == 0 {
+	if n, err = op.O.Delete(&Tag{Id: id}); err != nil || n == 0 {
 		return ErrNoExits
 	}
 	moduleCache[CTL_M_TAG].del(id)
-	DbLog(u.Id, CTL_M_TAG, id, CTL_A_DEL, "")
+	DbLog(op.User.Id, CTL_M_TAG, id, CTL_A_DEL, "")
 
 	return nil
 }

@@ -25,11 +25,11 @@ type UserController struct {
 // @router / [post]
 func (c *UserController) CreateUser() {
 	var user models.User
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	json.Unmarshal(c.Ctx.Input.RequestBody, &user)
 	user.Id = 0
 
-	if u, err := me.AddUser(&user); err != nil {
+	if u, err := op.AddUser(&user); err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
 		c.SendMsg(200, models.Id{Id: u.Id})
@@ -44,9 +44,9 @@ func (c *UserController) CreateUser() {
 // @router /cnt [get]
 func (c *UserController) GetUsersCnt() {
 	query := strings.TrimSpace(c.GetString("query"))
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	if cnt, err := me.GetUsersCnt(query); err != nil {
+	if cnt, err := op.GetUsersCnt(query); err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
 		c.SendMsg(200, totalObj(cnt))
@@ -65,9 +65,9 @@ func (c *UserController) GetUsers() {
 	query := strings.TrimSpace(c.GetString("query"))
 	per, _ := c.GetInt("per", models.PAGE_PER)
 	offset, _ := c.GetInt("offset", 0)
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	if users, err := me.GetUsers(query, per, offset); err != nil {
+	if users, err := op.GetUsers(query, per, offset); err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
 		c.SendMsg(200, users)
@@ -85,8 +85,8 @@ func (c *UserController) GetUser() {
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		me, _ := c.Ctx.Input.GetData("me").(*models.User)
-		if user, err := me.GetUser(id); err != nil {
+		op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
+		if user, err := op.GetUser(id); err != nil {
 			c.SendMsg(403, err.Error())
 		} else {
 			c.SendMsg(200, user)
@@ -112,8 +112,8 @@ func (c *UserController) UpdateUser() {
 
 	json.Unmarshal(c.Ctx.Input.RequestBody, &user)
 
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
-	if u, err := me.UpdateUser(id, &user); err != nil {
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
+	if u, err := op.UpdateUser(id, &user); err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
 		c.SendMsg(200, u)
@@ -133,8 +133,8 @@ func (c *UserController) DeleteUser() {
 		return
 	}
 
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
-	if err = me.DeleteUser(id); err != nil {
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
+	if err = op.DeleteUser(id); err != nil {
 		c.SendMsg(403, err.Error())
 		return
 	}

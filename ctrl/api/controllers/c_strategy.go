@@ -26,12 +26,12 @@ type StrategyController struct {
 // @router / [post]
 func (c *StrategyController) CreateStrategy() {
 	var strategy models.Strategy
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
 	json.Unmarshal(c.Ctx.Input.RequestBody, &strategy)
 	strategy.Id = 0
 
-	if id, err := me.AddStrategy(&strategy); err != nil {
+	if id, err := op.AddStrategy(&strategy); err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
 		c.SendMsg(200, models.Id{Id: id})
@@ -48,9 +48,9 @@ func (c *StrategyController) CreateStrategy() {
 func (c *StrategyController) GetStrategysCnt() {
 	tid, _ := c.GetInt64("tid", 0)
 	query := strings.TrimSpace(c.GetString("query"))
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	cnt, err := me.GetStrategysCnt(tid, query)
+	cnt, err := op.GetStrategysCnt(tid, query)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -72,9 +72,9 @@ func (c *StrategyController) GetStrategys() {
 	query := strings.TrimSpace(c.GetString("query"))
 	per, _ := c.GetInt("per", models.PAGE_PER)
 	offset, _ := c.GetInt("offset", 0)
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	strategys, err := me.GetStrategys(tid, query, per, offset)
+	strategys, err := op.GetStrategys(tid, query, per, offset)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -94,8 +94,8 @@ func (c *StrategyController) GetStrategy() {
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		me, _ := c.Ctx.Input.GetData("me").(*models.User)
-		strategy, err := me.GetStrategy(id)
+		op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
+		strategy, err := op.GetStrategy(id)
 		if err != nil {
 			c.SendMsg(403, err.Error())
 		} else {
@@ -122,8 +122,8 @@ func (c *StrategyController) UpdateStrategy() {
 
 	json.Unmarshal(c.Ctx.Input.RequestBody, &strategy)
 
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
-	if u, err := me.UpdateStrategy(id, &strategy); err != nil {
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
+	if u, err := op.UpdateStrategy(id, &strategy); err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
 		c.SendMsg(200, u)
@@ -143,8 +143,8 @@ func (c *StrategyController) DeleteStrategy() {
 		return
 	}
 
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
-	err = me.DeleteStrategy(id)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
+	err = op.DeleteStrategy(id)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 		return

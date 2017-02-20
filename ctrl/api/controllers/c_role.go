@@ -26,11 +26,11 @@ type RoleController struct {
 // @router / [post]
 func (c *RoleController) CreateRole() {
 	var role models.Role
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	json.Unmarshal(c.Ctx.Input.RequestBody, &role)
 	role.Id = 0
 
-	if id, err := me.AddRole(&role); err != nil {
+	if id, err := op.AddRole(&role); err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
 		c.SendMsg(200, models.Id{Id: id})
@@ -45,9 +45,9 @@ func (c *RoleController) CreateRole() {
 // @router /cnt [get]
 func (c *RoleController) GetRolesCnt() {
 	query := strings.TrimSpace(c.GetString("query"))
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	cnt, err := me.GetRolesCnt(query)
+	cnt, err := op.GetRolesCnt(query)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -67,9 +67,9 @@ func (c *RoleController) GetRoles() {
 	query := strings.TrimSpace(c.GetString("query"))
 	per, _ := c.GetInt("per", models.PAGE_PER)
 	offset, _ := c.GetInt("offset", 0)
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	roles, err := me.GetRoles(query, per, offset)
+	roles, err := op.GetRoles(query, per, offset)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -89,8 +89,8 @@ func (c *RoleController) GetRole() {
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		me, _ := c.Ctx.Input.GetData("me").(*models.User)
-		role, err := me.GetRole(id)
+		op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
+		role, err := op.GetRole(id)
 		if err != nil {
 			c.SendMsg(403, err.Error())
 		} else {
@@ -117,8 +117,8 @@ func (c *RoleController) UpdateRole() {
 
 	json.Unmarshal(c.Ctx.Input.RequestBody, &role)
 
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
-	if o, err := me.UpdateRole(id, &role); err != nil {
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
+	if o, err := op.UpdateRole(id, &role); err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
 		c.SendMsg(200, o)
@@ -138,8 +138,8 @@ func (c *RoleController) DeleteRole() {
 		return
 	}
 
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
-	err = me.DeleteRole(id)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
+	err = op.DeleteRole(id)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 		return

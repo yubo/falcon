@@ -5,11 +5,7 @@
  */
 package models
 
-import (
-	"time"
-
-	"github.com/astaxie/beego/orm"
-)
+import "time"
 
 type TemplateAction struct {
 	Template Template `json:"template"`
@@ -50,22 +46,22 @@ type Action struct {
 	AfterCallbackMail  uint   `json:"afterCallbackMail"`
 }
 
-func (u *User) AddTemplate(o *Template) (id int64, err error) {
-	o.CreateUserId = u.Id
+func (op *Operator) AddTemplate(o *Template) (id int64, err error) {
+	o.CreateUserId = op.User.Id
 	o.Id = 0
-	id, err = orm.NewOrm().Insert(o)
+	id, err = op.O.Insert(o)
 	if err != nil {
 		return
 	}
 	o.Id = id
 	moduleCache[CTL_M_TEMPLATE].set(id, o)
-	DbLog(u.Id, CTL_M_TEMPLATE, id, CTL_A_ADD, jsonStr(o))
+	DbLog(op.User.Id, CTL_M_TEMPLATE, id, CTL_A_ADD, jsonStr(o))
 	return
 }
 
-func (u *User) AddAction(o *Action) (id int64, err error) {
+func (op *Operator) AddAction(o *Action) (id int64, err error) {
 	o.Id = 0
-	id, err = orm.NewOrm().Insert(o)
+	id, err = op.O.Insert(o)
 	if err != nil {
 		return
 	}
@@ -73,7 +69,7 @@ func (u *User) AddAction(o *Action) (id int64, err error) {
 	return
 }
 
-func (u *User) CloneTemplate(id int64) (*TemplateAction, error) {
+func (op *Operator) CloneTemplate(id int64) (*TemplateAction, error) {
 	var (
 		ret     TemplateAction
 		src_tpl *Template
@@ -83,10 +79,10 @@ func (u *User) CloneTemplate(id int64) (*TemplateAction, error) {
 		tid     int64
 	)
 
-	if src_tpl, err = u.getTemplate(id); err != nil {
+	if src_tpl, err = op.getTemplate(id); err != nil {
 		return nil, err
 	}
-	if src_act, err = u.GetAction(src_tpl.ActionId); err != nil {
+	if src_act, err = op.GetAction(src_tpl.ActionId); err != nil {
 		return nil, err
 	}
 
@@ -94,103 +90,103 @@ func (u *User) CloneTemplate(id int64) (*TemplateAction, error) {
 	ret.Action = *src_act
 	ret.Template.Name += "_copy"
 
-	_, err = u.AddAction(&ret.Action)
+	_, err = op.AddAction(&ret.Action)
 	if err != nil {
 		return nil, err
 	}
 
 	ret.Template.ActionId = ret.Action.Id
-	tid, err = u.AddTemplate(&ret.Template)
+	tid, err = op.AddTemplate(&ret.Template)
 	if err != nil {
 		return nil, err
 	}
 
-	objs, _ = u.GetStrategys(src_tpl.Id, "", 0, 0)
+	objs, _ = op.GetStrategys(src_tpl.Id, "", 0, 0)
 	for _, obj := range objs {
 		obj.TplId = tid
-		u.AddStrategy(obj)
+		op.AddStrategy(obj)
 	}
 
-	if t, err := u.getTemplate(ret.Template.ParentId); err == nil {
+	if t, err := op.getTemplate(ret.Template.ParentId); err == nil {
 		ret.Pname = t.Name
 	}
 
 	return &ret, nil
 }
 
-func (u *User) GetTemplate(id int64) (*TemplateAction, error) {
+func (op *Operator) GetTemplate(id int64) (*TemplateAction, error) {
 	var ret TemplateAction
 
-	if t, err := u.getTemplate(id); err != nil {
+	if t, err := op.getTemplate(id); err != nil {
 		return nil, err
 	} else {
 		ret.Template = *t
 	}
 
-	if a, err := u.GetAction(ret.Template.ActionId); err != nil {
+	if a, err := op.GetAction(ret.Template.ActionId); err != nil {
 		return nil, err
 	} else {
 		ret.Action = *a
 	}
 
-	if t, err := u.getTemplate(ret.Template.ParentId); err == nil {
+	if t, err := op.getTemplate(ret.Template.ParentId); err == nil {
 		ret.Pname = t.Name
 	}
 
 	return &ret, nil
 }
 
-func (u *User) getTemplate(id int64) (*Template, error) {
+func (op *Operator) getTemplate(id int64) (*Template, error) {
 	if r, ok := moduleCache[CTL_M_TEMPLATE].get(id).(*Template); ok {
 		return r, nil
 	}
 	r := &Template{Id: id}
-	err := orm.NewOrm().Read(r, "Id")
+	err := op.O.Read(r, "Id")
 	if err == nil {
 		moduleCache[CTL_M_TEMPLATE].set(id, r)
 	}
 	return r, err
 }
 
-func (u *User) GetAction(id int64) (*Action, error) {
+func (op *Operator) GetAction(id int64) (*Action, error) {
 	a := &Action{Id: id}
-	err := orm.NewOrm().Read(a, "Id")
+	err := op.O.Read(a, "Id")
 	return a, err
 }
 
-func (u *User) GetTemplatesCnt(query string) (cnt int64, err error) {
+func (op *Operator) GetTemplatesCnt(query string) (cnt int64, err error) {
 	if query == "" {
-		err = orm.NewOrm().Raw("SELECT count(*) FROM template").QueryRow(&cnt)
+		err = op.O.Raw("SELECT count(*) FROM template").QueryRow(&cnt)
 	} else {
-		err = orm.NewOrm().Raw("SELECT count(*) FROM template WHERE name like ?", "%"+query+"%").QueryRow(&cnt)
+		err = op.O.Raw("SELECT count(*) FROM template WHERE name like ?", "%"+query+"%").QueryRow(&cnt)
 	}
 	return
 }
 
-func (u *User) GetTemplates(query string, limit, offset int) (ret []TemplateUi, err error) {
+func (op *Operator) GetTemplates(query string, limit, offset int) (ret []TemplateUi, err error) {
 	if query == "" {
-		_, err = orm.NewOrm().Raw("SELECT a.id, b.id as pid, a.name, b.name as pname, c.name as creator  FROM template a LEFT JOIN template b ON a.parent_id = b.id LEFT JOIN user c ON a.create_user_id = c.id ORDER BY a.name LIMIT ? OFFSET ?", limit, offset).QueryRows(&ret)
+		_, err = op.O.Raw("SELECT a.id, b.id as pid, a.name, b.name as pname, c.name as creator  FROM template a LEFT JOIN template b ON a.parent_id = b.id LEFT JOIN user c ON a.create_user_id = c.id ORDER BY a.name LIMIT ? OFFSET ?", limit, offset).QueryRows(&ret)
 	} else {
-		_, err = orm.NewOrm().Raw("SELECT a.id as id, b.id as pid, a.name as name, b.name as pname, c.name as creator  FROM template a LEFT JOIN template b ON a.parent_id = b.id LEFT JOIN user c ON a.create_user_id = c.id WHERE a.name like ? ORDER BY a.name LIMIT ? OFFSET ?", "%"+query+"%", limit, offset).QueryRows(&ret)
+		_, err = op.O.Raw("SELECT a.id as id, b.id as pid, a.name as name, b.name as pname, c.name as creator  FROM template a LEFT JOIN template b ON a.parent_id = b.id LEFT JOIN user c ON a.create_user_id = c.id WHERE a.name like ? ORDER BY a.name LIMIT ? OFFSET ?", "%"+query+"%", limit, offset).QueryRows(&ret)
 	}
 	return
 }
 
-func (u *User) UpdateTemplate(id int64, _o *TemplateAction) (o *Template, err error) {
+func (op *Operator) UpdateTemplate(id int64, _o *TemplateAction) (o *Template, err error) {
 	var t *Template
-	t, err = u.updateTemplate(id, &_o.Template)
+	t, err = op.updateTemplate(id, &_o.Template)
 	if err != nil {
 		return nil, err
 	}
-	_, err = u.UpdateAction(t.ActionId, &_o.Action)
+	_, err = op.UpdateAction(t.ActionId, &_o.Action)
 	if err != nil {
 		return nil, err
 	}
 	return t, err
 }
 
-func (u *User) updateTemplate(id int64, _o *Template) (o *Template, err error) {
-	if o, err = u.getTemplate(id); err != nil {
+func (op *Operator) updateTemplate(id int64, _o *Template) (o *Template, err error) {
+	if o, err = op.getTemplate(id); err != nil {
 		return nil, ErrNoTemplate
 	}
 
@@ -200,12 +196,12 @@ func (u *User) updateTemplate(id int64, _o *Template) (o *Template, err error) {
 	if _o.ParentId != 0 {
 		o.ParentId = _o.ParentId
 	}
-	_, err = orm.NewOrm().Update(o)
+	_, err = op.O.Update(o)
 	return o, err
 }
 
-func (u *User) UpdateAction(id int64, _o *Action) (o *Action, err error) {
-	if o, err = u.GetAction(id); err != nil {
+func (op *Operator) UpdateAction(id int64, _o *Action) (o *Action, err error) {
+	if o, err = op.GetAction(id); err != nil {
 		return nil, ErrNoTemplate
 	}
 	if _o.Uic != "" {
@@ -221,26 +217,26 @@ func (u *User) UpdateAction(id int64, _o *Action) (o *Action, err error) {
 	o.BeforeCallbackMail = _o.BeforeCallbackMail
 	o.AfterCallbackSms = _o.AfterCallbackSms
 	o.AfterCallbackMail = _o.AfterCallbackMail
-	_, err = orm.NewOrm().Update(o)
+	_, err = op.O.Update(o)
 	return o, err
 }
 
-func (u *User) DeleteTemplate(id int64) error {
-	template, err := u.getTemplate(id)
+func (op *Operator) DeleteTemplate(id int64) error {
+	template, err := op.getTemplate(id)
 	if err != nil {
 		return err
 	}
 
-	if _, err = orm.NewOrm().Delete(&Action{Id: template.ActionId}); err != nil {
+	if _, err = op.O.Delete(&Action{Id: template.ActionId}); err != nil {
 		return err
 	}
 
-	if _, err = orm.NewOrm().Delete(&Template{Id: id}); err != nil {
+	if _, err = op.O.Delete(&Template{Id: id}); err != nil {
 		return err
 	}
 
 	moduleCache[CTL_M_TEMPLATE].del(id)
-	DbLog(u.Id, CTL_M_TEMPLATE, id, CTL_A_DEL, "")
+	DbLog(op.User.Id, CTL_M_TEMPLATE, id, CTL_A_DEL, "")
 
 	return nil
 }

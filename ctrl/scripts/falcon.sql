@@ -70,7 +70,7 @@ CREATE TABLE `token` (
   `create_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE INDEX `index_name` (`name`)
-) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8
+) ENGINE = InnoDB AUTO_INCREMENT=100 DEFAULT CHARACTER SET = utf8
 COLLATE = utf8_unicode_ci COMMENT = '权限点';
 
 
@@ -422,3 +422,10 @@ SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
 INSERT INTO `tag` (`name`) VALUES ('');
 INSERT INTO `user` (`uuid`, `name`, `cname`, `email`, `phone`, `im`, `qq`) VALUES
     ('root@localhost', 'system', 'system', 'root@localhost', '', '', '');
+
+LOCK TABLES `token` WRITE;
+INSERT INTO `token` (`id`, `name`, `cname`, `note`) VALUES
+    (1, 'falcon_read', 'read', 'read'),
+    (2, 'falcon_operate', 'operate', 'operate'),
+    (3, 'falcon_admin', 'admin', 'admin');
+UNLOCK TABLES;

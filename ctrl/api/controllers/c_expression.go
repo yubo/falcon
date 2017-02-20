@@ -26,19 +26,19 @@ type ExpressionController struct {
 // @router / [post]
 func (c *ExpressionController) CreateExpression() {
 	var ea models.ExpressionAction
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
 	json.Unmarshal(c.Ctx.Input.RequestBody, &ea)
 	beego.Debug("pause", ea.Expression.Pause)
 
-	id, err := me.AddAction(&ea.Action)
+	id, err := op.AddAction(&ea.Action)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 		return
 	}
 	ea.Expression.ActionId = id
-	ea.Expression.CreateUserId = me.Id
-	id, err = me.AddExpression(&ea.Expression)
+	ea.Expression.CreateUserId = op.User.Id
+	id, err = op.AddExpression(&ea.Expression)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -57,12 +57,12 @@ func (c *ExpressionController) GetExpressionsCnt() {
 	var user_id int64
 	query := strings.TrimSpace(c.GetString("query"))
 	mine, _ := c.GetBool("mine", true)
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
 	if mine {
-		user_id = me.Id
+		user_id = op.User.Id
 	}
-	cnt, err := me.GetExpressionsCnt(query, user_id)
+	cnt, err := op.GetExpressionsCnt(query, user_id)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -85,12 +85,12 @@ func (c *ExpressionController) GetExpressions() {
 	mine, _ := c.GetBool("mine", true)
 	per, _ := c.GetInt("per", models.PAGE_PER)
 	offset, _ := c.GetInt("offset", 0)
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
 	if mine {
-		user_id = me.Id
+		user_id = op.User.Id
 	}
-	ret, err := me.GetExpressions(query, user_id, per, offset)
+	ret, err := op.GetExpressions(query, user_id, per, offset)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -112,8 +112,8 @@ func (c *ExpressionController) GetExpressionAction() {
 		return
 	}
 
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
-	if ret, err := me.GetExpressionAction(id); err != nil {
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
+	if ret, err := op.GetExpressionAction(id); err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
 		c.SendMsg(200, ret)
@@ -138,8 +138,8 @@ func (c *ExpressionController) UpdateExpressionAction() {
 
 	json.Unmarshal(c.Ctx.Input.RequestBody, &ea)
 
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
-	if u, err := me.UpdateExpressionAction(id, &ea); err != nil {
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
+	if u, err := op.UpdateExpressionAction(id, &ea); err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
 		c.SendMsg(200, u)
@@ -167,8 +167,8 @@ func (c *ExpressionController) PauseExpression() {
 		return
 	}
 
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
-	if _, err := me.PauseExpression(id, pause); err != nil {
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
+	if _, err := op.PauseExpression(id, pause); err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
 		c.SendMsg(200, nil)
@@ -188,8 +188,8 @@ func (c *ExpressionController) DeleteExpression() {
 		return
 	}
 
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
-	err = me.DeleteExpression(id)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
+	err = op.DeleteExpression(id)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 		return

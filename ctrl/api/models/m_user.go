@@ -11,12 +11,6 @@ import (
 	"github.com/astaxie/beego/orm"
 )
 
-type Operator struct {
-	id int64
-	o  orm.Ormer
-	u  *User
-}
-
 type User struct {
 	Id         int64     `json:"id"`
 	Uuid       string    `json:"uuid"`
@@ -29,67 +23,67 @@ type User struct {
 	CreateTime time.Time `json:"ctime"`
 }
 
-func (u *User) IsAdmin() bool {
+func (op *Operator) IsAdmin() bool {
 	// 1: system
 	// 2: admin(first user)
-	return u.Id < 1000
+	return (op.Token & SYS_F_A_TOKEN) != 0
 }
 
-func (u *User) AddUser(user *User) (*User, error) {
+func (op *Operator) AddUser(user *User) (*User, error) {
 	user.Id = 0
-	id, err := orm.NewOrm().Insert(user)
+	id, err := op.O.Insert(user)
 	if err != nil {
 		return nil, err
 	}
 	user.Id = id
 	moduleCache[CTL_M_USER].set(id, user)
 
-	DbLog(u.Id, CTL_M_USER, id, CTL_A_ADD, jsonStr(user))
+	DbLog(op.User.Id, CTL_M_USER, id, CTL_A_ADD, jsonStr(user))
 	return user, nil
 }
 
 // just called from profileFilter()
-func GetUser(id int64) (*User, error) {
+func GetUser(id int64, o orm.Ormer) (*User, error) {
 	if user, ok := moduleCache[CTL_M_USER].get(id).(*User); ok {
 		return user, nil
 	}
 	user := &User{Id: id}
-	err := orm.NewOrm().Read(user, "Id")
+	err := o.Read(user, "Id")
 	if err == nil {
 		moduleCache[CTL_M_USER].set(id, user)
 	}
 	return user, err
 }
 
-func (u *User) GetUser(id int64) (*User, error) {
-	return GetUser(id)
+func (op *Operator) GetUser(id int64) (*User, error) {
+	return GetUser(id, op.O)
 }
 
-func (u *User) GetUserByUuid(uuid string) (user *User, err error) {
+func (op *Operator) GetUserByUuid(uuid string) (user *User, err error) {
 	user = &User{Uuid: uuid}
-	err = orm.NewOrm().Read(user, "Uuid")
+	err = op.O.Read(user, "Uuid")
 	return user, err
 }
 
-func (u *User) QueryUsers(query string) orm.QuerySeter {
-	qs := orm.NewOrm().QueryTable(new(User))
+func (op *Operator) QueryUsers(query string) orm.QuerySeter {
+	qs := op.O.QueryTable(new(User))
 	if query != "" {
 		qs = qs.SetCond(orm.NewCondition().Or("Name__icontains", query).Or("Email__icontains", query))
 	}
 	return qs
 }
 
-func (u *User) GetUsersCnt(query string) (int64, error) {
-	return u.QueryUsers(query).Count()
+func (op *Operator) GetUsersCnt(query string) (int64, error) {
+	return op.QueryUsers(query).Count()
 }
 
-func (u *User) GetUsers(query string, limit, offset int) (users []*User, err error) {
-	_, err = u.QueryUsers(query).Limit(limit, offset).All(&users)
+func (op *Operator) GetUsers(query string, limit, offset int) (users []*User, err error) {
+	_, err = op.QueryUsers(query).Limit(limit, offset).All(&users)
 	return
 }
 
-func (u *User) UpdateUser(id int64, _u *User) (user *User, err error) {
-	if user, err = u.GetUser(id); err != nil {
+func (op *Operator) UpdateUser(id int64, _u *User) (user *User, err error) {
+	if user, err = op.GetUser(id); err != nil {
 		return nil, ErrNoUsr
 	}
 
@@ -111,18 +105,18 @@ func (u *User) UpdateUser(id int64, _u *User) (user *User, err error) {
 	if _u.Qq != "" {
 		user.Qq = _u.Qq
 	}
-	_, err = orm.NewOrm().Update(user)
+	_, err = op.O.Update(user)
 	moduleCache[CTL_M_USER].set(id, user)
-	DbLog(u.Id, CTL_M_USER, id, CTL_A_SET, "")
+	DbLog(op.User.Id, CTL_M_USER, id, CTL_A_SET, "")
 	return user, err
 }
 
-func (u *User) DeleteUser(id int64) error {
-	if n, err := orm.NewOrm().Delete(&User{Id: id}); err != nil || n == 0 {
+func (op *Operator) DeleteUser(id int64) error {
+	if n, err := op.O.Delete(&User{Id: id}); err != nil || n == 0 {
 		return ErrNoExits
 	}
 	moduleCache[CTL_M_USER].del(id)
-	DbLog(u.Id, CTL_M_USER, id, CTL_A_DEL, "")
+	DbLog(op.User.Id, CTL_M_USER, id, CTL_A_DEL, "")
 
 	return nil
 }

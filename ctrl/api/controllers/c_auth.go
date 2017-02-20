@@ -5,7 +5,11 @@
  */
 package controllers
 
-import "github.com/yubo/falcon/ctrl/api/models"
+import (
+	"github.com/astaxie/beego"
+	"github.com/astaxie/beego/orm"
+	"github.com/yubo/falcon/ctrl/api/models"
+)
 
 // Operations about Auth
 type AuthController struct {
@@ -96,13 +100,8 @@ func (c *AuthController) PostLogin() {
 	)
 	if id, ok := c.GetSession("uid").(int64); ok {
 
-		if user, err = models.GetUser(id); err == nil {
+		if user, err = models.GetUser(id, orm.NewOrm()); err == nil {
 			goto out
-			/*
-				err = fmt.Errorf("%s(%s/%s)",
-					models.ErrLogged.Error(), user.Name, user.Uuid)
-				goto out_err
-			*/
 		}
 	}
 
@@ -145,15 +144,24 @@ func (c *AuthController) Logout() {
 }
 
 func (c *AuthController) Access(uuid string) (user *models.User, err error) {
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
-	user, err = me.GetUserByUuid(uuid)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
+	user, err = op.GetUserByUuid(uuid)
 	if err != nil {
-		sys, _ := models.GetUser(1)
-		user, err = sys.AddUser(&models.User{Uuid: uuid, Name: uuid})
+		beego.Debug("can't get user by uuid ", uuid)
+		sys, _ := models.GetUser(1, op.O)
+		sysOp := &models.Operator{
+			User:  sys,
+			O:     op.O,
+			Token: models.SYS_F_A_TOKEN,
+		}
+		user, err = sysOp.AddUser(&models.User{Uuid: uuid, Name: uuid})
 		if err != nil {
+			beego.Debug("add user failed ", err.Error())
 			return
 		}
 	}
+	beego.Debug("get login user ", user)
 	c.SetSession("uid", user.Id)
+	c.SetSession("token", models.Tokens(user.Id, op.O))
 	return
 }

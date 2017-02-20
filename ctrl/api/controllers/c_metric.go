@@ -24,9 +24,9 @@ type MetricController struct {
 // @router /cnt [get]
 func (c *MetricController) GetMetricsCnt() {
 	query := strings.TrimSpace(c.GetString("query"))
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	cnt, err := me.GetMetricsCnt(query)
+	cnt, err := op.GetMetricsCnt(query)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -46,9 +46,9 @@ func (c *MetricController) GetMetrics() {
 	query := strings.TrimSpace(c.GetString("query"))
 	per, _ := c.GetInt("per", models.PAGE_PER)
 	offset, _ := c.GetInt("offset", 0)
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	metrics, err := me.GetMetrics(query, per, offset)
+	metrics, err := op.GetMetrics(query, per, offset)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {

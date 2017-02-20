@@ -17,6 +17,7 @@ import (
 
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/context"
+	"github.com/astaxie/beego/orm"
 	"github.com/yubo/falcon/ctrl/api/controllers"
 	"github.com/yubo/falcon/ctrl/api/models"
 )
@@ -58,8 +59,8 @@ func init() {
 }
 
 func authFilter(ctx *context.Context) {
-	if ctx.Input.GetData("me") == nil {
-		beego.Debug("not login")
+	op, ok := ctx.Input.GetData("op").(*models.Operator)
+	if !ok || op.User == nil {
 		http.Error(ctx.ResponseWriter, "Unauthorized", 401)
 	}
 }
@@ -71,24 +72,19 @@ func adminFiler(ctx *context.Context) {
 }
 
 func profileFilter(ctx *context.Context) {
+	op := &models.Operator{O: orm.NewOrm()}
+	ctx.Input.SetData("op", op)
 	if id, ok := ctx.Input.Session("uid").(int64); ok {
-		me, err := models.GetUser(id)
+		u, err := models.GetUser(id, op.O)
 		if err != nil {
 			beego.Debug("login, but can not found user")
 			return
 		}
-		ctx.Input.SetData("me", me)
-		/*
-			if me.Name == "" &&
-				!strings.HasPrefix(ctx.Request.URL.String(),
-					"/settings") {
-				beego.Debug("Redirect /settings/profile")
-				ctx.Redirect(302, "/settings/profile")
-				return
-			}
-		*/
+
+		op.User = u
+		op.Token, _ = ctx.Input.Session("token").(int)
 	} else {
-		beego.Debug("not login")
+		beego.Debug("not login 2")
 	}
 }
 

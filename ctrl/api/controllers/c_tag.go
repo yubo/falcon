@@ -26,10 +26,10 @@ type TagController struct {
 // @router / [post]
 func (c *TagController) CreateTag() {
 	var tag models.Tag
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	json.Unmarshal(c.Ctx.Input.RequestBody, &tag)
 
-	if id, err := me.AddTag(&tag); err != nil {
+	if id, err := op.AddTag(&tag); err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
 		c.SendMsg(200, models.Id{Id: id})
@@ -44,9 +44,9 @@ func (c *TagController) CreateTag() {
 // @router /cnt [get]
 func (c *TagController) GetTagsCnt() {
 	query := strings.TrimSpace(c.GetString("query"))
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	cnt, err := me.GetTagsCnt(query)
+	cnt, err := op.GetTagsCnt(query)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -66,9 +66,9 @@ func (c *TagController) GetTags() {
 	query := strings.TrimSpace(c.GetString("query"))
 	per, _ := c.GetInt("per", models.PAGE_PER)
 	offset, _ := c.GetInt("offset", 0)
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	tags, err := me.GetTags(query, per, offset)
+	tags, err := op.GetTags(query, per, offset)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -87,8 +87,8 @@ func (c *TagController) GetTag() {
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		me, _ := c.Ctx.Input.GetData("me").(*models.User)
-		if tag, err := me.GetTag(id); err != nil {
+		op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
+		if tag, err := op.GetTag(id); err != nil {
 			c.SendMsg(403, err.Error())
 		} else {
 			c.SendMsg(200, tag)
@@ -105,7 +105,7 @@ func (c *TagController) GetTag() {
 // @router /:id [put]
 func (c *TagController) UpdateTag() {
 	var tag models.Tag
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
 	id, err := c.GetInt64(":id")
 	if err != nil {
@@ -115,7 +115,7 @@ func (c *TagController) UpdateTag() {
 
 	json.Unmarshal(c.Ctx.Input.RequestBody, &tag)
 
-	if u, err := me.UpdateTag(id, &tag); err != nil {
+	if u, err := op.UpdateTag(id, &tag); err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
 		c.SendMsg(200, u)
@@ -135,8 +135,8 @@ func (c *TagController) DeleteTag() {
 		return
 	}
 
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
-	err = me.DeleteTag(id)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
+	err = op.DeleteTag(id)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 		return

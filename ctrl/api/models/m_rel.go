@@ -107,7 +107,7 @@ const (
 	tagHostQuerySql = tagHostSql + " AND b.name LIKE ?"
 )
 
-func (u *User) GetTagHostCnt(tag_id int64,
+func (op *Operator) GetTagHostCnt(tag_id int64,
 	query string) (cnt int64, err error) {
 	// TODO: acl filter
 	// just for admin?
@@ -120,7 +120,7 @@ func (u *User) GetTagHostCnt(tag_id int64,
 	return
 }
 
-func (u *User) GetTagHost(tag_id int64, query string,
+func (op *Operator) GetTagHost(tag_id int64, query string,
 	limit, offset int) (hosts []Host, err error) {
 	if query == "" {
 		_, err = orm.NewOrm().Raw("SELECT b.*"+
@@ -134,7 +134,7 @@ func (u *User) GetTagHost(tag_id int64, query string,
 	return
 }
 
-func (u *User) CreateTagHost(rel RelTagHost) (int64, error) {
+func (op *Operator) CreateTagHost(rel RelTagHost) (int64, error) {
 	val := fmt.Sprintf("(%d, %d)", rel.TagId, rel.HostId)
 
 	if res, err := orm.NewOrm().Raw("INSERT `tag_host` (`tag_id`, " +
@@ -145,7 +145,7 @@ func (u *User) CreateTagHost(rel RelTagHost) (int64, error) {
 	}
 }
 
-func (u *User) CreateTagHosts(rel RelTagHosts) (int64, error) {
+func (op *Operator) CreateTagHosts(rel RelTagHosts) (int64, error) {
 	vs := make([]string, len(rel.HostIds))
 	for i := 0; i < len(vs); i++ {
 		vs[i] = fmt.Sprintf("(%d, %d)", rel.TagId, rel.HostIds[i])
@@ -159,7 +159,7 @@ func (u *User) CreateTagHosts(rel RelTagHosts) (int64, error) {
 	}
 }
 
-func (u *User) DeleteTagHost(rel RelTagHost) (int64, error) {
+func (op *Operator) DeleteTagHost(rel RelTagHost) (int64, error) {
 	res, err := orm.NewOrm().Raw("DELETE FROM `tag_host` "+
 		"WHERE tag_id = ? and host_id = ? ",
 		rel.TagId, rel.HostId).Exec()
@@ -169,7 +169,7 @@ func (u *User) DeleteTagHost(rel RelTagHost) (int64, error) {
 	return 0, err
 }
 
-func (u *User) DeleteTagHosts(rel RelTagHosts) (int64, error) {
+func (op *Operator) DeleteTagHosts(rel RelTagHosts) (int64, error) {
 	res, err := orm.NewOrm().Raw("DELETE FROM `tag_host` "+
 		"WHERE tag_id = ? and host_id IN "+array2sql(rel.HostIds),
 		rel.TagId).Exec()
@@ -189,7 +189,7 @@ const (
 	tagTplQuerySql = tagTplSql + " AND b.name LIKE ?"
 )
 
-func (u *User) GetTagTplCnt(tag_id int64,
+func (op *Operator) GetTagTplCnt(tag_id int64,
 	query string) (cnt int64, err error) {
 	// TODO: acl filter
 	// just for admin?
@@ -202,7 +202,7 @@ func (u *User) GetTagTplCnt(tag_id int64,
 	return
 }
 
-func (u *User) GetTagTpl(tag_id int64, query string,
+func (op *Operator) GetTagTpl(tag_id int64, query string,
 	limit, offset int) (tpls []Template, err error) {
 	if query == "" {
 		_, err = orm.NewOrm().Raw("SELECT b.*"+
@@ -216,10 +216,10 @@ func (u *User) GetTagTpl(tag_id int64, query string,
 	return
 }
 
-func (u *User) CreateTagTpl(rel RelTagTpl) (int64, error) {
-	val := fmt.Sprintf("(%d, %d, %d)", rel.TagId, rel.TplId, u.Id)
+func (op *Operator) CreateTagTpl(rel RelTagTpl) (int64, error) {
+	val := fmt.Sprintf("(%d, %d, %d)", rel.TagId, rel.TplId, op.User.Id)
 
-	if res, err := orm.NewOrm().Raw("INSERT `tag_tpl` (`tag_id`, " +
+	if res, err := op.O.Raw("INSERT `tag_tpl` (`tag_id`, " +
 		"`tpl_id`, `creator`) VALUES " + val).Exec(); err != nil {
 		return 0, err
 	} else {
@@ -227,7 +227,7 @@ func (u *User) CreateTagTpl(rel RelTagTpl) (int64, error) {
 	}
 }
 
-func (u *User) CreateTagTpls(rel RelTagTpls) (int64, error) {
+func (op *Operator) CreateTagTpls(rel RelTagTpls) (int64, error) {
 	vs := make([]string, len(rel.TplIds))
 	for i := 0; i < len(vs); i++ {
 		vs[i] = fmt.Sprintf("(%d, %d)", rel.TagId, rel.TplIds[i])
@@ -241,7 +241,7 @@ func (u *User) CreateTagTpls(rel RelTagTpls) (int64, error) {
 	}
 }
 
-func (u *User) DeleteTagTpl(rel RelTagTpl) (int64, error) {
+func (op *Operator) DeleteTagTpl(rel RelTagTpl) (int64, error) {
 	res, err := orm.NewOrm().Raw("DELETE FROM `tag_tpl` "+
 		"WHERE tag_id = ? and tpl_id = ? ",
 		rel.TagId, rel.TplId).Exec()
@@ -251,7 +251,7 @@ func (u *User) DeleteTagTpl(rel RelTagTpl) (int64, error) {
 	return 0, err
 }
 
-func (u *User) DeleteTagTpls(rel RelTagTpls) (int64, error) {
+func (op *Operator) DeleteTagTpls(rel RelTagTpls) (int64, error) {
 	res, err := orm.NewOrm().Raw("DELETE FROM `tag_tpl` "+
 		"WHERE tag_id = ? and tpl_id IN "+array2sql(rel.TplIds),
 		rel.TagId).Exec()
@@ -264,7 +264,7 @@ func (u *User) DeleteTagTpls(rel RelTagTpls) (int64, error) {
 /*******************************************************************************
  ************************ tag role user ****************************************
  ******************************************************************************/
-func (u *User) GetTagRoleUserCnt(global bool, tag_id int64,
+func (op *Operator) GetTagRoleUserCnt(global bool, tag_id int64,
 	query string) (cnt int64, err error) {
 	// TODO: acl filter
 	// just for admin?
@@ -280,7 +280,7 @@ func (u *User) GetTagRoleUserCnt(global bool, tag_id int64,
 	return
 }
 
-func (u *User) GetTagRoleUser(global bool, tag_id int64, query string,
+func (op *Operator) GetTagRoleUser(global bool, tag_id int64, query string,
 	limit, offset int) (ret []TagRoleUser, err error) {
 	if global && query == "" { // show all
 		_, err = orm.NewOrm().Raw("SELECT b.name as tag_name, c.name as role_name, d.name as user_name, a.tag_id, a.tpl_id as role_id, a.sub_id as user_id FROM tpl_rel a LEFT JOIN tag b ON b.id = a.tag_id LEFT JOIN role c ON c.id = a.tpl_id LEFT JOIN user d ON d.id = a.sub_id WHERE a.type_id = ? ORDER BY d.name, c.name LIMIT ? OFFSET ?", TPL_REL_T_ACL_USER, limit, offset).QueryRows(&ret)
@@ -298,7 +298,7 @@ func (u *User) GetTagRoleUser(global bool, tag_id int64, query string,
 	return
 }
 
-func (u *User) CreateTagRoleUser(rel RelTagRoleUser) (int64, error) {
+func (op *Operator) CreateTagRoleUser(rel RelTagRoleUser) (int64, error) {
 	var val string
 	val = fmt.Sprintf("(%d, %d, %d, %d)", rel.TagId,
 		rel.RoleId, rel.UserId, TPL_REL_T_ACL_USER)
@@ -311,7 +311,7 @@ func (u *User) CreateTagRoleUser(rel RelTagRoleUser) (int64, error) {
 	return 0, err
 }
 
-func (u *User) DeleteTagRoleUser(rel RelTagRoleUser) (int64, error) {
+func (op *Operator) DeleteTagRoleUser(rel RelTagRoleUser) (int64, error) {
 	res, err := orm.NewOrm().Raw("DELETE FROM `tpl_rel` "+
 		"WHERE tag_id = ? and tpl_id = ? and sub_id = ? and "+
 		"type_id = ?", rel.TagId, rel.RoleId, rel.UserId,
@@ -325,7 +325,7 @@ func (u *User) DeleteTagRoleUser(rel RelTagRoleUser) (int64, error) {
 /*******************************************************************************
  ************************ tag role token ***************************************
  ******************************************************************************/
-func (u *User) GetTagRoleTokenCnt(global bool, tag_id int64,
+func (op *Operator) GetTagRoleTokenCnt(global bool, tag_id int64,
 	query string) (cnt int64, err error) {
 	// TODO: acl filter
 	// just for admin?
@@ -341,7 +341,7 @@ func (u *User) GetTagRoleTokenCnt(global bool, tag_id int64,
 	return
 }
 
-func (u *User) GetTagRoleToken(global bool, tag_id int64, query string,
+func (op *Operator) GetTagRoleToken(global bool, tag_id int64, query string,
 	limit, offset int) (ret []TagRoleToken, err error) {
 	if global && query == "" { // show all
 		_, err = orm.NewOrm().Raw("SELECT b.name as tag_name, c.name as role_name, d.name as token_name, a.tag_id, a.tpl_id as role_id, a.sub_id as token_id FROM tpl_rel a LEFT JOIN tag b ON b.id = a.tag_id LEFT JOIN role c ON c.id = a.tpl_id LEFT JOIN token d ON d.id = a.sub_id WHERE a.type_id = ? ORDER BY d.name, c.name LIMIT ? OFFSET ?", TPL_REL_T_ACL_TOKEN, limit, offset).QueryRows(&ret)
@@ -358,7 +358,7 @@ func (u *User) GetTagRoleToken(global bool, tag_id int64, query string,
 	return
 }
 
-func (u *User) CreateTagRoleToken(rel RelTagRoleToken) (int64, error) {
+func (op *Operator) CreateTagRoleToken(rel RelTagRoleToken) (int64, error) {
 	var val string
 	val = fmt.Sprintf("(%d, %d, %d, %d)", rel.TagId,
 		rel.RoleId, rel.TokenId, TPL_REL_T_ACL_TOKEN)
@@ -371,7 +371,7 @@ func (u *User) CreateTagRoleToken(rel RelTagRoleToken) (int64, error) {
 	return 0, err
 }
 
-func (u *User) DeleteTagRoleToken(rel RelTagRoleToken) (int64, error) {
+func (op *Operator) DeleteTagRoleToken(rel RelTagRoleToken) (int64, error) {
 	res, err := orm.NewOrm().Raw("DELETE FROM `tpl_rel` "+
 		"WHERE tag_id = ? and tpl_id = ? and sub_id = ?"+
 		" and type_id = ?", rel.TagId, rel.RoleId,
@@ -382,7 +382,7 @@ func (u *User) DeleteTagRoleToken(rel RelTagRoleToken) (int64, error) {
 	return 0, err
 }
 
-func (u *User) GetTagTags(tag_id int64) (nodes []zTreeNode, err error) {
+func (op *Operator) GetTagTags(tag_id int64) (nodes []zTreeNode, err error) {
 	if tag_id == 0 {
 		return []zTreeNode{{Id: 1, Name: "/"}}, nil
 	}
@@ -396,7 +396,7 @@ func (u *User) GetTagTags(tag_id int64) (nodes []zTreeNode, err error) {
 	return
 }
 
-func (u *User) GetTreeNodes(id int64) (nodes []TreeNode, err error) {
+func (op *Operator) GetTreeNodes(id int64) (nodes []TreeNode, err error) {
 	if id == 0 {
 		return []TreeNode{{Id: 1, Name: "/"}}, nil
 	}
@@ -427,7 +427,7 @@ func pruneTagTree(nodes map[int64]*tagNode, idx int64) (tree *TreeNode) {
 	return tree
 }
 
-func (u *User) GetTree() (tree *TreeNode, err error) {
+func (op *Operator) GetTree() (tree *TreeNode, err error) {
 	var ns []tagNode
 	nodes := make(map[int64]*tagNode)
 	nodes[1] = &tagNode{
@@ -457,54 +457,93 @@ func (u *User) GetTree() (tree *TreeNode, err error) {
  *     tag rule trigger
  *************************/
 
-func (u *User) BindAclUser(tag_id, role_id, user_id int64) error {
-	return addTplRel(u.Id, tag_id, role_id,
+func (op *Operator) BindAclUser(tag_id, role_id, user_id int64) error {
+	return addTplRel(op.User.Id, tag_id, role_id,
 		user_id, TPL_REL_T_ACL_USER)
 }
 
-func (u *User) BindAclToken(tag_id, role_id, token_id int64) (err error) {
-	return addTplRel(u.Id, tag_id, role_id,
+func (op *Operator) BindAclToken(tag_id, role_id, token_id int64) (err error) {
+	return addTplRel(op.User.Id, tag_id, role_id,
 		token_id, TPL_REL_T_ACL_TOKEN)
 }
 
 /*
-func (u *User) BindRuleHost(tag_id, rule_id, host_id int64) error {
-	return addTplRel(u.Id, tag_id, rule_id, host_id, TPL_REL_T_RULE_HOST)
+func (op *Operator) BindRuleHost(tag_id, rule_id, host_id int64) error {
+	return addTplRel(op.User.Id, tag_id, rule_id, host_id, TPL_REL_T_RULE_HOST)
 }
 */
 
-func (u *User) BindRuleTrigger(tag_id, rule_id, trigger_id int64) error {
-	return addTplRel(u.Id, tag_id, rule_id,
+func (op *Operator) BindRuleTrigger(tag_id, rule_id, trigger_id int64) error {
+	return addTplRel(op.User.Id, tag_id, rule_id,
 		trigger_id, TPL_REL_T_RULE_TRIGGER)
 }
 
 // Access
 // return nil *Tag if tag not exist
-func (u *User) Access(token, tag string, chkExist bool) (t *Tag, err error) {
+func (op *Operator) Access(token, tag string, chkExist bool) (t *Tag, err error) {
 	var tk *Token
 
 	// if not found, err will be return <QuerySeter> no row found
-	if t, err = u.GetTagByName(tag); chkExist && err != nil {
+	if t, err = op.GetTagByName(tag); chkExist && err != nil {
 		return
 	}
 
-	if u.IsAdmin() {
+	if op.IsAdmin() {
 		return
 	}
 
-	if tk, err = u.GetTokenByName(token); err != nil {
+	if tk, err = op.GetTokenByName(token); err != nil {
 		return
 	}
 
-	_, err = access(u.Id, tk.Id, t.Id)
+	_, err = access(op.User.Id, tk.Id, t.Id)
 	return t, err
+}
+
+func Tokens(uid int64, o orm.Ormer) int {
+	var (
+		tids  []int64
+		token int
+	)
+
+	_, err := o.Raw(`
+   SELECT b1.token_id
+    FROM (SELECT a1.tag_id AS user_tag_id,
+                a2.tag_id AS token_tag_id,
+                a1.tpl_id AS role_id,
+                a1.sub_id AS user_id,
+                a2.sub_id AS token_id
+          FROM tpl_rel a1
+          JOIN tpl_rel a2
+          ON a1.type_id = ? AND a1.sub_id = ? AND a2.type_id = ?
+              AND a2.sub_id in (?, ?, ?) AND a1.tpl_id = a2.tpl_id) b1
+    JOIN tag_rel b2
+    ON b1.user_tag_id = b2.tag_id AND b1.token_tag_id = b2.sup_tag_id
+    GROUP BY b1.token_id`,
+		TPL_REL_T_ACL_USER, uid, TPL_REL_T_ACL_TOKEN,
+		SYS_IDX_R_TOKEN, SYS_IDX_O_TOKEN,
+		SYS_IDX_A_TOKEN).QueryRows(&tids)
+	if err != nil {
+		return 0
+	}
+	for _, tid := range tids {
+		switch tid {
+		case SYS_IDX_R_TOKEN:
+			token |= SYS_F_R_TOKEN
+		case SYS_IDX_O_TOKEN:
+			token |= SYS_F_O_TOKEN
+		case SYS_IDX_A_TOKEN:
+			token |= SYS_F_A_TOKEN
+		}
+	}
+	return token
 }
 
 func access(user_id, token_id, tag_id int64) (tid int64, err error) {
 	// TODO: test
 	if tag_id == 0 {
 		err = orm.NewOrm().Raw(`
-    SELECT MIN(b1.token_tag_id) as token_tag_id, b1.user_tag_id
+    SELECT MIN(b1.token_tag_id) as token_tag_id
     FROM (SELECT a1.tag_id AS user_tag_id,
                 a2.tag_id AS token_tag_id,
                 a1.tpl_id AS role_id,
@@ -518,7 +557,7 @@ func access(user_id, token_id, tag_id int64) (tid int64, err error) {
     ON b1.user_tag_id = b2.tag_id AND b1.token_tag_id = b2.sup_tag_id
     GROUP BY b1.user_tag_id
 `,
-			TPL_REL_T_ACL_USER, user_id, TPL_REL_T_ACL_TOKEN).QueryRow(&tid)
+			TPL_REL_T_ACL_USER, user_id, TPL_REL_T_ACL_TOKEN, token_id).QueryRow(&tid)
 	} else {
 		err = orm.NewOrm().Raw(`
 SELECT c2.token_tag_id

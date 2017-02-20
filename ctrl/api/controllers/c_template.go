@@ -25,16 +25,16 @@ type TemplateController struct {
 // @router / [post]
 func (c *TemplateController) CreateTemplate() {
 	var ta models.TemplateAction
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	json.Unmarshal(c.Ctx.Input.RequestBody, &ta)
 
-	id, err := me.AddAction(&ta.Action)
+	id, err := op.AddAction(&ta.Action)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 		return
 	}
 	ta.Template.ActionId = id
-	id, err = me.AddTemplate(&ta.Template)
+	id, err = op.AddTemplate(&ta.Template)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -50,9 +50,9 @@ func (c *TemplateController) CreateTemplate() {
 // @router /cnt [get]
 func (c *TemplateController) GetTemplatesCnt() {
 	query := strings.TrimSpace(c.GetString("query"))
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	cnt, err := me.GetTemplatesCnt(query)
+	cnt, err := op.GetTemplatesCnt(query)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -72,9 +72,9 @@ func (c *TemplateController) GetTemplates() {
 	query := strings.TrimSpace(c.GetString("query"))
 	per, _ := c.GetInt("per", models.PAGE_PER)
 	offset, _ := c.GetInt("offset", 0)
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	ret, err := me.GetTemplates(query, per, offset)
+	ret, err := op.GetTemplates(query, per, offset)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -97,11 +97,11 @@ func (c *TemplateController) GetTemplate() {
 	id, _ := c.GetInt64(":id", 0)
 	clone, _ := c.GetBool("clone", false)
 
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	if clone {
-		o, err = me.CloneTemplate(id)
+		o, err = op.CloneTemplate(id)
 	} else {
-		o, err = me.GetTemplate(id)
+		o, err = op.GetTemplate(id)
 	}
 	if err != nil {
 		c.SendMsg(403, err.Error())
@@ -128,8 +128,8 @@ func (c *TemplateController) UpdateTemplate() {
 
 	json.Unmarshal(c.Ctx.Input.RequestBody, &ta)
 
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
-	if t, err := me.UpdateTemplate(id, &ta); err != nil {
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
+	if t, err := op.UpdateTemplate(id, &ta); err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
 		c.SendMsg(200, t)
@@ -150,8 +150,8 @@ func (c *TemplateController) DeleteTemplate() {
 		return
 	}
 
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
-	err = me.DeleteTemplate(id)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
+	err = op.DeleteTemplate(id)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 		return

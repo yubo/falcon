@@ -23,23 +23,23 @@ type Strategy struct {
 	TplId     int64  `json:"tplId"`
 }
 
-func (u *User) AddStrategy(o *Strategy) (id int64, err error) {
+func (op *Operator) AddStrategy(o *Strategy) (id int64, err error) {
 	o.Id = 0
-	if id, err = orm.NewOrm().Insert(o); err != nil {
+	if id, err = op.O.Insert(o); err != nil {
 		return
 	}
 	o.Id = id
 	return
 }
 
-func (u *User) GetStrategy(id int64) (s *Strategy, err error) {
+func (op *Operator) GetStrategy(id int64) (s *Strategy, err error) {
 	s = &Strategy{Id: id}
-	err = orm.NewOrm().Read(s, "Id")
+	err = op.O.Read(s, "Id")
 	return
 }
 
-func (u *User) QueryStrategys(tid int64, query string) orm.QuerySeter {
-	qs := orm.NewOrm().QueryTable(new(Strategy))
+func (op *Operator) QueryStrategys(tid int64, query string) orm.QuerySeter {
+	qs := op.O.QueryTable(new(Strategy))
 	if tid != 0 {
 		qs = qs.Filter("TplId", tid)
 	}
@@ -49,17 +49,17 @@ func (u *User) QueryStrategys(tid int64, query string) orm.QuerySeter {
 	return qs
 }
 
-func (u *User) GetStrategysCnt(tid int64, query string) (int64, error) {
-	return u.QueryStrategys(tid, query).Count()
+func (op *Operator) GetStrategysCnt(tid int64, query string) (int64, error) {
+	return op.QueryStrategys(tid, query).Count()
 }
 
-func (u *User) GetStrategys(tid int64, query string, limit, offset int) (strategys []*Strategy, err error) {
-	_, err = u.QueryStrategys(tid, query).Limit(limit, offset).All(&strategys)
+func (op *Operator) GetStrategys(tid int64, query string, limit, offset int) (strategys []*Strategy, err error) {
+	_, err = op.QueryStrategys(tid, query).Limit(limit, offset).All(&strategys)
 	return
 }
 
-func (u *User) UpdateStrategy(id int64, _o *Strategy) (o *Strategy, err error) {
-	if o, err = u.GetStrategy(id); err != nil {
+func (op *Operator) UpdateStrategy(id int64, _o *Strategy) (o *Strategy, err error) {
+	if o, err = op.GetStrategy(id); err != nil {
 		return nil, ErrNoStrategy
 	}
 
@@ -76,13 +76,13 @@ func (u *User) UpdateStrategy(id int64, _o *Strategy) (o *Strategy, err error) {
 	o.RunEnd = _o.RunEnd
 	o.TplId = _o.TplId
 
-	_, err = orm.NewOrm().Update(o)
+	_, err = op.O.Update(o)
 	return o, err
 }
 
-func (u *User) DeleteStrategy(id int64) error {
+func (op *Operator) DeleteStrategy(id int64) error {
 
-	if n, err := orm.NewOrm().Delete(&Strategy{Id: id}); err != nil || n == 0 {
+	if n, err := op.O.Delete(&Strategy{Id: id}); err != nil || n == 0 {
 		return ErrNoExits
 	}
 

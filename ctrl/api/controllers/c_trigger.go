@@ -26,11 +26,11 @@ type TriggerController struct {
 // @router / [post]
 func (c *TriggerController) CreateTrigger() {
 	var trigger models.Trigger
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	json.Unmarshal(c.Ctx.Input.RequestBody, &trigger)
 	trigger.Id = 0
 
-	id, err := me.AddTrigger(&trigger)
+	id, err := op.AddTrigger(&trigger)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -46,9 +46,9 @@ func (c *TriggerController) CreateTrigger() {
 // @router /cnt [get]
 func (c *TriggerController) GetTriggersCnt() {
 	query := strings.TrimSpace(c.GetString("query"))
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	cnt, err := me.GetTriggersCnt(query)
+	cnt, err := op.GetTriggersCnt(query)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -68,9 +68,9 @@ func (c *TriggerController) GetTriggers() {
 	query := strings.TrimSpace(c.GetString("query"))
 	per, _ := c.GetInt("per", models.PAGE_PER)
 	offset, _ := c.GetInt("offset", 0)
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	triggers, err := me.GetTriggers(query, per, offset)
+	triggers, err := op.GetTriggers(query, per, offset)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -90,8 +90,8 @@ func (c *TriggerController) GetTrigger() {
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		me, _ := c.Ctx.Input.GetData("me").(*models.User)
-		trigger, err := me.GetTrigger(id)
+		op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
+		trigger, err := op.GetTrigger(id)
 		if err != nil {
 			c.SendMsg(403, err.Error())
 		} else {
@@ -118,8 +118,8 @@ func (c *TriggerController) UpdateTrigger() {
 
 	json.Unmarshal(c.Ctx.Input.RequestBody, &trigger)
 
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
-	if u, err := me.UpdateTrigger(id, &trigger); err != nil {
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
+	if u, err := op.UpdateTrigger(id, &trigger); err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
 		c.SendMsg(200, u)
@@ -139,8 +139,8 @@ func (c *TriggerController) DeleteTrigger() {
 		return
 	}
 
-	me, _ := c.Ctx.Input.GetData("me").(*models.User)
-	err = me.DeleteTrigger(id)
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
+	err = op.DeleteTrigger(id)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 		return
