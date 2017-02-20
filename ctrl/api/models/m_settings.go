@@ -9,7 +9,7 @@ import (
 	"fmt"
 
 	"github.com/astaxie/beego/orm"
-	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/ctrl"
 )
 
 func Populate() (interface{}, error) {
@@ -217,11 +217,9 @@ func Populate() (interface{}, error) {
 
 	// token
 	items = []string{
-		SYS_W_SCOPE,
-		SYS_R_SCOPE,
-		SYS_B_SCOPE,
-		SYS_O_SCOPE,
-		SYS_A_SCOPE,
+		SYS_R_TOKEN,
+		SYS_O_TOKEN,
+		SYS_A_TOKEN,
 	}
 	for _, item := range items {
 		if token_idx[item], err = admin.AddToken(&Token{Name: item}); err != nil {
@@ -248,17 +246,17 @@ func Populate() (interface{}, error) {
 
 	// bind token
 	binds = [][3]string{
-		{SYS_W_SCOPE, "adm", "/"},
-		{SYS_R_SCOPE, "adm", "/"},
-		{SYS_W_SCOPE, "sre", "/"},
-		{SYS_R_SCOPE, "sre", "/"},
-		{SYS_R_SCOPE, "dev", "/"},
-		{SYS_R_SCOPE, "usr", "/"},
-		{SYS_W_SCOPE, "adm", "cop=xiaomi,owt=miliao"},
-		{SYS_R_SCOPE, "sre", "cop=xiaomi"},
-		{SYS_B_SCOPE, "dev", "cop=xiaomi,owt=miliao,pdl=op"},
-		{SYS_O_SCOPE, "usr", "cop=xiaomi"},
-		{SYS_A_SCOPE, "usr", "cop=xiaomi,owt=miliao"},
+		{SYS_O_TOKEN, "adm", "/"},
+		{SYS_R_TOKEN, "adm", "/"},
+		{SYS_A_TOKEN, "adm", "/"},
+		{SYS_O_TOKEN, "sre", "/"},
+		{SYS_R_TOKEN, "sre", "/"},
+		{SYS_R_TOKEN, "dev", "/"},
+		{SYS_R_TOKEN, "usr", "/"},
+		{SYS_O_TOKEN, "adm", "cop=xiaomi,owt=miliao"},
+		{SYS_O_TOKEN, "dev", "cop=xiaomi,owt=miliao,pdl=op"},
+		{SYS_O_TOKEN, "usr", "cop=xiaomi"},
+		{SYS_A_TOKEN, "usr", "cop=xiaomi,owt=miliao"},
 	}
 	for _, s := range binds {
 		if err := admin.BindAclToken(tag_idx[s[2]], role_idx[s[1]],
@@ -291,7 +289,8 @@ func ResetDb() (interface{}, error) {
 	o.Insert(&Tag{Name: ""})
 
 	// reset cache
-	cacheInit(config.Ctrl.Str(falcon.C_CACHE_MODULE))
+	// ugly hack
+	initCache(ctrl.Config)
 
 	return "reset db done", nil
 }

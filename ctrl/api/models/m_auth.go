@@ -18,49 +18,18 @@ type Auth struct {
 	Arg2   string
 }
 
-type AuthModule struct {
-	Name       string
-	Prestarted bool
-}
-
-func (p *AuthModule) GetName() string {
-	return p.Name
-}
-
-func (p *AuthModule) AuthorizeUrl(ctx interface{}) string {
-	return ""
-}
-
-func (p *AuthModule) CallBack(ctx interface{}) (uuid string, err error) {
-	err = ErrNoModule
-	return
-}
-
-func (p *AuthModule) Verify(c interface{}) (bool, string, error) {
-	return false, "", EPERM
-}
-
-func (p *AuthModule) PreStart(conf falcon.ConfCtrl) error {
-	if p.Prestarted {
-		return ErrRePreStart
-	}
-	p.Prestarted = true
-	return nil
-}
-
 type AuthInterface interface {
-	GetName() string
+	Init(conf *falcon.ConfCtrl) error
 	Verify(c interface{}) (success bool, uuid string, err error)
-	CallBack(ctx interface{}) (uuid string, err error)
-	PreStart(conf falcon.ConfCtrl) error
 	AuthorizeUrl(ctx interface{}) string
+	CallBack(ctx interface{}) (uuid string, err error)
 }
 
-func RegisterAuth(p AuthInterface) error {
-	if _, ok := allAuths[p.GetName()]; ok {
+func RegisterAuth(name string, p AuthInterface) error {
+	if _, ok := allAuths[name]; ok {
 		return ErrExist
 	} else {
-		allAuths[p.GetName()] = p
+		allAuths[name] = p
 		return nil
 	}
 }

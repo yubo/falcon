@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/astaxie/beego/orm"
-	_ "github.com/astaxie/beego/session/mysql"
 	_ "github.com/go-sql-driver/mysql"
 )
 

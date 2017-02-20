@@ -17,23 +17,18 @@ import (
 )
 
 const (
-	baseURL = "https://api.github.com"
+	GOOGLE_NAME = "google"
 )
 
 type googleAuth struct {
-	models.AuthModule
 	config oauth2.Config
 }
 
 func init() {
-	models.RegisterAuth(&googleAuth{AuthModule: models.AuthModule{Name: "google"}})
+	models.RegisterAuth(GOOGLE_NAME, &googleAuth{})
 }
 
-func (p *googleAuth) PreStart(conf falcon.ConfCtrl) error {
-	if p.AuthModule.Prestarted {
-		return models.ErrRePreStart
-	}
-	p.AuthModule.Prestarted = true
+func (p *googleAuth) Init(conf *falcon.ConfCtrl) error {
 	p.config = oauth2.Config{
 		Endpoint:     google.Endpoint,
 		Scopes:       []string{googleOauth2.PlusMeScope, googleOauth2.UserinfoEmailScope},
@@ -42,6 +37,10 @@ func (p *googleAuth) PreStart(conf falcon.ConfCtrl) error {
 		RedirectURL:  conf.Ctrl.Str(falcon.C_GOOGLE_REDIRECT_URL),
 	}
 	return nil
+}
+
+func (p *googleAuth) Verify(_c interface{}) (bool, string, error) {
+	return false, "", models.EPERM
 }
 
 func (p *googleAuth) AuthorizeUrl(c interface{}) string {
@@ -81,6 +80,6 @@ func (p *googleAuth) CallBack(c interface{}) (uuid string, err error) {
 		err = fmt.Errorf("google: email not verified")
 	}
 
-	uuid = fmt.Sprintf("%s@%s", user.Email, p.GetName())
+	uuid = fmt.Sprintf("%s@%s", user.Email, GOOGLE_NAME)
 	return
 }

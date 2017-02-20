@@ -10,7 +10,6 @@ import (
 	"os"
 
 	"github.com/astaxie/beego/orm"
-	_ "github.com/astaxie/beego/session/mysql"
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -27,7 +26,7 @@ func init() {
 		return defaultValue
 	}
 	user := env("MYSQL_TEST_USER", "root")
-	pass := env("MYSQL_TEST_PASS", "12341234")
+	pass := env("MYSQL_TEST_PASS", "123456")
 	prot := env("MYSQL_TEST_PROT", "tcp")
 	addr := env("MYSQL_TEST_ADDR", "localhost:3306")
 	dbname := env("MYSQL_TEST_DBNAME", "falcon_test")

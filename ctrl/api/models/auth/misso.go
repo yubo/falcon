@@ -18,8 +18,11 @@ import (
 	"github.com/yubo/falcon/ctrl/api/models"
 )
 
+const (
+	MISSO_NAME = "misso"
+)
+
 type missoAuth struct {
-	models.AuthModule
 	RedirectURL string
 
 	CookieSecretKey string
@@ -30,22 +33,20 @@ type missoAuth struct {
 }
 
 func init() {
-	models.RegisterAuth(&missoAuth{
-		AuthModule:      models.AuthModule{Name: "misso"},
-		CookieSecretKey: "secret-key-for-encrypt-cookie",
-		missoAuthDomain: "http://sso.pt.xiaomi.com",
-		BrokerName:      "test",
-		SecretKey:       "test",
-	})
+	models.RegisterAuth(MISSO_NAME, &missoAuth{})
 }
 
-func (p *missoAuth) PreStart(conf falcon.ConfCtrl) error {
-	if p.AuthModule.Prestarted {
-		return models.ErrRePreStart
-	}
-	p.AuthModule.Prestarted = true
+func (p *missoAuth) Init(conf *falcon.ConfCtrl) error {
 	p.RedirectURL = conf.Ctrl.Str(falcon.C_MISSO_REDIRECT_URL)
+	p.CookieSecretKey = "secret-key-for-encrypt-cookie"
+	p.missoAuthDomain = "http://sso.pt.xiaomi.com"
+	p.BrokerName = "test"
+	p.SecretKey = "test"
 	return nil
+}
+
+func (p *missoAuth) Verify(c interface{}) (bool, string, error) {
+	return false, "", models.EPERM
 }
 
 func (p *missoAuth) AuthorizeUrl(c interface{}) string {
@@ -75,7 +76,7 @@ func (p *missoAuth) CallBack(c interface{}) (uuid string, err error) {
 
 	//If can get user_name from cookie, user have logined
 	if result == true {
-		uuid = fmt.Sprintf("%s@%s", user_name, p.Name)
+		uuid = fmt.Sprintf("%s@%s", user_name, MISSO_NAME)
 		return
 	} else {
 		if broker_cookie == "" {
@@ -85,14 +86,14 @@ func (p *missoAuth) CallBack(c interface{}) (uuid string, err error) {
 			if authorization != "" {
 				uuid, err = p.GetServiceUser(authorization, remote_ip)
 				if err == nil && user_name != "" {
-					uuid = fmt.Sprintf("%s@%s", uuid, p.Name)
+					uuid = fmt.Sprintf("%s@%s", uuid, MISSO_NAME)
 					return
 				}
 			}
 		} else {
 			p.Credential = broker_cookie
 			if user_name, _ = p.GetUser(); user_name != "" {
-				uuid = fmt.Sprintf("%s@%s", user_name, p.Name)
+				uuid = fmt.Sprintf("%s@%s", user_name, MISSO_NAME)
 				ctx.SetSecureCookie(p.CookieSecretKey,
 					"user_name", user_name)
 				return

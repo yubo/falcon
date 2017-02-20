@@ -15,6 +15,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/conf"
+	_ "github.com/yubo/falcon/ctrl/api/models"
 	_ "github.com/yubo/falcon/ctrl/api/models/auth"
 	_ "github.com/yubo/falcon/ctrl/api/routers"
 	"github.com/yubo/gotool/flags"

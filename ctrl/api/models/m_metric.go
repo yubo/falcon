@@ -15,13 +15,6 @@ var (
 	metrics []*Metric
 )
 
-func metricInit(ms []string) error {
-	for _, m := range ms {
-		metrics = append(metrics, &Metric{Name: m})
-	}
-	return nil
-}
-
 func queryMetrics(query string, limit, offset int) (ret []*Metric) {
 	for k, v := range metrics {
 		if strings.Contains(v.Name, query) {

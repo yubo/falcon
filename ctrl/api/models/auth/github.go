@@ -20,23 +20,19 @@ import (
 )
 
 const (
-	githubBaseURL = "https://api.github.com"
+	GITHUB_BASE_URL = "https://api.github.com"
+	GITHUB_NAME     = "github"
 )
 
 type githubAuth struct {
-	models.AuthModule
 	config oauth2.Config
 }
 
 func init() {
-	models.RegisterAuth(&githubAuth{AuthModule: models.AuthModule{Name: "github"}})
+	models.RegisterAuth(GITHUB_NAME, &githubAuth{})
 }
 
-func (p *githubAuth) PreStart(conf falcon.ConfCtrl) error {
-	if p.AuthModule.Prestarted {
-		return models.ErrRePreStart
-	}
-	p.AuthModule.Prestarted = true
+func (p *githubAuth) Init(conf *falcon.ConfCtrl) error {
 	p.config = oauth2.Config{
 		Endpoint:     github.Endpoint,
 		Scopes:       []string{"user:email"},
@@ -45,6 +41,10 @@ func (p *githubAuth) PreStart(conf falcon.ConfCtrl) error {
 		RedirectURL:  conf.Ctrl.Str(falcon.C_GITHUB_REDIRECT_URL),
 	}
 	return nil
+}
+
+func (p *githubAuth) Verify(c interface{}) (bool, string, error) {
+	return false, "", models.EPERM
 }
 
 func (p *githubAuth) AuthorizeUrl(c interface{}) string {
@@ -86,7 +86,7 @@ func (p *githubAuth) CallBack(c interface{}) (uuid string, err error) {
 	}
 
 	//beego.Debug(fmt.Sprintf("name:%s login:%s id:%d email:%s", user.Name, user.Login, user.ID, user.Email))
-	uuid = fmt.Sprintf("%s@%s", user.Login, p.GetName())
+	uuid = fmt.Sprintf("%s@%s", user.Login, GITHUB_NAME)
 	return
 }
 
@@ -102,7 +102,7 @@ type githubUser struct {
 // a bearer token as part of the request.
 func (c *githubAuth) user(r *http.Request, client *http.Client) (githubUser, error) {
 	var u githubUser
-	req, err := http.NewRequest("GET", githubBaseURL+"/user", nil)
+	req, err := http.NewRequest("GET", GITHUB_BASE_URL+"/user", nil)
 	if err != nil {
 		return u, fmt.Errorf("github: new req: %v", err)
 	}

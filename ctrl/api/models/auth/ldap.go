@@ -17,7 +17,6 @@ import (
 )
 
 type ldapAuth struct {
-	models.AuthModule
 	addr    string
 	baseDN  string
 	bindDN  string
@@ -26,15 +25,15 @@ type ldapAuth struct {
 	tls     bool
 }
 
+const (
+	LDAP_NAME = "ldap"
+)
+
 func init() {
-	models.RegisterAuth(&ldapAuth{AuthModule: models.AuthModule{Name: "ldap"}})
+	models.RegisterAuth(LDAP_NAME, &ldapAuth{})
 }
 
-func (p *ldapAuth) PreStart(conf falcon.ConfCtrl) error {
-	if p.AuthModule.Prestarted {
-		return models.ErrRePreStart
-	}
-	p.AuthModule.Prestarted = true
+func (p *ldapAuth) Init(conf *falcon.ConfCtrl) error {
 	p.addr = conf.Ctrl.Str(falcon.C_LDAP_ADDR)
 	p.baseDN = conf.Ctrl.Str(falcon.C_LDAP_BASE_DN)
 	p.bindDN = conf.Ctrl.Str(falcon.C_LDAP_BIND_DN)
@@ -56,11 +55,18 @@ func (p *ldapAuth) Verify(_c interface{}) (bool, string, error) {
 		username, password,
 		p.bindDN, p.bindPwd, p.tls)
 	if success {
-		uuid = fmt.Sprintf("%s@%s", uuid, p.Name)
+		uuid = fmt.Sprintf("%s@%s", uuid, LDAP_NAME)
 	}
 
 	return success, uuid, err
+}
 
+func (p *ldapAuth) AuthorizeUrl(c interface{}) string {
+	return ""
+}
+
+func (p *ldapAuth) CallBack(c interface{}) (uuid string, err error) {
+	return "", models.EPERM
 }
 
 func ldapUserAuthentication(addr, baseDN, filter, username, password, bindusername, bindpassword string, TLS bool) (success bool, userDN string, err error) {

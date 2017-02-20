@@ -198,7 +198,7 @@ func (u *User) addTag(t *Tag, schema *TagSchema) (id int64, err error) {
 	}
 
 	// TODO: check parent exist/acl
-	if _, err = u.Access(SYS_W_SCOPE,
+	if _, err = u.Access(SYS_O_TOKEN,
 		TagParent(t.Name), false); err != nil {
 		return
 	}
@@ -289,7 +289,7 @@ func (u *User) UpdateTag(id int64, _t *Tag) (t *Tag, err error) {
 		return
 	}
 
-	if _, err = u.Access(SYS_W_SCOPE,
+	if _, err = u.Access(SYS_O_TOKEN,
 		TagParent(t.Name), true); err != nil {
 		return
 	}
@@ -311,7 +311,7 @@ func (u *User) DeleteTag(id int64) (err error) {
 		return
 	}
 
-	if _, err = u.Access(SYS_W_SCOPE,
+	if _, err = u.Access(SYS_O_TOKEN,
 		TagParent(tag.Name), false); err != nil {
 		return
 	}

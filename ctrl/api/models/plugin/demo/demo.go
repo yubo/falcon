@@ -9,14 +9,15 @@ import (
 	"time"
 
 	"github.com/astaxie/beego"
-	"github.com/yubo/falcon/ctrl/api/models"
+	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/ctrl"
 )
 
 func init() {
-	models.RegisterPlugin(start)
+	ctrl.RegisterInit(start)
 }
 
-func start() error {
+func start(conf *falcon.ConfCtrl) error {
 	ticker := time.NewTicker(time.Second * 60)
 	go func() {
 		for {

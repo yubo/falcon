@@ -10,6 +10,7 @@ import (
 
 	"github.com/astaxie/beego/orm"
 	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/ctrl"
 )
 
 type Kv struct {
@@ -58,13 +59,13 @@ func (u *User) ConfigGet(module string) (interface{}, error) {
 
 	switch module {
 	case "ctrl":
-		c = &config.Ctrl
+		c = &ctrl.Config.Ctrl
 	case "agent":
-		c = &config.Agent
+		c = &ctrl.Config.Agent
 	case "lb":
-		c = &config.Lb
+		c = &ctrl.Config.Lb
 	case "backend":
-		c = &config.Backend
+		c = &ctrl.Config.Backend
 	default:
 		return nil, ErrNoModule
 	}
