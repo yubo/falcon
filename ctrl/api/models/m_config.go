@@ -19,10 +19,10 @@ type Kv struct {
 	Value   string
 }
 
-func GetDbConfig(module string) (ret map[string]string, err error) {
+func GetDbConfig(o orm.Ormer, module string) (ret map[string]string, err error) {
 	var row Kv
 
-	err = orm.NewOrm().Raw("SELECT `section`, `key`, `value` FROM `kv` where "+
+	err = o.Raw("SELECT `section`, `key`, `value` FROM `kv` where "+
 		"`section` = ? and `key` = 'config'", module).QueryRow(&row)
 	if err != nil {
 		return nil, err
@@ -35,7 +35,7 @@ func GetDbConfig(module string) (ret map[string]string, err error) {
 	return ret, nil
 }
 
-func SetDbConfig(module string, conf map[string]string) error {
+func (op *Operator) SetDbConfig(module string, conf map[string]string) error {
 	kv := make(map[string]string)
 	for k, v := range conf {
 		if v != "" {
@@ -47,7 +47,7 @@ func SetDbConfig(module string, conf map[string]string) error {
 		return err
 	}
 	s := string(v)
-	_, err = orm.NewOrm().Raw("INSERT INTO `kv`(`section`, `key`, `value`)"+
+	_, err = op.O.Raw("INSERT INTO `kv`(`section`, `key`, `value`)"+
 		" VALUES (?,'config',?) ON DUPLICATE KEY UPDATE `value`=?",
 		module, s, s).Exec()
 
@@ -70,7 +70,7 @@ func (op *Operator) ConfigGet(module string) (interface{}, error) {
 		return nil, ErrNoModule
 	}
 
-	conf, err := GetDbConfig(module)
+	conf, err := GetDbConfig(op.O, module)
 	if err == nil {
 		c.Set(falcon.APP_CONF_DB, conf)
 	}
@@ -80,7 +80,7 @@ func (op *Operator) ConfigGet(module string) (interface{}, error) {
 func (op *Operator) ConfigSet(module string, conf map[string]string) error {
 	switch module {
 	case "ctrl", "agent", "lb", "backend":
-		return SetDbConfig(module, conf)
+		return op.SetDbConfig(module, conf)
 	default:
 		return ErrNoModule
 	}

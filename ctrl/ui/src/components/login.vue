@@ -76,9 +76,6 @@ export default {
   },
   created () {
     this.loginVisible = !this.login
-    if (!this.login) {
-      this.$store.dispatch('auth/info')
-    }
     this.fetchObjs()
   },
   watch: {

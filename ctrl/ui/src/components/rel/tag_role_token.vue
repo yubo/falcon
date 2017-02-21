@@ -46,7 +46,7 @@
             </el-option>
           </el-select>
         </div>
-        <button type="button" class="btn btn-primary" @click="handleBind">Bind</button>
+        <button :disabled="!isOperator" type="button" class="btn btn-primary" @click="handleBind">Bind</button>
       </div>
     </div>
 
@@ -58,7 +58,7 @@
         <el-table-column prop="tag_name"  label="tag"> </el-table-column>
         <el-table-column label="command">
           <template scope="scope">
-            <el-button @click="unbind(scope.row)" type="danger" size="small">Unbind</el-button>
+            <el-button :disabled="!isOperator" @click="unbind(scope.row)" type="danger" size="small">Unbind</el-button>
           </template>
         </el-table-column>
       </el-table-column>
@@ -251,6 +251,9 @@ export default {
     }
   },
   computed: {
+    isOperator () {
+      return this.$store.state.auth.operator
+    },
     offset () {
       return (this.per * (this.cur - 1))
     },

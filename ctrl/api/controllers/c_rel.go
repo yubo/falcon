@@ -78,15 +78,17 @@ func (c *RelController) GetzTreeNodes() {
 // @Description get Tag-Host number
 // @Param	query	query   string  false	"host name"
 // @Param	tag_id	query   int	true	"tag id"
+// @Param	deep	query   bool	false	"search sub tag"
 // @Success 200 {object} models.Total total number
 // @Failure 403 string error
 // @router /tag/host/cnt [get]
 func (c *RelController) GetTagHostCnt() {
 	tag_id, _ := c.GetInt64("tag_id", 0)
 	query := strings.TrimSpace(c.GetString("query"))
+	deep, _ := c.GetBool("deep", true)
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	n, err := op.GetTagHostCnt(tag_id, query)
+	n, err := op.GetTagHostCnt(tag_id, query, deep)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -98,19 +100,21 @@ func (c *RelController) GetTagHostCnt() {
 // @Description get all Host
 // @Param	tag_id		query	int	true	"tag id"
 // @Param	query	query	string	false	"host name"
+// @Param	deep	query   bool	false	"search sub tag"
 // @Param	per		query	int	false	"per page number"
 // @Param	offset	query	int	false	"offset  number"
-// @Success 200 {object} []models.Host hosts info
+// @Success 200 {object} []models.RelTagHost tag host info
 // @Failure 403 string error
 // @router /tag/host/search [get]
 func (c *RelController) GetTagHost() {
 	tag_id, _ := c.GetInt64("tag_id", 0)
 	query := strings.TrimSpace(c.GetString("query"))
+	deep, _ := c.GetBool("deep", true)
 	per, _ := c.GetInt("per", models.PAGE_PER)
 	offset, _ := c.GetInt("offset", 0)
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	ret, err := op.GetTagHost(tag_id, query, per, offset)
+	ret, err := op.GetTagHost(tag_id, query, deep, per, offset)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -158,12 +162,12 @@ func (c *RelController) CreateTagHosts() {
 
 // @Title delete tag host relation
 // @Description delete tag/host relation
-// @Param	body		body 	models.RelTagHost	true	""
+// @Param	body		body 	models.Id	true	"relation id"
 // @Success 200 {object} models.Total affected number
 // @Failure 403 string error
 // @router /tag/host [delete]
 func (c *RelController) DelTagHost() {
-	var rel models.RelTagHost
+	var rel models.Id
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	json.Unmarshal(c.Ctx.Input.RequestBody, &rel)
 
@@ -177,12 +181,12 @@ func (c *RelController) DelTagHost() {
 
 // @Title delete tag host relation
 // @Description delete tag/hosts relation
-// @Param	body	body 	models.RelTagHosts	true	""
+// @Param	body	body 	models.ids	true	"unbind multiple tag-host relation"
 // @Success 200 {object} models.Total affected number
 // @Failure 403 string error
 // @router /tag/hosts [delete]
 func (c *RelController) DelTagHosts() {
-	var rel models.RelTagHosts
+	var rel models.Ids
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	json.Unmarshal(c.Ctx.Input.RequestBody, &rel)
 
@@ -197,6 +201,8 @@ func (c *RelController) DelTagHosts() {
 // @Title GetTagTemplateCnt
 // @Description get Tag-Template number
 // @Param	query	query   string  false	"template name"
+// @Param	deep	query   bool	false	"search sub tag"
+// @Param	mine	query   bool	false	"search mine template"
 // @Param	tag_id	query   int	true	"tag id"
 // @Success 200 {object} models.Total total number
 // @Failure 403 string error
@@ -204,9 +210,11 @@ func (c *RelController) DelTagHosts() {
 func (c *RelController) GetTagTplCnt() {
 	tag_id, _ := c.GetInt64("tag_id", 0)
 	query := strings.TrimSpace(c.GetString("query"))
+	deep, _ := c.GetBool("deep", true)
+	mine, _ := c.GetBool("mine", true)
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	n, err := op.GetTagTplCnt(tag_id, query)
+	n, err := op.GetTagTplCnt(tag_id, query, deep, mine)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
@@ -218,6 +226,8 @@ func (c *RelController) GetTagTplCnt() {
 // @Description get all Template
 // @Param	tag_id	query	int	true	"tag id"
 // @Param	query	query	string	false	"template name"
+// @Param	deep	query   bool	false	"search sub tag"
+// @Param	mine	query   bool	false	"search mine template"
 // @Param	per	query	int	false	"per page number"
 // @Param	offset	query	int	false	"offset  number"
 // @Success 200 {object} []models.Template templates info
@@ -226,11 +236,13 @@ func (c *RelController) GetTagTplCnt() {
 func (c *RelController) GetTagTpl() {
 	tag_id, _ := c.GetInt64("tag_id", 0)
 	query := strings.TrimSpace(c.GetString("query"))
+	deep, _ := c.GetBool("deep", true)
+	mine, _ := c.GetBool("mine", true)
 	per, _ := c.GetInt("per", models.PAGE_PER)
 	offset, _ := c.GetInt("offset", 0)
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	ret, err := op.GetTagTpl(tag_id, query, per, offset)
+	ret, err := op.GetTagTpl(tag_id, query, deep, mine, per, offset)
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {

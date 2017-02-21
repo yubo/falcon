@@ -6,10 +6,8 @@
         <input type="text" v-model="query" @keyup.enter="handleQuery" class="form-control" placeholder="host name">
       </div>
       <button type="button" @click="handleQuery" class="btn btn-primary">Search</button>
-      <!--
-      <input type="checkbox" v-model="global" class="form-control">
-      <span>全局搜索</span>
-      -->
+      <input type="checkbox" v-model="deep" class="form-control">
+      <span>搜索子节点</span>
       <div class="pull-right">
         <div class="input-group">
           <span class="input-group-addon">host</span> 
@@ -38,11 +36,11 @@
     <el-table v-loading.lock="loading" :data="tableData" border style="width: 100%" class="mt20" @selection-change="handleSelectionChange">
       <el-table-column :prop="curTag.name" :label="curTag.name" width="100%">
         <el-table-column type="selection"> </el-table-column>
-        <el-table-column prop="name" label="host"> </el-table-column>
-        <el-table-column prop="name"  label="tag"> </el-table-column>
+        <el-table-column prop="host_name" label="host"> </el-table-column>
+        <el-table-column prop="tag_name"  label="tag"> </el-table-column>
         <el-table-column label="command">
           <template scope="scope">
-            <el-button :disabled="!isOperator" @click="unbind(scope.row)" type="danger" size="small">Unbind</el-button>
+            <el-button :disabled="!isOperator" @click="unbind(scope.row.id)" type="danger" size="small">Unbind</el-button>
           </template>
         </el-table-column>
       </el-table-column>
@@ -76,8 +74,7 @@ export default {
     return {
       loading: false,
       sloading: false,
-      global: false,
-      mine: true,
+      deep: true,
       hosts: [],
       optionHosts: [],
       query: '',
@@ -138,7 +135,7 @@ export default {
       fetch({
         method: 'get',
         url: 'rel/tag/host/cnt',
-        params: { tag_id: this.curTagId, query: this.query }
+        params: { tag_id: this.curTagId, query: this.query, deep: this.deep }
       }).then((res) => {
         this.total = res.data.total
         this.fetchData()
@@ -150,7 +147,7 @@ export default {
     fetchData (opts = {
       tag_id: this.curTagId,
       query: this.query,
-      mine: this.mine,
+      deep: this.deep,
       per: this.per,
       offset: this.offset}) {
       this.loading = true
@@ -182,7 +179,7 @@ export default {
         this.loading = false
       })
     },
-    unbind (host) {
+    unbind (id) {
       Msg.confirm('此操作将解绑定该记录, 是否继续?', '提示', {
         confirmButtonText: 'Confirm',
         cancelButtonText: 'Cancel',
@@ -193,8 +190,7 @@ export default {
           method: 'delete',
           url: 'rel/tag/host',
           data: {
-            tag_id: this.curTagId,
-            host_id: host.id
+            id: id
           }
         }).then((res) => {
           Msg.success('success!')
@@ -219,8 +215,7 @@ export default {
           method: 'delete',
           url: 'rel/tag/hosts',
           data: {
-            tag_id: this.curTagId,
-            host_ids: this.multipleSelection.map((val) => { return val.id })
+            ids: this.multipleSelection.map((val) => { return val.id })
           }
         }).then((res) => {
           Msg.success('success!')
@@ -236,6 +231,9 @@ export default {
     }
   },
   computed: {
+    isOperator () {
+      return this.$store.state.auth.operator
+    },
     offset () {
       return (this.per * (this.cur - 1))
     },
@@ -244,9 +242,6 @@ export default {
     },
     curTag () {
       return this.$store.state.rel.curTag
-    },
-    isOperator () {
-      return this.$store.state.auth.operator
     }
   },
   created () {

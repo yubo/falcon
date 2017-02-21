@@ -55,7 +55,7 @@ func (op *Operator) AddTemplate(o *Template) (id int64, err error) {
 	}
 	o.Id = id
 	moduleCache[CTL_M_TEMPLATE].set(id, o)
-	DbLog(op.User.Id, CTL_M_TEMPLATE, id, CTL_A_ADD, jsonStr(o))
+	DbLog(op.O, op.User.Id, CTL_M_TEMPLATE, id, CTL_A_ADD, jsonStr(o))
 	return
 }
 
@@ -236,7 +236,7 @@ func (op *Operator) DeleteTemplate(id int64) error {
 	}
 
 	moduleCache[CTL_M_TEMPLATE].del(id)
-	DbLog(op.User.Id, CTL_M_TEMPLATE, id, CTL_A_DEL, "")
+	DbLog(op.O, op.User.Id, CTL_M_TEMPLATE, id, CTL_A_DEL, "")
 
 	return nil
 }

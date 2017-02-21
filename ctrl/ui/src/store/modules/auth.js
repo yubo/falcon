@@ -1,5 +1,4 @@
-import { fetch } from 'src/utils'
-import { Message } from 'element-ui'
+import { fetch, Msg } from 'src/utils'
 
 const state = {
   user: null,
@@ -21,21 +20,24 @@ const actions = {
       url: 'auth/logout'
     }).then((res) => {
       commit('m_logout')
-      Message.success('logout success')
-    })
-    .catch((err) => {
-      Message.error(err.response.data)
+      Msg.success('logout success')
+    }).catch((err) => {
+      Msg.error('logout failed', err)
     })
   },
   info ({ commit, state }) {
+    commit('m_set_loading', true)
     fetch({
       url: 'auth/info',
       method: 'get'
     }).then((res) => {
       if (res.data.user) {
         commit('m_login_success', res.data)
-        Message.success('welecom ' + res.data.user.name)
+        Msg.success('welecom ' + res.data.user.name)
       }
+      commit('m_set_loading', false)
+    }).catch(() => {
+      commit('m_set_loading', false)
     })
   },
   login ({ commit, state }, args = {}) {
@@ -47,11 +49,11 @@ const actions = {
     }).then((res) => {
       commit('m_login_success', res.data)
       commit('m_set_loading', false)
-      Message.success('login success, hi ' + res.data.user.name)
+      Msg.success('login success, hi ' + res.data.user.name)
     }).catch((err) => {
       commit('m_login_fail')
       commit('m_set_loading', false)
-      Message.error('login fail ' + err)
+      Msg.error('login fail', err)
     })
   }
 }

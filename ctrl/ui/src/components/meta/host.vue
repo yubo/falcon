@@ -6,7 +6,7 @@
       </div>
       <button type="button" @click="handleQuery" class="btn btn-primary">search</button>
       <div class="pull-right">
-        <button type="button" @click="editObj" class="btn btn-default"><span class="glyphicon glyphicon-plus"></span>Add</button>
+        <button :disabled="!isOperator" type="button" @click="editObj" class="btn btn-default"><span class="glyphicon glyphicon-plus"></span>Add</button>
       </div>
     </div>
 
@@ -20,8 +20,8 @@
       <el-table-column prop="ctime"  label="created"> </el-table-column>
       <el-table-column label="command">
         <template scope="scope">
-          <el-button @click="editObj(scope.row)" type="text" size="small">EDIT</el-button>
-          <el-button @click="deleteObj(scope.row)" type="text" size="small">DELETE</el-button>
+          <el-button :disabled="!isOperator" @click="editObj(scope.row)" type="text" size="small">EDIT</el-button>
+          <el-button :disabled="!isOperator" @click="deleteObj(scope.row)" type="text" size="small">DELETE</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -176,6 +176,9 @@ export default {
   },
 
   computed: {
+    isOperator () {
+      return this.$store.state.auth.operator
+    },
     offset () {
       return (this.per * (this.cur - 1))
     },

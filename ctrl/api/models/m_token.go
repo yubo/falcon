@@ -26,7 +26,7 @@ func (op *Operator) AddToken(o *Token) (id int64, err error) {
 	}
 	o.Id = id
 	moduleCache[CTL_M_TOKEN].set(id, o)
-	DbLog(op.User.Id, CTL_M_TOKEN, id, CTL_A_ADD, jsonStr(o))
+	DbLog(op.O, op.User.Id, CTL_M_TOKEN, id, CTL_A_ADD, jsonStr(o))
 	return
 }
 
@@ -83,7 +83,7 @@ func (op *Operator) UpdateToken(id int64, _tk *Token) (tk *Token, err error) {
 	}
 	_, err = op.O.Update(tk)
 	moduleCache[CTL_M_TOKEN].set(id, tk)
-	DbLog(op.User.Id, CTL_M_TOKEN, id, CTL_A_SET, "")
+	DbLog(op.O, op.User.Id, CTL_M_TOKEN, id, CTL_A_SET, "")
 	return tk, err
 }
 
@@ -93,7 +93,7 @@ func (op *Operator) DeleteToken(id int64) error {
 		return ErrNoExits
 	}
 	moduleCache[CTL_M_TOKEN].del(id)
-	DbLog(op.User.Id, CTL_M_TOKEN, id, CTL_A_DEL, "")
+	DbLog(op.O, op.User.Id, CTL_M_TOKEN, id, CTL_A_DEL, "")
 
 	return nil
 }

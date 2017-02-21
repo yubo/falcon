@@ -52,7 +52,7 @@ func TestToken(t *testing.T) {
 		t.Log("test db not inited, skip test token")
 		return
 	}
-	o := orm.NewOrm()
+	o := op.O
 	err := testTokenInitDb(t, o)
 	if err != nil {
 		t.Error("init db failed", err)

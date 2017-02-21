@@ -40,7 +40,7 @@ func (op *Operator) AddTeam(t *Team) (id int64, err error) {
 
 	t.Id = id
 	moduleCache[CTL_M_TEAM].set(id, t)
-	DbLog(op.User.Id, CTL_M_TEAM, id, CTL_A_ADD, jsonStr(t))
+	DbLog(op.O, op.User.Id, CTL_M_TEAM, id, CTL_A_ADD, jsonStr(t))
 	return
 }
 
@@ -99,7 +99,7 @@ func (op *Operator) UpdateTeam(id int64, _t *Team) (t *Team, err error) {
 	}
 	_, err = op.O.Update(t)
 	moduleCache[CTL_M_TEAM].set(id, t)
-	DbLog(op.User.Id, CTL_M_TEAM, id, CTL_A_SET, jsonStr(_t))
+	DbLog(op.O, op.User.Id, CTL_M_TEAM, id, CTL_A_SET, jsonStr(_t))
 	return t, err
 }
 
@@ -136,7 +136,7 @@ func (op *Operator) UpdateMember(id int64, _m *TeamMemberIds) (m *TeamMemberIds,
 		}
 	}
 	m.Uids = _m.Uids
-	DbLog(op.User.Id, CTL_M_TEAM, id, CTL_A_SET, jsonStr(_m))
+	DbLog(op.O, op.User.Id, CTL_M_TEAM, id, CTL_A_SET, jsonStr(_m))
 	return
 }
 
@@ -144,7 +144,7 @@ func (op *Operator) DeleteTeam(id int64) error {
 	if n, err := op.O.Delete(&Team{Id: id}); err != nil || n == 0 {
 		return err
 	}
-	DbLog(op.User.Id, CTL_M_TEAM, id, CTL_A_DEL, "")
+	DbLog(op.O, op.User.Id, CTL_M_TEAM, id, CTL_A_DEL, "")
 
 	return nil
 }

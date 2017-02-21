@@ -119,7 +119,7 @@ func (op *Operator) AddUser(user *User) (*User, error) {
 	user.Id = id
 	moduleCache[CTL_M_USER].set(id, user)
 
-	DbLog(op.User.Id, CTL_M_USER, id, CTL_A_ADD, jsonStr(user))
+	DbLog(op.O, op.User.Id, CTL_M_USER, id, CTL_A_ADD, jsonStr(user))
 	return user, nil
 }
 
@@ -188,7 +188,7 @@ func (op *Operator) UpdateUser(id int64, _u *User) (user *User, err error) {
 	}
 	_, err = op.O.Update(user)
 	moduleCache[CTL_M_USER].set(id, user)
-	DbLog(op.User.Id, CTL_M_USER, id, CTL_A_SET, "")
+	DbLog(op.O, op.User.Id, CTL_M_USER, id, CTL_A_SET, "")
 	return user, err
 }
 
@@ -197,7 +197,7 @@ func (op *Operator) DeleteUser(id int64) error {
 		return ErrNoExits
 	}
 	moduleCache[CTL_M_USER].del(id)
-	DbLog(op.User.Id, CTL_M_USER, id, CTL_A_DEL, "")
+	DbLog(op.O, op.User.Id, CTL_M_USER, id, CTL_A_DEL, "")
 
 	return nil
 }

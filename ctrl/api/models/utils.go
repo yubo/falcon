@@ -76,7 +76,7 @@ func (c *cache) del(id int64) {
 	}
 }
 
-func DbLog(uid, module, module_id, action int64, data string) {
+func DbLog(o orm.Ormer, uid, module, module_id, action int64, data string) {
 	log := &Log{
 		UserId:   uid,
 		Module:   module,
@@ -84,7 +84,7 @@ func DbLog(uid, module, module_id, action int64, data string) {
 		Action:   action,
 		Data:     data,
 	}
-	orm.NewOrm().Insert(log)
+	o.Insert(log)
 }
 
 func array2sql(array []int64) string {

@@ -77,6 +77,7 @@ func accessFilter(ctx *context.Context) {
 			10, 64); err != nil {
 
 			if id == op.User.Id {
+				// if target is self, is ok
 				return
 			}
 		}

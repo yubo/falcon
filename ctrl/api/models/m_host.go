@@ -32,7 +32,7 @@ func (op *Operator) AddHost(h *Host) (id int64, err error) {
 	}
 	h.Id = id
 	moduleCache[CTL_M_HOST].set(id, h)
-	DbLog(op.User.Id, CTL_M_HOST, id, CTL_A_ADD, jsonStr(h))
+	DbLog(op.O, op.User.Id, CTL_M_HOST, id, CTL_A_ADD, jsonStr(h))
 	return
 }
 
@@ -101,7 +101,7 @@ func (op *Operator) UpdateHost(id int64, _h *Host) (h *Host, err error) {
 	}
 	_, err = op.O.Update(h)
 	moduleCache[CTL_M_HOST].set(id, h)
-	DbLog(op.User.Id, CTL_M_HOST, id, CTL_A_SET, "")
+	DbLog(op.O, op.User.Id, CTL_M_HOST, id, CTL_A_SET, "")
 	return h, err
 }
 
@@ -110,7 +110,7 @@ func (op *Operator) DeleteHost(id int64) error {
 		return err
 	}
 	moduleCache[CTL_M_HOST].del(id)
-	DbLog(op.User.Id, CTL_M_HOST, id, CTL_A_DEL, "")
+	DbLog(op.O, op.User.Id, CTL_M_HOST, id, CTL_A_DEL, "")
 
 	return nil
 }

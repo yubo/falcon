@@ -5,11 +5,7 @@
  */
 package models
 
-import (
-	"strings"
-
-	"github.com/astaxie/beego/orm"
-)
+import "strings"
 
 type ExpressionAction struct {
 	Expression Expression `json:"expression"`
@@ -46,13 +42,13 @@ type Expression struct {
 
 func (op *Operator) AddExpression(r *Expression) (id int64, err error) {
 	r.Id = 0
-	id, err = orm.NewOrm().Insert(r)
+	id, err = op.O.Insert(r)
 	if err != nil {
 		return
 	}
 	r.Id = id
 	moduleCache[CTL_M_EXPRESSION].set(id, r)
-	DbLog(op.User.Id, CTL_M_EXPRESSION, id, CTL_A_ADD, jsonStr(r))
+	DbLog(op.O, op.User.Id, CTL_M_EXPRESSION, id, CTL_A_ADD, jsonStr(r))
 	return
 }
 
@@ -61,7 +57,7 @@ func (op *Operator) getExpression(id int64) (*Expression, error) {
 		return r, nil
 	}
 	r := &Expression{Id: id}
-	err := orm.NewOrm().Read(r, "Id")
+	err := op.O.Read(r, "Id")
 	if err == nil {
 		moduleCache[CTL_M_EXPRESSION].set(id, r)
 	}
@@ -86,7 +82,7 @@ func (op *Operator) GetExpressionAction(id int64) (*ExpressionAction, error) {
 	return &ret, nil
 }
 
-func queryExpressions(query string, user_id int64) (where string, args []interface{}) {
+func exprSql(query string, user_id int64) (where string, args []interface{}) {
 	sql2 := []string{}
 	sql3 := []interface{}{}
 
@@ -107,17 +103,17 @@ func queryExpressions(query string, user_id int64) (where string, args []interfa
 }
 
 func (op *Operator) GetExpressionsCnt(query string, user_id int64) (cnt int64, err error) {
-	sql, sql_args := queryExpressions(query, user_id)
-	err = orm.NewOrm().Raw("SELECT count(*) FROM expression a "+sql, sql_args...).QueryRow(&cnt)
+	sql, sql_args := exprSql(query, user_id)
+	err = op.O.Raw("SELECT count(*) FROM expression a "+sql, sql_args...).QueryRow(&cnt)
 	return
 }
 
 func (op *Operator) GetExpressions(query string, user_id int64, limit, offset int) (ret []ExpressionUi, err error) {
-	sql, sql_args := queryExpressions(query, user_id)
+	sql, sql_args := exprSql(query, user_id)
 	sql = "SELECT a.id as id, a.name as name, a.expression as expression, a.op as op, a.`condition` as `condition`, a.max_step as max_step, a.priority as priority, a.msg as msg, a.action_threshold as action_threshold, a.pause as pause, b.uic as uic, c.name as creator from expression a LEFT JOIN action b ON a.action_id = b.id LEFT JOIN user c ON a.create_user_id = c.id " + sql + " ORDER BY a.name LIMIT ? OFFSET ?"
 	sql_args = append(sql_args, limit, offset)
 
-	_, err = orm.NewOrm().Raw(sql, sql_args...).QueryRows(&ret)
+	_, err = op.O.Raw(sql, sql_args...).QueryRows(&ret)
 	return
 }
 
@@ -143,7 +139,7 @@ func (op *Operator) PauseExpression(id int64, pause int) (item *Expression, err 
 	item.Pause = pause
 	_, err = op.O.Update(item)
 	moduleCache[CTL_M_EXPRESSION].set(id, item)
-	DbLog(op.User.Id, CTL_M_EXPRESSION, id, CTL_A_SET, "")
+	DbLog(op.O, op.User.Id, CTL_M_EXPRESSION, id, CTL_A_SET, "")
 	return item, err
 }
 
@@ -163,7 +159,7 @@ func (op *Operator) UpdateExpression(id int64, _o *Expression) (o *Expression, e
 
 	_, err = op.O.Update(o)
 	moduleCache[CTL_M_EXPRESSION].set(id, o)
-	DbLog(op.User.Id, CTL_M_EXPRESSION, id, CTL_A_SET, "")
+	DbLog(op.O, op.User.Id, CTL_M_EXPRESSION, id, CTL_A_SET, "")
 	return o, err
 }
 
@@ -182,7 +178,7 @@ func (op *Operator) DeleteExpression(id int64) error {
 	}
 
 	moduleCache[CTL_M_EXPRESSION].del(id)
-	DbLog(op.User.Id, CTL_M_EXPRESSION, id, CTL_A_DEL, "")
+	DbLog(op.O, op.User.Id, CTL_M_EXPRESSION, id, CTL_A_DEL, "")
 
 	return nil
 }

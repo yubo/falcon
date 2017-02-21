@@ -30,39 +30,54 @@ import tagTemplate from './components/rel/tag_template'
 
 Vue.use(VueRouter)
 
-/*
 import store from 'store'
 import { Msg } from 'src/utils'
-function accessReader (to, form, next) {
-  if (store.state.auth.reader) {
-    next()
-    return
-  }
-  next(false)
-  setTimeout(() => {
-    if (store.state.auth.reader) {
-      next(to.fulPath)
-    } else {
-      Msg.error('permission denied')
-    }
-  }, 1000)
+
+var got = false
+
+function gotInfo () {
+  got = true
+  store.commit('auth/m_set_loading', true)
+  store.dispatch('auth/info')
 }
 
-function accessAdmin (to, form, next) {
-  if (store.state.auth.admin) {
-    next()
-    return
+function accessReader (to, from, next) {
+  if (!got) {
+    gotInfo()
   }
-  next(false)
-  setTimeout(() => {
-    if (store.state.auth.admin) {
-      next(to.fulPath)
+  if (!store.state.auth.loading) {
+    if (store.state.auth.reader) {
+      next()
     } else {
       Msg.error('permission denied')
+      next(false)
     }
-  }, 1000)
+    return
+  }
+
+  setTimeout(() => {
+    accessReader(to, from, next)
+  }, 100)
 }
-*/
+
+function accessAdmin (to, from, next) {
+  if (!got) {
+    gotInfo()
+  }
+  if (!store.state.auth.loading) {
+    if (store.state.auth.admin) {
+      next()
+    } else {
+      Msg.error('permission denied')
+      next(false)
+    }
+    return
+  }
+
+  setTimeout(() => {
+    accessAdmin(to, from, next)
+  }, 100)
+}
 
 const router = new VueRouter({
   routes:
@@ -73,7 +88,7 @@ const router = new VueRouter({
     path: '/admin',
     redirect: '/admin/ctrl',
     component: admin,
-    // beforeEnter: accessAdmin,
+    beforeEnter: accessAdmin,
     children: [
     { path: 'config/ctrl', component: ctrl },
     { path: 'config/agent', component: agent },
@@ -86,7 +101,7 @@ const router = new VueRouter({
     path: '/settings',
     redirect: '/settings/about',
     component: settings,
-    // beforeEnter: accessReader,
+    beforeEnter: accessReader,
     children: [
     { path: 'profile', component: profile },
     { path: 'about', component: about }
@@ -95,7 +110,7 @@ const router = new VueRouter({
     path: '/meta',
     redirect: '/meta/host',
     component: meta,
-    // beforeEnter: accessReader,
+    beforeEnter: accessReader,
     children: [
     { path: 'expression', component: expression },
     { path: 'host', component: host },
@@ -110,7 +125,7 @@ const router = new VueRouter({
     path: '/rel',
     redirect: '/rel/tag-host',
     component: rel,
-    // beforeEnter: accessReader,
+    beforeEnter: accessReader,
     children: [
     { path: 'tag-host', component: tagHost },
     { path: 'tag-role-user', component: tagRoleUser },

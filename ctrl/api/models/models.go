@@ -89,6 +89,10 @@ const (
 	CTL_A_SIZE
 )
 
+type Ids struct {
+	Ids []int64 `json:"ids"`
+}
+
 type Id struct {
 	Id int64 `json:"id"`
 }
@@ -168,7 +172,8 @@ func initConfig(conf *falcon.ConfCtrl) error {
 	conf.Ctrl.Set(falcon.APP_CONF_DEFAULT, falcon.ConfDefault["ctrl"])
 
 	// get config from db
-	if c, err := GetDbConfig("ctrl"); err == nil {
+	o := orm.NewOrm()
+	if c, err := GetDbConfig(o, "ctrl"); err == nil {
 		conf.Ctrl.Set(falcon.APP_CONF_DB, c)
 	}
 

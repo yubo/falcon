@@ -27,7 +27,7 @@ func (op *Operator) AddRole(r *Role) (id int64, err error) {
 	}
 	r.Id = id
 	moduleCache[CTL_M_ROLE].set(id, r)
-	DbLog(op.User.Id, CTL_M_ROLE, id, CTL_A_ADD, jsonStr(r))
+	DbLog(op.O, op.User.Id, CTL_M_ROLE, id, CTL_A_ADD, jsonStr(r))
 	return
 }
 
@@ -76,7 +76,7 @@ func (op *Operator) UpdateRole(id int64, _r *Role) (r *Role, err error) {
 	}
 	_, err = op.O.Update(r)
 	moduleCache[CTL_M_ROLE].set(id, r)
-	DbLog(op.User.Id, CTL_M_ROLE, id, CTL_A_SET, "")
+	DbLog(op.O, op.User.Id, CTL_M_ROLE, id, CTL_A_SET, "")
 	return r, err
 }
 
@@ -85,7 +85,7 @@ func (op *Operator) DeleteRole(id int64) error {
 		return err
 	}
 	moduleCache[CTL_M_ROLE].del(id)
-	DbLog(op.User.Id, CTL_M_ROLE, id, CTL_A_DEL, "")
+	DbLog(op.O, op.User.Id, CTL_M_ROLE, id, CTL_A_DEL, "")
 
 	return nil
 }

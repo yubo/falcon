@@ -7,10 +7,10 @@
         <input type="text" v-model="query" @keyup.enter="handleQuery" class="form-control" placeholder="template name">
       </div>
       <button type="button" @click="handleQuery" class="btn btn-primary">Search</button>
-      <!--
-      <input type="checkbox" v-model="global" class="form-control">
-      <span>全局搜索</span>
-      -->
+      <input type="checkbox" v-model="deep" class="form-control">
+      <span>搜索子节点</span>
+      <input type="checkbox" v-model="mine" class="form-control">
+      <span>mine</span>
       <div class="pull-right">
         <div class="input-group">
           <span class="input-group-addon">template</span> 
@@ -31,7 +31,7 @@
             </el-option>
           </el-select>
         </div>
-        <button type="button" class="btn btn-primary" @click="handleBind">Bind</button>
+        <button :disabled="!isOperator" type="button" class="btn btn-primary" @click="handleBind">Bind</button>
       </div>
     </div>
 
@@ -45,14 +45,14 @@
         <el-table-column prop="ctime"  label="create time"> </el-table-column>
         <el-table-column label="command">
           <template scope="scope">
-            <el-button @click="unbind(scope.row)" type="danger" size="small">Unbind</el-button>
+            <el-button :disabled="!isOperator" @click="unbind(scope.row)" type="danger" size="small">Unbind</el-button>
           </template>
         </el-table-column>
       </el-table-column>
     </el-table>
 
     <div class="mt20">
-      <button @click="mUnbind" type="button" class="btn btn-danger">Unbind</button>
+      <button :disabled="!isOperator" @click="mUnbind" type="button" class="btn btn-danger">Unbind</button>
 
       <div class="pull-right">
         <el-pagination
@@ -79,7 +79,8 @@ export default {
     return {
       loading: false,
       sloading: false,
-      global: false,
+      deep: true,
+      mine: true,
       tpls: [],
       optionTpls: [],
       query: '',
@@ -140,7 +141,7 @@ export default {
       fetch({
         method: 'get',
         url: 'rel/tag/template/cnt',
-        params: { tag_id: this.curTagId, query: this.query }
+        params: { tag_id: this.curTagId, query: this.query, deep: this.deep, mine: this.mine }
       }).then((res) => {
         this.total = res.data.total
         this.fetchData()
@@ -152,6 +153,8 @@ export default {
     fetchData (opts = {
       tag_id: this.curTagId,
       query: this.query,
+      deep: this.deep,
+      mine: this.mine,
       own: this.own,
       per: this.per,
       offset: this.offset}) {
@@ -238,6 +241,9 @@ export default {
     }
   },
   computed: {
+    isOperator () {
+      return this.$store.state.auth.operator
+    },
     offset () {
       return (this.per * (this.cur - 1))
     },

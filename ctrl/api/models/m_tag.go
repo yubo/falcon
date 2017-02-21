@@ -238,7 +238,7 @@ func (op *Operator) addTag(t *Tag, schema *TagSchema) (id int64, err error) {
 
 	t.Id = id
 	moduleCache[CTL_M_TAG].set(id, t)
-	DbLog(op.User.Id, CTL_M_TAG, id, CTL_A_ADD, "")
+	DbLog(op.O, op.User.Id, CTL_M_TAG, id, CTL_A_ADD, "")
 
 	return id, err
 }
@@ -299,7 +299,7 @@ func (op *Operator) UpdateTag(id int64, _t *Tag) (t *Tag, err error) {
 	}
 	_, err = op.O.Update(t)
 	moduleCache[CTL_M_TAG].set(id, t)
-	DbLog(op.User.Id, CTL_M_TAG, id, CTL_A_SET, "")
+	DbLog(op.O, op.User.Id, CTL_M_TAG, id, CTL_A_SET, "")
 	return t, err
 }
 
@@ -320,7 +320,7 @@ func (op *Operator) DeleteTag(id int64) (err error) {
 		return ErrNoExits
 	}
 	moduleCache[CTL_M_TAG].del(id)
-	DbLog(op.User.Id, CTL_M_TAG, id, CTL_A_DEL, "")
+	DbLog(op.O, op.User.Id, CTL_M_TAG, id, CTL_A_DEL, "")
 
 	return nil
 }
