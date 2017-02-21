@@ -21,7 +21,7 @@ type TagController struct {
 // @Title CreateTag
 // @Description create tags
 // @Param	body	body 	models.Tag	true	"body for tag content"
-// @Success 200 {id:int} Id
+// @Success 200 {object} models.Id Id
 // @Failure 403 string error
 // @router / [post]
 func (c *TagController) CreateTag() {
@@ -32,14 +32,14 @@ func (c *TagController) CreateTag() {
 	if id, err := op.AddTag(&tag); err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendMsg(200, models.Id{Id: id})
+		c.SendMsg(200, idObj(id))
 	}
 }
 
 // @Title GetTagsCnt
 // @Description get Tags number
 // @Param   query     query   string  false       "tag name"
-// @Success 200  {total:int} tag total number
+// @Success 200 {object} models.Total tag total number
 // @Failure 403 string error
 // @router /cnt [get]
 func (c *TagController) GetTagsCnt() {
@@ -59,7 +59,7 @@ func (c *TagController) GetTagsCnt() {
 // @Param   query     query   string  false       "tag name"
 // @Param   per       query   int     false       "per page number"
 // @Param   offset    query   int     false       "offset  number"
-// @Success 200 [object] []models.Tag
+// @Success 200 {object} []models.Tag  tags info
 // @Failure 403 string error
 // @router /search [get]
 func (c *TagController) GetTags() {
@@ -79,7 +79,7 @@ func (c *TagController) GetTags() {
 // @Title Get
 // @Description get tag by id
 // @Param	id		path 	int	true		"The key for staticblock"
-// @Success 200 {object} models.Tag
+// @Success 200 {object} models.Tag tag info
 // @Failure 403 string error
 // @router /:id [get]
 func (c *TagController) GetTag() {
@@ -100,7 +100,7 @@ func (c *TagController) GetTag() {
 // @Description update the tag
 // @Param	id		path 	string	true		"The id you want to update"
 // @Param	body		body 	models.Tag	true		"body for tag content"
-// @Success 200 {object} models.Tag
+// @Success 200 {object} models.Tag tag info
 // @Failure 403 string error
 // @router /:id [put]
 func (c *TagController) UpdateTag() {
@@ -125,7 +125,7 @@ func (c *TagController) UpdateTag() {
 // @Title DeleteTag
 // @Description delete the tag
 // @Param	id	path	string	true	"The id you want to delete"
-// @Success 200 string "delete success!"
+// @Success 200 {string} "delete success!"
 // @Failure 403 string error
 // @router /:id [delete]
 func (c *TagController) DeleteTag() {

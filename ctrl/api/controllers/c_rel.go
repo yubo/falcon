@@ -20,7 +20,7 @@ type RelController struct {
 // @Title Get vue tag tree
 // @Description get tags for vue tree
 // @Param	id		body 	int64	true	"tag id"
-// @Success 200 [object] []models.TreeNode
+// @Success 200 {object} []models.TreeNode All nodes under the current node
 // @Failure 403 string error
 // @router /treeNode [get]
 func (c *RelController) GetTreeNodes() {
@@ -37,7 +37,7 @@ func (c *RelController) GetTreeNodes() {
 
 // @Title Get vue tag tree
 // @Description get tags for vue tree
-// @Success 200 [object] []models.TreeNode
+// @Success 200 {object} []models.TreeNode all nodes of the tree
 // @Failure 403 string error
 // @router /tree [get]
 func (c *RelController) GetTree() {
@@ -56,8 +56,8 @@ func (c *RelController) GetTree() {
 // @Param	name		body 	string	true	"tag name"
 // @Param	lv		body 	int	true	"tag level"
 // @Param	otherParam	body 	string	true	"zTreeAsyncTest"
-// @Success 200 [object] []models.TagNode
-// @Failure 403 error string
+// @Success 200 {object} []models.TagNode All nodes under the current node for ztree
+// @Failure 403 string error
 // @router /zTreeNodes [post]
 func (c *RelController) GetzTreeNodes() {
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
@@ -78,7 +78,7 @@ func (c *RelController) GetzTreeNodes() {
 // @Description get Tag-Host number
 // @Param	query	query   string  false	"host name"
 // @Param	tag_id	query   int	true	"tag id"
-// @Success 200 {total:int} total number
+// @Success 200 {object} models.Total total number
 // @Failure 403 string error
 // @router /tag/host/cnt [get]
 func (c *RelController) GetTagHostCnt() {
@@ -100,7 +100,7 @@ func (c *RelController) GetTagHostCnt() {
 // @Param	query	query	string	false	"host name"
 // @Param	per		query	int	false	"per page number"
 // @Param	offset	query	int	false	"offset  number"
-// @Success 200 [object] []models.Host
+// @Success 200 {object} []models.Host hosts info
 // @Failure 403 string error
 // @router /tag/host/search [get]
 func (c *RelController) GetTagHost() {
@@ -121,7 +121,7 @@ func (c *RelController) GetTagHost() {
 // @Title create tag host relation
 // @Description create tag/host relation
 // @Param	body	body	models.RelTagHost	true	""
-// @Success 200 {id:int} Id
+// @Success 200 {object} models.Id Id
 // @Failure 403 string error
 // @router /tag/host [post]
 func (c *RelController) CreateTagHost() {
@@ -140,7 +140,7 @@ func (c *RelController) CreateTagHost() {
 // @Title create tag host relation
 // @Description create tag/hosts relation
 // @Param	body	body	models.RelTagHosts	true	""
-// @Success 200 {id:int} Id
+// @Success 200 {object} models.Id Id
 // @Failure 403 string error
 // @router /tag/hosts [post]
 func (c *RelController) CreateTagHosts() {
@@ -159,7 +159,7 @@ func (c *RelController) CreateTagHosts() {
 // @Title delete tag host relation
 // @Description delete tag/host relation
 // @Param	body		body 	models.RelTagHost	true	""
-// @Success 200 {total:int} affected number
+// @Success 200 {object} models.Total affected number
 // @Failure 403 string error
 // @router /tag/host [delete]
 func (c *RelController) DelTagHost() {
@@ -178,7 +178,7 @@ func (c *RelController) DelTagHost() {
 // @Title delete tag host relation
 // @Description delete tag/hosts relation
 // @Param	body	body 	models.RelTagHosts	true	""
-// @Success 200 {total:int} affected number
+// @Success 200 {object} models.Total affected number
 // @Failure 403 string error
 // @router /tag/hosts [delete]
 func (c *RelController) DelTagHosts() {
@@ -198,7 +198,7 @@ func (c *RelController) DelTagHosts() {
 // @Description get Tag-Template number
 // @Param	query	query   string  false	"template name"
 // @Param	tag_id	query   int	true	"tag id"
-// @Success 200 {total:int} total number
+// @Success 200 {object} models.Total total number
 // @Failure 403 string error
 // @router /tag/template/cnt [get]
 func (c *RelController) GetTagTplCnt() {
@@ -220,7 +220,7 @@ func (c *RelController) GetTagTplCnt() {
 // @Param	query	query	string	false	"template name"
 // @Param	per	query	int	false	"per page number"
 // @Param	offset	query	int	false	"offset  number"
-// @Success 200 [object] []models.Template
+// @Success 200 {object} []models.Template templates info
 // @Failure 403 string error
 // @router /tag/template/search [get]
 func (c *RelController) GetTagTpl() {
@@ -241,7 +241,7 @@ func (c *RelController) GetTagTpl() {
 // @Title create tag template relation
 // @Description create tag/template relation
 // @Param	body	body	models.RelTagTpl	true	""
-// @Success 200 {id:int} Id
+// @Success 200 {object} models.Id Id
 // @Failure 403 string error
 // @router /tag/template [post]
 func (c *RelController) CreateTagTpl() {
@@ -260,7 +260,7 @@ func (c *RelController) CreateTagTpl() {
 // @Title create tag template relation
 // @Description create tag/templates relation
 // @Param	body	body	models.RelTagTpls	true	""
-// @Success 200 {id:int} Id
+// @Success 200 {object} models.Id Id
 // @Failure 403 string error
 // @router /tag/templates [post]
 func (c *RelController) CreateTagTpls() {
@@ -279,7 +279,7 @@ func (c *RelController) CreateTagTpls() {
 // @Title delete tag template relation
 // @Description delete tag/template relation
 // @Param	body		body 	models.RelTagTpl	true	""
-// @Success 200 {total:int} affected number
+// @Success 200 {object} models.Total affected number
 // @Failure 403 string error
 // @router /tag/template [delete]
 func (c *RelController) DelTagTpl() {
@@ -298,7 +298,7 @@ func (c *RelController) DelTagTpl() {
 // @Title delete tag template relation
 // @Description delete tag/templates relation
 // @Param	body	body 	models.RelTagTpls	true	""
-// @Success 200 {total:int} affected number
+// @Success 200 {object} models.Total affected number
 // @Failure 403 string error
 // @router /tag/templates [delete]
 func (c *RelController) DelTagTpls() {
@@ -318,7 +318,7 @@ func (c *RelController) DelTagTpls() {
 // @Description get tag role user number
 // @Param	query	query   string  false	"user name"
 // @Param	tag_id	query   int	true	"tag id"
-// @Success 200 {tatal:int} user total number
+// @Success 200 {object} models.Total user total number
 // @Failure 403 string error
 // @router /tag/role/user/cnt [get]
 func (c *RelController) GetTagRoleUserCnt() {
@@ -341,7 +341,7 @@ func (c *RelController) GetTagRoleUserCnt() {
 // @Param	query	query	string	false	"user name"
 // @Param	per	query	int	false	"per page number"
 // @Param	offset	query	int	false	"offset  number"
-// @Success 200 [object] []models.Host
+// @Success 200 {object} []models.Host hosts info
 // @Failure 403 string error
 // @router /tag/role/user/search [get]
 func (c *RelController) GetTagRoleUser() {
@@ -363,7 +363,7 @@ func (c *RelController) GetTagRoleUser() {
 // @Title create tag role users relation
 // @Description create tag/role/users relation
 // @Param	body	body 	models.RelTagRoleUser	true	""
-// @Success 200 {total:int} affected number
+// @Success 200 {object} models.Total affected number
 // @Failure 403 string error
 // @router /tag/role/user [post]
 func (c *RelController) CreateTagRoleUser() {
@@ -382,7 +382,7 @@ func (c *RelController) CreateTagRoleUser() {
 // @Title delete tag role user relation
 // @Description delete tag/role/user relation
 // @Param	body		body 	models.RelTagHost	true	""
-// @Success 200 {total:int} affected number
+// @Success 200 {object} models.Total affected number
 // @Failure 403 string error
 // @router /tag/role/user [delete]
 func (c *RelController) DelTagRoleUser() {
@@ -402,7 +402,7 @@ func (c *RelController) DelTagRoleUser() {
 // @Description get tag role token number
 // @Param	query	query   string  false	"token name"
 // @Param	tag_id	query   int	true	"tag id"
-// @Success 200 {tatal:int} token total number
+// @Success 200 {object} models.Total token total number
 // @Failure 403 string error
 // @router /tag/role/token/cnt [get]
 func (c *RelController) GetTagRoleTokenCnt() {
@@ -425,7 +425,7 @@ func (c *RelController) GetTagRoleTokenCnt() {
 // @Param	query	query	string	false	"token name"
 // @Param	per	query	int	false	"per page number"
 // @Param	offset	query	int	false	"offset  number"
-// @Success 200 [object] []models.Host
+// @Success 200 {object} []models.Host hosts info
 // @Failure 403 string error
 // @router /tag/role/token/search [get]
 func (c *RelController) GetTagRoleToken() {
@@ -447,7 +447,7 @@ func (c *RelController) GetTagRoleToken() {
 // @Title create tag role tokens relation
 // @Description create tag/role/tokens relation
 // @Param	body	body 	models.RelTagRoleToken	true	""
-// @Success 200 {total:int} affected number
+// @Success 200 {object} models.Total affected number
 // @Failure 403 string error
 // @router /tag/role/token [post]
 func (c *RelController) CreateTagRoleToken() {
@@ -466,7 +466,7 @@ func (c *RelController) CreateTagRoleToken() {
 // @Title delete tag role token relation
 // @Description delete tag/role/token relation
 // @Param	body		body 	models.RelTagHost	true	""
-// @Success 200 {total:int} affected number
+// @Success 200 {object} models.Total affected number
 // @Failure 403 string error
 // @router /tag/role/token [delete]
 func (c *RelController) DelTagRoleToken() {

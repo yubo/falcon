@@ -20,8 +20,7 @@
 </template>
 
 <script>
-import { Message } from 'element-ui'
-import { fetch } from 'src/utils'
+import { fetch, Msg } from 'src/utils'
 export default {
   data () {
     return {
@@ -61,11 +60,11 @@ export default {
         url: 'user/' + this.userform.id,
         data: this.userform
       }).then((res) => {
-        Message.success('update success')
+        Msg.success('update success')
         this.$store.commit('auth/m_set_user', res.data)
         this.loading = false
       }).catch((err) => {
-        Message.error(err.response.data)
+        Msg.error('update failed', err)
         this.loading = false
       })
     }

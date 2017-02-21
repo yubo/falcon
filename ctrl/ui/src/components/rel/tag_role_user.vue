@@ -81,8 +81,7 @@
 
 <script>
 // import store from 'src/store'
-import { fetch } from 'src/utils'
-import { Message, MessageBox } from 'element-ui'
+import { fetch, Msg } from 'src/utils'
 
 export default {
   data () {
@@ -123,7 +122,7 @@ export default {
           this.optionRoles = res.data
           this.sloading1 = false
         }).catch((err) => {
-          Message.error(err.response.data)
+          Msg.error('get failed', err)
           this.sloading1 = false
         })
       } else {
@@ -144,7 +143,7 @@ export default {
           this.optionUsers = res.data
           this.sloading2 = false
         }).catch((err) => {
-          Message.error(err.response.data)
+          Msg.error('get failed', err)
           this.sloading2 = false
         })
       } else {
@@ -176,7 +175,7 @@ export default {
         this.total = res.data.total
         this.fetchData()
       }).catch((err) => {
-        Message.error(err.response.data)
+        Msg.error('get failed', err)
         this.loading = false
       })
     },
@@ -196,7 +195,7 @@ export default {
         this.tableData = res.data
         this.loading = false
       }).catch((err) => {
-        Message.error(err.response.data)
+        Msg.error('get failed', err)
         this.loading = false
       })
     },
@@ -212,17 +211,17 @@ export default {
           user_id: this.userId
         }
       }).then((res) => {
-        Message.success('success!')
+        Msg.success('success!')
         this.total++
         // loading will unset at fetchdata done
         this.fetchData()
       }).catch((err) => {
-        Message.error(err.response.data)
+        Msg.error('update failed', err)
         this.loading = false
       })
     },
     unbind (obj) {
-      MessageBox.confirm('此操作将解绑定该记录, 是否继续?', '提示', {
+      Msg.confirm('此操作将解绑定该记录, 是否继续?', '提示', {
         confirmButtonText: 'Confirm',
         cancelButtonText: 'Cancel',
         type: 'warning'
@@ -239,15 +238,15 @@ export default {
             user_id: obj.user_id
           }
         }).then((res) => {
-          Message.success('success!')
+          Msg.success('success!')
           this.total--
           this.fetchData()
         }).catch((err) => {
-          Message.error(err.response.data)
+          Msg.error('delete failed', err)
           this.loading = false
         })
       }).catch(() => {
-        Message.info('cancel')
+        Msg.info('cancel')
       })
     }
   },

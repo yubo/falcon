@@ -1,8 +1,9 @@
 /*
+// @Success 200 {object} models.Total user total number
  * Copyright 2016 yubo. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
- */
+*/
 package controllers
 
 import (
@@ -21,7 +22,7 @@ type TriggerController struct {
 // @Title CreateTrigger
 // @Description create triggers
 // @Param	body	body 	models.Trigger	true	"body for trigger content"
-// @Success 200 {id:int} Id
+// @Success 200 {object} models.Id Id
 // @Failure 403 string error
 // @router / [post]
 func (c *TriggerController) CreateTrigger() {
@@ -34,14 +35,14 @@ func (c *TriggerController) CreateTrigger() {
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendMsg(200, models.Id{Id: id})
+		c.SendMsg(200, idObj(id))
 	}
 }
 
 // @Title GetTriggersCnt
 // @Description get Triggers number
 // @Param   query     query   string  false    "trigger name"
-// @Success 200  {total:int} trigger total number
+// @Success 200 {object} models.Total trigger total number
 // @Failure 403 string error
 // @router /cnt [get]
 func (c *TriggerController) GetTriggersCnt() {
@@ -61,8 +62,8 @@ func (c *TriggerController) GetTriggersCnt() {
 // @Param   query     query   string  false    "trigger name"
 // @Param   per       query   int     false    "per page number"
 // @Param   offset    query   int     false    "offset  number"
-// @Success 200 {object} models.Trigger
-// @Failure 403 error string
+// @Success 200 {object} []models.Trigger triggers info
+// @Failure 403 string error
 // @router /search [get]
 func (c *TriggerController) GetTriggers() {
 	query := strings.TrimSpace(c.GetString("query"))
@@ -82,7 +83,7 @@ func (c *TriggerController) GetTriggers() {
 // @Description get trigger by id
 // @Param	id		path 	int	true		"The key for staticblock"
 // @Success 200 {object} models.Trigger
-// @Failure 403 error string
+// @Failure 403 string error
 // @router /:id [get]
 func (c *TriggerController) GetTrigger() {
 	id, err := c.GetInt64(":id")
@@ -104,8 +105,8 @@ func (c *TriggerController) GetTrigger() {
 // @Description update the trigger
 // @Param	id		path 	string	true		"The id you want to update"
 // @Param	body		body 	models.Trigger	true		"body for trigger content"
-// @Success 200 {object} models.Trigger
-// @Failure 403 error string
+// @Success 200 {object} models.Trigger trigger info
+// @Failure 403 string error
 // @router /:id [put]
 func (c *TriggerController) UpdateTrigger() {
 	var trigger models.Trigger

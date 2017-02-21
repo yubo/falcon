@@ -20,7 +20,7 @@ type TemplateController struct {
 // @Title CreateTemplate
 // @Description create templates
 // @Param	body	body 	models.TemplateAction	true	"body for template content"
-// @Success 200 {id:int} Id
+// @Success 200 {object} models.Id Id
 // @Failure 403 string error
 // @router / [post]
 func (c *TemplateController) CreateTemplate() {
@@ -38,14 +38,14 @@ func (c *TemplateController) CreateTemplate() {
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendMsg(200, models.Id{Id: id})
+		c.SendMsg(200, idObj(id))
 	}
 }
 
 // @Title GetTemplatesCnt
 // @Description get Templates number
 // @Param   query     query   string  false    "template name"
-// @Success 200  {total:int} template number
+// @Success 200 {object} models.Total total number
 // @Failure 403 string error
 // @router /cnt [get]
 func (c *TemplateController) GetTemplatesCnt() {
@@ -65,7 +65,7 @@ func (c *TemplateController) GetTemplatesCnt() {
 // @Param   query     query   string  false    "template name"
 // @Param   per       query   int     false    "per page number"
 // @Param   offset    query   int     false    "offset  number"
-// @Success 200 [object] []models.TemplateUi
+// @Success 200 {object} []models.TemplateUi templates ui info
 // @Failure 403 string error
 // @router /search [get]
 func (c *TemplateController) GetTemplates() {
@@ -86,8 +86,8 @@ func (c *TemplateController) GetTemplates() {
 // @Description get template by id
 // @Param	id	path 	int	true		"template id"
 // @Param	clone	query 	bool	false		"clone tid to new one"
-// @Success 200 {object} models.TemplateAction
-// @Failure 403 error string
+// @Success 200 {object} models.TemplateAction template and action info
+// @Failure 403 string error
 // @router /:id [get]
 func (c *TemplateController) GetTemplate() {
 	var (
@@ -114,8 +114,8 @@ func (c *TemplateController) GetTemplate() {
 // @Description update the template
 // @Param	id		path 	string	true		"The id you want to update"
 // @Param	body		body 	models.Template	true		"body for template content"
-// @Success 200 {object} models.Template
-// @Failure 403 error string
+// @Success 200 {object} models.Template template info
+// @Failure 403 string error
 // @router /:id [put]
 func (c *TemplateController) UpdateTemplate() {
 	var ta models.TemplateAction

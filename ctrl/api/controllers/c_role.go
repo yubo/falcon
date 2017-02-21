@@ -21,7 +21,7 @@ type RoleController struct {
 // @Title CreateRole
 // @Description create roles
 // @Param	body	body 	models.Role	true	"body for role content"
-// @Success 200 {id:int} Id
+// @Success 200 {object} models.Id Id
 // @Failure 403 string error
 // @router / [post]
 func (c *RoleController) CreateRole() {
@@ -33,14 +33,14 @@ func (c *RoleController) CreateRole() {
 	if id, err := op.AddRole(&role); err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendMsg(200, models.Id{Id: id})
+		c.SendMsg(200, idObj(id))
 	}
 }
 
 // @Title GetRolesCnt
 // @Description get Roles number
 // @Param   query     query   string  false    "role name"
-// @Success 200 {total:int} role number
+// @Success 200 {object} models.Total role number
 // @Failure 403 string error
 // @router /cnt [get]
 func (c *RoleController) GetRolesCnt() {
@@ -60,8 +60,8 @@ func (c *RoleController) GetRolesCnt() {
 // @Param   query     query   string  false    "role name"
 // @Param   per       query   int     false    "per page number"
 // @Param   offset    query   int     false    "offset  number"
-// @Success 200 {object} models.Role
-// @Failure 403 erorr string
+// @Success 200 {object} []models.Role roles info
+// @Failure 403 string error
 // @router /search [get]
 func (c *RoleController) GetRoles() {
 	query := strings.TrimSpace(c.GetString("query"))
@@ -80,8 +80,8 @@ func (c *RoleController) GetRoles() {
 // @Title Get
 // @Description get role by id
 // @Param	id	path 	int	true	"The key for staticblock"
-// @Success 200 {object} models.Role
-// @Failure 403 error string
+// @Success 200 {object} models.Role role info
+// @Failure 403 string error
 // @router /:id [get]
 func (c *RoleController) GetRole() {
 	id, err := c.GetInt64(":id")
@@ -103,8 +103,8 @@ func (c *RoleController) GetRole() {
 // @Description update the role
 // @Param	id	path 	string	true	"The id you want to update"
 // @Param	body	body 	models.Role	true	"body for role content"
-// @Success 200 {object} models.Role
-// @Failure 40x error string
+// @Success 200 {object} models.Role role info
+// @Failure 403 string error
 // @router /:id [put]
 func (c *RoleController) UpdateRole() {
 	var role models.Role
@@ -119,7 +119,7 @@ func (c *RoleController) UpdateRole() {
 
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	if o, err := op.UpdateRole(id, &role); err != nil {
-		c.SendMsg(400, err.Error())
+		c.SendMsg(403, err.Error())
 	} else {
 		c.SendMsg(200, o)
 	}
@@ -129,7 +129,7 @@ func (c *RoleController) UpdateRole() {
 // @Description delete the role
 // @Param	id	path 	string	true	"The id you want to delete"
 // @Success 200 {string} delete success!
-// @Failure 403 error string
+// @Failure 403 string error
 // @router /:id [delete]
 func (c *RoleController) DeleteRole() {
 	id, err := c.GetInt64(":id")

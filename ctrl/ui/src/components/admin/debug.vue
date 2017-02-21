@@ -22,7 +22,7 @@ export default {
     debug (action) {
       fetch({
         method: 'get',
-        url: '/settings/debug/' + action
+        url: '/admin/debug/' + action
       }).then((res) => {
         Notification.success({title: 'Success', message: res.data})
         this.loading = false

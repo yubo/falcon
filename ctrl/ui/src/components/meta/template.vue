@@ -194,8 +194,8 @@
 </template>
 
 <script>
-import { fetch } from 'src/utils'
-import { Message, MessageBox } from 'element-ui'
+import { fetch, Msg } from 'src/utils'
+
 export default {
   data () {
     return {
@@ -303,7 +303,7 @@ export default {
           this.optionMetrics = res.data
           this.sloading = false
         }).catch((err) => {
-          Message.error(err.response.data)
+          Msg.error('get failed', err)
           this.sloading = false
         })
       } else {
@@ -324,7 +324,7 @@ export default {
           this.optionTemplates = res.data
           this.sloading = false
         }).catch((err) => {
-          Message.error(err.response.data)
+          Msg.error('get failed', err)
           this.sloading = false
         })
       } else {
@@ -346,7 +346,7 @@ export default {
           this.optionUics = res.data
           this.sloading = false
         }).catch((err) => {
-          Message.error(err.response.data)
+          Msg.error('get failed', err)
           this.sloading = false
         })
       } else {
@@ -363,7 +363,7 @@ export default {
         this.total = res.data.total
         this.fetchObjs()
       }).catch((err) => {
-        Message.error(err.response.data)
+        Msg.error('get failed', err)
       })
     },
     fetchObjs (opts = {query: this.query, per: this.per, offset: this.offset}) {
@@ -376,7 +376,7 @@ export default {
         this.tableData = res.data
         this.loading = false
       }).catch((err) => {
-        Message.error(err.response.data)
+        Msg.error('get failed', err)
         this.loading = false
       })
     },
@@ -433,7 +433,7 @@ export default {
 
         this.reFetchObjs2()
       }).catch((err) => {
-        Message.error(err.response.data)
+        Msg.error('get failed', err)
         this.dloading = false
         this.editVisible = false
       })
@@ -462,7 +462,7 @@ export default {
         url: this.isEdit ? 'template/' + this.curId : 'template',
         data: this.objForm
       }).then((res) => {
-        Message.success('submit success')
+        Msg.success('submit success')
         if (!this.isEdit) {
           this.curId = res.data.id
           this.total++
@@ -470,12 +470,12 @@ export default {
         this.fetchObjs()
         this.dloading = false
       }).catch((err) => {
-        Message.error(err.response.data)
+        Msg.error('update failed', err)
         this.dloading = false
       })
     },
     deleteObj (obj) {
-      MessageBox.confirm('此操作将永久删除该记录, 是否继续?', '提示', {
+      Msg.confirm('此操作将永久删除该记录, 是否继续?', '提示', {
         confirmButtonText: 'Confirm',
         cancelButtonText: 'Cancel',
         type: 'warning'
@@ -484,14 +484,14 @@ export default {
           method: 'delete',
           url: 'template/' + obj.id
         }).then((res) => {
-          Message.success('success!')
+          Msg.success('success!')
           this.total--
           this.fetchObjs()
         }).catch((err) => {
-          Message.error(err.response.data)
+          Msg.error('delete failed', err)
         })
       }).catch(() => {
-        Message.info('cancel')
+        Msg.info('cancel')
       })
     },
 
@@ -515,7 +515,7 @@ export default {
         url: this.isEdit2 ? 'strategy/' + this.curId2 : 'strategy',
         data: this.objForm2
       }).then((res) => {
-        Message.success('submit success')
+        Msg.success('submit success')
         if (!this.isEdit2) {
           this.total2++
         }
@@ -523,12 +523,12 @@ export default {
         this.dloading = false
         this.editVisible2 = false
       }).catch((err) => {
-        Message.error(err.response.data)
+        Msg.error('update failed', err)
         this.dloading = false
       })
     },
     deleteObj2 (obj) {
-      MessageBox.confirm('此操作将永久删除该记录, 是否继续?', '提示', {
+      Msg.confirm('此操作将永久删除该记录, 是否继续?', '提示', {
         confirmButtonText: 'Confirm',
         cancelButtonText: 'Cancel',
         type: 'warning'
@@ -537,14 +537,14 @@ export default {
           method: 'delete',
           url: 'strategy/' + obj.id
         }).then((res) => {
-          Message.success('success!')
+          Msg.success('success!')
           this.total2--
           this.fetchObjs2()
         }).catch((err) => {
-          Message.error(err.response.data)
+          Msg.error('delete failed', err)
         })
       }).catch(() => {
-        Message.info('cancel')
+        Msg.info('cancel')
       })
     },
     // fetch strategys from v1.0/strategy/search?tid=?&query=?&per=...
@@ -559,7 +559,7 @@ export default {
         this.dloading = false
         this.fetchObjs2()
       }).catch((err) => {
-        Message.error(err.response.data)
+        Msg.error('get failed', err)
         this.dloading = false
       })
     },
@@ -582,7 +582,7 @@ export default {
         })
         this.tloading = false
       }).catch((err) => {
-        Message.error(err.response.data)
+        Msg.error('get failed', err)
         this.tloading = false
       })
     }

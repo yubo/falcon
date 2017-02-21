@@ -21,7 +21,7 @@ type StrategyController struct {
 // @Title CreateStrategy
 // @Description create strategys
 // @Param	body	body 	models.Strategy	true	"body for strategy content"
-// @Success 200 {id:int} Id
+// @Success 200 {object} models.Id Id
 // @Failure 403 string error
 // @router / [post]
 func (c *StrategyController) CreateStrategy() {
@@ -34,7 +34,7 @@ func (c *StrategyController) CreateStrategy() {
 	if id, err := op.AddStrategy(&strategy); err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendMsg(200, models.Id{Id: id})
+		c.SendMsg(200, idObj(id))
 	}
 }
 
@@ -42,7 +42,7 @@ func (c *StrategyController) CreateStrategy() {
 // @Description get Strategys number
 // @Param   tid     query   int     false       "template id"
 // @Param   query   query   string  false       "strategy name"
-// @Success 200  {total:int} strategy total number
+// @Success 200 {object} models.Total strategy total number
 // @Failure 403 string error
 // @router /cnt [get]
 func (c *StrategyController) GetStrategysCnt() {
@@ -64,8 +64,8 @@ func (c *StrategyController) GetStrategysCnt() {
 // @Param   query	query   string  false       "strategy name"
 // @Param   per		query   int     false       "per page number"
 // @Param   offset	query   int     false       "offset  number"
-// @Success 200 {object} models.Strategy
-// @Failure 403 error string
+// @Success 200 {object} []models.Strategy strategys info
+// @Failure 403 string error
 // @router /search [get]
 func (c *StrategyController) GetStrategys() {
 	tid, _ := c.GetInt64("tid", 0)
@@ -85,8 +85,8 @@ func (c *StrategyController) GetStrategys() {
 // @Title Get
 // @Description get strategy by id
 // @Param	id		path 	int	true		"The key for staticblock"
-// @Success 200 {object} models.Strategy
-// @Failure 403 error string
+// @Success 200 {object} models.Strategy strategy info
+// @Failure 403 string error
 // @router /:id [get]
 func (c *StrategyController) GetStrategy() {
 	id, err := c.GetInt64(":id")
@@ -108,8 +108,8 @@ func (c *StrategyController) GetStrategy() {
 // @Description update the strategy
 // @Param	id		path 	string	true		"The id you want to update"
 // @Param	body		body 	models.Strategy	true		"body for strategy content"
-// @Success 200 {object} models.Strategy
-// @Failure 403 error string
+// @Success 200 {object} models.Strategy strategy info
+// @Failure 403 string error
 // @router /:id [put]
 func (c *StrategyController) UpdateStrategy() {
 	var strategy models.Strategy
@@ -133,8 +133,8 @@ func (c *StrategyController) UpdateStrategy() {
 // @Title DeleteStrategy
 // @Description delete the strategy
 // @Param	id		path 	string	true		"The id you want to delete"
-// @Success {code:200, data:"delete success!"} delete success!
-// @Failure {code:403, msg:string}
+// @Success 200 {string} delete success!
+// @Failure 403 string error
 // @router /:id [delete]
 func (c *StrategyController) DeleteStrategy() {
 	id, err := c.GetInt64(":id")

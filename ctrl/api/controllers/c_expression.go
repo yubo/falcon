@@ -21,7 +21,7 @@ type ExpressionController struct {
 // @Title CreateExpression
 // @Description create expressions
 // @Param	body	body 	models.ExpressionAction	true	"body for expression content"
-// @Success 200 {id:int} models.Expression.Id
+// @Success 200 {object} models.Id models.Expression.Id
 // @Failure 403 string error
 // @router / [post]
 func (c *ExpressionController) CreateExpression() {
@@ -42,7 +42,7 @@ func (c *ExpressionController) CreateExpression() {
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendMsg(200, models.Id{Id: id})
+		c.SendMsg(200, idObj(id))
 	}
 }
 
@@ -50,7 +50,7 @@ func (c *ExpressionController) CreateExpression() {
 // @Description get Expressions number
 // @Param   query	query   string	false    "expression name"
 // @Param   mine	query   bool	false    "only show mine expressions, default true"
-// @Success 200 {int} expression number
+// @Success 200 {object} models.Total expression number
 // @Failure 403 string error
 // @router /cnt [get]
 func (c *ExpressionController) GetExpressionsCnt() {
@@ -76,8 +76,8 @@ func (c *ExpressionController) GetExpressionsCnt() {
 // @Param   mine	query   bool	false    "only show mine expressions, default true"
 // @Param   per		query   int     false    "per page number"
 // @Param   offset	query   int     false    "offset  number"
-// @Success 200 [object] []models.ExpressionUi
-// @Failure 403 error string
+// @Success 200 {object} []models.ExpressionUi expressionuis
+// @Failure 403 string error
 // @router /search [get]
 func (c *ExpressionController) GetExpressions() {
 	var user_id int64
@@ -101,8 +101,8 @@ func (c *ExpressionController) GetExpressions() {
 // @Title Get
 // @Description get expression by id
 // @Param	id	path 	int	true	"The key for staticblock"
-// @Success 200 {object models.ExpressionAction
-// @Failure 403 error string
+// @Success 200 {object} models.ExpressionAction expression and action info
+// @Failure 403 string error
 // @router /:id [get]
 func (c *ExpressionController) GetExpressionAction() {
 
@@ -124,8 +124,8 @@ func (c *ExpressionController) GetExpressionAction() {
 // @Description update the expression
 // @Param	id	path 	string	true	"The id you want to update"
 // @Param	body	body 	models.Expression	true	"body for expression content"
-// @Success 200 {object} models.Expression
-// @Failure 403 error string
+// @Success 200 {object} models.Expression expression
+// @Failure 403 string error
 // @router /:id [put]
 func (c *ExpressionController) UpdateExpressionAction() {
 	var ea models.ExpressionAction
@@ -151,7 +151,7 @@ func (c *ExpressionController) UpdateExpressionAction() {
 // @Param	id	query 	string	true	"The id you want to update"
 // @Param	pause	query 	int	true	"1: pause, 0: not pause"
 // @Success 200 null success
-// @Failure 403 error string
+// @Failure 403 string error
 // @router /pause [put]
 func (c *ExpressionController) PauseExpression() {
 	var pause int
@@ -178,8 +178,8 @@ func (c *ExpressionController) PauseExpression() {
 // @Title DeleteExpression
 // @Description delete the expression
 // @Param	id		path 	string	true		"The id you want to delete"
-// @Success 200  {string} delete success!
-// @Failure 403  error string
+// @Success 200 {string} delete success!
+// @Failure 403 string error
 // @router /:id [delete]
 func (c *ExpressionController) DeleteExpression() {
 	id, err := c.GetInt64(":id")

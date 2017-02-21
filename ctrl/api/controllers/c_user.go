@@ -20,7 +20,7 @@ type UserController struct {
 // @Title CreateUser
 // @Description create users
 // @Param	body		body 	models.User	true		"body for user content"
-// @Success 200 {id:int} Id
+// @Success 200 {object} models.Id Id
 // @Failure 403 string error
 // @router / [post]
 func (c *UserController) CreateUser() {
@@ -39,7 +39,7 @@ func (c *UserController) CreateUser() {
 // @Title GetUsersCnt
 // @Description get Users number
 // @Param   query     query   string  false       "user name/email"
-// @Success 200  {total:int} user total number
+// @Success 200 {object} models.Total user total number
 // @Failure 403 string error
 // @router /cnt [get]
 func (c *UserController) GetUsersCnt() {
@@ -58,8 +58,8 @@ func (c *UserController) GetUsersCnt() {
 // @Param   query     query   string  false       "user name/email"
 // @Param   per       query   int     false       "per page number"
 // @Param   offset    query   int     false       "offset  number"
-// @Success 200 {object} models.User
-// @Failure 403 error string
+// @Success 200 {object} []models.User users info
+// @Failure 403 string error
 // @router /search [get]
 func (c *UserController) GetUsers() {
 	query := strings.TrimSpace(c.GetString("query"))
@@ -77,8 +77,8 @@ func (c *UserController) GetUsers() {
 // @Title Get
 // @Description get user by id
 // @Param	id		path 	int	true		"The key for staticblock"
-// @Success 200 {object} models.User
-// @Failure 403 error string
+// @Success 200 {object} models.User user info
+// @Failure 403 string error
 // @router /:id [get]
 func (c *UserController) GetUser() {
 	id, err := c.GetInt64(":id")
@@ -98,8 +98,8 @@ func (c *UserController) GetUser() {
 // @Description update the user
 // @Param	id		path 	string	true		"The id you want to update"
 // @Param	body		body 	models.User	true		"body for user content"
-// @Success 200 {object} models.User
-// @Failure 403 string   error
+// @Success 200 {object} models.User user info
+// @Failure 403 string error
 // @router /:id [put]
 func (c *UserController) UpdateUser() {
 	var user models.User
@@ -124,7 +124,7 @@ func (c *UserController) UpdateUser() {
 // @Description delete the user
 // @Param	id		path 	string	true		"The id you want to delete"
 // @Success {code:200, data:string} delete success!
-// @Failure 403 error string
+// @Failure 403 string error
 // @router /:id [delete]
 func (c *UserController) DeleteUser() {
 	id, err := c.GetInt64(":id")

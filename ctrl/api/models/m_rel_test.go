@@ -48,7 +48,11 @@ func TestTagTree(t *testing.T) {
 		t.Error("init db failed", err)
 	}
 	schema, _ := NewTagSchema("a,b,c,d,")
-	admin, _ := GetUser(1)
+	sys, _ := GetUser(1, o)
+	op := &Operator{
+		User: sys,
+		O:    o,
+	}
 
 	// tag
 	items := []string{
@@ -59,12 +63,12 @@ func TestTagTree(t *testing.T) {
 		"a=1,b=2,c=2",
 	}
 	for _, item := range items {
-		if _, err = admin.addTag(&Tag{Name: item}, schema); err != nil {
+		if _, err = op.addTag(&Tag{Name: item}, schema); err != nil {
 			t.Error(err)
 		}
 	}
 
-	tree, err := admin.GetTree()
+	tree, err := op.GetTree()
 	if err != nil {
 		t.Error(err)
 	} else {

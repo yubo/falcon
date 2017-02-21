@@ -23,8 +23,7 @@
 </template>
 
 <script>
-import { fetch } from 'src/utils'
-import { Message } from 'element-ui'
+import { fetch, Msg } from 'src/utils'
 export default {
   data () {
     return {
@@ -63,7 +62,7 @@ export default {
           }
         }
       }).catch((err) => {
-        Message.error(err.response.data)
+        Msg.error('get auth modules failed', err)
       })
     }
   },
@@ -78,7 +77,7 @@ export default {
   created () {
     this.loginVisible = !this.login
     if (!this.login) {
-      this.$store.dispatch('auth/login')
+      this.$store.dispatch('auth/info')
     }
     this.fetchObjs()
   },

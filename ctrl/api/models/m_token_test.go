@@ -59,7 +59,11 @@ func TestToken(t *testing.T) {
 	}
 
 	schema, _ := NewTagSchema("a,b,c,d,")
-	admin, _ := GetUser(1)
+	sys, _ := GetUser(1, o)
+	op := &Operator{
+		User: sys,
+		O:    o,
+	}
 
 	// tag
 	items = []string{
@@ -70,7 +74,7 @@ func TestToken(t *testing.T) {
 		"a=1,b=2,c=2",
 	}
 	for _, item := range items {
-		if tag_idx[item], err = admin.addTag(&Tag{Name: item}, schema); err != nil {
+		if tag_idx[item], err = op.addTag(&Tag{Name: item}, schema); err != nil {
 			t.Error(err)
 		}
 	}
@@ -80,10 +84,10 @@ func TestToken(t *testing.T) {
 		"u1",
 	}
 	for _, item := range items {
-		if u, err := admin.AddUser(&User{Name: item}); err != nil {
+		if u, err := op.AddUser(&User{Name: item}); err != nil {
 			t.Error(err)
 		} else {
-			user_idx[item] = op.User.Id
+			user_idx[item] = u.Id
 		}
 	}
 
@@ -95,7 +99,7 @@ func TestToken(t *testing.T) {
 		"r4",
 	}
 	for _, item := range items {
-		if role_idx[item], err = admin.AddRole(&Role{Name: item}); err != nil {
+		if role_idx[item], err = op.AddRole(&Role{Name: item}); err != nil {
 			t.Error(err)
 		}
 	}
@@ -109,7 +113,7 @@ func TestToken(t *testing.T) {
 		"token42",
 	}
 	for _, item := range items {
-		if token_idx[item], err = admin.AddToken(&Token{Name: item}); err != nil {
+		if token_idx[item], err = op.AddToken(&Token{Name: item}); err != nil {
 			t.Error(err)
 		}
 	}
@@ -122,7 +126,7 @@ func TestToken(t *testing.T) {
 		{tag_idx["a=1,b=2"], role_idx["r4"], user_idx["u1"]},
 	}
 	for _, n := range binds {
-		if err := admin.BindAclUser(n[0], n[1], n[2]); err != nil {
+		if err := op.BindAclUser(n[0], n[1], n[2]); err != nil {
 			t.Error(err)
 		}
 	}
@@ -136,7 +140,7 @@ func TestToken(t *testing.T) {
 		{tag_idx["a=1,b=2"], role_idx["r4"], token_idx["token42"]},
 	}
 	for _, n := range binds {
-		if err := admin.BindAclToken(n[0], n[1], n[2]); err != nil {
+		if err := op.BindAclToken(n[0], n[1], n[2]); err != nil {
 			t.Error(err)
 		}
 	}

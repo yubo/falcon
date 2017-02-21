@@ -20,7 +20,7 @@ type TeamController struct {
 // @Title CreateTeam
 // @Description create teams
 // @Param	body	body 	models.Team	true	"body for team content"
-// @Success 200 {id:int} Id
+// @Success 200 {object} models.Id Id
 // @Failure 403 string error
 // @router / [post]
 func (c *TeamController) CreateTeam() {
@@ -33,14 +33,14 @@ func (c *TeamController) CreateTeam() {
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendMsg(200, models.Id{Id: id})
+		c.SendMsg(200, idObj(id))
 	}
 }
 
 // @Title GetTeamsCnt
 // @Description get Teams number
 // @Param   query     query   string  false    "team name"
-// @Success 200  {total:int} team total number
+// @Success 200 {object} models.Total team total number
 // @Failure 403 string error
 // @router /cnt [get]
 func (c *TeamController) GetTeamsCnt() {
@@ -62,8 +62,8 @@ func (c *TeamController) GetTeamsCnt() {
 // @Param   own       query   bool    false    "check if the creator is yourself"
 // @Param   per       query   int     false    "per page number"
 // @Param   offset    query   int     false    "offset  number"
-// @Success 200 {object} models.Team
-// @Failure 403 error string
+// @Success 200 {object} []models.Team teams info
+// @Failure 403 string error
 // @router /search [get]
 func (c *TeamController) GetTeams() {
 	query := strings.TrimSpace(c.GetString("query"))
@@ -83,8 +83,8 @@ func (c *TeamController) GetTeams() {
 // @Title Get team by id
 // @Description get team by id
 // @Param	id	path 	int	true	"team id"
-// @Success 200 {object} models.Team
-// @Failure 403 string   error
+// @Success 200 {object} models.Team team info
+// @Failure 403 string error
 // @router /:id [get]
 func (c *TeamController) GetTeam() {
 	id, err := c.GetInt64(":id")
@@ -103,8 +103,8 @@ func (c *TeamController) GetTeam() {
 // @Title Get team op.ber
 // @Description get team by id
 // @Param	id	path 	int	true	"team id"
-// @Success 200 users models.User
-// @Failure 403 string   error
+// @Success 200 {object} models.TeamMembers user info
+// @Failure 403 string error
 // @router /:id/member [get]
 func (c *TeamController) GetMember() {
 	id, err := c.GetInt64(":id")
@@ -112,10 +112,10 @@ func (c *TeamController) GetMember() {
 		c.SendMsg(403, err.Error())
 	} else {
 		op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
-		if users, err := op.GetMember(id); err != nil {
+		if obj, err := op.GetMember(id); err != nil {
 			c.SendMsg(403, err.Error())
 		} else {
-			c.SendMsg(200, map[string]interface{}{"users": users})
+			c.SendMsg(200, obj)
 		}
 	}
 }
@@ -124,7 +124,7 @@ func (c *TeamController) GetMember() {
 // @Description update the team
 // @Param	id	path 	string		true	"The id you want to update"
 // @Param	body	body 	models.Team	true	"body for team content"
-// @Success 200 {object} models.Team
+// @Success 200 {object} models.Team team info
 // @Failure 403 string error
 // @router /:id [put]
 func (c *TeamController) UpdateTeam() {
@@ -147,12 +147,12 @@ func (c *TeamController) UpdateTeam() {
 
 // @Title update Team op.bers
 // @Description create teams
-// @Param	body	body 	models.Team	true	"body for team content"
-// @Success 200 {object} models.Member
-// @Failure 403 string   error
+// @Param	body	body 	models.TeamMemberIds	true	"body for team content"
+// @Success 200 {object} models.TeamMemberIds member info
+// @Failure 403 string error
 // @router /:id/member [put]
 func (c *TeamController) UpdateMember() {
-	var member models.Member
+	var member models.TeamMemberIds
 	id, err := c.GetInt64(":id")
 	if err != nil {
 		c.SendMsg(403, err.Error())
@@ -171,7 +171,7 @@ func (c *TeamController) UpdateMember() {
 // @Title DeleteTeam
 // @Description delete the team
 // @Param	id		path 	string	true		"The id you want to delete"
-// @Success 200 string "delete success!"
+// @Success 200 {string} "delete success!"
 // @Failure 403 string error
 // @router /:id [delete]
 func (c *TeamController) DeleteTeam() {

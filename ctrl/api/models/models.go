@@ -47,7 +47,6 @@ var (
 		"kv",
 		"log",
 		"role",
-		"rule",
 		"session",
 		"strategy",
 		"tag",
@@ -96,12 +95,6 @@ type Id struct {
 
 type Total struct {
 	Total int64 `json:"total"`
-}
-
-type Operator struct {
-	User  *User
-	Token int
-	O     orm.Ormer
 }
 
 var (

@@ -14,16 +14,20 @@ import (
 	"github.com/astaxie/beego/orm"
 )
 
-type Member struct {
-	Uids []int64 `json:"uids"`
-}
-
 type Team struct {
 	Id         int64     `json:"id"`
 	Name       string    `json:"name"`
 	Note       string    `json:"note"`
 	Creator    int64     `json:"-"`
 	CreateTime time.Time `json:"ctime"`
+}
+
+type TeamMemberIds struct {
+	Uids []int64 `json:"uids"`
+}
+
+type TeamMembers struct {
+	Users []User `json:"users"`
 }
 
 func (op *Operator) AddTeam(t *Team) (id int64, err error) {
@@ -52,13 +56,14 @@ func (op *Operator) GetTeam(id int64) (*Team, error) {
 	return t, err
 }
 
-func (op *Operator) GetMember(id int64) ([]User, error) {
-	users := []User{}
+func (op *Operator) GetMember(id int64) (*TeamMembers, error) {
+	var m TeamMembers
+
 	_, err := op.O.Raw("SELECT `b`.`id`, `b`.`name` "+
 		"FROM `team_user` `a` LEFT JOIN `user` `b` "+
 		"ON `a`.`user_id` = `b`.`id` WHERE `a`.`team_id` = ? ",
-		id).QueryRows(&users)
-	return users, err
+		id).QueryRows(&m.Users)
+	return &m, err
 }
 
 func (op *Operator) QueryTeams(query string, own bool) orm.QuerySeter {
@@ -98,16 +103,16 @@ func (op *Operator) UpdateTeam(id int64, _t *Team) (t *Team, err error) {
 	return t, err
 }
 
-func (op *Operator) UpdateMember(id int64, _m *Member) (m *Member, err error) {
-	var users []User
+func (op *Operator) UpdateMember(id int64, _m *TeamMemberIds) (m *TeamMemberIds, err error) {
+	var tm *TeamMembers
 
-	if users, err = op.GetMember(id); err != nil {
+	if tm, err = op.GetMember(id); err != nil {
 		return nil, ErrNoTeam
 	}
 
-	m = &Member{}
-	m.Uids = make([]int64, len(users))
-	for i, v := range users {
+	m = &TeamMemberIds{}
+	m.Uids = make([]int64, len(tm.Users))
+	for i, v := range tm.Users {
 		m.Uids[i] = v.Id
 	}
 

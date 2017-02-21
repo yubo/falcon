@@ -30,7 +30,7 @@
             </el-option>
           </el-select>
         </div>
-        <button type="button" class="btn btn-primary" @click="handleBind">Bind</button>
+        <button :disabled="!isOperator" type="button" class="btn btn-primary" @click="handleBind">Bind</button>
       </div>
     </div>
 
@@ -42,14 +42,14 @@
         <el-table-column prop="name"  label="tag"> </el-table-column>
         <el-table-column label="command">
           <template scope="scope">
-            <el-button @click="unbind(scope.row)" type="danger" size="small">Unbind</el-button>
+            <el-button :disabled="!isOperator" @click="unbind(scope.row)" type="danger" size="small">Unbind</el-button>
           </template>
         </el-table-column>
       </el-table-column>
     </el-table>
 
     <div class="mt20">
-      <button @click="mUnbind" type="button" class="btn btn-danger">Unbind</button>
+      <button :disabled="!isOperator" @click="mUnbind" type="button" class="btn btn-danger">Unbind</button>
 
       <div class="pull-right">
         <el-pagination
@@ -69,8 +69,7 @@
 
 <script>
 // import store from 'src/store'
-import { fetch } from 'src/utils'
-import { Message, MessageBox } from 'element-ui'
+import { fetch, Msg } from 'src/utils'
 
 export default {
   data () {
@@ -113,7 +112,7 @@ export default {
           this.optionHosts = res.data
           this.sloading = false
         }).catch((err) => {
-          Message.error(err.response.data)
+          Msg.error('get failed', err)
           this.sloading = false
         })
       } else {
@@ -144,7 +143,7 @@ export default {
         this.total = res.data.total
         this.fetchData()
       }).catch((err) => {
-        Message.error(err.response.data)
+        Msg.error('get failed', err)
       })
     },
 
@@ -163,7 +162,7 @@ export default {
         this.tableData = res.data
         this.loading = false
       }).catch((err) => {
-        Message.error(err.response.data)
+        Msg.error('get failed', err)
         this.loading = false
       })
     },
@@ -174,17 +173,17 @@ export default {
         url: 'rel/tag/hosts',
         data: {tag_id: this.curTagId, host_ids: this.hosts}
       }).then((res) => {
-        Message.success('success!')
+        Msg.success('success!')
         this.total++
         // loading will unset at fetchdata done
         this.fetchData()
       }).catch((err) => {
-        Message.error(err.response.data)
+        Msg.error('update failed', err)
         this.loading = false
       })
     },
     unbind (host) {
-      MessageBox.confirm('此操作将解绑定该记录, 是否继续?', '提示', {
+      Msg.confirm('此操作将解绑定该记录, 是否继续?', '提示', {
         confirmButtonText: 'Confirm',
         cancelButtonText: 'Cancel',
         type: 'warning'
@@ -198,19 +197,19 @@ export default {
             host_id: host.id
           }
         }).then((res) => {
-          Message.success('success!')
+          Msg.success('success!')
           this.total--
           this.fetchData()
         }).catch((err) => {
-          Message.error(err.response.data)
+          Msg.error('delete failed', err)
           this.loading = false
         })
       }).catch(() => {
-        Message.info('cancel')
+        Msg.info('cancel')
       })
     },
     mUnbind () {
-      MessageBox.confirm('此操作将解绑定该记录, 是否继续?', '提示', {
+      Msg.confirm('此操作将解绑定该记录, 是否继续?', '提示', {
         confirmButtonText: 'Confirm',
         cancelButtonText: 'Cancel',
         type: 'warning'
@@ -224,15 +223,15 @@ export default {
             host_ids: this.multipleSelection.map((val) => { return val.id })
           }
         }).then((res) => {
-          Message.success('success!')
+          Msg.success('success!')
           this.total = this.total - res.data.total
           this.fetchData()
         }).catch((err) => {
-          Message.error(err.response.data)
+          Msg.error('delete failed', err)
           this.loading = false
         })
       }).catch(() => {
-        Message.info('cancel')
+        Msg.info('cancel')
       })
     }
   },
@@ -245,6 +244,9 @@ export default {
     },
     curTag () {
       return this.$store.state.rel.curTag
+    },
+    isOperator () {
+      return this.$store.state.auth.operator
     }
   },
   created () {

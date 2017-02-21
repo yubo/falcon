@@ -14,6 +14,8 @@ package routers
 
 import (
 	"net/http"
+	"strconv"
+	"strings"
 
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/context"
@@ -30,15 +32,7 @@ func init() {
 	beego.InsertFilter("/*", beego.BeforeRouter, profileFilter)
 
 	if ACL {
-		beego.InsertFilter("/v1.0/host/*", beego.BeforeRouter, authFilter)
-		beego.InsertFilter("/v1.0/role/*", beego.BeforeRouter, authFilter)
-		beego.InsertFilter("/v1.0/user/*", beego.BeforeRouter, authFilter)
-		beego.InsertFilter("/v1.0/token/*", beego.BeforeRouter, authFilter)
-		beego.InsertFilter("/v1.0/team/*", beego.BeforeRouter, authFilter)
-		beego.InsertFilter("/v1.0/template/*", beego.BeforeRouter, authFilter)
-		beego.InsertFilter("/v1.0/strategy/*", beego.BeforeRouter, authFilter)
-		beego.InsertFilter("/v1.0/expression/*", beego.BeforeRouter, authFilter)
-		beego.InsertFilter("/v1.0/rel/*", beego.BeforeRouter, authFilter)
+		beego.InsertFilter("/v1.0/*", beego.BeforeRouter, accessFilter)
 	}
 	ns := beego.NewNamespace("/v1.0",
 		beego.NSNamespace("/auth", beego.NSInclude(&controllers.AuthController{})),
@@ -54,20 +48,51 @@ func init() {
 		beego.NSNamespace("/strategy", beego.NSInclude(&controllers.StrategyController{})),
 		beego.NSNamespace("/settings", beego.NSInclude(&controllers.SetController{})),
 		beego.NSNamespace("/metric", beego.NSInclude(&controllers.MetricController{})),
+		beego.NSNamespace("/admin", beego.NSInclude(&controllers.AdminController{})),
 	)
 	beego.AddNamespace(ns)
 }
 
-func authFilter(ctx *context.Context) {
+func accessFilter(ctx *context.Context) {
+	if strings.HasPrefix(ctx.Request.RequestURI, "/v1.0/auth") {
+		return
+	}
+
 	op, ok := ctx.Input.GetData("op").(*models.Operator)
 	if !ok || op.User == nil {
 		http.Error(ctx.ResponseWriter, "Unauthorized", 401)
+		return
 	}
-}
 
-func adminFiler(ctx *context.Context) {
-	if !IsAdmin(ctx) {
-		http.Error(ctx.ResponseWriter, "permission denied", 403)
+	if strings.HasPrefix(ctx.Request.RequestURI, "/v1.0/admin") {
+		if !op.IsAdmin() {
+			http.Error(ctx.ResponseWriter, "permission denied", 403)
+		}
+		return
+	}
+
+	if strings.HasPrefix(ctx.Request.RequestURI, "/v1.0/user") {
+		if id, err := strconv.ParseInt(
+			ctx.Request.RequestURI[len("/v1.0/user/"):],
+			10, 64); err != nil {
+
+			if id == op.User.Id {
+				return
+			}
+		}
+	}
+
+	switch ctx.Request.Method {
+	case "GET":
+		if !op.IsReader() {
+			http.Error(ctx.ResponseWriter, "permission denied", 403)
+		}
+	case "POST", "PUT", "DELETE":
+		if !op.IsOperator() {
+			http.Error(ctx.ResponseWriter, "permission denied", 403)
+		}
+	default:
+		http.Error(ctx.ResponseWriter, "Method Not Allowed", 405)
 	}
 }
 
@@ -86,11 +111,4 @@ func profileFilter(ctx *context.Context) {
 	} else {
 		beego.Debug("not login 2")
 	}
-}
-
-func IsAdmin(ctx *context.Context) bool {
-	if me, ok := ctx.Input.GetData("me").(*models.User); ok && me.Id == 1 {
-		return true
-	}
-	return false
 }

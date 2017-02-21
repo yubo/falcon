@@ -9,8 +9,7 @@
 <script>
 import navbar from './navbar'
 import login from './login'
-import { fetch } from 'src/utils'
-import { Message } from 'element-ui'
+import { fetch, Msg } from 'src/utils'
 
 export default {
   components: {
@@ -33,7 +32,7 @@ export default {
       }).then((res) => {
         this.$store.commit('m_set_config', res.data)
       }).catch((err) => {
-        Message.error(err.response.data)
+        Msg.error('get failed', err)
       })
     }
   }

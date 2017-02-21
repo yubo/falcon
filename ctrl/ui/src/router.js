@@ -1,14 +1,16 @@
 import Vue from 'vue'
 import VueRouter from 'vue-router'
 
+import admin from './components/admin'
+import ctrl from './components/admin/ctrl'
+import agent from './components/admin/agent'
+import loadbalance from './components/admin/loadbalance'
+import backend from './components/admin/backend'
+import debug from './components/admin/debug'
+
 import settings from './components/settings'
-import ctrl from './components/settings/ctrl'
-import agent from './components/settings/agent'
-import loadbalance from './components/settings/loadbalance'
-import backend from './components/settings/backend'
 import profile from './components/settings/profile'
 import about from './components/settings/about'
-import debug from './components/settings/debug'
 
 import meta from './components/meta'
 import expression from './components/meta/expression'
@@ -28,28 +30,72 @@ import tagTemplate from './components/rel/tag_template'
 
 Vue.use(VueRouter)
 
+/*
+import store from 'store'
+import { Msg } from 'src/utils'
+function accessReader (to, form, next) {
+  if (store.state.auth.reader) {
+    next()
+    return
+  }
+  next(false)
+  setTimeout(() => {
+    if (store.state.auth.reader) {
+      next(to.fulPath)
+    } else {
+      Msg.error('permission denied')
+    }
+  }, 1000)
+}
+
+function accessAdmin (to, form, next) {
+  if (store.state.auth.admin) {
+    next()
+    return
+  }
+  next(false)
+  setTimeout(() => {
+    if (store.state.auth.admin) {
+      next(to.fulPath)
+    } else {
+      Msg.error('permission denied')
+    }
+  }, 1000)
+}
+*/
+
 const router = new VueRouter({
   routes:
   [{
     path: '/',
-    redirect: '/meta/tag'
+    redirect: '/settings/about'
   }, {
-    path: '/settings',
-    redirect: '/settings/about',
-    component: settings,
+    path: '/admin',
+    redirect: '/admin/ctrl',
+    component: admin,
+    // beforeEnter: accessAdmin,
     children: [
     { path: 'config/ctrl', component: ctrl },
     { path: 'config/agent', component: agent },
     { path: 'config/loadbalance', component: loadbalance },
     { path: 'config/backend', component: backend },
     { path: 'profile', component: profile },
-    { path: 'about', component: about },
     { path: 'debug', component: debug }
+    ]
+  }, {
+    path: '/settings',
+    redirect: '/settings/about',
+    component: settings,
+    // beforeEnter: accessReader,
+    children: [
+    { path: 'profile', component: profile },
+    { path: 'about', component: about }
     ]
   }, {
     path: '/meta',
     redirect: '/meta/host',
     component: meta,
+    // beforeEnter: accessReader,
     children: [
     { path: 'expression', component: expression },
     { path: 'host', component: host },
@@ -64,6 +110,7 @@ const router = new VueRouter({
     path: '/rel',
     redirect: '/rel/tag-host',
     component: rel,
+    // beforeEnter: accessReader,
     children: [
     { path: 'tag-host', component: tagHost },
     { path: 'tag-role-user', component: tagRoleUser },

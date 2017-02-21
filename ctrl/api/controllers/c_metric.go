@@ -19,7 +19,7 @@ type MetricController struct {
 // @Title GetMetricsCnt
 // @Description get Metrics number
 // @Param   query     query   string  false       "metric name"
-// @Success 200 {total:int}  Metric total number
+// @Success 200 {object} models.Total  Metric total number
 // @Failure 403 string error
 // @router /cnt [get]
 func (c *MetricController) GetMetricsCnt() {
@@ -39,7 +39,7 @@ func (c *MetricController) GetMetricsCnt() {
 // @Param   query     query   string  false       "metric name"
 // @Param   per       query   int     false       "per page number"
 // @Param   offset    query   int     false       "offset  number"
-// @Success 200 [object] []models.Metric
+// @Success 200 {object} []models.Metric metrics info
 // @Failure 403 string error
 // @router /search [get]
 func (c *MetricController) GetMetrics() {

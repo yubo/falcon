@@ -107,8 +107,7 @@
 </template>
 
 <script>
-import { fetch } from 'src/utils'
-import { Message, MessageBox } from 'element-ui'
+import { fetch, Msg } from 'src/utils'
 export default {
   data () {
     return {
@@ -186,7 +185,7 @@ export default {
           this.optionUics = res.data
           this.sloading = false
         }).catch((err) => {
-          Message.error(err.response.data)
+          Msg.error('get failed', err)
           this.sloading = false
         })
       } else {
@@ -203,7 +202,7 @@ export default {
         this.total = res.data.total
         this.fetchObjs()
       }).catch((err) => {
-        Message.error(err.response.data)
+        Msg.error('get failed', err)
       })
     },
 
@@ -227,7 +226,7 @@ export default {
         }) : []
         this.loading = false
       }).catch((err) => {
-        Message.error(err)
+        Msg.error('get failed', err)
         this.loading = false
       })
     },
@@ -270,7 +269,7 @@ export default {
         this.pause = !!this.objForm.expression.pause
         this.dloading = false
       }).catch((err) => {
-        Message.error(err.response.data)
+        Msg.error('get failed', err)
         this.dloading = false
         this.editVisible = false
       })
@@ -284,10 +283,10 @@ export default {
         url: 'expression/pause',
         params: {id: scope.row.id, pause: status}
       }).then((res) => {
-        Message.success('update success')
+        Msg.success('update success')
         this.tableData[scope.$index].pause = status
       }).catch((err) => {
-        Message.error(err.response.data)
+        Msg.error('update failed', err)
       })
     },
     editObj (obj = {}) {
@@ -312,7 +311,7 @@ export default {
         url: this.isEdit ? 'expression/' + this.curId : 'expression',
         data: this.objForm
       }).then((res) => {
-        Message.success('update success')
+        Msg.success('update success')
         if (!this.isEdit) {
           this.total++
         }
@@ -320,12 +319,12 @@ export default {
         this.dloading = false
         this.editVisible = false
       }).catch((err) => {
-        Message.error(err.response.data)
+        Msg.error('update failed', err)
         this.dloading = false
       })
     },
     deleteObj (obj) {
-      MessageBox.confirm('此操作将永久删除该记录, 是否继续?', '提示', {
+      Msg.confirm('此操作将永久删除该记录, 是否继续?', '提示', {
         confirmButtonText: 'Confirm',
         cancelButtonText: 'Cancel',
         type: 'warning'
@@ -334,14 +333,14 @@ export default {
           method: 'delete',
           url: 'expression/' + obj.id
         }).then((res) => {
-          Message.success('success!')
+          Msg.success('success!')
           this.total--
           this.fetchObjs()
         }).catch((err) => {
-          Message.error(err.response.data)
+          Msg.error('delete failed', err)
         })
       }).catch(() => {
-        Message.info('cancel')
+        Msg.info('cancel')
       })
     }
   },

@@ -9,7 +9,7 @@
     <div id="navbar" class="navbar-collapse collapse">
       <ul class="nav navbar-nav navbar-right">
 
-        <li class="dropdown" v-if="login">
+        <li class="dropdown" v-if="isReader">
           <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true"
             aria-expanded="false">Dashboard<span class="caret"></span></a>
           <ul class="dropdown-menu">
@@ -18,7 +18,7 @@
             <li><router-link to="/dashborad/graph">Graph</router-link></li>
           </ul>
         </li>
-        <li class="dropdown" v-if="login">
+        <li class="dropdown" v-if="isReader">
           <a to="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true"
             aria-expanded="false">Relation<span class="caret"></span></a>
           <ul class="dropdown-menu">
@@ -28,7 +28,7 @@
             <li><router-link to="/rel/tag-role-token">Tag Role Token</router-link></li>
           </ul>
         </li>
-        <li class="dropdown">
+        <li class="dropdown" v-if="isReader">
           <a to="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true"
             aria-expanded="false">Meta<span class="caret"></span></a>
           <ul class="dropdown-menu">
@@ -44,32 +44,25 @@
             <li><router-link to="/meta/expression">Expression</router-link></li>
           </ul>
         </li>
+        <li class="dropdown" v-if="isAdmin">
+          <a to="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true"
+            aria-expanded="false">Admin<span class="caret"></span></a>
+          <ul class="dropdown-menu">
+            <li><router-link to="/admin/config/ctrl">Ctrl</router-link></li>
+            <li><router-link to="/admin/config/agent">Agent</router-link></li>
+            <li><router-link to="/admin/config/loadbalance">Load Balance</router-link></li>
+            <li><router-link to="/admin/config/backend">Backend</router-link></li>
+            <li role="separator" class="divider"></li>
+            <li><router-link to="/admin/debug">Debug</router-link></li>
+          </ul>
+        </li>
         <li class="dropdown" v-if="login">
-          <a to="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true"
-            aria-expanded="false">Settings<span class="caret"></span></a>
-          <ul class="dropdown-menu">
-            <li><router-link to="/settings/config/ctrl">Ctrl</router-link></li>
-            <li><router-link to="/settings/config/agent">Agent</router-link></li>
-            <li><router-link to="/settings/config/loadbalance">Load Balance</router-link></li>
-            <li><router-link to="/settings/config/backend">Backend</router-link></li>
-            <li role="separator" class="divider"></li>
-            <li><router-link to="/settings/debug">Debug</router-link></li>
-          </ul>
-        </li>
-        <li class="dropdown">
-          <a to="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true"
-            aria-expanded="false">help<span class="caret"></span></a>
-          <ul class="dropdown-menu">
-            <li><a href="/doc" target="_blank">doc</a></li>
-            <li role="separator" class="divider"></li>
-            <li><router-link to="/about">About Falcon</router-link></li>
-          </ul>
-        </li>
-        <li v-if="login" class="dropdown">
           <a to="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true"
             aria-expanded="false">{{this.$store.state.auth.username}}<span class="caret"></span></a>
           <ul class="dropdown-menu">
             <li><router-link to="/settings/profile">Profile</router-link></li>
+            <li><router-link to="/settings/about">About</router-link></li>
+            <li><a href="/doc" target="_blank">doc</a></li>
             <li><a href="#" @click="logout">logout</a></li>
           </ul>
         </li>
@@ -96,6 +89,15 @@ export default {
   computed: {
     login () {
       return this.$store.state.auth.login
+    },
+    isAdmin () {
+      return this.$store.state.auth.admin
+    },
+    isReader () {
+      return this.$store.state.auth.reader
+    },
+    isOperator () {
+      return this.$store.state.auth.operator
     },
     links () {
       var url = ''

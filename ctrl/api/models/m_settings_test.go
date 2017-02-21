@@ -38,12 +38,19 @@ func TestPopulate(t *testing.T) {
 		return
 	}
 
-	err := testSettingsInitDb(t, orm.NewOrm())
+	o := orm.NewOrm()
+	sys, _ := GetUser(1, o)
+	op := &Operator{
+		O:    orm.NewOrm(),
+		User: sys,
+	}
+
+	err := testSettingsInitDb(t, op.O)
 	if err != nil {
 		t.Error("init db failed", err)
 	}
 
-	if _, err := Populate(); err != nil {
+	if _, err := op.Populate(); err != nil {
 		t.Error(err)
 	}
 }

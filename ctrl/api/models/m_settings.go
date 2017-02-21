@@ -78,7 +78,7 @@ func (op *Operator) Populate() (interface{}, error) {
 			uids[i] = user_idx[item.users[i]]
 		}
 		if _, err = op.UpdateMember(team_idx[item.team],
-			&Member{Uids: uids}); err != nil {
+			&TeamMemberIds{Uids: uids}); err != nil {
 			return nil, err
 		}
 		ret = fmt.Sprintf("%sadd teamMembers(%v)\n", ret, item)

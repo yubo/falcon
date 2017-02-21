@@ -20,7 +20,7 @@ type HostController struct {
 // @Title CreateHost
 // @Description create hosts
 // @Param	body	body 	models.Host	true	"body for host content"
-// @Success 200 {int} models.Host.Id
+// @Success 200 {object} models.Id id
 // @Failure 403 string error
 // @router / [post]
 func (c *HostController) CreateHost() {
@@ -33,14 +33,14 @@ func (c *HostController) CreateHost() {
 	if id, err := op.AddHost(&host); err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendMsg(200, models.Id{Id: id})
+		c.SendMsg(200, idObj(id))
 	}
 }
 
 // @Title GetHostsCnt
 // @Description get Hosts number
 // @Param   query     query   string  false       "host name"
-// @Success 200 {total:int}  host total number
+// @Success 200 {object} models.Total  host total number
 // @Failure 403 string error
 // @router /cnt [get]
 func (c *HostController) GetHostsCnt() {
@@ -60,7 +60,7 @@ func (c *HostController) GetHostsCnt() {
 // @Param   query     query   string  false       "host name"
 // @Param   per       query   int     false       "per page number"
 // @Param   offset    query   int     false       "offset  number"
-// @Success 200 [object] []models.Host
+// @Success 200 {object} []models.Host hosts info
 // @Failure 403 string error
 // @router /search [get]
 func (c *HostController) GetHosts() {
@@ -80,7 +80,7 @@ func (c *HostController) GetHosts() {
 // @Title GetHost
 // @Description get host by id
 // @Param	id		path 	int	true		"The key for staticblock"
-// @Success 200 {object} models.Host
+// @Success 200 {object} models.Host host info
 // @Failure 403 string error
 // @router /:id [get]
 func (c *HostController) GetHost() {
@@ -102,7 +102,7 @@ func (c *HostController) GetHost() {
 // @Description update the host
 // @Param	id		path 	string	true	"The id you want to update"
 // @Param	body		body 	models.Host	true	"body for host content"
-// @Success 200 {object} models.Host
+// @Success 200 {object} models.Host host info
 // @Failure 403 string error
 // @router /:id [put]
 func (c *HostController) UpdateHost() {
@@ -127,7 +127,7 @@ func (c *HostController) UpdateHost() {
 // @Title DeleteHost
 // @Description delete the host
 // @Param	id	path	string	true	"The id you want to delete"
-// @Success 200 string "delete success!"
+// @Success 200 {string} "delete success!"
 // @Failure 403 string error
 // @router /:id [delete]
 func (c *HostController) DeleteHost() {

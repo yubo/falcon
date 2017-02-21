@@ -7,7 +7,6 @@ package controllers
 
 import (
 	"github.com/astaxie/beego"
-	"github.com/astaxie/beego/orm"
 	"github.com/yubo/falcon/ctrl/api/models"
 )
 
@@ -18,8 +17,8 @@ type AuthController struct {
 
 // @Title get support auth modules
 // @Description get support auth modules
-// @Success 200 [string] []strins{module, ...}
-// @Failure 405 error
+// @Success 200 {object} []string  modules list
+// @Failure 405 string error
 // @router /modules [get]
 func (c *AuthController) Modules() {
 	m := []string{}
@@ -34,7 +33,7 @@ func (c *AuthController) Modules() {
 // @Description auth login
 // @Param	module	path	string	true	"the module you want to use(github/google)"
 // @Success 302 redirect
-// @Failure 405 error
+// @Failure 405 string error
 // @router /login/:module [get]
 func (c *AuthController) Authorize() {
 	module := c.GetString(":module")
@@ -84,25 +83,33 @@ func (c *AuthController) Callback() {
 
 // @Title AuthLogin
 // @Description auth login, such as ldap auth
+// @Success 200 {object} models.OperatorInfo operator info
+// @Failure 406 not acceptable
+// @router /info [get]
+func (c *AuthController) Info() {
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
+	c.SendMsg(200, op.Info())
+}
+
+// @Title AuthLogin
+// @Description auth login, such as ldap auth
 // @Param	username	query	string	false	"username for login"
 // @Param	password	query	string	false	"passworld for login"
 // @Param	method		query	string	false	"login method"
-// @Success 200 {object} models.User
+// @Success 200 {object} models.OperatorInfo  operator info
 // @Failure 406 not acceptable
 // @router /login [post]
 func (c *AuthController) PostLogin() {
 	var (
-		user         *models.User
+		op           *models.Operator
 		err          error
 		ok           bool
 		uuid, method string
 		auth         models.AuthInterface
 	)
-	if id, ok := c.GetSession("uid").(int64); ok {
-
-		if user, err = models.GetUser(id, orm.NewOrm()); err == nil {
-			goto out
-		}
+	op, ok = c.Ctx.Input.GetData("op").(*models.Operator)
+	if ok && op.User != nil {
+		goto out
 	}
 
 	if method = c.GetString("method"); method == "" {
@@ -120,9 +127,9 @@ func (c *AuthController) PostLogin() {
 		goto out_err
 	}
 
-	user, _ = c.Access(uuid)
+	op, _ = c.Access(uuid)
 out:
-	c.SendMsg(200, user)
+	c.SendMsg(200, op.Info())
 	return
 
 out_err:
@@ -132,7 +139,7 @@ out_err:
 // @Title Auth Logout
 // @Description user logout, reset cookie
 // @Success 200 {string} logout success!
-// @Failure 405 {string} Method Not Allowed
+// @Failure 405 Method Not Allowed
 // @router /logout [get]
 func (c *AuthController) Logout() {
 	if uid := c.GetSession("uid"); uid != nil {
@@ -143,25 +150,32 @@ func (c *AuthController) Logout() {
 	}
 }
 
-func (c *AuthController) Access(uuid string) (user *models.User, err error) {
-	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
-	user, err = op.GetUserByUuid(uuid)
+func (c *AuthController) Access(uuid string) (op *models.Operator, err error) {
+	op, _ = c.Ctx.Input.GetData("op").(*models.Operator)
+	op.User, err = op.GetUserByUuid(uuid)
 	if err != nil {
-		beego.Debug("can't get user by uuid ", uuid)
+		// uuid no exist, create
 		sys, _ := models.GetUser(1, op.O)
 		sysOp := &models.Operator{
 			User:  sys,
 			O:     op.O,
 			Token: models.SYS_F_A_TOKEN,
 		}
-		user, err = sysOp.AddUser(&models.User{Uuid: uuid, Name: uuid})
+		op.User, err = sysOp.AddUser(&models.User{Uuid: uuid, Name: uuid})
 		if err != nil {
 			beego.Debug("add user failed ", err.Error())
 			return
 		}
 	}
-	beego.Debug("get login user ", user)
-	c.SetSession("uid", user.Id)
-	c.SetSession("token", models.Tokens(user.Id, op.O))
+	op.Token = models.Tokens(op.User.Id, op.O)
+	if op.User.Name == "test" {
+		//op.Token = models.SYS_F_A_TOKEN | models.SYS_F_O_TOKEN | models.SYS_F_R_TOKEN
+		//op.Token = models.SYS_F_O_TOKEN | models.SYS_F_R_TOKEN
+		op.Token = models.SYS_F_R_TOKEN
+	}
+
+	beego.Debug("get login user ", op.User)
+	c.SetSession("uid", op.User.Id)
+	c.SetSession("token", op.Token)
 	return
 }

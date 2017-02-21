@@ -1,6 +1,6 @@
 <template>
 <div id="content" class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
-  <h1 class="page-header">Backend Configurations</h1>
+  <h1 class="page-header">Agent Configurations</h1>
   <div v-loading.lock="loading">
     <el-tabs v-model="activeName" @tab-click="handleClick" >
       <el-tab-pane label="global" name="global">
@@ -49,8 +49,7 @@
 </template>
 
 <script>
-import { Message } from 'element-ui'
-import { fetch } from 'src/utils'
+import { fetch, Msg } from 'src/utils'
 export default {
   data () {
     return {
@@ -113,7 +112,7 @@ export default {
       this.loading = true
       fetch({
         method: 'get',
-        url: 'settings/config/ctrl'
+        url: 'admin/config/ctrl'
       }).then((res) => {
         for (let k in this.disabled) {
           this.disabled[k] = false
@@ -131,7 +130,7 @@ export default {
         this.enabledocs = this.form.enabledocs === 'true'
         this.loading = false
       }).catch((err) => {
-        Message.error(err)
+        Msg.error('get failed', err)
         this.loading = false
       })
     },
@@ -149,13 +148,13 @@ export default {
       // update
       fetch({
         method: 'put',
-        url: 'settings/config/ctrl',
+        url: 'admin/config/ctrl',
         data: JSON.stringify(conf)
       }).then((res) => {
-        Message.success('update success')
+        Msg.success('update success')
         this.loading = false
       }).catch((err) => {
-        Message.error(err.response.data)
+        Msg.error('update failed', err)
         this.loading = false
       })
     }

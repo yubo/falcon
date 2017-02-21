@@ -60,8 +60,7 @@
 </template>
 
 <script>
-import { fetch } from 'src/utils'
-import { Message, MessageBox } from 'element-ui'
+import { fetch, Msg } from 'src/utils'
 export default {
   data () {
     return {
@@ -112,7 +111,7 @@ export default {
         this.total = res.data.total
         this.fetchObjs()
       }).catch((err) => {
-        Message.error(err.response.data)
+        Msg.error('get failed', err)
       })
     },
 
@@ -126,7 +125,7 @@ export default {
         this.tableData = res.data
         this.loading = false
       }).catch((err) => {
-        Message.error(err.response.data)
+        Msg.error('get failed', err)
         this.loading = false
       })
     },
@@ -147,7 +146,7 @@ export default {
         url: this.isEdit ? 'user/' + this.curId : 'user',
         data: this.objForm
       }).then((res) => {
-        Message.success('update success')
+        Msg.success('update success')
         if (!this.isEdit) {
           this.total++
         }
@@ -155,12 +154,12 @@ export default {
         this.dloading = false
         this.editVisible = false
       }).catch((err) => {
-        Message.error(err.response.data)
+        Msg.error('update failed', err)
         this.dloading = false
       })
     },
     deleteObj (obj) {
-      MessageBox.confirm('此操作将永久删除该记录, 是否继续?', '提示', {
+      Msg.confirm('此操作将永久删除该记录, 是否继续?', '提示', {
         confirmButtonText: 'Confirm',
         cancelButtonText: 'Cancel',
         type: 'warning'
@@ -169,14 +168,14 @@ export default {
           method: 'delete',
           url: 'user/' + obj.id
         }).then((res) => {
-          Message.success('success!')
+          Msg.success('success!')
           this.total--
           this.fetchObjs()
         }).catch((err) => {
-          Message.error(err.response.data)
+          Msg.error('delete failed', err)
         })
       }).catch(() => {
-        Message.info('cancel')
+        Msg.info('cancel')
       })
     }
   },
