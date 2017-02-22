@@ -14,7 +14,7 @@
         <el-tab-pane v-if="auth.ldap" label="ldap" name="ldap">
           <el-form label-position="right" label-width="80px" :model="ldapForm">
             <el-form-item label="username"><el-input v-model="ldapForm.username"></el-input></el-form-item>
-            <el-form-item label="passworld"><el-input v-model="ldapForm.password"></el-input></el-form-item>
+            <el-form-item label="passworld"><el-input v-model="ldapForm.password" type="password"></el-input></el-form-item>
             <el-form-item> <el-button type="primary" @click="ldapLogin">Sign in</el-button> </el-form-item>
         </el-tab-pane>
       </el-tabs>

@@ -42,7 +42,7 @@ func TestTagTree(t *testing.T) {
 		return
 	}
 	t.Logf("token orm inited,  test tag tree\n")
-	o := op.O
+	o := orm.NewOrm()
 	err := testTagInitDb(t, o)
 	if err != nil {
 		t.Error("init db failed", err)

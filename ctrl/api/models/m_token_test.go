@@ -52,7 +52,7 @@ func TestToken(t *testing.T) {
 		t.Log("test db not inited, skip test token")
 		return
 	}
-	o := op.O
+	o := orm.NewOrm()
 	err := testTokenInitDb(t, o)
 	if err != nil {
 		t.Error("init db failed", err)
@@ -181,7 +181,7 @@ func TestToken(t *testing.T) {
 		{name: "case4-8", uid: user_idx["u1"], token_id: token_idx["token42"], tid: tag_idx["a=1,b=2,c=2"], want: tag_idx["a=1,b=2"], wante: nil},
 	}
 	for _, c := range cases {
-		if got, gote := access(c.uid, c.token_id,
+		if got, gote := access(op.O, c.uid, c.token_id,
 			c.tid); got != c.want || gote != c.wante {
 			t.Errorf("%s access(%d,%d,%d) = (%d, %v); want (%d %v)",
 				c.name, c.uid, c.token_id, c.tid,

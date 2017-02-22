@@ -7,6 +7,9 @@
     <el-tab-pane label="falcon" name="falcon">
     </el-tab-pane>
   </el-tabs>
+  <div class="pull-right">
+    <button type="button" @click="getinfo" class="btn btn-default"><span class="glyphicon glyphicon-refresh"></span></button>
+  </div>
   <div v-html="compiledMarkdown"></div>
 </div>
 </template>
@@ -21,34 +24,46 @@ export default {
       head: `
  key                  | value 
 ----------------------| ---
-----------------------| ---`,
-      falcon: '',
-      me: ''
+----------------------| ---`
     }
   },
   methods: {
     handleClick (tab, event) {
-      console.log(tab.name)
-      this.md = this[tab.name]
+      this[tab.name]()
+    },
+    getinfo () {
+      this.$store.commit('auth/m_set_loading', true)
+      this.$store.dispatch('auth/info')
+      this.me()
+    },
+    me () {
+      if (!this.$store.state.auth.loading) {
+        this.md = this.head
+        this.md += '\n reader | ' + this.$store.state.auth.reader
+        this.md += '\n operator | ' + this.$store.state.auth.operator
+        this.md += '\n admin | ' + this.$store.state.auth.admin
+        for (let k in this.$store.state.auth.user) {
+          this.md += '\n' + k + ' | ' + this.$store.state.auth.user[k]
+        }
+        this.activeName = 'me'
+        return
+      }
+      setTimeout(() => { this.me() }, 100)
+    },
+    falcon () {
+      this.md = this.head
     }
   },
   computed: {
     compiledMarkdown: function () {
       return marked(this.md, { sanitize: true })
+    },
+    auth () {
+      return this.$store.state.auth
     }
   },
   created () {
-    this.me = this.head
-    this.me += '\n reader | ' + this.$store.state.auth.reader
-    this.me += '\n operator | ' + this.$store.state.auth.operator
-    this.me += '\n admin | ' + this.$store.state.auth.admin
-    for (let k in this.$store.state.auth.user) {
-      this.me += '\n' + k + ' | ' + this.$store.state.auth.user[k]
-    }
-
-    this.falcon = this.head
-
-    this.md = this[this.activeName]
+    this[this.activeName]()
   }
 }
 </script>

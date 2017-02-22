@@ -1,5 +1,5 @@
 <template>
-  <div class="container-fluid" v-if="isAdmin">
+  <div class="container-fluid">
     <div class="row">
       <div class="col-sm-3 col-md-2 sidebar">
         <ul v-for="(objs, ul_idx) in links" class="nav nav-sidebar">
@@ -31,9 +31,6 @@ export default {
     liTpl
   },
   computed: {
-    isAdmin () {
-      return this.$store.state.auth.admin
-    }
   }
 }
 </script>

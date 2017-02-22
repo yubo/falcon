@@ -284,6 +284,7 @@ func (op *Operator) ResetDb() (interface{}, error) {
 
 	// init root tree tag
 	op.O.Insert(&Tag{Name: ""})
+	op.O.Insert(&Tag_rel{TagId: 1, SupTagId: 1, Offset: 0})
 
 	// reset cache
 	// ugly hack

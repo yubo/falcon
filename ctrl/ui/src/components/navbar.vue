@@ -48,10 +48,10 @@
           <a to="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true"
             aria-expanded="false">Admin<span class="caret"></span></a>
           <ul class="dropdown-menu">
-            <li><router-link to="/admin/config/ctrl">Ctrl</router-link></li>
-            <li><router-link to="/admin/config/agent">Agent</router-link></li>
-            <li><router-link to="/admin/config/loadbalance">Load Balance</router-link></li>
-            <li><router-link to="/admin/config/backend">Backend</router-link></li>
+            <li><router-link to="/admin/ctrl">Ctrl</router-link></li>
+            <li><router-link to="/admin/agent">Agent</router-link></li>
+            <li><router-link to="/admin/loadbalance">Load Balance</router-link></li>
+            <li><router-link to="/admin/backend">Backend</router-link></li>
             <li role="separator" class="divider"></li>
             <li><router-link to="/admin/debug">Debug</router-link></li>
           </ul>

@@ -1,3 +1,5 @@
+// resources:
+// https://github.com/vuejs/vue-router/blob/next/examples/redirect/app.js
 import Vue from 'vue'
 import VueRouter from 'vue-router'
 
@@ -35,15 +37,35 @@ import { Msg } from 'src/utils'
 
 var got = false
 
-function gotInfo () {
+function getInfo () {
+  console.log('get info')
   got = true
   store.commit('auth/m_set_loading', true)
   store.dispatch('auth/info')
 }
 
+function accessLogin (to, from, next) {
+  if (!got) {
+    getInfo()
+  }
+  if (!store.state.auth.loading) {
+    if (store.state.auth.login) {
+      next()
+    } else {
+      Msg.error('permission denied')
+      next(false)
+    }
+    return
+  }
+
+  setTimeout(() => {
+    accessLogin(to, from, next)
+  }, 100)
+}
+
 function accessReader (to, from, next) {
   if (!got) {
-    gotInfo()
+    getInfo()
   }
   if (!store.state.auth.loading) {
     if (store.state.auth.reader) {
@@ -62,7 +84,7 @@ function accessReader (to, from, next) {
 
 function accessAdmin (to, from, next) {
   if (!got) {
-    gotInfo()
+    getInfo()
   }
   if (!store.state.auth.loading) {
     if (store.state.auth.admin) {
@@ -78,7 +100,6 @@ function accessAdmin (to, from, next) {
     accessAdmin(to, from, next)
   }, 100)
 }
-
 const router = new VueRouter({
   routes:
   [{
@@ -90,10 +111,10 @@ const router = new VueRouter({
     component: admin,
     beforeEnter: accessAdmin,
     children: [
-    { path: 'config/ctrl', component: ctrl },
-    { path: 'config/agent', component: agent },
-    { path: 'config/loadbalance', component: loadbalance },
-    { path: 'config/backend', component: backend },
+    { path: 'ctrl', component: ctrl },
+    { path: 'agent', component: agent },
+    { path: 'loadbalance', component: loadbalance },
+    { path: 'backend', component: backend },
     { path: 'profile', component: profile },
     { path: 'debug', component: debug }
     ]
@@ -101,7 +122,7 @@ const router = new VueRouter({
     path: '/settings',
     redirect: '/settings/about',
     component: settings,
-    beforeEnter: accessReader,
+    beforeEnter: accessLogin,
     children: [
     { path: 'profile', component: profile },
     { path: 'about', component: about }
@@ -132,7 +153,8 @@ const router = new VueRouter({
     { path: 'tag-role-token', component: tagRoleToken },
     { path: 'tag-template', component: tagTemplate }
     ]
-  }]
+  }, { path: '*', redirect: '/' }
+  ]
 })
 
 export default router

@@ -59,13 +59,16 @@ func (op *Operator) IsReader() bool {
 	return (op.Token & SYS_F_R_TOKEN) != 0
 }
 
-func Tokens(uid int64, o orm.Ormer) int {
+func (op *Operator) Tokens() (token int) {
 	var (
-		tids  []int64
-		token int
+		tids []int64
 	)
 
-	_, err := o.Raw(`
+	if op.User == nil {
+		return 0
+	}
+
+	_, err := op.O.Raw(`
    SELECT b1.token_id
     FROM (SELECT a1.tag_id AS user_tag_id,
                 a2.tag_id AS token_tag_id,
@@ -79,7 +82,7 @@ func Tokens(uid int64, o orm.Ormer) int {
     JOIN tag_rel b2
     ON b1.user_tag_id = b2.tag_id AND b1.token_tag_id = b2.sup_tag_id
     GROUP BY b1.token_id`,
-		TPL_REL_T_ACL_USER, uid, TPL_REL_T_ACL_TOKEN,
+		TPL_REL_T_ACL_USER, op.User.Id, TPL_REL_T_ACL_TOKEN,
 		SYS_IDX_R_TOKEN, SYS_IDX_O_TOKEN,
 		SYS_IDX_A_TOKEN).QueryRows(&tids)
 	if err != nil {
@@ -96,7 +99,7 @@ func Tokens(uid int64, o orm.Ormer) int {
 		}
 	}
 
-	if uid < 3 {
+	if op.User.Id < 3 {
 		token |= SYS_F_A_TOKEN
 	}
 
@@ -105,6 +108,13 @@ func Tokens(uid int64, o orm.Ormer) int {
 	}
 	if token&SYS_F_O_TOKEN != 0 {
 		token |= SYS_F_R_TOKEN
+	}
+
+	// for dev
+	if op.User.Name == "test" {
+		//token = SYS_F_A_TOKEN | SYS_F_O_TOKEN | SYS_F_R_TOKEN
+		token = SYS_F_O_TOKEN | SYS_F_R_TOKEN
+		//token = SYS_F_R_TOKEN
 	}
 
 	return token

@@ -83,11 +83,15 @@ func (c *AuthController) Callback() {
 
 // @Title AuthLogin
 // @Description auth login, such as ldap auth
-// @Success 200 {object} models.OperatorInfo operator info
+// @Success 200 {object} models.OperatorInfo operator info, reload user's tokens
 // @Failure 406 not acceptable
 // @router /info [get]
 func (c *AuthController) Info() {
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
+	if op.User != nil {
+		op.Token = op.Tokens()
+		c.SetSession("token", op.Token)
+	}
 	c.SendMsg(200, op.Info())
 }
 
@@ -159,7 +163,7 @@ func (c *AuthController) Access(uuid string) (op *models.Operator, err error) {
 		sysOp := &models.Operator{
 			User:  sys,
 			O:     op.O,
-			Token: models.SYS_F_A_TOKEN,
+			Token: models.SYS_F_A_TOKEN | models.SYS_F_O_TOKEN,
 		}
 		op.User, err = sysOp.AddUser(&models.User{Uuid: uuid, Name: uuid})
 		if err != nil {
@@ -167,12 +171,7 @@ func (c *AuthController) Access(uuid string) (op *models.Operator, err error) {
 			return
 		}
 	}
-	op.Token = models.Tokens(op.User.Id, op.O)
-	if op.User.Name == "test" {
-		//op.Token = models.SYS_F_A_TOKEN | models.SYS_F_O_TOKEN | models.SYS_F_R_TOKEN
-		//op.Token = models.SYS_F_O_TOKEN | models.SYS_F_R_TOKEN
-		op.Token = models.SYS_F_R_TOKEN
-	}
+	op.Token = op.Tokens()
 
 	beego.Debug("get login user ", op.User)
 	c.SetSession("uid", op.User.Id)

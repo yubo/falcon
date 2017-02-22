@@ -74,7 +74,7 @@ func accessFilter(ctx *context.Context) {
 	if strings.HasPrefix(ctx.Request.RequestURI, "/v1.0/user") {
 		if id, err := strconv.ParseInt(
 			ctx.Request.RequestURI[len("/v1.0/user/"):],
-			10, 64); err != nil {
+			10, 64); err == nil {
 
 			if id == op.User.Id {
 				// if target is self, is ok
@@ -90,6 +90,7 @@ func accessFilter(ctx *context.Context) {
 		}
 	case "POST", "PUT", "DELETE":
 		if !op.IsOperator() {
+			beego.Debug("TOKEN ", op.Token)
 			http.Error(ctx.ResponseWriter, "permission denied", 403)
 		}
 	default:

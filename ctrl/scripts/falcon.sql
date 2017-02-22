@@ -420,6 +420,7 @@ SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
 
 INSERT INTO `tag` (`name`) VALUES ('');
+INSERT INTO `tag_rel` (`tag_id`, `sup_tag_id`) VALUES (1, 1);
 INSERT INTO `user` (`uuid`, `name`, `cname`, `email`, `phone`, `im`, `qq`) VALUES
     ('root@localhost', 'system', 'system', 'root@localhost', '', '', '');
 

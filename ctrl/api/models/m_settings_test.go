@@ -38,10 +38,10 @@ func TestPopulate(t *testing.T) {
 		return
 	}
 
-	o := op.O
+	o := orm.NewOrm()
 	sys, _ := GetUser(1, o)
 	op := &Operator{
-		O:    orm.NewOrm(),
+		O:    o,
 		User: sys,
 	}
 
