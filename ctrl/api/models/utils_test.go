@@ -28,3 +28,22 @@ func TestMdiff(t *testing.T) {
 		}
 	}
 }
+
+func Testintscmp64(t *testing.T) {
+	cases := []struct {
+		a    []int64
+		b    []int64
+		want bool
+	}{
+		{a: []int64{2, 3, 4}, b: []int64{3, 4, 2}, want: true},
+		{a: []int64{2, 3, 4, 4}, b: []int64{3, 4, 4, 2}, want: true},
+		{a: []int64{2, 3, 4, 4, 5}, b: []int64{3, 4, 4, 2, 6}, want: false},
+		{a: []int64{2, 3, 4, 6}, b: []int64{3, 4, 2}, want: false},
+	}
+	for _, c := range cases {
+		if got := intscmp64(c.a, c.b); (got == 0) != c.want {
+			t.Errorf("intscmp64(%v,%v) = %v; want %v",
+				c.a, c.b, got, c.want)
+		}
+	}
+}

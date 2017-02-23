@@ -207,6 +207,7 @@ func (op *Operator) addTag(t *Tag, schema *TagSchema) (id int64, err error) {
 	if id, err = op.O.Insert(t); err != nil {
 		return
 	}
+	fmt.Printf("id: %d tag: %s\n", id, t.Name)
 
 	if rels := TagRelation(t.Name); len(rels) > 0 {
 		var (

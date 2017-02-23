@@ -41,8 +41,9 @@ func TestPopulate(t *testing.T) {
 	o := orm.NewOrm()
 	sys, _ := GetUser(1, o)
 	op := &Operator{
-		O:    o,
-		User: sys,
+		O:     o,
+		User:  sys,
+		Token: SYS_F_A_TOKEN | SYS_F_O_TOKEN,
 	}
 
 	err := testSettingsInitDb(t, op.O)

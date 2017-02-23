@@ -37,7 +37,7 @@ func (c *RelController) GetTreeNodes() {
 
 // @Title Get vue tag tree
 // @Description get tags for vue tree
-// @Success 200 {object} []models.TreeNode all nodes of the tree
+// @Success 200 {object} []models.TreeNode all nodes of the tree(read)
 // @Failure 403 string error
 // @router /tree [get]
 func (c *RelController) GetTree() {
@@ -47,6 +47,21 @@ func (c *RelController) GetTree() {
 		c.SendMsg(403, err.Error())
 	} else {
 		c.SendMsg(200, []models.TreeNode{*tree})
+	}
+}
+
+// @Title Get vue tree node(operate)
+// @Description get tags for vue tree
+// @Success 200 {object} []int64 all ids of the node that can be operated
+// @Failure 403 string error
+// @router /tree/opnode [get]
+func (c *RelController) GetOpNode() {
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
+	rel, err := op.GetTreeOpNode()
+	if err != nil {
+		c.SendMsg(403, err.Error())
+	} else {
+		c.SendMsg(200, rel)
 	}
 }
 
@@ -375,7 +390,7 @@ func (c *RelController) GetTagRoleUser() {
 // @Title create tag role users relation
 // @Description create tag/role/users relation
 // @Param	body	body 	models.RelTagRoleUser	true	""
-// @Success 200 {object} models.Total affected number
+// @Success 200 {object} models.Id affected number
 // @Failure 403 string error
 // @router /tag/role/user [post]
 func (c *RelController) CreateTagRoleUser() {

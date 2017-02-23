@@ -278,8 +278,8 @@ func (op *Operator) Populate() (interface{}, error) {
 		{"cop=xiaomi,owt=miliao", test_user, "usr"},
 	}
 	for _, s := range binds {
-		if err := op.BindAclUser(tag_idx[s[0]], role_idx[s[2]],
-			user_idx[s[1]]); err != nil {
+		if _, err := addTplRel(op.O, op.User.Id, tag_idx[s[0]], role_idx[s[2]],
+			user_idx[s[1]], TPL_REL_T_ACL_USER); err != nil {
 			return nil, err
 		}
 		ret = fmt.Sprintf("%sbind tag(%s) user(%s) role(%s)\n",
@@ -301,8 +301,8 @@ func (op *Operator) Populate() (interface{}, error) {
 		{SYS_A_TOKEN, "usr", "cop=xiaomi,owt=miliao"},
 	}
 	for _, s := range binds {
-		if err := op.BindAclToken(tag_idx[s[2]], role_idx[s[1]],
-			token_idx[s[0]]); err != nil {
+		if _, err := addTplRel(op.O, op.User.Id, tag_idx[s[2]], role_idx[s[1]],
+			token_idx[s[0]], TPL_REL_T_ACL_TOKEN); err != nil {
 			return nil, err
 		}
 		ret = fmt.Sprintf("%sbind tag(%s) token(%s) role(%s)\n",

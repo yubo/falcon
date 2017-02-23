@@ -113,6 +113,46 @@ func stringscmp(a, b []string) (ret int) {
 	return
 }
 
+func intscmp64(a, b []int64) (ret int) {
+	if ret = len(a) - len(b); ret != 0 {
+		return
+	}
+
+	_a := make([]int, len(a))
+	for i := 0; i < len(_a); i++ {
+		_a[i] = int(a[i])
+	}
+
+	_b := make([]int, len(b))
+	for i := 0; i < len(_b); i++ {
+		_b[i] = int(b[i])
+	}
+
+	sort.Ints(_a)
+	sort.Ints(_b)
+
+	for i := 0; i < len(_a); i++ {
+		if ret = _a[i] - _b[i]; ret != 0 {
+			return
+		}
+	}
+	return
+}
+
+func intscmp(a, b []int) (ret int) {
+	if ret = len(a) - len(b); ret != 0 {
+		return
+	}
+	sort.Ints(a)
+	sort.Ints(b)
+	for i := 0; i < len(a); i++ {
+		if ret = a[i] - b[i]; ret != 0 {
+			return
+		}
+	}
+	return
+}
+
 func jsonStr(i interface{}) string {
 	if ret, err := json.Marshal(i); err != nil {
 		return ""

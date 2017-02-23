@@ -37,5 +37,6 @@ func init() {
 	if err := orm.RegisterDataBase("default", "mysql", dsn, 7, 7); err != nil {
 		return
 	}
+	// orm.Debug = true
 	test_db_init = true
 }

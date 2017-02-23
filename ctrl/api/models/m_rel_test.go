@@ -50,8 +50,9 @@ func TestTagTree(t *testing.T) {
 	schema, _ := NewTagSchema("a,b,c,d,")
 	sys, _ := GetUser(1, o)
 	op := &Operator{
-		User: sys,
-		O:    o,
+		User:  sys,
+		O:     o,
+		Token: SYS_F_A_TOKEN,
 	}
 
 	// tag

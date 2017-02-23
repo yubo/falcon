@@ -61,8 +61,9 @@ func TestToken(t *testing.T) {
 	schema, _ := NewTagSchema("a,b,c,d,")
 	sys, _ := GetUser(1, o)
 	op := &Operator{
-		User: sys,
-		O:    o,
+		User:  sys,
+		O:     o,
+		Token: SYS_F_A_TOKEN,
 	}
 
 	// tag
@@ -126,7 +127,7 @@ func TestToken(t *testing.T) {
 		{tag_idx["a=1,b=2"], role_idx["r4"], user_idx["u1"]},
 	}
 	for _, n := range binds {
-		if err := op.BindAclUser(n[0], n[1], n[2]); err != nil {
+		if _, err := addTplRel(op.O, op.User.Id, n[0], n[1], n[2], TPL_REL_T_ACL_USER); err != nil {
 			t.Error(err)
 		}
 	}
@@ -140,9 +141,34 @@ func TestToken(t *testing.T) {
 		{tag_idx["a=1,b=2"], role_idx["r4"], token_idx["token42"]},
 	}
 	for _, n := range binds {
-		if err := op.BindAclToken(n[0], n[1], n[2]); err != nil {
+		if _, err := addTplRel(op.O, op.User.Id, n[0], n[1], n[2], TPL_REL_T_ACL_TOKEN); err != nil {
 			t.Error(err)
 		}
+	}
+
+	c0 := []struct {
+		name     string
+		uid      int64
+		token_id int64
+		want     []int64
+		wante    error
+	}{
+		{name: "case1", uid: user_idx["u1"], token_id: token_idx["token1"], want: []int64{tag_idx["a=1,b=2"], tag_idx["a=1,b=2,c=1"], tag_idx["a=1,b=2,c=2"]}, wante: nil},
+		{name: "case2", uid: user_idx["u1"], token_id: token_idx["token2"], want: []int64{tag_idx["a=1,b=2"], tag_idx["a=1,b=2,c=1"], tag_idx["a=1,b=2,c=2"]}, wante: nil},
+		{name: "case3", uid: user_idx["u1"], token_id: token_idx["token3"], want: []int64{}, wante: EACCES},
+	}
+	for _, c := range c0 {
+		if tag_id, gote := userHasToken(op.O, c.uid, c.token_id); gote != c.wante {
+			t.Errorf("%s userHasToken(%d,%d) = (%d, %v); want (%v)",
+				c.name, c.uid, c.token_id,
+				tag_id, gote, c.wante)
+		}
+		if tag_ids, gote := userHasTokenTags(op.O, c.uid, c.token_id); intscmp64(tag_ids, c.want) != 0 || gote != c.wante {
+			t.Errorf("%s userHasTokenTags(%d,%d) = (%v, %v); want (%v, %v)",
+				c.name, c.uid, c.token_id,
+				tag_ids, gote, c.want, c.wante)
+		}
+
 	}
 
 	// case1~4
@@ -159,7 +185,6 @@ func TestToken(t *testing.T) {
 		{name: "case1-2", uid: user_idx["u1"], token_id: token_idx["token1"], tid: tag_idx["a=1,b=2"], want: tag_idx["a=1,b=2"], wante: nil},
 		{name: "case1-3", uid: user_idx["u1"], token_id: token_idx["token1"], tid: tag_idx["a=1,b=2,c=1"], want: tag_idx["a=1,b=2"], wante: nil},
 		{name: "case1-4", uid: user_idx["u1"], token_id: token_idx["token1"], tid: tag_idx["a=1,b=2,c=2"], want: tag_idx["a=1,b=2"], wante: nil},
-		{name: "case1-5", uid: user_idx["u1"], token_id: token_idx["token1"], tid: 0, want: tag_idx["a=1,b=2"], wante: nil},
 		//case2
 		{name: "case2-1", uid: user_idx["u1"], token_id: token_idx["token2"], tid: tag_idx["a=1"], want: 0, wante: EACCES},
 		{name: "case2-2", uid: user_idx["u1"], token_id: token_idx["token2"], tid: tag_idx["a=1,b=2"], want: tag_idx["a=1"], wante: nil},

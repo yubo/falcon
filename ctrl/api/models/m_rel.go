@@ -142,15 +142,18 @@ func (op *Operator) GetTagHost(tag_id int64, query string, deep bool,
 	return
 }
 
-func (op *Operator) CreateTagHost(rel RelTagHost) (int64, error) {
+func (op *Operator) CreateTagHost(rel RelTagHost) (id int64, err error) {
 	val := fmt.Sprintf("(%d, %d)", rel.TagId, rel.HostId)
 
-	if res, err := op.O.Raw("INSERT `tag_host` (`tag_id`, " +
-		"`host_id`) VALUES " + val).Exec(); err != nil {
+	res, err := op.O.Raw("INSERT `tag_host` (`tag_id`, " +
+		"`host_id`) VALUES " + val).Exec()
+	if err != nil {
 		return 0, err
-	} else {
-		return res.RowsAffected()
 	}
+
+	id, err = res.LastInsertId()
+	DbLog(op.O, op.User.Id, CTL_M_TAG_HOST, id, CTL_A_ADD, val)
+	return
 }
 
 func (op *Operator) CreateTagHosts(rel RelTagHosts) (int64, error) {
@@ -159,30 +162,34 @@ func (op *Operator) CreateTagHosts(rel RelTagHosts) (int64, error) {
 		vs[i] = fmt.Sprintf("(%d, %d)", rel.TagId, rel.HostIds[i])
 	}
 
-	if res, err := op.O.Raw("INSERT `tag_host` (`tag_id`, " +
-		"`host_id`) VALUES " + strings.Join(vs, ", ")).Exec(); err != nil {
+	res, err := op.O.Raw("INSERT `tag_host` (`tag_id`, " +
+		"`host_id`) VALUES " + strings.Join(vs, ", ")).Exec()
+	if err != nil {
 		return 0, err
-	} else {
-		return res.RowsAffected()
 	}
+	DbLog(op.O, op.User.Id, CTL_M_TAG_HOST, 0, CTL_A_ADD, strings.Join(vs, ", "))
+	return res.RowsAffected()
 }
 
 func (op *Operator) DeleteTagHost(rel Id) (int64, error) {
 	res, err := op.O.Raw("DELETE FROM `tag_host` "+
 		"WHERE id = ?", rel.Id).Exec()
-	if err == nil {
-		return res.RowsAffected()
+	if err != nil {
+		return 0, err
 	}
-	return 0, err
+	DbLog(op.O, op.User.Id, CTL_M_TAG_HOST, rel.Id, CTL_A_DEL, "")
+	return res.RowsAffected()
 }
 
 func (op *Operator) DeleteTagHosts(rel Ids) (int64, error) {
+	ids := array2sql(rel.Ids)
 	res, err := op.O.Raw("DELETE FROM `tag_host` " +
-		"WHERE id IN " + array2sql(rel.Ids)).Exec()
-	if err == nil {
-		return res.RowsAffected()
+		"WHERE id IN " + ids).Exec()
+	if err != nil {
+		return 0, err
 	}
-	return 0, err
+	DbLog(op.O, op.User.Id, CTL_M_TAG_HOST, 0, CTL_A_DEL, ids)
+	return res.RowsAffected()
 }
 
 /*******************************************************************************
@@ -246,179 +253,201 @@ func (op *Operator) GetTagTpl(tag_id int64, query string, deep, mine bool,
 }
 
 func (op *Operator) CreateTagTpl(rel RelTagTpl) (int64, error) {
+	var id int64
+
+	err := op.Access2(SYS_IDX_O_TOKEN, rel.TagId)
+	if err != nil {
+		return 0, err
+	}
+
 	val := fmt.Sprintf("(%d, %d, %d)", rel.TagId, rel.TplId, op.User.Id)
 
-	if res, err := op.O.Raw("INSERT `tag_tpl` (`tag_id`, " +
-		"`tpl_id`, `creator`) VALUES " + val).Exec(); err != nil {
+	res, err := op.O.Raw("INSERT `tag_tpl` (`tag_id`, " +
+		"`tpl_id`, `creator`) VALUES " + val).Exec()
+	if err != nil {
 		return 0, err
-	} else {
-		return res.RowsAffected()
 	}
+
+	id, err = res.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+
+	DbLog(op.O, op.User.Id, CTL_M_TAG_TPL, id, CTL_A_ADD, jsonStr(rel))
+	return id, nil
 }
 
 func (op *Operator) CreateTagTpls(rel RelTagTpls) (int64, error) {
+
+	err := op.Access2(SYS_IDX_O_TOKEN, rel.TagId)
+	if err != nil {
+		return 0, err
+	}
+
 	vs := make([]string, len(rel.TplIds))
 	for i := 0; i < len(vs); i++ {
 		vs[i] = fmt.Sprintf("(%d, %d)", rel.TagId, rel.TplIds[i])
 	}
 
-	if res, err := op.O.Raw("INSERT `tag_tpl` (`tag_id`, " +
-		"`tpl_id`) VALUES " + strings.Join(vs, ", ")).Exec(); err != nil {
+	res, err := op.O.Raw("INSERT `tag_tpl` (`tag_id`, " +
+		"`tpl_id`) VALUES " + strings.Join(vs, ", ")).Exec()
+	if err != nil {
 		return 0, err
-	} else {
-		return res.RowsAffected()
 	}
+
+	DbLog(op.O, op.User.Id, CTL_M_TAG_TPL, 0, CTL_A_ADD, jsonStr(rel))
+	return res.RowsAffected()
 }
 
 func (op *Operator) DeleteTagTpl(rel RelTagTpl) (int64, error) {
+
+	err := op.Access2(SYS_IDX_O_TOKEN, rel.TagId)
+	if err != nil {
+		return 0, err
+	}
+
 	res, err := op.O.Raw("DELETE FROM `tag_tpl` "+
 		"WHERE tag_id = ? and tpl_id = ? ",
 		rel.TagId, rel.TplId).Exec()
-	if err == nil {
-		return res.RowsAffected()
+	if err != nil {
+		return 0, err
 	}
-	return 0, err
+	DbLog(op.O, op.User.Id, CTL_M_TAG_TPL, 0, CTL_A_DEL, jsonStr(rel))
+	return res.RowsAffected()
 }
 
 func (op *Operator) DeleteTagTpls(rel RelTagTpls) (int64, error) {
+
+	err := op.Access2(SYS_IDX_O_TOKEN, rel.TagId)
+	if err != nil {
+		return 0, err
+	}
+
 	res, err := op.O.Raw("DELETE FROM `tag_tpl` "+
 		"WHERE tag_id = ? and tpl_id IN "+array2sql(rel.TplIds),
 		rel.TagId).Exec()
-	if err == nil {
-		return res.RowsAffected()
+	if err != nil {
+		return 0, err
 	}
-	return 0, err
+	DbLog(op.O, op.User.Id, CTL_M_TAG_TPL, 0, CTL_A_DEL, jsonStr(rel))
+	return res.RowsAffected()
 }
 
 /*******************************************************************************
  ************************ tag role user ****************************************
  ******************************************************************************/
+
+func tagRoleUserSql(global bool, tag_id int64, query string) (where string, args []interface{}) {
+	sql2 := []string{}
+	sql3 := []interface{}{}
+
+	sql2 = append(sql2, "a.type_id = ?")
+	sql3 = append(sql3, TPL_REL_T_ACL_USER)
+
+	if !global && tag_id > 0 {
+		sql2 = append(sql2, "a.tag_id = ?")
+		sql3 = append(sql3, tag_id)
+	}
+
+	if query != "" {
+		sql2 = append(sql2, "u.name like ?")
+		sql3 = append(sql3, "%"+query+"%")
+	}
+
+	if len(sql2) != 0 {
+		where = "WHERE " + strings.Join(sql2, " AND ")
+		args = sql3
+	}
+	return
+}
+
 func (op *Operator) GetTagRoleUserCnt(global bool, tag_id int64,
 	query string) (cnt int64, err error) {
 	// TODO: acl filter
 	// just for admin?
-	if global && query == "" {
-		err = op.O.Raw("SELECT count(*) FROM tpl_rel WHERE type_id = ?", TPL_REL_T_ACL_USER).QueryRow(&cnt)
-	} else if global && query != "" {
-		err = op.O.Raw("SELECT count(*) FROM tpl_rel a LEFT JOIN user b ON b.id = a.sub_id WHERE a.type_id = ? and b.name like ?", TPL_REL_T_ACL_USER, "%"+query+"%").QueryRow(&cnt)
-	} else if !global && query == "" {
-		err = op.O.Raw("SELECT count(*) FROM tpl_rel WHERE type_id = ? and tag_id = ?", TPL_REL_T_ACL_USER, tag_id).QueryRow(&cnt)
-	} else {
-		err = op.O.Raw("SELECT count(*) FROM tpl_rel a LEFT JOIN user b ON b.id = a.sub_id WHERE a.type_id = ? and tag_id = ? and b.name like ?", TPL_REL_T_ACL_USER, tag_id, "%"+query+"%").QueryRow(&cnt)
-	}
+	sql, sql_args := tagRoleUserSql(global, tag_id, query)
+	err = op.O.Raw("SELECT count(*) FROM tpl_rel a LEFT JOIN user u ON u.id = a.sub_id "+sql, sql_args...).QueryRow(&cnt)
 	return
 }
 
 func (op *Operator) GetTagRoleUser(global bool, tag_id int64, query string,
 	limit, offset int) (ret []TagRoleUser, err error) {
-	if global && query == "" { // show all
-		_, err = op.O.Raw("SELECT b.name as tag_name, c.name as role_name, d.name as user_name, a.tag_id, a.tpl_id as role_id, a.sub_id as user_id FROM tpl_rel a LEFT JOIN tag b ON b.id = a.tag_id LEFT JOIN role c ON c.id = a.tpl_id LEFT JOIN user d ON d.id = a.sub_id WHERE a.type_id = ? ORDER BY d.name, c.name LIMIT ? OFFSET ?", TPL_REL_T_ACL_USER, limit, offset).QueryRows(&ret)
-	} else if global && query != "" { // show global query(user name)
-		_, err = op.O.Raw("SELECT b.name as tag_name, c.name as role_name, d.name as user_name, a.tag_id, a.tpl_id as role_id, a.sub_id as user_id FROM tpl_rel a LEFT JOIN tag b ON b.id = a.tag_id LEFT JOIN role c ON c.id = a.tpl_id LEFT JOIN user d ON d.id = a.sub_id WHERE a.type_id = ? and d.name like ? ORDER BY d.name, c.name LIMIT ? OFFSET ?", TPL_REL_T_ACL_USER, "%"+query+"%", limit, offset).QueryRows(&ret)
-	} else if !global && query == "" { // show tag's user
-		_, err = op.O.Raw("SELECT b.name as tag_name, c.name as role_name, d.name as user_name, a.tag_id, a.tpl_id as role_id, a.sub_id as user_id FROM tpl_rel a LEFT JOIN tag b ON b.id = a.tag_id LEFT JOIN role c ON c.id = a.tpl_id LEFT JOIN user d ON d.id = a.sub_id WHERE a.type_id = ? and a.tag_id = ? ORDER by d.name, c.name LIMIT ? OFFSET ?", TPL_REL_T_ACL_USER, tag_id, limit, offset).QueryRows(&ret)
-	} else {
-		_, err = op.O.Raw("SELECT b.name as tag_name, c.name as role_name, d.name as user_name, a.tag_id, a.tpl_id as role_id, a.sub_id as user_id FROM tpl_rel a LEFT JOIN tag b ON b.id = a.tag_id LEFT JOIN role c ON c.id = a.tpl_id LEFT JOIN user d ON d.id = a.sub_id WHERE a.type_id = ? and  a.tag_id = ? and d.name like ? ORDER BY d.name, c.name  LIMIT ? OFFSET ?", TPL_REL_T_ACL_USER, tag_id, "%"+query+"%", limit, offset).QueryRows(&ret)
-
-	}
-	if err != nil {
-		return nil, err
-	}
+	sql, sql_args := tagRoleUserSql(global, tag_id, query)
+	sql = "SELECT b.name as tag_name, r.name as role_name, d.name as user_name, a.tag_id, a.tpl_id as role_id, a.sub_id as user_id FROM tpl_rel a LEFT JOIN tag t ON t.id = a.tag_id LEFT JOIN role r ON r.id = a.tpl_id LEFT JOIN user u ON u.id = a.sub_id " + sql + " ORDER BY u.name, r.name LIMIT ? OFFSET ?"
+	sql_args = append(sql_args, limit, offset)
+	_, err = op.O.Raw(sql, sql_args...).QueryRows(&ret)
 	return
 }
 
 func (op *Operator) CreateTagRoleUser(rel RelTagRoleUser) (int64, error) {
-	var val string
-	val = fmt.Sprintf("(%d, %d, %d, %d)", rel.TagId,
-		rel.RoleId, rel.UserId, TPL_REL_T_ACL_USER)
-
-	res, err := op.O.Raw("INSERT `tpl_rel` (`tag_id`, `tpl_id`, " +
-		"`sub_id`, `type_id`) VALUES " + val).Exec()
-	if err == nil {
-		return res.RowsAffected()
-	}
-	return 0, err
+	return addTplRel(op.O, op.User.Id, rel.TagId, rel.RoleId,
+		rel.UserId, TPL_REL_T_ACL_USER)
 }
 
 func (op *Operator) DeleteTagRoleUser(rel RelTagRoleUser) (int64, error) {
-	res, err := op.O.Raw("DELETE FROM `tpl_rel` "+
-		"WHERE tag_id = ? and tpl_id = ? and sub_id = ? and "+
-		"type_id = ?", rel.TagId, rel.RoleId, rel.UserId,
-		TPL_REL_T_ACL_USER).Exec()
-	if err == nil {
-		return res.RowsAffected()
-	}
-	return 0, err
+	return delTplRel(op.O, op.User.Id, rel.TagId, rel.RoleId,
+		rel.UserId, TPL_REL_T_ACL_USER)
 }
 
 /*******************************************************************************
  ************************ tag role token ***************************************
  ******************************************************************************/
+
+func tagRoleTokenSql(global bool, tag_id int64, query string) (where string, args []interface{}) {
+	sql2 := []string{}
+	sql3 := []interface{}{}
+
+	sql2 = append(sql2, "a.type_id = ?")
+	sql3 = append(sql3, TPL_REL_T_ACL_TOKEN)
+
+	if !global && tag_id > 0 {
+		sql2 = append(sql2, "a.tag_id = ?")
+		sql3 = append(sql3, tag_id)
+	}
+
+	if query != "" {
+		sql2 = append(sql2, "tk.name like ?")
+		sql3 = append(sql3, "%"+query+"%")
+	}
+
+	if len(sql2) != 0 {
+		where = "WHERE " + strings.Join(sql2, " AND ")
+		args = sql3
+	}
+	return
+}
+
 func (op *Operator) GetTagRoleTokenCnt(global bool, tag_id int64,
 	query string) (cnt int64, err error) {
-	// TODO: acl filter
-	// just for admin?
-	if global && query == "" {
-		err = op.O.Raw("SELECT count(*) FROM tpl_rel WHERE type_id = ?", TPL_REL_T_ACL_TOKEN).QueryRow(&cnt)
-	} else if global && query != "" { // show global query(token name)
-		err = op.O.Raw("SELECT count(*) FROM tpl_rel a LEFT JOIN token b ON b.id = a.sub_id WHERE a.type_id = ? and b.name like ?", TPL_REL_T_ACL_TOKEN, "%"+query+"%").QueryRow(&cnt)
-	} else if !global && query == "" { // show tag's token
-		err = op.O.Raw("SELECT count(*) FROM tpl_rel WHERE type_id = ? and tag_id = ?", TPL_REL_T_ACL_TOKEN, tag_id).QueryRow(&cnt)
-	} else {
-		err = op.O.Raw("SELECT count(*) FROM tpl_rel a LEFT JOIN token b ON b.id = a.sub_id WHERE a.type_id = ? and tag_id = ? and b.name like ?", TPL_REL_T_ACL_TOKEN, tag_id, "%"+query+"%").QueryRow(&cnt)
-	}
+	sql, sql_args := tagRoleUserSql(global, tag_id, query)
+	err = op.O.Raw("SELECT count(*) FROM tpl_rel a LEFT JOIN token tk ON tk.id = a.sub_id "+sql, sql_args...).QueryRow(&cnt)
 	return
 }
 
 func (op *Operator) GetTagRoleToken(global bool, tag_id int64, query string,
 	limit, offset int) (ret []TagRoleToken, err error) {
-	if global && query == "" { // show all
-		_, err = op.O.Raw("SELECT b.name as tag_name, c.name as role_name, d.name as token_name, a.tag_id, a.tpl_id as role_id, a.sub_id as token_id FROM tpl_rel a LEFT JOIN tag b ON b.id = a.tag_id LEFT JOIN role c ON c.id = a.tpl_id LEFT JOIN token d ON d.id = a.sub_id WHERE a.type_id = ? ORDER BY d.name, c.name LIMIT ? OFFSET ?", TPL_REL_T_ACL_TOKEN, limit, offset).QueryRows(&ret)
-	} else if global && query != "" { // show global query(token name)
-		_, err = op.O.Raw("SELECT b.name as tag_name, c.name as role_name, d.name as token_name, a.tag_id, a.tpl_id as role_id, a.sub_id as token_id FROM tpl_rel a LEFT JOIN tag b ON b.id = a.tag_id LEFT JOIN role c ON c.id = a.tpl_id LEFT JOIN token d ON d.id = a.sub_id WHERE a.type_id = ? and d.name like ? ORDER BY d.name, c.name  LIMIT ? OFFSET ?", TPL_REL_T_ACL_TOKEN, "%"+query+"%", limit, offset).QueryRows(&ret)
-	} else if !global && query == "" { // show tag's token
-		_, err = op.O.Raw("SELECT b.name as tag_name, c.name as role_name, d.name as token_name, a.tag_id, a.tpl_id as role_id, a.sub_id as token_id FROM tpl_rel a LEFT JOIN tag b ON b.id = a.tag_id LEFT JOIN role c ON c.id = a.tpl_id LEFT JOIN token d ON d.id = a.sub_id WHERE a.type_id = ? and a.tag_id = ? ORDER by d.name, c.name LIMIT ? OFFSET ?", TPL_REL_T_ACL_TOKEN, tag_id, limit, offset).QueryRows(&ret)
-	} else {
-		_, err = op.O.Raw("SELECT b.name as tag_name, c.name as role_name, d.name as token_name, a.tag_id, a.tpl_id as role_id, a.sub_id as token_id FROM tpl_rel a LEFT JOIN tag b ON b.id = a.tag_id LEFT JOIN role c ON c.id = a.tpl_id LEFT JOIN token d ON d.id = a.sub_id WHERE a.type_id = ? and tag_id = ? and d.name like ? ORDER BY d.name, c.name  LIMIT ? OFFSET ?", TPL_REL_T_ACL_TOKEN, tag_id, "%"+query+"%", limit, offset).QueryRows(&ret)
-	}
-	if err != nil {
-		return nil, err
-	}
+	sql, sql_args := tagRoleUserSql(global, tag_id, query)
+	sql = "SELECT t.name as tag_name, r.name as role_name, tk.name as token_name, a.tag_id, a.tpl_id as role_id, a.sub_id as token_id FROM tpl_rel a LEFT JOIN tag t ON t.id = a.tag_id LEFT JOIN role r ON r.id = a.tpl_id LEFT JOIN token tk ON tk.id = a.sub_id  " + sql + " ORDER BY tk.name, r.name LIMIT ? OFFSET ?"
+	sql_args = append(sql_args, limit, offset)
+	_, err = op.O.Raw(sql, sql_args...).QueryRows(&ret)
 	return
 }
 
 func (op *Operator) CreateTagRoleToken(rel RelTagRoleToken) (int64, error) {
-	var val string
-	val = fmt.Sprintf("(%d, %d, %d, %d)", rel.TagId,
-		rel.RoleId, rel.TokenId, TPL_REL_T_ACL_TOKEN)
-
-	res, err := op.O.Raw("INSERT `tpl_rel` (`tag_id`, `tpl_id`, " +
-		"`sub_id`, `type_id`) VALUES " + val).Exec()
-	if err == nil {
-		return res.RowsAffected()
-	}
-	return 0, err
+	return addTplRel(op.O, op.User.Id, rel.TagId, rel.RoleId,
+		rel.TokenId, TPL_REL_T_ACL_TOKEN)
 }
 
 func (op *Operator) DeleteTagRoleToken(rel RelTagRoleToken) (int64, error) {
-	res, err := op.O.Raw("DELETE FROM `tpl_rel` "+
-		"WHERE tag_id = ? and tpl_id = ? and sub_id = ?"+
-		" and type_id = ?", rel.TagId, rel.RoleId,
-		rel.TokenId, TPL_REL_T_ACL_TOKEN).Exec()
-	if err == nil {
-		return res.RowsAffected()
-	}
-	return 0, err
+	return delTplRel(op.O, op.User.Id, rel.TagId, rel.RoleId,
+		rel.TokenId, TPL_REL_T_ACL_TOKEN)
 }
 
 func (op *Operator) GetTagTags(tag_id int64) (nodes []zTreeNode, err error) {
 	if tag_id == 0 {
 		return []zTreeNode{{Id: 1, Name: "/"}}, nil
 	}
-	_, err = op.O.Raw("SELECT `tag_id` AS `id`, `b`.`name` "+
-		"FROM `tag_rel` `a` LEFT JOIN `tag` `b` "+
-		"ON `a`.`tag_id` = `b`.`id` WHERE `a`.`sup_tag_id` = ? "+
-		"AND `a`.`offset` = 1", tag_id).QueryRows(&nodes)
+	_, err = op.O.Raw("SELECT `tag_id` AS `id`, `b`.`name` FROM `tag_rel` `a` LEFT JOIN `tag` `b` ON `a`.`tag_id` = `b`.`id` WHERE `a`.`sup_tag_id` = ? AND `a`.`offset` = 1", tag_id).QueryRows(&nodes)
 	if err != nil {
 		return nil, err
 	}
@@ -429,10 +458,7 @@ func (op *Operator) GetTreeNodes(id int64) (nodes []TreeNode, err error) {
 	if id == 0 {
 		return []TreeNode{{Id: 1, Name: "/"}}, nil
 	}
-	_, err = op.O.Raw("SELECT `tag_id` AS `id`, `b`.`name` "+
-		"FROM `tag_rel` `a` LEFT JOIN `tag` `b` "+
-		"ON `a`.`tag_id` = `b`.`id` WHERE `a`.`sup_tag_id` = ? "+
-		"AND `a`.`offset` = 1", id).QueryRows(&nodes)
+	_, err = op.O.Raw("SELECT `tag_id` AS `id`, `b`.`name` FROM `tag_rel` `a` LEFT JOIN `tag` `b` ON `a`.`tag_id` = `b`.`id` WHERE `a`.`sup_tag_id` = ? AND `a`.`offset` = 1", id).QueryRows(&nodes)
 	if err != nil {
 		return nil, err
 	}
@@ -456,6 +482,10 @@ func pruneTagTree(nodes map[int64]*tagNode, idx int64) (tree *TreeNode) {
 	return tree
 }
 
+func (op *Operator) GetTreeOpNode() (nodes []int64, err error) {
+	return userHasTokenTags(op.O, op.User.Id, SYS_F_O_TOKEN)
+}
+
 func (op *Operator) GetTree() (tree *TreeNode, err error) {
 	var ns []tagNode
 	nodes := make(map[int64]*tagNode)
@@ -464,10 +494,7 @@ func (op *Operator) GetTree() (tree *TreeNode, err error) {
 		TagId: 1,
 	}
 
-	_, err = op.O.Raw("SELECT `a`.`tag_id`, `a`.`sup_tag_id`, `b`.`name` " +
-		"FROM `tag_rel` `a` LEFT JOIN `tag` `b` " +
-		"ON `a`.`tag_id` = `b`.`id` WHERE " +
-		"`a`.`offset` = 1 ORDER BY `tag_id`").QueryRows(&ns)
+	_, err = op.O.Raw("SELECT `a`.`tag_id`, `a`.`sup_tag_id`, `b`.`name` FROM `tag_rel` `a` LEFT JOIN `tag` `b` ON `a`.`tag_id` = `b`.`id` WHERE `a`.`offset` = 1 ORDER BY `tag_id`").QueryRows(&ns)
 	if err != nil {
 		return
 	}
@@ -480,31 +507,6 @@ func (op *Operator) GetTree() (tree *TreeNode, err error) {
 		return t, nil
 	}
 	return
-}
-
-/**************************
- *     tag rule trigger
- *************************/
-
-func (op *Operator) BindAclUser(tag_id, role_id, user_id int64) error {
-	return addTplRel(op.O, op.User.Id, tag_id, role_id,
-		user_id, TPL_REL_T_ACL_USER)
-}
-
-func (op *Operator) BindAclToken(tag_id, role_id, token_id int64) (err error) {
-	return addTplRel(op.O, op.User.Id, tag_id, role_id,
-		token_id, TPL_REL_T_ACL_TOKEN)
-}
-
-/*
-func (op *Operator) BindRuleHost(tag_id, rule_id, host_id int64) error {
-	return addTplRel(op.O, op.User.Id, tag_id, rule_id, host_id, TPL_REL_T_RULE_HOST)
-}
-*/
-
-func (op *Operator) BindRuleTrigger(tag_id, rule_id, trigger_id int64) error {
-	return addTplRel(op.O, op.User.Id, tag_id, rule_id,
-		trigger_id, TPL_REL_T_RULE_TRIGGER)
 }
 
 // Access
@@ -529,48 +531,41 @@ func (op *Operator) Access(token, tag string, chkExist bool) (t *Tag, err error)
 	return t, err
 }
 
+func (op *Operator) Access2(token_id, tag_id int64) (err error) {
+
+	if op.IsAdmin() {
+		return
+	}
+
+	_, err = access(op.O, op.User.Id, token_id, tag_id)
+	return err
+}
+
+// all tags that the user has token
+func userHasTokenTags(o orm.Ormer, user_id, token_id int64) (tag_ids []int64, err error) {
+	_, err = o.Raw("SELECT tag_id FROM tag_rel WHERE sup_tag_id IN ( SELECT b1.user_tag_id FROM (SELECT a1.tag_id AS user_tag_id, a2.tag_id AS token_tag_id, a1.tpl_id AS role_id, a1.sub_id AS user_id, a2.sub_id AS token_id FROM tpl_rel a1 JOIN tpl_rel a2 ON a1.type_id = ? AND a1.sub_id = ? AND a2.type_id = ?  AND a2.sub_id = ? AND a1.tpl_id = a2.tpl_id) b1 JOIN tag_rel b2 ON b1.user_tag_id = b2.tag_id AND b1.token_tag_id = b2.sup_tag_id)",
+		TPL_REL_T_ACL_USER, user_id, TPL_REL_T_ACL_TOKEN, token_id).QueryRows(&tag_ids)
+	if err != nil || len(tag_ids) == 0 {
+		err = EACCES
+	}
+
+	return
+}
+
+// if user has token
+func userHasToken(o orm.Ormer, user_id, token_id int64) (tag_id int64, err error) {
+	err = o.Raw("SELECT b1.user_tag_id FROM (SELECT a1.tag_id AS user_tag_id, a2.tag_id AS token_tag_id, a1.tpl_id AS role_id, a1.sub_id AS user_id, a2.sub_id AS token_id FROM tpl_rel a1 JOIN tpl_rel a2 ON a1.type_id = ? AND a1.sub_id = ? AND a2.type_id = ?  AND a2.sub_id = ? AND a1.tpl_id = a2.tpl_id) b1 JOIN tag_rel b2 ON b1.user_tag_id = b2.tag_id AND b1.token_tag_id = b2.sup_tag_id LIMIT 1",
+		TPL_REL_T_ACL_USER, user_id, TPL_REL_T_ACL_TOKEN, token_id).QueryRow(&tag_id)
+	if err != nil {
+		err = EACCES
+	}
+	return
+}
+
 func access(o orm.Ormer, user_id, token_id, tag_id int64) (tid int64, err error) {
 	// TODO: test
-	if tag_id == 0 {
-		err = o.Raw(`
-    SELECT MIN(b1.token_tag_id) as token_tag_id
-    FROM (SELECT a1.tag_id AS user_tag_id,
-                a2.tag_id AS token_tag_id,
-                a1.tpl_id AS role_id,
-                a1.sub_id AS user_id,
-                a2.sub_id AS token_id
-          FROM tpl_rel a1
-          JOIN tpl_rel a2 
-          ON a1.type_id = ? AND a1.sub_id = ? AND a2.type_id = ?
-	      AND a2.sub_id = ? AND a1.tpl_id = a2.tpl_id) b1
-    JOIN tag_rel b2
-    ON b1.user_tag_id = b2.tag_id AND b1.token_tag_id = b2.sup_tag_id
-    GROUP BY b1.user_tag_id
-`,
-			TPL_REL_T_ACL_USER, user_id, TPL_REL_T_ACL_TOKEN, token_id).QueryRow(&tid)
-	} else {
-		err = o.Raw(`
-SELECT c2.token_tag_id
-FROM tag_rel c1
-JOIN (
-    SELECT MAX(b1.token_tag_id) as token_tag_id, b1.user_tag_id
-    FROM (SELECT a1.tag_id AS user_tag_id,
-                a2.tag_id AS token_tag_id,
-                a1.tpl_id AS role_id,
-                a1.sub_id AS user_id,
-                a2.sub_id AS token_id
-          FROM tpl_rel a1
-          JOIN tpl_rel a2 
-          ON a1.type_id = ? AND a1.sub_id = ? AND a2.type_id = ?
-	      AND a2.sub_id = ? AND a1.tpl_id = a2.tpl_id) b1
-    JOIN tag_rel b2
-    ON b1.user_tag_id = b2.tag_id AND b1.token_tag_id = b2.sup_tag_id
-    GROUP BY b1.user_tag_id) c2
-ON  c1.sup_tag_id = c2.user_tag_id 
-WHERE c1.tag_id = ?
-`,
-			TPL_REL_T_ACL_USER, user_id, TPL_REL_T_ACL_TOKEN, token_id, tag_id).QueryRow(&tid)
-	}
+	err = o.Raw("SELECT c2.token_tag_id FROM tag_rel c1 JOIN ( SELECT MAX(b1.token_tag_id) as token_tag_id, b1.user_tag_id FROM (SELECT a1.tag_id AS user_tag_id, a2.tag_id AS token_tag_id, a1.tpl_id AS role_id, a1.sub_id AS user_id, a2.sub_id AS token_id FROM tpl_rel a1 JOIN tpl_rel a2 ON a1.type_id = ? AND a1.sub_id = ? AND a2.type_id = ?  AND a2.sub_id = ? AND a1.tpl_id = a2.tpl_id) b1 JOIN tag_rel b2 ON b1.user_tag_id = b2.tag_id AND b1.token_tag_id = b2.sup_tag_id GROUP BY b1.user_tag_id) c2 ON  c1.sup_tag_id = c2.user_tag_id WHERE c1.tag_id = ?",
+		TPL_REL_T_ACL_USER, user_id, TPL_REL_T_ACL_TOKEN, token_id, tag_id).QueryRow(&tid)
 	if err != nil {
 		err = EACCES
 	}
@@ -578,14 +573,26 @@ WHERE c1.tag_id = ?
 	return
 }
 
-func addTplRel(o orm.Ormer, user_id, tag_id, tpl_id, sub_id, type_id int64) error {
+func addTplRel(o orm.Ormer, user_id, tag_id, tpl_id, sub_id, type_id int64) (id int64, err error) {
 	t := &Tpl_rel{TplId: tpl_id, TagId: tag_id, SubId: sub_id,
 		Creator: user_id, TypeId: type_id}
 
-	id, err := o.Insert(t)
+	id, err = o.Insert(t)
 	if err != nil {
-		return err
+		return
 	}
 	DbLog(o, user_id, CTL_M_TPL, id, CTL_A_ADD, jsonStr(t))
-	return nil
+	return
+}
+
+func delTplRel(o orm.Ormer, user_id, tag_id, tpl_id, sub_id, type_id int64) (n int64, err error) {
+	t := &Tpl_rel{TplId: tpl_id, TagId: tag_id, SubId: sub_id,
+		TypeId: type_id}
+
+	n, err = o.Delete(t)
+	if err != nil {
+		return
+	}
+	DbLog(o, user_id, CTL_M_TPL, 0, CTL_A_DEL, jsonStr(t))
+	return
 }

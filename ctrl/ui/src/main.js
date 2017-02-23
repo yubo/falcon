@@ -24,8 +24,7 @@ import {
   Tabs,
   TabPane,
   Dialog,
-  DatePicker,
-  Popover
+  DatePicker
 } from 'element-ui'
 
 /* eslint-disable no-new */
@@ -48,7 +47,6 @@ Vue.use(Tabs)
 Vue.use(TabPane)
 Vue.use(Dialog)
 Vue.use(DatePicker)
-Vue.use(Popover)
 
 new Vue({
   el: '#app',
