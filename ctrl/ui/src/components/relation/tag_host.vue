@@ -1,33 +1,29 @@
-
 <template>
-<div class="mt20">
   <div id="content">
     <div class="form-inline" role="form">
       <div class="form-group">
-        <input type="text" v-model="query" @keyup.enter="handleQuery" class="form-control" placeholder="template name">
+        <input type="text" v-model="query" @keyup.enter="handleQuery" class="form-control" placeholder="host name">
       </div>
       <button type="button" @click="handleQuery" class="btn btn-primary">Search</button>
       <input type="checkbox" v-model="deep" class="form-control">
       <span>搜索子节点</span>
-      <input type="checkbox" v-model="mine" class="form-control">
-      <span>mine</span>
       <div class="pull-right">
         <div class="input-group">
-          <span class="input-group-addon">template</span> 
+          <span class="input-group-addon">host</span> 
           <el-select
             style="width: 100%"
-            placeholder="template name"
-            v-model="tpls"
+            placeholder="host name"
+            v-model="hosts"
             multiple
             filterable
             remote
-            :remote-method="getTpls"
+            :remote-method="getHosts"
             :loading="sloading">
             <el-option
-              v-for="tpl in optionTpls"
-              :key="tpl.id"
-              :label="tpl.name"
-              :value="tpl.id">
+              v-for="host in optionHosts"
+              :key="host.id"
+              :label="host.name"
+              :value="host.id">
             </el-option>
           </el-select>
         </div>
@@ -39,13 +35,11 @@
     <el-table v-loading.lock="loading" :data="tableData" border style="width: 100%" class="mt20" @selection-change="handleSelectionChange">
       <el-table-column :prop="curTag.name" :label="curTag.name" width="100%">
         <el-table-column type="selection"> </el-table-column>
-        <el-table-column prop="id" label="id"> </el-table-column>
-        <el-table-column prop="name" label="name"> </el-table-column>
-        <el-table-column prop="pid"  label="pid"> </el-table-column>
-        <el-table-column prop="ctime"  label="create time"> </el-table-column>
+        <el-table-column prop="host_name" label="host"> </el-table-column>
+        <el-table-column prop="tag_name"  label="tag"> </el-table-column>
         <el-table-column label="command">
           <template scope="scope">
-            <el-button :disabled="!isOperator" @click="unbind(scope.row)" type="danger" size="small">Unbind</el-button>
+            <el-button :disabled="!isOperator" @click="unbind(scope.row.id)" type="danger" size="small">Unbind</el-button>
           </template>
         </el-table-column>
       </el-table-column>
@@ -67,7 +61,6 @@
       </div>
     </div>
   </div>
-</div>
 </template>
 
 <script>
@@ -80,9 +73,8 @@ export default {
       loading: false,
       sloading: false,
       deep: true,
-      mine: true,
-      tpls: [],
-      optionTpls: [],
+      hosts: [],
+      optionHosts: [],
       query: '',
       per: 10,
       cur: 1,
@@ -101,25 +93,25 @@ export default {
     handleSelectionChange (val) {
       this.multipleSelection = val
     },
-    getTpls (query) {
+    getHosts (query) {
       if (query !== '') {
         this.sloading = true
         fetch({
           method: 'get',
-          url: 'template/search',
+          url: 'host/search',
           params: {
             query: query,
             per: 10
           }
         }).then((res) => {
-          this.optionTpls = res.data
+          this.optionHosts = res.data
           this.sloading = false
         }).catch((err) => {
           Msg.error('get failed', err)
           this.sloading = false
         })
       } else {
-        this.optionTpls = []
+        this.optionHosts = []
       }
     },
     sizeChange (per) {
@@ -140,8 +132,8 @@ export default {
     reFetchData () {
       fetch({
         method: 'get',
-        url: 'rel/tag/template/cnt',
-        params: { tag_id: this.curTagId, query: this.query, deep: this.deep, mine: this.mine }
+        url: 'rel/tag/host/cnt',
+        params: { tag_id: this.curTagId, query: this.query, deep: this.deep }
       }).then((res) => {
         this.total = res.data.total
         this.fetchData()
@@ -154,14 +146,12 @@ export default {
       tag_id: this.curTagId,
       query: this.query,
       deep: this.deep,
-      mine: this.mine,
-      own: this.own,
       per: this.per,
       offset: this.offset}) {
       this.loading = true
       fetch({
         method: 'get',
-        url: 'rel/tag/template/search',
+        url: 'rel/tag/host/search',
         params: opts
       }).then((res) => {
         this.tableData = res.data
@@ -175,8 +165,8 @@ export default {
       this.loading = true
       fetch({
         method: 'post',
-        url: 'rel/tag/templates',
-        data: {tag_id: this.curTagId, tpl_ids: this.tpls}
+        url: 'rel/tag/hosts',
+        data: {tag_id: this.curTagId, host_ids: this.hosts}
       }).then((res) => {
         Msg.success('success!')
         this.total++
@@ -187,7 +177,7 @@ export default {
         this.loading = false
       })
     },
-    unbind (tpl) {
+    unbind (id) {
       Msg.confirm('此操作将解绑定该记录, 是否继续?', '提示', {
         confirmButtonText: 'Confirm',
         cancelButtonText: 'Cancel',
@@ -196,10 +186,9 @@ export default {
         this.loading = true
         fetch({
           method: 'delete',
-          url: 'rel/tag/template',
+          url: 'rel/tag/host',
           data: {
-            tag_id: this.curTagId,
-            tpl_id: tpl.id
+            id: id
           }
         }).then((res) => {
           Msg.success('success!')
@@ -222,10 +211,9 @@ export default {
         this.loading = true
         fetch({
           method: 'delete',
-          url: 'rel/tag/templates',
+          url: 'rel/tag/hosts',
           data: {
-            tag_id: this.curTagId,
-            tpl_ids: this.multipleSelection.map((val) => { return val.id })
+            ids: this.multipleSelection.map((val) => { return val.id })
           }
         }).then((res) => {
           Msg.success('success!')

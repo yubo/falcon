@@ -1,6 +1,5 @@
 <template>
-<div id="content" class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
-  <h1 class="page-header">About</h1>
+<div id="content" class="main">
   <el-tabs v-model="activeName" @tab-click="handleClick" >
     <el-tab-pane label="me" name="me">
     </el-tab-pane>

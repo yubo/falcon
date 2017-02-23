@@ -1,7 +1,7 @@
 <template>
   <div class="container-fluid">
     <div class="row">
-      <div class="col-sm-3 col-md-3 sidebar">
+      <div class="col-sm-3">
         <div class="pull-right">
           <button type="button" @click="reload" class="btn btn-default"><span class="glyphicon glyphicon-refresh"></span></button>
         </div>
@@ -13,27 +13,17 @@
           @current-change="handleCurrentChange">
         </el-tree>
       </div>
-      <div class="col-sm-9 col-sm-offset-3 col-md-9 col-md-offset-3 main">
-        <ul class="nav nav-pills mt0">
-          <li is="li-tpl" v-for="(obj, li_idx) in links" :obj="obj"></li>
-        </ul>
+      <div class="col-sm-9">
         <router-view> </router-view>
       </div>
+    </div>
   </div>
 </template>
 
 <script>
-import { liTpl } from '../tpl'
-
 export default {
   data () {
     return {
-      links: [
-      { url: '/rel/tag-host', text: 'host' },
-      { url: '/rel/tag-template', text: 'template' },
-      { url: '/rel/tag-role-user', text: 'role user' },
-      { url: '/rel/tag-role-token', text: 'role token' }
-      ],
       props: {
         label: 'label',
         children: 'child'
@@ -47,9 +37,6 @@ export default {
     reload () {
       this.$store.commit('rel/m_load_tag')
     }
-  },
-  components: {
-    liTpl
   },
   computed: {
     loading () {

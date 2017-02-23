@@ -24,11 +24,11 @@ import template from './components/meta/template'
 import token from './components/meta/token'
 import user from './components/meta/user'
 
-import rel from './components/rel'
-import tagHost from './components/rel/tag_host'
-import tagRoleUser from './components/rel/tag_role_user'
-import tagRoleToken from './components/rel/tag_role_token'
-import tagTemplate from './components/rel/tag_template'
+import relation from './components/relation'
+import tagHost from './components/relation/tag_host'
+import tagRoleUser from './components/relation/tag_role_user'
+import tagRoleToken from './components/relation/tag_role_token'
+import tagTemplate from './components/relation/tag_template'
 
 Vue.use(VueRouter)
 
@@ -143,9 +143,9 @@ const router = new VueRouter({
     { path: 'user', component: user }
     ]
   }, {
-    path: '/rel',
-    redirect: '/rel/tag-host',
-    component: rel,
+    path: '/relation',
+    redirect: '/relation/tag-host',
+    component: relation,
     beforeEnter: accessReader,
     children: [
     { path: 'tag-host', component: tagHost },

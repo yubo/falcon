@@ -1,11 +1,11 @@
 <template>
-<div v-loading.lock="loading" id="content" class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
-  <h1 class="page-header">debug</h1>
-    <div class="form-group">
+<div id="content" class="main">
+  <div class="form-group">
     <button type="button" @click="debug('populate')" class="btn btn-primary">populate</button>
-    </div>
-    <div class="form-group">
+  </div>
+  <div class="form-group">
     <button type="button" @click="debug('reset_db')" class="btn btn-primary">reset db</button>
+  </div>
 </div>
 </template>
 

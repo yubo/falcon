@@ -1,5 +1,4 @@
 <template>
-<div class="mt20">
   <div id="content">
     <div class="form-inline" role="form">
       <div class="form-group">
@@ -10,7 +9,6 @@
       <span>全局搜索</span>
       <div class="pull-right">
         <div class="input-group">
-          <span class="input-group-addon">role</span> 
           <el-select
             style="width: 100%"
             placeholder="role name"
@@ -29,7 +27,6 @@
         </div>
 
         <div class="input-group">
-          <span class="input-group-addon">user</span> 
           <el-select
             style="width: 100%"
             placeholder="user name"
@@ -76,7 +73,6 @@
       </el-pagination>
     </div>
   </div>
-</div>
 </template>
 
 <script>

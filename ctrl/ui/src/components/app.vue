@@ -1,27 +1,125 @@
 <template>
 <div id="app">
-  <navbar></navbar>
-  <router-view v-if="login"></router-view>
-  <login></login>
+  <!-- Fixed navbar -->
+  <nav class="navbar navbar-inverse navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header"> <a class="navbar-brand" href="#">Falcon</a> </div>
+      <div id="navbar" class="navbar-collapse collapse">
+        <ul class="nav navbar-nav">
+          <li is="li-tpl" v-for="(nav, li_idx) in navs" :obj="nav"></li>
+        </ul>
+        <ul class="nav navbar-nav navbar-right">
+          <li class="dropdown" v-if="login">
+            <a to="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true"
+              aria-expanded="false">{{this.$store.state.auth.username}}<span class="caret"></span></a>
+            <ul class="dropdown-menu">
+              <li><router-link to="/settings/profile">Profile</router-link></li>
+              <li><router-link to="/settings/about">About</router-link></li>
+              <li><a href="/doc" target="_blank">doc</a></li>
+              <li><a href="#" @click="logout">logout</a></li>
+            </ul>
+          </li>
+        </ul>
+      </div><!--/.nav-collapse -->
+    </div>
+  </nav>
+  <div class="container">
+    <div class="container theme-showcase" role="main">
+      <ul class="nav nav-tabs" role="tablist">
+        <li is="li-tpl" v-for="(nav, li_idx) in subnavs" :obj="nav"></li>
+      </ul>
+    </div>
+  
+    <router-view v-if="login"></router-view>
+    <login></login>
+  </div>
+
 </div>
 </template>
 
 <script>
 import navbar from './navbar'
 import login from './login'
+import { liTpl } from './tpl'
 import { fetch, Msg } from 'src/utils'
 
 export default {
   components: {
     navbar,
-    login
+    login,
+    liTpl
   },
   data () {
-    return { }
+    return {
+      links: {
+        dashboard: [
+        {url: '/dashboard/graph', text: 'grpah'},
+        {url: '/dashboard/alarm', text: 'alarm'}
+        ],
+        relation: [
+        {url: '/relation/tag-host', text: 'Tag Host'},
+        {url: '/relation/tag-template', text: 'Tag Template'},
+        {url: '/relation/tag-role-user', text: 'Tag Role User'},
+        {url: '/relation/tag-role-token', text: 'Tag Role Token'}
+        ],
+        meta: [
+        {url: '/meta/tag', text: 'Tag'},
+        {url: '/meta/host', text: 'Host'},
+        {url: '/meta/role', text: 'Role'},
+        {url: '/meta/user', text: 'User'},
+        {url: '/meta/token', text: 'token'},
+        {url: '/meta/team', text: 'Team'},
+        {url: '/meta/template', text: 'Template'},
+        {url: '/meta/expression', text: 'Expression'}
+        ],
+        admin: [
+        {url: '/admin/ctrl', text: 'Ctrl'},
+        {url: '/admin/agent', text: 'Agent'},
+        {url: '/admin/loadbalance', text: 'LoadBalance'},
+        {url: '/admin/backend', text: 'Backend'},
+        {url: '/admin/debug', text: 'Debug'}
+        ],
+        settings: [
+        {url: '/settings/profile', text: 'Profile'},
+        {url: '/settings/about', text: 'About'}
+        ]
+      }
+    }
   },
   computed: {
     login () {
       return this.$store.state.auth.login
+    },
+    isAdmin () {
+      return this.$store.state.auth.admin
+    },
+    isReader () {
+      return this.$store.state.auth.reader
+    },
+    isOperator () {
+      return this.$store.state.auth.operator
+    },
+    navs () {
+      let a = []
+      if (this.isReader) {
+        a.push({url: '/dashboard', text: 'Dashboard'})
+        a.push({url: '/relation', text: 'Relatioin'})
+        a.push({url: '/meta', text: 'Meta'})
+      }
+      if (this.isAdmin) {
+        a.push({url: '/admin', text: 'Admin'})
+      }
+      if (this.login) {
+        a.push({url: '/settings', text: 'Settings'})
+      }
+      return a
+    },
+    subnavskey () {
+      return this.$route.path.slice(1).split('/')[0]
+    },
+    subnavs () {
+      return this.links[this.$route.path.slice(1).split('/')[0]]
+      // return []
     }
   },
   create () {
@@ -35,9 +133,17 @@ export default {
         Msg.error('get failed', err)
       })
     }
+  },
+  methods: {
+    logout () {
+      this.$store.dispatch('auth/logout')
+    }
   }
 }
 </script>
 
 <style>
+.nav-tabs {
+margin:10px;
+}
 </style>

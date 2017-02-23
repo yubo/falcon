@@ -1,6 +1,5 @@
 <template>
-<div id="content" class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
-  <h1 class="page-header">edit profile</h1>
+<div id="content" class="main">
   <div v-loading.lock="loading">
     <el-form label-position="right" label-width="80px" :model="userform">
       <el-form-item label="name">  <el-input :disabled="hasName" v-model="userform.name"> </el-input> </el-form-item>

@@ -1,6 +1,5 @@
 <template>
-<div id="content" class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
-  <h1 class="page-header">Backend Configurations</h1>
+<div id="content" class="main">
   <div v-loading.lock="loading">
     <el-tabs v-model="activeName" @tab-click="handleClick" >
       <el-tab-pane label="global" name="global">
