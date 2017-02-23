@@ -268,12 +268,10 @@ export default {
   methods: {
     sizeChange (per) {
       this.per = per
-      this.query = this.$route.query.query
       this.fetchObjs()
     },
     curChange (cur) {
       this.cur = cur
-      this.query = this.$route.query.query
       this.fetchObjs()
     },
     sizeChange2 (per) {

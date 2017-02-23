@@ -116,12 +116,10 @@ export default {
     },
     sizeChange (per) {
       this.per = per
-      this.query = this.$route.query.query
       this.fetchData()
     },
     curChange (cur) {
       this.cur = cur
-      this.query = this.$route.query.query
       this.fetchData()
     },
 

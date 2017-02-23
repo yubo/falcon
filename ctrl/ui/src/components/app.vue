@@ -24,29 +24,24 @@
     </div>
   </nav>
   <div class="container">
-    <div class="container theme-showcase" role="main">
+    <div class="container theme-showcase" role="main" v-if="login">
       <ul class="nav nav-tabs" role="tablist">
         <li is="li-tpl" v-for="(nav, li_idx) in subnavs" :obj="nav"></li>
       </ul>
     </div>
   
-    <router-view v-if="login"></router-view>
-    <login></login>
+    <router-view></router-view>
   </div>
 
 </div>
 </template>
 
 <script>
-import navbar from './navbar'
-import login from './login'
 import { liTpl } from './tpl'
 import { fetch, Msg } from 'src/utils'
 
 export default {
   components: {
-    navbar,
-    login,
     liTpl
   },
   data () {
@@ -80,8 +75,9 @@ export default {
         {url: '/admin/debug', text: 'Debug'}
         ],
         settings: [
+        {url: '/settings/about', text: 'About'},
         {url: '/settings/profile', text: 'Profile'},
-        {url: '/settings/about', text: 'About'}
+        {url: '/settings/log', text: 'Log'}
         ]
       }
     }
@@ -100,19 +96,19 @@ export default {
       return this.$store.state.auth.operator
     },
     navs () {
-      let a = []
+      let links = []
       if (this.isReader) {
-        a.push({url: '/dashboard', text: 'Dashboard'})
-        a.push({url: '/relation', text: 'Relatioin'})
-        a.push({url: '/meta', text: 'Meta'})
+        // links.push({url: '/dashboard', text: 'Dashboard'})
+        links.push({url: '/relation', text: 'Relatioin'})
+        links.push({url: '/meta', text: 'Meta'})
       }
       if (this.isAdmin) {
-        a.push({url: '/admin', text: 'Admin'})
+        links.push({url: '/admin', text: 'Admin'})
       }
       if (this.login) {
-        a.push({url: '/settings', text: 'Settings'})
+        links.push({url: '/settings', text: 'Settings'})
       }
-      return a
+      return links
     },
     subnavskey () {
       return this.$route.path.slice(1).split('/')[0]
@@ -136,7 +132,8 @@ export default {
   },
   methods: {
     logout () {
-      this.$store.dispatch('auth/logout')
+      this.$store.dispatch('auth/logout',
+            {router: this.$router, cb: '/'})
     }
   }
 }

@@ -3,6 +3,8 @@
 import Vue from 'vue'
 import VueRouter from 'vue-router'
 
+import login from './components/login'
+
 import admin from './components/admin'
 import ctrl from './components/admin/ctrl'
 import agent from './components/admin/agent'
@@ -13,6 +15,7 @@ import debug from './components/admin/debug'
 import settings from './components/settings'
 import profile from './components/settings/profile'
 import about from './components/settings/about'
+import log from './components/settings/log'
 
 import meta from './components/meta'
 import expression from './components/meta/expression'
@@ -52,8 +55,8 @@ function accessLogin (to, from, next) {
     if (store.state.auth.login) {
       next()
     } else {
-      Msg.error('permission denied')
-      next(false)
+      Msg.error('not login')
+      next({path: '/login', query: {cb: to.fullPath}})
     }
     return
   }
@@ -70,9 +73,12 @@ function accessReader (to, from, next) {
   if (!store.state.auth.loading) {
     if (store.state.auth.reader) {
       next()
+    } else if (store.state.auth.login) {
+      console.log(from)
+      next('/false')
     } else {
       Msg.error('permission denied')
-      next(false)
+      next({path: '/login', query: {cb: to.fullPath}})
     }
     return
   }
@@ -89,9 +95,11 @@ function accessAdmin (to, from, next) {
   if (!store.state.auth.loading) {
     if (store.state.auth.admin) {
       next()
+    } else if (store.state.auth.login) {
+      next('/false')
     } else {
       Msg.error('permission denied')
-      next(false)
+      next({path: '/login', query: {cb: to.fullPath}})
     }
     return
   }
@@ -104,7 +112,11 @@ const router = new VueRouter({
   routes:
   [{
     path: '/',
-    redirect: '/settings/about'
+    beforeEnter: accessLogin,
+    redirect: '/settings'
+  }, {
+    path: '/login',
+    component: login
   }, {
     path: '/admin',
     redirect: '/admin/ctrl',
@@ -125,7 +137,8 @@ const router = new VueRouter({
     beforeEnter: accessLogin,
     children: [
     { path: 'profile', component: profile },
-    { path: 'about', component: about }
+    { path: 'about', component: about },
+    { path: 'log', component: log }
     ]
   }, {
     path: '/meta',

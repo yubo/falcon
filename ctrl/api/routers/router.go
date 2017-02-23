@@ -14,7 +14,6 @@ package routers
 
 import (
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/astaxie/beego"
@@ -64,23 +63,15 @@ func accessFilter(ctx *context.Context) {
 		return
 	}
 
+	if strings.HasPrefix(ctx.Request.RequestURI, "/v1.0/settings") {
+		return
+	}
+
 	if strings.HasPrefix(ctx.Request.RequestURI, "/v1.0/admin") {
 		if !op.IsAdmin() {
 			http.Error(ctx.ResponseWriter, "permission denied", 403)
 		}
 		return
-	}
-
-	if strings.HasPrefix(ctx.Request.RequestURI, "/v1.0/user") {
-		if id, err := strconv.ParseInt(
-			ctx.Request.RequestURI[len("/v1.0/user/"):],
-			10, 64); err == nil {
-
-			if id == op.User.Id {
-				// if target is self, is ok
-				return
-			}
-		}
 	}
 
 	switch ctx.Request.Method {

@@ -14,15 +14,20 @@ const getters = {
 }
 
 const actions = {
-  logout ({ commit }) {
+  logout ({ commit }, args = {}) {
+    commit('m_set_loading', true)
     fetch({
       method: 'get',
       url: 'auth/logout'
     }).then((res) => {
       commit('m_logout')
       Msg.success('logout success')
+      commit('m_set_loading', false)
+      console.log(args)
+      window.location.href = '/'
     }).catch((err) => {
       Msg.error('logout failed', err)
+      commit('m_set_loading', false)
     })
   },
   info ({ commit, state }) {
@@ -45,11 +50,18 @@ const actions = {
     fetch({
       url: 'auth/login',
       method: 'post',
-      params: args
+      params: {
+        username: args.username,
+        password: args.password,
+        method: args.method
+      }
     }).then((res) => {
       commit('m_login_success', res.data)
       commit('m_set_loading', false)
       Msg.success('login success, hi ' + res.data.user.name)
+      if (args.router && args.cb) {
+        args.router.push(args.cb)
+      }
     }).catch((err) => {
       commit('m_login_fail')
       commit('m_set_loading', false)

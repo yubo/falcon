@@ -1,29 +1,36 @@
 <template>
-  <el-dialog title="login" v-model="loginVisible"
-    :close-on-click-modal="false"
-    :close-on-press-escape="false"
-    :show-close="false" >
-    <div v-loading="loading">
-      <el-tabs v-model="activeName" @tab-click="handleClick" >
-        <el-tab-pane v-if="auth.misso || auth.github || auth.google" label="auth" name="auth">
-          <el-button v-if="auth.misso" type="primary" @click="authLogin('misso')">misso</el-button>
-          <el-button v-if="auth.github" type="primary" @click="authLogin('github')">github</el-button>
-          <el-button v-if="auth.google" type="primary" @click="authLogin('google')">google</el-button>
-        </el-tab-pane>
-
-        <el-tab-pane v-if="auth.ldap" label="ldap" name="ldap">
-          <el-form label-position="right" label-width="80px" :model="ldapForm">
-            <el-form-item label="username"><el-input v-model="ldapForm.username"></el-input></el-form-item>
-            <el-form-item label="passworld"><el-input v-model="ldapForm.password" type="password"></el-input></el-form-item>
-            <el-form-item> <el-button type="primary" @click="ldapLogin">Sign in</el-button> </el-form-item>
-        </el-tab-pane>
-      </el-tabs>
+  <div class="container-fluid">
+    <div class="row login">
+      <div class="col-sm-6 col-sm-offset-3">
+        <div class="panel panel-default">
+          <div class="panel-heading"> LDAP </div>
+          <div class="panel-body">
+            <el-form label-position="right" label-width="80px" :model="ldapForm">
+              <el-form-item label="username"><el-input v-model="ldapForm.username"></el-input></el-form-item>
+              <el-form-item label="passworld"><el-input v-model="ldapForm.password" type="password"></el-input></el-form-item>
+              <el-form-item>
+                <el-button type="primary" @click="ldapLogin">Sign in</el-button>
+              </el-form-item>
+            </el-form>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-sm-offset-3">
+        <div class="panel panel-default">
+          <div class="panel-body">
+            <el-button v-if="auth.misso" type="primary" @click="authLogin('misso')">misso</el-button>
+            <el-button v-if="auth.github" type="primary" @click="authLogin('github')">github</el-button>
+            <el-button v-if="auth.google" type="primary" @click="authLogin('google')">google</el-button>
+          </div>
+        </div>
+      </div>
     </div>
-  </el-dialog>
+  </div>
 </template>
 
 <script>
 import { fetch, Msg } from 'src/utils'
+const { _ } = window
 export default {
   data () {
     return {
@@ -34,7 +41,6 @@ export default {
         ldap: false
       },
       activeName: '',
-      loginVisible: false,
       ldapForm: {
         username: '',
         password: '',
@@ -46,10 +52,11 @@ export default {
     handleClick (tab, event) {
     },
     ldapLogin () {
-      this.$store.dispatch('auth/login', this.ldapForm)
+      this.$store.dispatch('auth/login', _.merge(
+            this.ldapForm, {router: this.$router, cb: this.$route.query.cb}))
     },
     authLogin (module) {
-      window.location.href = '/v1.0/auth/login/' + module + '?cb=' + this.$router.history.current.fullPath
+      window.location.href = '/v1.0/auth/login/' + module + '?cb=' + this.$route.query.cb
     },
     fetchObjs () {
       fetch({
@@ -67,7 +74,7 @@ export default {
     }
   },
   computed: {
-    login () {
+    isLogin () {
       return this.$store.state.auth.login
     },
     loading () {
@@ -75,16 +82,14 @@ export default {
     }
   },
   created () {
-    this.loginVisible = !this.login
+    console.log('hello')
     this.fetchObjs()
-  },
-  watch: {
-    'login': function (val) {
-      this.loginVisible = !val
-    }
   }
 }
 </script>
 
 <style>
+.login {
+  margin-top:30px;
+}
 </style>

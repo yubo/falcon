@@ -42,9 +42,6 @@ export default {
   },
   methods: {
     fetchData () {
-      if (!this.$store.state.auth.login) {
-        return
-      }
       for (var k in this.userform) {
         this.userform[k] = this.$store.state.auth.user[k]
       }
@@ -56,7 +53,7 @@ export default {
       // update
       fetch({
         method: 'put',
-        url: 'user/' + this.userform.id,
+        url: 'settings/profile',
         data: this.userform
       }).then((res) => {
         Msg.success('update success')
