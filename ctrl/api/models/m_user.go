@@ -59,7 +59,7 @@ func (op *Operator) IsReader() bool {
 	return (op.Token & SYS_F_R_TOKEN) != 0
 }
 
-func (op *Operator) Tokens() (token int) {
+func (op *Operator) UserTokens() (token int) {
 	var (
 		tids []int64
 	)
@@ -112,8 +112,8 @@ func (op *Operator) Tokens() (token int) {
 
 	// for dev
 	if op.User.Name == "test" {
-		token = SYS_F_A_TOKEN | SYS_F_O_TOKEN | SYS_F_R_TOKEN
-		//token = SYS_F_O_TOKEN | SYS_F_R_TOKEN
+		//token = SYS_F_A_TOKEN | SYS_F_O_TOKEN | SYS_F_R_TOKEN
+		token = SYS_F_O_TOKEN | SYS_F_R_TOKEN
 		//token = SYS_F_R_TOKEN
 	}
 

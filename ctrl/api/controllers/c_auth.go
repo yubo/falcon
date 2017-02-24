@@ -89,7 +89,7 @@ func (c *AuthController) Callback() {
 func (c *AuthController) Info() {
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	if op.User != nil {
-		op.Token = op.Tokens()
+		op.Token = op.UserTokens()
 		c.SetSession("token", op.Token)
 	}
 	c.SendMsg(200, op.Info())
@@ -171,7 +171,7 @@ func (c *AuthController) Access(uuid string) (op *models.Operator, err error) {
 			return
 		}
 	}
-	op.Token = op.Tokens()
+	op.Token = op.UserTokens()
 
 	beego.Debug("get login user ", op.User)
 	c.SetSession("uid", op.User.Id)

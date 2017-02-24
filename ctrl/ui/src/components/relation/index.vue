@@ -8,6 +8,7 @@
         <el-tree v-loading="loading"
           :data="tagTree"
           :props="props"
+          :indent="8"
           :highlight-current="true"
           :expand-on-click-node="false"
           @current-change="handleCurrentChange">
@@ -35,7 +36,7 @@ export default {
       this.$store.commit('rel/m_cur_tag', val)
     },
     reload () {
-      this.$store.commit('rel/m_load_tag')
+      this.$store.dispatch('rel/load_tree')
     }
   },
   computed: {
@@ -48,7 +49,7 @@ export default {
   },
   created () {
     if (!this.$store.state.rel.loaded) {
-      this.$store.commit('rel/m_load_tag')
+      this.$store.dispatch('rel/load_tree')
     }
   }
 }

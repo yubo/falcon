@@ -543,7 +543,7 @@ func (op *Operator) Access2(token_id, tag_id int64) (err error) {
 
 // all tags that the user has token
 func userHasTokenTags(o orm.Ormer, user_id, token_id int64) (tag_ids []int64, err error) {
-	_, err = o.Raw("SELECT tag_id FROM tag_rel WHERE sup_tag_id IN ( SELECT b1.user_tag_id FROM (SELECT a1.tag_id AS user_tag_id, a2.tag_id AS token_tag_id, a1.tpl_id AS role_id, a1.sub_id AS user_id, a2.sub_id AS token_id FROM tpl_rel a1 JOIN tpl_rel a2 ON a1.type_id = ? AND a1.sub_id = ? AND a2.type_id = ?  AND a2.sub_id = ? AND a1.tpl_id = a2.tpl_id) b1 JOIN tag_rel b2 ON b1.user_tag_id = b2.tag_id AND b1.token_tag_id = b2.sup_tag_id)",
+	_, err = o.Raw("SELECT distinct tag_id FROM tag_rel WHERE sup_tag_id IN ( SELECT b1.user_tag_id FROM (SELECT a1.tag_id AS user_tag_id, a2.tag_id AS token_tag_id, a1.tpl_id AS role_id, a1.sub_id AS user_id, a2.sub_id AS token_id FROM tpl_rel a1 JOIN tpl_rel a2 ON a1.type_id = ? AND a1.sub_id = ? AND a2.type_id = ?  AND a2.sub_id = ? AND a1.tpl_id = a2.tpl_id) b1 JOIN tag_rel b2 ON b1.user_tag_id = b2.tag_id AND b1.token_tag_id = b2.sup_tag_id)",
 		TPL_REL_T_ACL_USER, user_id, TPL_REL_T_ACL_TOKEN, token_id).QueryRows(&tag_ids)
 	if err != nil || len(tag_ids) == 0 {
 		err = EACCES
