@@ -16,6 +16,26 @@ type SetController struct {
 	BaseController
 }
 
+// @Title Get config
+// @Description get modules config
+// @Param	module	path	string	true	"module name"
+// @Success 200 {object} [3]map[string]string {defualt{}, conf{}, configfile{}}
+// @Failure 403 string error
+// @router /config/:module [get]
+func (c *SetController) GetConfig() {
+	var err error
+
+	module := c.GetString(":module")
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
+
+	conf, err := op.ConfigGet(module)
+	if err != nil {
+		c.SendMsg(403, err.Error())
+	} else {
+		c.SendMsg(200, conf)
+	}
+}
+
 // @Title Get
 // @Description get profile
 // @Success 200 {object} models.User user info

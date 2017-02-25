@@ -373,7 +373,7 @@ func (op *Operator) GetTagRoleUserCnt(global bool, tag_id int64,
 func (op *Operator) GetTagRoleUser(global bool, tag_id int64, query string,
 	limit, offset int) (ret []TagRoleUser, err error) {
 	sql, sql_args := tagRoleUserSql(global, tag_id, query)
-	sql = "SELECT b.name as tag_name, r.name as role_name, d.name as user_name, a.tag_id, a.tpl_id as role_id, a.sub_id as user_id FROM tpl_rel a LEFT JOIN tag t ON t.id = a.tag_id LEFT JOIN role r ON r.id = a.tpl_id LEFT JOIN user u ON u.id = a.sub_id " + sql + " ORDER BY u.name, r.name LIMIT ? OFFSET ?"
+	sql = "SELECT t.name as tag_name, r.name as role_name, u.name as user_name, a.tag_id, a.tpl_id as role_id, a.sub_id as user_id FROM tpl_rel a LEFT JOIN tag t ON t.id = a.tag_id LEFT JOIN role r ON r.id = a.tpl_id LEFT JOIN user u ON u.id = a.sub_id " + sql + " ORDER BY u.name, r.name LIMIT ? OFFSET ?"
 	sql_args = append(sql_args, limit, offset)
 	_, err = op.O.Raw(sql, sql_args...).QueryRows(&ret)
 	return

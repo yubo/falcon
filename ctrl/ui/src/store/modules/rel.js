@@ -65,12 +65,43 @@ function pruneTree (tree, opnode) {
     return
   }
   for (let n in tree) {
-    let array = []
     pruneTree(tree[n].child, opnode)
-    tree[n].child = _.remove(array, (o) => {
+    _.remove(tree[n].child, (o) => {
       return ((!o.child || o.child.length === 0) && !opnode[o.id])
     })
-    console.log(tree[n].name, 'remove', array)
+    if (!opnode[tree[n].id]) {
+      tree[n].label += ' *'
+      tree[n].ro = true
+    }
+  }
+}
+
+function getNode (node, id) {
+  if (node.id === id) {
+    return node
+  }
+  for (let n in node.child) {
+    const o = getNode(node.child[n], id)
+    if (o) {
+      return o
+    }
+  }
+  return null
+}
+
+function delNode (node, id, g) {
+  if (g.done) {
+    return
+  }
+  let a = _.remove(node.child, (n) => {
+    return n.id === id
+  })
+  if (a.length > 0) {
+    g.done = true
+    return
+  }
+  for (let n in node.child) {
+    delNode(node.child[n], id, g)
   }
 }
 
@@ -86,15 +117,30 @@ const mutations = {
   },
   'm_set_tree' (state, args) {
     state.tree = args.tree
-    console.log(args)
     if (!args.admin) {
       let node = {}
       for (let k in args.opnode) {
         node[args.opnode[k]] = true
       }
       pruneTree(state.tree, node)
-      console.log('tree', state.tree)
     }
+  },
+  'm_add_node' (state, args) {
+    let node = getNode(state.tree[0], args.id)
+    if (!node.child) {
+      node.child = []
+    }
+    node.child.push({
+      id: args.cid,
+      label: args.label,
+      name: args.name,
+      child: null,
+      ro: false
+    })
+  },
+  'm_del_node' (state, id) {
+    let g = {done: false}
+    delNode(state.tree[0], id, g)
   },
   'm_set_opnode' (state, val) {
     state.opnode = val

@@ -81,7 +81,7 @@ var (
 	f_ip      = regexp.MustCompile(`^[0-9]+\.[0-0]+\.[0-9]+\.[0-9]+`)
 	f_num     = regexp.MustCompile(`^0x[0-9a-fA-F]+|^[0-9]+`)
 	f_keyword = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9-_]*`)
-	f_word    = regexp.MustCompile(`^["]?[^"\n \t;]+["]?`)
+	f_word    = regexp.MustCompile(`(^"[^"]+")|(^[^"\n \t;]+)`)
 	f_env     = regexp.MustCompile(`\$\{[a-zA-Z][0-9a-zA-Z_]+\}`)
 
 	keywords = map[string]int{

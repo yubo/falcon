@@ -69,7 +69,7 @@ func accessFilter(ctx *context.Context) {
 
 	if strings.HasPrefix(ctx.Request.RequestURI, "/v1.0/admin") {
 		if !op.IsAdmin() {
-			http.Error(ctx.ResponseWriter, "permission denied", 403)
+			http.Error(ctx.ResponseWriter, "permission denied, admin only", 403)
 		}
 		return
 	}
@@ -77,12 +77,12 @@ func accessFilter(ctx *context.Context) {
 	switch ctx.Request.Method {
 	case "GET":
 		if !op.IsReader() {
-			http.Error(ctx.ResponseWriter, "permission denied", 403)
+			http.Error(ctx.ResponseWriter, "permission denied, read", 403)
 		}
 	case "POST", "PUT", "DELETE":
 		if !op.IsOperator() {
 			beego.Debug("TOKEN ", op.Token)
-			http.Error(ctx.ResponseWriter, "permission denied", 403)
+			http.Error(ctx.ResponseWriter, "permission denied, operate", 403)
 		}
 	default:
 		http.Error(ctx.ResponseWriter, "Method Not Allowed", 405)

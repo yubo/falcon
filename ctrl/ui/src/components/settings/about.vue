@@ -31,23 +31,20 @@ export default {
       this[tab.name]()
     },
     getinfo () {
-      this.$store.commit('auth/m_set_loading', true)
-      this.$store.dispatch('auth/info')
-      this.me()
+      this.$store.dispatch('auth/info').then(() => {
+        this.me()
+      })
     },
     me () {
-      if (!this.$store.state.auth.loading) {
-        this.md = this.head
-        this.md += '\n reader | ' + this.$store.state.auth.reader
-        this.md += '\n operator | ' + this.$store.state.auth.operator
-        this.md += '\n admin | ' + this.$store.state.auth.admin
-        for (let k in this.$store.state.auth.user) {
-          this.md += '\n' + k + ' | ' + this.$store.state.auth.user[k]
-        }
-        this.activeName = 'me'
-        return
+      this.md = this.head
+      this.md += '\n reader | ' + this.$store.state.auth.reader
+      this.md += '\n operator | ' + this.$store.state.auth.operator
+      this.md += '\n admin | ' + this.$store.state.auth.admin
+      for (let k in this.$store.state.auth.user) {
+        this.md += '\n' + k + ' | ' + this.$store.state.auth.user[k]
       }
-      setTimeout(() => { this.me() }, 100)
+      this.activeName = 'me'
+      return
     },
     falcon () {
       this.md = this.head

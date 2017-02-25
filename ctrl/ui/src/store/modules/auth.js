@@ -6,8 +6,7 @@ const state = {
   admin: false,
   reader: false,
   operator: false,
-  login: false,
-  loading: false
+  login: false
 }
 
 const getters = {
@@ -15,57 +14,52 @@ const getters = {
 
 const actions = {
   logout ({ commit }, args = {}) {
-    commit('m_set_loading', true)
     fetch({
       method: 'get',
       url: 'auth/logout'
     }).then((res) => {
       commit('m_logout')
       Msg.success('logout success')
-      commit('m_set_loading', false)
       console.log(args)
       window.location.href = '/'
     }).catch((err) => {
       Msg.error('logout failed', err)
-      commit('m_set_loading', false)
     })
   },
   info ({ commit, state }) {
-    commit('m_set_loading', true)
-    fetch({
-      url: 'auth/info',
-      method: 'get'
-    }).then((res) => {
-      if (res.data.user) {
-        commit('m_login_success', res.data)
-        Msg.success('welecom ' + res.data.user.name)
-      }
-      commit('m_set_loading', false)
-    }).catch(() => {
-      commit('m_set_loading', false)
+    return new Promise((resolve, reject) => {
+      fetch({
+        url: 'auth/info',
+        method: 'get'
+      }).then((res) => {
+        if (res.data.user) {
+          commit('m_login_success', res.data)
+          Msg.success('welecom ' + res.data.user.name)
+        }
+        resolve(res)
+      }).catch((err) => {
+        reject(err)
+      })
     })
   },
   login ({ commit, state }, args = {}) {
-    commit('m_set_loading', true)
-    fetch({
-      url: 'auth/login',
-      method: 'post',
-      params: {
-        username: args.username,
-        password: args.password,
-        method: args.method
-      }
-    }).then((res) => {
-      commit('m_login_success', res.data)
-      commit('m_set_loading', false)
-      Msg.success('login success, hi ' + res.data.user.name)
-      if (args.router && args.cb) {
-        args.router.push(args.cb)
-      }
-    }).catch((err) => {
-      commit('m_login_fail')
-      commit('m_set_loading', false)
-      Msg.error('login fail', err)
+    return new Promise((resolve, reject) => {
+      fetch({
+        url: 'auth/login',
+        method: 'post',
+        params: {
+          username: args.username,
+          password: args.password,
+          method: args.method
+        }
+      }).then((res) => {
+        commit('m_login_success', res.data)
+        resolve(res)
+      }).catch((err) => {
+        commit('m_login_fail')
+        Msg.error('login fail', err)
+        reject(err)
+      })
     })
   }
 }
@@ -82,9 +76,6 @@ const mutations = {
     state.operator = false
     state.admin = false
     window.Cookies.remove('username')
-  },
-  'm_set_loading' (state, loading) {
-    state.loading = loading
   },
   'm_login_success' (state, obj) {
     state.login = true

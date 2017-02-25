@@ -50,6 +50,7 @@ const (
 	C_GOOGLE_CLIENT_ID        = "googleclientid"
 	C_GOOGLE_CLIENT_SECRET    = "googleclientsecret"
 	C_GOOGLE_REDIRECT_URL     = "googleredirecturl"
+	C_TAG_SCHEMA              = "tagschema"
 )
 
 var (

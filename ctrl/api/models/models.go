@@ -18,12 +18,11 @@ import (
 )
 
 const (
-	DB_PREFIX      = ""
-	PAGE_PER       = 10
-	SYS_TAG_SCHEMA = "cop,owt,pdl;servicegroup;service,jobgroup;job,sbs;mod;srv;grp;cluster;"
-	SYS_R_TOKEN    = "falcon_read"
-	SYS_O_TOKEN    = "falcon_operate"
-	SYS_A_TOKEN    = "falcon_admin"
+	DB_PREFIX   = ""
+	PAGE_PER    = 10
+	SYS_R_TOKEN = "falcon_read"
+	SYS_O_TOKEN = "falcon_operate"
+	SYS_A_TOKEN = "falcon_admin"
 )
 
 const (
@@ -195,7 +194,11 @@ func initConfig(conf *falcon.ConfCtrl) error {
 		beego.BConfig.WebConfig.StaticDir["/doc"] = "swagger"
 	}
 
-	return nil
+	// tag
+	var err error
+	sysTagSchema, err = NewTagSchema(c.Str(falcon.C_TAG_SCHEMA))
+
+	return err
 }
 
 func initCache(c *falcon.ConfCtrl) error {
@@ -214,8 +217,6 @@ func initCache(c *falcon.ConfCtrl) error {
 	return nil
 }
 func init() {
-	// tag
-	sysTagSchema, _ = NewTagSchema(SYS_TAG_SCHEMA)
 
 	// auth
 	allAuths = make(map[string]AuthInterface)

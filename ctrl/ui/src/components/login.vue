@@ -30,7 +30,6 @@
 
 <script>
 import { fetch, Msg } from 'src/utils'
-const { _ } = window
 export default {
   data () {
     return {
@@ -52,8 +51,10 @@ export default {
     handleClick (tab, event) {
     },
     ldapLogin () {
-      this.$store.dispatch('auth/login', _.merge(
-            this.ldapForm, {router: this.$router, cb: this.$route.query.cb}))
+      this.$store.dispatch('auth/login', this.ldapForm).then(() => {
+        this.$store.dispatch('load_config')
+        this.$router.push(this.$route.query.cb ? this.$route.query.cb : '/')
+      })
     },
     authLogin (module) {
       window.location.href = '/v1.0/auth/login/' + module + '?cb=' + this.$route.query.cb

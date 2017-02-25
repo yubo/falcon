@@ -57,12 +57,8 @@ func (c *RelController) GetTree() {
 // @router /tree/opnode [get]
 func (c *RelController) GetOpNode() {
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
-	rel, err := op.GetTreeOpNode()
-	if err != nil {
-		c.SendMsg(403, err.Error())
-	} else {
-		c.SendMsg(200, rel)
-	}
+	rel, _ := op.GetTreeOpNode()
+	c.SendMsg(200, rel)
 }
 
 // @Title GetTagNodes

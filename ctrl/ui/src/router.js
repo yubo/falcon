@@ -40,74 +40,59 @@ import { Msg } from 'src/utils'
 
 var got = false
 
-function getInfo () {
-  console.log('get info')
-  got = true
-  store.commit('auth/m_set_loading', true)
-  store.dispatch('auth/info')
+function access (type, to, from, next) {
+  if (!got) {
+    got = true
+    store.dispatch('auth/info').then(() => {
+      _access(type, to, from, next)
+      if (store.state.auth.login) {
+        store.dispatch('load_config')
+      }
+    }).catch(() => {
+      Msg.error('not login')
+      next({path: '/login', query: {cb: to.fullPath}})
+    })
+    return
+  }
+
+  _access(type, to, from, next)
+}
+
+function _access (type, to, from, next) {
+  let x = false
+
+  if (type === 'login') {
+    x = store.state.auth.login
+  } else if (type === 'reader') {
+    x = store.state.auth.reader
+  } else if (type === 'admin') {
+    x = store.state.auth.admin
+  }
+
+  if (x) {
+    next()
+  } else {
+    Msg.error('not ' + type)
+    if (!store.state.auth.login) {
+      next({path: '/login', query: {cb: to.fullPath}})
+    } else {
+      next(false)
+    }
+  }
 }
 
 function accessLogin (to, from, next) {
-  if (!got) {
-    getInfo()
-  }
-  if (!store.state.auth.loading) {
-    if (store.state.auth.login) {
-      next()
-    } else {
-      Msg.error('not login')
-      next({path: '/login', query: {cb: to.fullPath}})
-    }
-    return
-  }
-
-  setTimeout(() => {
-    accessLogin(to, from, next)
-  }, 100)
+  access('login', to, from, next)
 }
 
 function accessReader (to, from, next) {
-  if (!got) {
-    getInfo()
-  }
-  if (!store.state.auth.loading) {
-    if (store.state.auth.reader) {
-      next()
-    } else if (store.state.auth.login) {
-      console.log(from)
-      next('/false')
-    } else {
-      Msg.error('permission denied')
-      next({path: '/login', query: {cb: to.fullPath}})
-    }
-    return
-  }
-
-  setTimeout(() => {
-    accessReader(to, from, next)
-  }, 100)
+  access('reader', to, from, next)
 }
 
 function accessAdmin (to, from, next) {
-  if (!got) {
-    getInfo()
-  }
-  if (!store.state.auth.loading) {
-    if (store.state.auth.admin) {
-      next()
-    } else if (store.state.auth.login) {
-      next('/false')
-    } else {
-      Msg.error('permission denied')
-      next({path: '/login', query: {cb: to.fullPath}})
-    }
-    return
-  }
-
-  setTimeout(() => {
-    accessAdmin(to, from, next)
-  }, 100)
+  access('admin', to, from, next)
 }
+
 const router = new VueRouter({
   routes:
   [{

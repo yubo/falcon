@@ -19,9 +19,9 @@ type AdminController struct {
 }
 
 // @Title Get config
-// @Description get tag role user
-// @Param	module	path	string	true	"module  number"
-// @Success 200 {object} models.ConfigEntry {defualt{}, conf{}, configfile{}}
+// @Description get module config
+// @Param	module	path	string	true	"module name"
+// @Success 200 {object} [3]map[string]string {defualt{}, conf{}, configfile{}}
 // @Failure 403 string error
 // @router /config/:module [get]
 func (c *AdminController) GetConfig() {

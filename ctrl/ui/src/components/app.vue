@@ -38,7 +38,6 @@
 
 <script>
 import { liTpl } from './tpl'
-import { fetch, Msg } from 'src/utils'
 
 export default {
   components: {
@@ -118,17 +117,7 @@ export default {
       // return []
     }
   },
-  create () {
-    if (!this.$store.config) {
-      fetch({
-        method: 'get',
-        url: 'settings/config/ui'
-      }).then((res) => {
-        this.$store.commit('m_set_config', res.data)
-      }).catch((err) => {
-        Msg.error('get failed', err)
-      })
-    }
+  created () {
   },
   methods: {
     logout () {

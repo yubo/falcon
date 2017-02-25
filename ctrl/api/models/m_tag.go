@@ -37,6 +37,8 @@ type TagSchema struct {
 }
 
 //cop,owt,pdl,servicegroup;service,jobgroup;job,sbs;mod;srv;grp;cluster;loc;idc;status;
+// ',' : must
+// ';' : or
 func NewTagSchema(tag string) (*TagSchema, error) {
 	var (
 		i, j int
