@@ -2,7 +2,7 @@
 <div id="content" class="main">
   <div v-loading.lock="loading">
     <el-tabs v-model="activeName" @tab-click="handleClick" >
-      <el-tab-pane label="global" name="global">
+      <el-tab-pane label="general" name="general">
         <el-form label-position="right" label-width="200px" :model="form">
           <el-form-item label="run mode">
             <el-select v-model="form.runmode" placeholder="select run mode">
@@ -10,6 +10,7 @@
             </el-select>
           </el-form-item>
           <el-form-item label="enable docs"> <el-switch :disabled="disabled.enabledocs" on-text="" off-text="" v-model="enabledocs"></el-switch> </el-form-item>
+          <el-form-item label="etcd endpoints"><el-input :disabled="disabled.etcdendpoints" v-model="form.etcdendpoints"></el-input>(addr1,addr2...)</el-form-item>
           <el-form-item label="cache module"><el-input :disabled="disabled.cachemodule" v-model="form.cachemodule"></el-input></el-form-item>
           <el-form-item label="sess lifetime"> <el-input :disabled="disabled.sessiongcmaxlifetime" v-model="form.sessiongcmaxlifetime"></el-input></el-form-item>
           <el-form-item label="cookie lifetime"> <el-input :disabled="disabled.sessioncookielifetime" v-model="form.sessioncookielifetime"></el-input></el-form-item>
@@ -53,7 +54,7 @@ export default {
   data () {
     return {
       loading: false,
-      activeName: '',
+      activeName: 'general',
       enabledocs: false,
       optionRunModes: [{
         name: 'production', value: 'prod'
@@ -62,6 +63,7 @@ export default {
       form: {
         runmode: '',
         enabledocs: '',
+        etcdendpoints: '',
         sessiongcmaxlifetime: '',
         sessioncookielifetime: '',
         authmodule: '',
@@ -164,4 +166,7 @@ export default {
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
+.el-input {
+  width:380px;
+}
 </style>

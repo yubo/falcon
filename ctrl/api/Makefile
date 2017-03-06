@@ -1,4 +1,4 @@
-all: ctrl swagger/swagger.json
+all: falcon-api swagger/swagger.json
 WORKDIR=$(shell pwd)
 VENDOR=${WORKDIR}/../../vendor
 
@@ -7,10 +7,10 @@ VENDOR=${WORKDIR}/../../vendor
 ctrl: *.go */*.go
 	go build
 
-api: *.go */*.go
-	go build
+falcon-api: *.go */*.go
+	go build -o $@
 
-swagger/swagger.json: routers/router.go
+swagger/swagger.json: routers/router.go controllers/*.go
 	bee generate docs
 
 doc:
@@ -30,8 +30,8 @@ run: api
 
 
 db:
-	mysql -uroot -p12341234 falcon < ../scripts/falcon.sql
-	mysql -uroot -p12341234 falcon_test < ../scripts/falcon.sql
+	mysql -uroot -p123456 yubo_falcon < ../scripts/falcon.sql
+	mysql -uroot -p123456 yubo_falcon_test < ../scripts/falcon.sql
 
 env:
 	@echo export GOPATH=${VENDOR}

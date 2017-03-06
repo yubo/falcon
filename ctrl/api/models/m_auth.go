@@ -8,8 +8,8 @@ package models
 import "github.com/yubo/falcon"
 
 var (
-	allAuths map[string]AuthInterface
-	Auths    map[string]AuthInterface
+	allAuths = make(map[string]AuthInterface)
+	Auths    = make(map[string]AuthInterface)
 )
 
 type Auth struct {

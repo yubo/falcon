@@ -8,7 +8,6 @@ package backend
 import (
 	"container/list"
 	"errors"
-	"fmt"
 	"math"
 	"net"
 	"net/rpc"
@@ -30,6 +29,7 @@ func (l *connList) insert(c net.Conn) *list.Element {
 	defer l.Unlock()
 	return l.list.PushBack(c)
 }
+
 func (l *connList) remove(e *list.Element) net.Conn {
 	l.Lock()
 	defer l.Unlock()
@@ -37,20 +37,20 @@ func (l *connList) remove(e *list.Element) net.Conn {
 }
 
 type Bkd struct {
-	backend *Backend
+	b *Backend
 }
 
 func (p *Bkd) GetRrd(key string, rrdfile *falcon.File) (err error) {
 
-	statInc(ST_RPC_SERV_GETRRD, 1)
-	e := p.backend.cache.get(key)
+	statsInc(ST_RPC_SERV_GETRRD, 1)
+	e := p.b.cache.get(key)
 	if e != nil {
-		e.commit(p.backend)
+		e.commit(p.b)
 	}
 
-	rrdfile.Data, err = p.backend.taskFileRead(key)
+	rrdfile.Data, err = p.b.taskFileRead(key)
 	if err != nil {
-		statInc(ST_RPC_SERV_GETRRD_ERR, 1)
+		statsInc(ST_RPC_SERV_GETRRD_ERR, 1)
 	}
 
 	return
@@ -61,25 +61,46 @@ func (p *Bkd) Ping(req falcon.Null,
 	return nil
 }
 
+/* "Put" maybe better than "Send" */
+func (p *Bkd) Put(items []*falcon.RrdItem,
+	resp *falcon.RpcResp) error {
+	go p.b.handleItems(items)
+	return nil
+}
+
+func (p *Bkd) Send(items []*falcon.RrdItem,
+	resp *falcon.RpcResp) error {
+	go p.b.handleItems(items)
+	return nil
+}
+
+type rpcModule struct {
+	running     chan struct{}
+	b           *Backend
+	rpcListener *net.TCPListener
+	rpcConnects connList
+}
+
+/*
 func demoValue(idx int64, i int) float64 {
 	return math.Sin(float64(idx+int64(i)) * math.Pi / 40.0)
 }
 
 func (p *Bkd) demoStart() {
 	items := make([]*falcon.RrdItem, DEBUG_SAMPLE_NB)
-	ticker := falconTicker(time.Second*DEBUG_STEP, p.backend.Conf.Params.Debug)
+	ticker := falconTicker(time.Second*DEBUG_STEP, p.b.Conf.Debug)
 	step := DEBUG_STEP
 	j := 0
 	for {
 		select {
-		case _, ok := <-p.backend.running:
+		case _, ok := <-p.b.running:
 			if !ok {
 				return
 			}
 
 		case <-ticker:
 			for i := 0; i < DEBUG_SAMPLE_NB; i++ {
-				ts := p.backend.timeNow()
+				ts := p.b.timeNow()
 				items[i] = &falcon.RrdItem{
 					Host:      "demo",
 					Name:      fmt.Sprintf("%d", i),
@@ -101,19 +122,7 @@ func (p *Bkd) demoStart() {
 
 func (p *Bkd) demoStop() {
 }
-
-/* "Put" maybe better than "Send" */
-func (p *Bkd) Put(items []*falcon.RrdItem,
-	resp *falcon.RpcResp) error {
-	go p.backend.handleItems(items)
-	return nil
-}
-
-func (p *Bkd) Send(items []*falcon.RrdItem,
-	resp *falcon.RpcResp) error {
-	go p.backend.handleItems(items)
-	return nil
-}
+*/
 
 func (p *Backend) queryGetCacheEntry(param *falcon.RrdQuery,
 	resp *falcon.RrdResp) (*cacheEntry, error) {
@@ -127,8 +136,8 @@ func (p *Backend) queryGetCacheEntry(param *falcon.RrdQuery,
 		return nil, falcon.ErrNoent
 	}
 
-	resp.Type = e.typ()
-	resp.Step = int(e.e.step)
+	resp.Type = e.typ
+	resp.Step = int(e.step)
 
 	param.Start = param.Start - param.Start%int64(resp.Step)
 	param.End = param.End - param.End%int64(resp.Step) + int64(resp.Step)
@@ -142,7 +151,7 @@ func (p *Backend) queryGetData(param *falcon.RrdQuery, resp *falcon.RrdResp,
 	e *cacheEntry) (rrds, caches []*falcon.RRDData, err error) {
 
 	flag := atomic.LoadUint32(&e.flag)
-	caches, _ = e._getData(uint32(e.e.commitId), uint32(e.e.dataId))
+	caches, _ = e._getData(e.commitId, e.dataId)
 
 	if !p.Conf.Migrate.Disabled && flag&RRD_F_MISS != 0 {
 		node, _ := p.storageMigrateConsistent.Get(param.Id())
@@ -159,13 +168,13 @@ func (p *Backend) queryGetData(param *falcon.RrdQuery, resp *falcon.RrdResp,
 		rrds = res.Values
 	} else {
 		// read data from local rrd file
-		rrds, _ = p.taskRrdFetch(e.hashkey(), param.ConsolFun,
-			param.Start, param.End, int(e.e.step))
+		rrds, _ = p.taskRrdFetch(e.hashkey, param.ConsolFun,
+			param.Start, param.End, e.step)
 	}
 
 	// larger than rra1point range, skip merge
 	now := p.timeNow()
-	if param.Start < now-now%int64(e.e.step)-RRA1PointCnt*int64(e.e.step) {
+	if param.Start < now-now%int64(e.step)-RRA1PointCnt*int64(e.step) {
 		resp.Vs = rrds
 		return nil, nil, errors.New("skip merge")
 	}
@@ -189,13 +198,12 @@ func queryPruneCache(items []*falcon.RRDData, e *cacheEntry,
 
 	last := items[n-1].Ts
 	i := 0
-	typ := e.typ()
-	if typ == falcon.DERIVE || typ == falcon.COUNTER {
+	if e.typ == falcon.DERIVE || e.typ == falcon.COUNTER {
 		for ts < last {
 			if i < n-1 && ts == items[i].Ts &&
-				ts == items[i+1].Ts-int64(e.e.step) {
+				ts == items[i+1].Ts-int64(e.step) {
 				val = falcon.JsonFloat(items[i+1].V-
-					items[i].V) / falcon.JsonFloat(e.e.step)
+					items[i].V) / falcon.JsonFloat(e.step)
 				if val < 0 {
 					val = falcon.JsonFloat(math.NaN())
 				}
@@ -209,9 +217,9 @@ func queryPruneCache(items []*falcon.RRDData, e *cacheEntry,
 				ret = append(ret,
 					&falcon.RRDData{Ts: ts, V: val})
 			}
-			ts = ts + int64(e.e.step)
+			ts = ts + int64(e.step)
 		}
-	} else if typ == falcon.GAUGE {
+	} else if e.typ == falcon.GAUGE {
 		for ts <= last {
 			if i < n && ts == items[i].Ts {
 				val = falcon.JsonFloat(items[i].V)
@@ -225,7 +233,7 @@ func queryPruneCache(items []*falcon.RRDData, e *cacheEntry,
 				ret = append(ret,
 					&falcon.RRDData{Ts: ts, V: val})
 			}
-			ts = ts + int64(e.e.step)
+			ts = ts + int64(e.step)
 		}
 	}
 	return ret
@@ -317,7 +325,7 @@ func (p *Backend) Query(param falcon.RrdQuery,
 		ret  []*falcon.RRDData
 	)
 
-	statInc(ST_RPC_SERV_QUERY, 1)
+	statsInc(ST_RPC_SERV_QUERY, 1)
 
 	e, err = p.queryGetCacheEntry(&param, resp)
 	if err != nil {
@@ -326,162 +334,47 @@ func (p *Backend) Query(param falcon.RrdQuery,
 
 	rrds, ret, err = p.queryGetData(&param, resp, e)
 	if err != nil {
-		statInc(ST_RPC_SERV_QUERY_ITEM, len(resp.Vs))
+		statsInc(ST_RPC_SERV_QUERY_ITEM, len(resp.Vs))
 		return err
 	}
 
 	ret = queryPruneCache(ret, e, param.Start, param.End)
 
-	ret = queryMergeData(rrds, ret, param.Start, param.End, int64(e.e.step))
+	ret = queryMergeData(rrds, ret, param.Start, param.End, int64(e.step))
 
-	resp.Vs = queryPruneRet(ret, param.Start, param.End, int64(e.e.step))
+	resp.Vs = queryPruneRet(ret, param.Start, param.End, int64(e.step))
 
-	statInc(ST_RPC_SERV_QUERY_ITEM, len(resp.Vs))
+	statsInc(ST_RPC_SERV_QUERY_ITEM, len(resp.Vs))
 	return nil
 }
 
-func (p *Backend) handleItems(items []*falcon.RrdItem) {
-	var (
-		err error
-		e   *cacheEntry
-	)
-
-	if items == nil {
-		return
-	}
-
-	n := len(items)
-	if n == 0 {
-		return
-	}
-
-	glog.V(4).Infof(MODULE_NAME+"recv %d", n)
-	statInc(ST_RPC_SERV_RECV, 1)
-	statInc(ST_RPC_SERV_RECV_ITEM, n)
-
-	for i := 0; i < n; i++ {
-		if items[i] == nil {
-			continue
-		}
-		key := items[i].Csum()
-
-		e = p.cache.get(key)
-		if e == nil {
-			e, err = p.createEntry(key, items[i])
-			if err != nil {
-				continue
-			}
-		}
-
-		if DATA_TIMESTAMP_REGULATE {
-			items[i].TimeStemp = items[i].TimeStemp -
-				items[i].TimeStemp%int64(items[i].Step)
-		}
-
-		if items[i].TimeStemp <= int64(e.e.lastTs) || items[i].TimeStemp <= 0 {
-			continue
-		}
-
-		e.put(items[i])
-	}
+func (p *rpcModule) prestart(b *Backend) error {
+	p.running = make(chan struct{}, 0)
+	p.b = b
+	return nil
 }
 
-// 非法值: ts=0,value无意义
-func (p *Backend) getLast(csum string) *falcon.RRDData {
-	nan := &falcon.RRDData{Ts: 0, V: falcon.JsonFloat(0.0)}
-
-	e := p.cache.get(csum)
-	if e == nil {
-		return nan
-	}
-
-	e.RLock()
-	defer e.RUnlock()
-
-	typ := e.typ()
-	if typ == falcon.GAUGE {
-		if e.e.dataId == 0 {
-			return nan
-		}
-
-		idx := uint32(e.e.dataId-1) & CACHE_SIZE_MASK
-		return &falcon.RRDData{
-			Ts: int64(e.e.time[idx]),
-			V:  falcon.JsonFloat(e.e.value[idx]),
-		}
-	}
-
-	if typ == falcon.COUNTER || typ == falcon.DERIVE {
-
-		if e.e.dataId < 2 {
-			return nan
-		}
-
-		data, _ := e._getData(uint32(e.e.dataId)-2, uint32(e.e.dataId))
-
-		delta_ts := data[0].Ts - data[1].Ts
-		delta_v := data[0].V - data[1].V
-		if delta_ts != int64(e.e.step) || delta_ts <= 0 {
-			return nan
-		}
-		if delta_v < 0 {
-			// when cnt restarted, new cnt value would be zero, so fix it here
-			delta_v = 0
-		}
-
-		return &falcon.RRDData{Ts: data[0].Ts,
-			V: falcon.JsonFloat(float64(delta_v) / float64(delta_ts))}
-	}
-	return nan
-}
-
-func (p *Backend) getLastRaw(csum string) *falcon.RRDData {
-	nan := &falcon.RRDData{Ts: 0, V: falcon.JsonFloat(0.0)}
-	e := p.cache.get(csum)
-	if e == nil {
-		return nan
-	}
-
-	e.RLock()
-	defer e.RUnlock()
-
-	if e.typ() == falcon.GAUGE {
-		if e.e.dataId == 0 {
-			return nan
-		}
-		idx := uint32(e.e.dataId-1) & CACHE_SIZE_MASK
-		return &falcon.RRDData{
-			Ts: int64(e.e.time[idx]),
-			V:  falcon.JsonFloat(e.e.value[idx]),
-		}
-	}
-	return nan
-}
-
-func (p *Backend) rpcStart() (err error) {
-	var addr *net.TCPAddr
-
-	if !p.Conf.Params.Rpc {
+func (p *rpcModule) start(b *Backend) error {
+	enable, _ := b.Conf.Configer.Bool(falcon.C_HTTP_ENABLE)
+	if !enable {
+		glog.Info(MODULE_NAME + "rpc not enabled")
 		return nil
 	}
 
-	addr, err = net.ResolveTCPAddr("tcp", p.Conf.Params.RpcAddr)
+	addr, err := net.ResolveTCPAddr("tcp", b.Conf.Configer.Str(falcon.C_RPC_ADDR))
 	if err != nil {
 		glog.Fatalf(MODULE_NAME+"rpc.Start error, net.ResolveTCPAddr failed, %s", err)
 	}
 
-	p.rpcBkd = &Bkd{
-		backend: p,
-	}
 	rpcServer := rpc.NewServer()
-	rpcServer.Register(p.rpcBkd)
+	rpcServer.Register(&Bkd{b: b})
 
 	p.rpcListener, err = net.ListenTCP("tcp", addr)
 	if err != nil {
 		glog.Fatalf(MODULE_NAME+"rpc.Start error, listen %s failed, %s",
-			p.Conf.Params.RpcAddr, err)
+			addr, err)
 	} else {
-		glog.Infof(MODULE_NAME+"%s rpcStart ok, listening on %s", p.Conf.Params.Name, p.Conf.Params.RpcAddr)
+		glog.Infof(MODULE_NAME+"%s rpcStart ok, listening on %s", b.Conf.Name, addr)
 	}
 
 	go func() {
@@ -489,19 +382,19 @@ func (p *Backend) rpcStart() (err error) {
 		for {
 			conn, err := p.rpcListener.Accept()
 			if err != nil {
-				if p.status == falcon.APP_STATUS_EXIT {
-					return
+				// will return when rpcListener closed
+				if ne, ok := err.(net.Error); ok && ne.Temporary() {
+					if tempDelay == 0 {
+						tempDelay = 5 * time.Millisecond
+					} else {
+						tempDelay *= 2
+					}
+					if max := 1 * time.Second; tempDelay > max {
+						tempDelay = max
+					}
+					time.Sleep(tempDelay)
+					continue
 				}
-				if tempDelay == 0 {
-					tempDelay = 5 * time.Millisecond
-				} else {
-					tempDelay *= 2
-				}
-				if max := 1 * time.Second; tempDelay > max {
-					tempDelay = max
-				}
-				time.Sleep(tempDelay)
-				continue
 			}
 			tempDelay = 0
 			go func() {
@@ -512,20 +405,12 @@ func (p *Backend) rpcStart() (err error) {
 		}
 	}()
 
-	if p.Conf.Params.Debug > 1 {
-		go p.rpcBkd.demoStart()
-	}
-
 	return err
 }
 
-func (p *Backend) rpcStop() (err error) {
+func (p *rpcModule) stop(b *Backend) (err error) {
 	if p.rpcListener == nil {
 		return falcon.ErrNoent
-	}
-
-	if p.Conf.Params.Debug > 1 {
-		p.rpcBkd.demoStop()
 	}
 
 	p.rpcListener.Close()
@@ -534,6 +419,12 @@ func (p *Backend) rpcStop() (err error) {
 		e.Value.(net.Conn).Close()
 	}
 	p.rpcConnects.Unlock()
+	p.rpcConnects = connList{list: list.New()}
 
+	return nil
+}
+
+func (p *rpcModule) reload(b *Backend) error {
+	// TODO
 	return nil
 }

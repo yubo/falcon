@@ -7,10 +7,13 @@ package models
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/orm"
+	"github.com/coreos/etcd/clientv3"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/ctrl"
@@ -103,6 +106,7 @@ type Total struct {
 }
 
 var (
+	etcdConfig   clientv3.Config
 	moduleCache  [CTL_M_SIZE]cache
 	sysTagSchema *TagSchema
 
@@ -116,7 +120,7 @@ var (
 	}
 )
 
-func prestart(conf *falcon.ConfCtrl) (err error) {
+func initModels(conf *falcon.ConfCtrl) (err error) {
 	if err = initConfig(conf); err != nil {
 		panic(err)
 	}
@@ -140,6 +144,7 @@ func initMetric(c *falcon.ConfCtrl) error {
 }
 
 func initAuth(c *falcon.ConfCtrl) error {
+	Auths = make(map[string]AuthInterface)
 	for _, name := range strings.Split(c.Ctrl.Str(falcon.C_AUTH_MODULE), ",") {
 		if auth, ok := allAuths[name]; ok {
 			if auth.Init(c) == nil {
@@ -151,26 +156,35 @@ func initAuth(c *falcon.ConfCtrl) error {
 }
 
 // called by (p *Ctrl) Init()
+// already load file config and def config
+// will load db config
 func initConfig(conf *falcon.ConfCtrl) error {
 
 	beego.Debug(fmt.Sprintf("%s Init()", conf.Name))
+
+	conf.Agent.Set(falcon.APP_CONF_DEFAULT, falcon.ConfDefault["agent"])
+	conf.Loadbalance.Set(falcon.APP_CONF_DEFAULT, falcon.ConfDefault["loadbalance"])
+	conf.Backend.Set(falcon.APP_CONF_DEFAULT, falcon.ConfDefault["backend"])
+	conf.Ctrl.Set(falcon.APP_CONF_DEFAULT, falcon.ConfDefault["ctrl"])
+
+	c := &conf.Ctrl
+	dsn := c.Str(falcon.C_DSN)
+	dbMaxConn, _ := c.Int(falcon.C_DB_MAX_CONN)
+	dbMaxIdle, _ := c.Int(falcon.C_DB_MAX_IDLE)
+
 	// config
 	beego.BConfig.CopyRequestBody = true
 	beego.BConfig.WebConfig.AutoRender = false
 	beego.BConfig.WebConfig.Session.SessionOn = true
 	beego.BConfig.WebConfig.Session.SessionName = "falconSessionId"
 	beego.BConfig.WebConfig.Session.SessionProvider = "mysql"
-	beego.BConfig.WebConfig.Session.SessionProviderConfig = conf.Dsn
+	beego.BConfig.WebConfig.Session.SessionProviderConfig = dsn
 	beego.BConfig.WebConfig.Session.SessionDisableHTTPOnly = false
 	beego.BConfig.WebConfig.StaticDir["/"] = "static"
 	beego.BConfig.WebConfig.StaticDir["/static"] = "static/static"
 
-	// connect db
-	orm.RegisterDataBase("default", "mysql", conf.Dsn, conf.DbMaxIdle, conf.DbMaxConn)
-	conf.Agent.Set(falcon.APP_CONF_DEFAULT, falcon.ConfDefault["agent"])
-	conf.Lb.Set(falcon.APP_CONF_DEFAULT, falcon.ConfDefault["lb"])
-	conf.Backend.Set(falcon.APP_CONF_DEFAULT, falcon.ConfDefault["backend"])
-	conf.Ctrl.Set(falcon.APP_CONF_DEFAULT, falcon.ConfDefault["ctrl"])
+	// connect db, can not register db twice  :(
+	orm.RegisterDataBase("default", "mysql", dsn, dbMaxIdle, dbMaxConn)
 
 	// get config from db
 	o := orm.NewOrm()
@@ -179,13 +193,28 @@ func initConfig(conf *falcon.ConfCtrl) error {
 	}
 
 	// config -> beego config
-	c := &conf.Ctrl
+	if addr := strings.Split(c.Str(falcon.C_HTTP_ADDR), ":"); len(addr) == 2 {
+		beego.BConfig.Listen.HTTPAddr = addr[0]
+		beego.BConfig.Listen.HTTPPort, _ = strconv.Atoi(addr[1])
+	} else if len(addr) == 1 {
+		beego.BConfig.Listen.HTTPPort, _ = strconv.Atoi(addr[0])
+	}
 	beego.BConfig.AppName = conf.Name
 	beego.BConfig.RunMode = c.Str(falcon.C_RUN_MODE)
-	beego.BConfig.Listen.HTTPPort, _ = c.Int(falcon.C_HTTP_PORT)
 	beego.BConfig.WebConfig.EnableDocs, _ = c.Bool(falcon.C_ENABLE_DOCS)
 	beego.BConfig.WebConfig.Session.SessionGCMaxLifetime, _ = c.Int64(falcon.C_SEESION_GC_MAX_LIFETIME)
 	beego.BConfig.WebConfig.Session.SessionCookieLifeTime, _ = c.Int(falcon.C_SESSION_COOKIE_LIFETIME)
+
+	etcdConfig = clientv3.Config{
+		Endpoints:   strings.Split(c.Str(falcon.C_ETCD_ENDPOINTS), ","),
+		DialTimeout: 3 * time.Second,
+	}
+	// test etcd
+	if cli, err := clientv3.New(etcdConfig); err != nil {
+		beego.Error("etcd client:" + err.Error())
+	} else {
+		cli.Close()
+	}
 
 	if beego.BConfig.RunMode == "dev" {
 		beego.Debug("orm debug on")
@@ -217,11 +246,6 @@ func initCache(c *falcon.ConfCtrl) error {
 	return nil
 }
 func init() {
-
-	// auth
-	allAuths = make(map[string]AuthInterface)
-	Auths = make(map[string]AuthInterface)
-
 	orm.RegisterDriver("mysql", orm.DRMySQL)
 	orm.RegisterModelWithPrefix("",
 		new(User), new(Host), new(Tag),
@@ -230,5 +254,6 @@ func init() {
 		new(Template), new(Trigger), new(Expression),
 		new(Action), new(Strategy))
 
-	ctrl.RegisterInit(prestart)
+	ctrl.RegisterPrestart(initModels)
+	ctrl.RegisterReload(initModels)
 }

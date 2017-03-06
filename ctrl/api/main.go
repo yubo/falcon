@@ -14,7 +14,6 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/yubo/falcon"
-	"github.com/yubo/falcon/conf"
 	_ "github.com/yubo/falcon/ctrl/api/models"
 	_ "github.com/yubo/falcon/ctrl/api/models/auth"
 	_ "github.com/yubo/falcon/ctrl/api/routers"
@@ -43,8 +42,8 @@ func help(arg interface{}) {
 
 func start(arg interface{}) {
 	opts := arg.(*falcon.CmdOpts)
-	conf := conf.Parse(opts.ConfigFile, false)
-	app := falcon.NewProcess(conf.PidFile, conf.Modules)
+	c := falcon.Parse(opts.ConfigFile, false)
+	app := falcon.NewProcess(c)
 
 	if err := app.Check(); err != nil {
 		glog.Fatal(err)
@@ -55,7 +54,7 @@ func start(arg interface{}) {
 
 	dir, _ := os.Getwd()
 	glog.V(4).Infof("work dir :%s", dir)
-	glog.V(4).Infof("\n%s", conf)
+	glog.V(4).Infof("\n%s", c)
 
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
@@ -64,8 +63,8 @@ func start(arg interface{}) {
 
 func stop(arg interface{}) {
 	opts := arg.(*falcon.CmdOpts)
-	conf := conf.Parse(opts.ConfigFile, false)
-	app := falcon.NewProcess(conf.PidFile, conf.Modules)
+	c := falcon.Parse(opts.ConfigFile, false)
+	app := falcon.NewProcess(c)
 
 	if err := app.Kill(syscall.SIGTERM); err != nil {
 		glog.Fatal(err)
@@ -74,7 +73,7 @@ func stop(arg interface{}) {
 
 func parse(arg interface{}) {
 	opts := arg.(*falcon.CmdOpts)
-	conf := conf.Parse(opts.ConfigFile, true)
+	conf := falcon.Parse(opts.ConfigFile, true)
 	dir, _ := os.Getwd()
 	glog.Infof("work dir :%s", dir)
 	glog.Infof("\n%s", conf)
@@ -82,8 +81,8 @@ func parse(arg interface{}) {
 
 func reload(arg interface{}) {
 	opts := arg.(*falcon.CmdOpts)
-	conf := conf.Parse(opts.ConfigFile, false)
-	app := falcon.NewProcess(conf.PidFile, conf.Modules)
+	c := falcon.Parse(opts.ConfigFile, false)
+	app := falcon.NewProcess(c)
 
 	if err := app.Kill(syscall.SIGUSR1); err != nil {
 		glog.Fatal(err)

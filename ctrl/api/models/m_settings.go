@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 yubo. All rights reserved.
+ * Copyright 2016 yubo. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
@@ -332,7 +332,7 @@ func (op *Operator) ResetDb() (interface{}, error) {
 
 	// reset cache
 	// ugly hack
-	initCache(ctrl.Config)
+	initCache(ctrl.Configure)
 
 	return "reset db done", nil
 }

@@ -39,9 +39,8 @@
       <el-table-column :prop="curTag.name" :label="curTag.name" width="100%">
         <el-table-column type="selection"> </el-table-column>
         <el-table-column prop="id" label="id"> </el-table-column>
-        <el-table-column prop="name" label="name"> </el-table-column>
-        <el-table-column prop="pid"  label="pid"> </el-table-column>
-        <el-table-column prop="ctime"  label="create time"> </el-table-column>
+        <el-table-column prop="tag_name"  label="tag"> </el-table-column>
+        <el-table-column prop="tpl_name"  label="template"> </el-table-column>
         <el-table-column label="command">
           <template scope="scope">
             <el-button :disabled="!isOperator" @click="unbind(scope.row)" type="danger" size="small">Unbind</el-button>
@@ -194,8 +193,8 @@ export default {
           method: 'delete',
           url: 'rel/tag/template',
           data: {
-            tag_id: this.curTagId,
-            tpl_id: tpl.id
+            tag_id: this.tag_id,
+            tpl_id: tpl.tpl_id
           }
         }).then((res) => {
           Msg.success('success!')

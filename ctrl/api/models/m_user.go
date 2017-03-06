@@ -112,8 +112,8 @@ func (op *Operator) UserTokens() (token int) {
 
 	// for dev
 	if op.User.Name == "test" {
-		//token = SYS_F_A_TOKEN | SYS_F_O_TOKEN | SYS_F_R_TOKEN
-		token = SYS_F_O_TOKEN | SYS_F_R_TOKEN
+		token = SYS_F_A_TOKEN | SYS_F_O_TOKEN | SYS_F_R_TOKEN
+		//token = SYS_F_O_TOKEN | SYS_F_R_TOKEN
 		//token = SYS_F_R_TOKEN
 	}
 

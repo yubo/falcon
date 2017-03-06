@@ -11,6 +11,11 @@ import (
 	"strings"
 )
 
+type Dto struct {
+	Msg  string      `json:"msg"`
+	Data interface{} `json:"data"`
+}
+
 // code == 0 => success
 // code == 1 => bad request
 type RpcResp struct {

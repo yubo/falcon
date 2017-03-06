@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	_ "net/http/pprof"
 	"strconv"
 	"strings"
 	"time"
@@ -18,19 +17,39 @@ import (
 	"github.com/yubo/falcon"
 )
 
-func (p *Backend) count_handler(w http.ResponseWriter, r *http.Request) {
-	ts := p.timeNow() - 3600
+type tcpKeepAliveListener struct {
+	*net.TCPListener
+}
+
+func (ln tcpKeepAliveListener) Accept() (c net.Conn, err error) {
+	tc, err := ln.AcceptTCP()
+	if err != nil {
+		return
+	}
+	tc.SetKeepAlive(true)
+	tc.SetKeepAlivePeriod(3 * time.Minute)
+	return tc, nil
+}
+
+type httpModule struct {
+	httpListener *net.TCPListener
+	httpMux      *http.ServeMux
+	b            *Backend
+}
+
+func (p *httpModule) count_handler(w http.ResponseWriter, r *http.Request) {
+	ts := p.b.timeNow() - 3600
 	count := 0
 
-	for _, v := range p.cache.hash {
-		if int64(v.e.lastTs) > ts {
+	for _, v := range p.b.cache.hash {
+		if int64(v.lastTs) > ts {
 			count++
 		}
 	}
 	w.Write([]byte(fmt.Sprintf("%d\n", count)))
 }
 
-func (p *Backend) recv_hanlder(w http.ResponseWriter, r *http.Request) {
+func (p *httpModule) recv_hanlder(w http.ResponseWriter, r *http.Request) {
 	urlParam := r.URL.Path[len("/api/recv/"):]
 	args := strings.Split(urlParam, "/")
 
@@ -66,11 +85,11 @@ func (p *Backend) recv_hanlder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	p.handleItems([]*falcon.RrdItem{gitem})
+	p.b.handleItems([]*falcon.RrdItem{gitem})
 	renderDataJson(w, "ok")
 }
 
-func (p *Backend) recv2_handler(w http.ResponseWriter, r *http.Request) {
+func (p *httpModule) recv2_handler(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 
 	if !(len(r.Form["e"]) > 0 && len(r.Form["m"]) > 0 &&
@@ -103,7 +122,7 @@ func (p *Backend) recv2_handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	p.handleItems([]*falcon.RrdItem{gitem})
+	p.b.handleItems([]*falcon.RrdItem{gitem})
 	renderDataJson(w, "ok")
 }
 
@@ -118,10 +137,10 @@ func updateAll_concurrent_handler(w http.ResponseWriter, r *http.Request) {
 }
 
 func stat_handler(w http.ResponseWriter, r *http.Request) {
-	renderDataJson(w, statHandle())
+	renderDataJson(w, statsHandle())
 }
 
-func (p *Backend) httpRoutes() {
+func (p *httpModule) httpRoutes() {
 	p.httpMux.HandleFunc("/count", p.count_handler)
 
 	p.httpMux.HandleFunc("/api/recv/", p.recv_hanlder)
@@ -152,35 +171,29 @@ func (p *Backend) httpRoutes() {
 
 }
 
-type tcpKeepAliveListener struct {
-	*net.TCPListener
+func (p *httpModule) prestart(b *Backend) error {
+	p.httpMux = http.NewServeMux()
+	p.httpRoutes()
+	p.b = b
+	return nil
 }
 
-func (ln tcpKeepAliveListener) Accept() (c net.Conn, err error) {
-	tc, err := ln.AcceptTCP()
-	if err != nil {
-		return
-	}
-	tc.SetKeepAlive(true)
-	tc.SetKeepAlivePeriod(3 * time.Minute)
-	return tc, nil
-}
-
-func (p *Backend) httpStart() {
-	if !p.Conf.Params.Http {
-		glog.Info(MODULE_NAME + "http.Start warning, not enabled")
-		return
+func (p *httpModule) start(b *Backend) error {
+	enable, _ := b.Conf.Configer.Bool(falcon.C_HTTP_ENABLE)
+	if !enable {
+		glog.Info(MODULE_NAME + "http not enabled")
+		return nil
 	}
 
-	addr := p.Conf.Params.HttpAddr
+	addr := b.Conf.Configer.Str(falcon.C_HTTP_ADDR)
 	if addr == "" {
-		return
+		return falcon.ErrParam
 	}
 	s := &http.Server{
 		Addr:           addr,
 		MaxHeaderBytes: 1 << 30,
 	}
-	glog.Infof(MODULE_NAME+"%s httpStart listening %s", p.Conf.Params.Name, addr)
+	glog.Infof(MODULE_NAME+"%s http listening %s", b.Conf.Name, addr)
 
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
@@ -189,9 +202,14 @@ func (p *Backend) httpStart() {
 
 	p.httpListener = ln.(*net.TCPListener)
 	go s.Serve(tcpKeepAliveListener{p.httpListener})
+	return nil
 }
 
-func (p *Backend) httpStop() error {
+func (p *httpModule) stop(b *Backend) error {
 	p.httpListener.Close()
+	return nil
+}
+
+func (p *httpModule) reload(b *Backend) error {
 	return nil
 }

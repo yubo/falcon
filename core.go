@@ -18,35 +18,23 @@ const (
 	MIN_STEP     = 30 //s
 	VERSION      = "0.0.2"
 	REPLICAS     = 500
-)
-
-const (
-	_ = iota
-	ROUTINE_EVENT_M_EXIT
-	ROUTINE_EVENT_M_RELOAD
+	GAUGE        = "GAUGE"
+	DERIVE       = "DERIVE"
+	COUNTER      = "COUNTER"
+	MODULE_NAME  = "\x1B[32m[FALCON]\x1B[0m "
 )
 
 const (
 	APP_STATUS_INIT = iota
 	APP_STATUS_PENDING
-	APP_STATUS_RUNING
+	APP_STATUS_RUNNING
 	APP_STATUS_EXIT
 	APP_STATUS_RELOAD
 )
 
-const (
-	GAUGE       = "GAUGE"
-	DERIVE      = "DERIVE"
-	COUNTER     = "COUNTER"
-	MODULE_NAME = "\x1B[32m[SPECS]\x1B[0m "
-)
-
-type Dto struct {
-	Msg  string      `json:"msg"`
-	Data interface{} `json:"data"`
-}
-
 func init() {
+	falconModules = make(map[string]Module)
+
 	flags.NewCommand("version", "show falcon version information",
 		Version, flag.ExitOnError)
 

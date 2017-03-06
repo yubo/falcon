@@ -14,10 +14,10 @@ import (
 )
 
 var (
-	cacheApp  *Backend
-	testEntry *cacheEntry
-	rrdItem   *falcon.RrdItem
-	err       error
+	cacheModule *cacheModule
+	testEntry   *cacheEntry
+	rrdItem     *falcon.RrdItem
+	err         error
 )
 
 func newRrdItem1(i int) *falcon.RrdItem {
@@ -37,18 +37,14 @@ func newRrdItem1(i int) *falcon.RrdItem {
 
 func test_cache_init() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	cacheApp = new(Backend)
-	cacheApp.Conf = falcon.ConfBackend{
-		ShmMagic: 0x80386,
-		ShmKey:   0x6020,
-		ShmSize:  4096,
-		Storage: falcon.Storage{
-			Type:   "rrd",
-			Hdisks: []string{"/tmp/falcon"},
-		},
+	cacheApp = nil
+	cacheApp.Conf = &falcon.ConfBackend{
+		Name: "cacheApp",
 	}
+	cacheApp.Conf.Configer.Set(APP_CONF_FILE, map[string]string{
+		"hdisks": "/tmp/falcon",
+	})
 	cacheApp.cacheInit()
-	//cacheApp.cacheStart()
 }
 
 func TestCache(t *testing.T) {
@@ -125,36 +121,4 @@ func TestCacheQueue(t *testing.T) {
 	if testEntry.e.commitId != testEntry.e.dataId {
 		t.Errorf("len(cache) %d want %d", int(testEntry.e.dataId-testEntry.e.commitId), 0)
 	}
-}
-
-func TestCacheShm(t *testing.T) {
-	var (
-		block_nb int = 3
-		entry_nb int
-	)
-
-	cacheApp.Conf.ShmSize = 268435456
-	cacheApp.cacheReset()
-	entry_nb = block_nb * cacheApp.cache.cache_entry_nb
-	fmt.Printf("entry_nb %d block_nb %d block_entry_nb %d\n",
-		entry_nb, block_nb, cacheApp.cache.cache_entry_nb)
-
-	for i := 0; i < entry_nb; i++ {
-		rrdItem = newRrdItem1(i)
-		if testEntry, err = cacheApp.createEntry(rrdItem.Csum(), rrdItem); err != nil {
-			t.Errorf("%s:%s", "testCacheShm", err)
-		}
-	}
-
-	cacheApp.cacheStop()
-	cleanBlocks(cacheApp.cache.startkey)
-
-	if err = cacheApp.cacheInit(); err != nil {
-		t.Errorf("%s:%s", "testCacheShm", err)
-	}
-	if err = cacheApp.cacheStart(); err != nil {
-		t.Errorf("%s:%s", "testCache start", err)
-	}
-	cacheApp.cacheStop()
-	cleanBlocks(cacheApp.cache.startkey)
 }

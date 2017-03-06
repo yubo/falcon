@@ -23,14 +23,15 @@ const (
 )
 
 var (
-	initHooks = make([]hookfunc, 0)
-	Config    *falcon.ConfCtrl
+	prestartHooks = make([]hookfunc, 0)
+	reloadHooks   = make([]hookfunc, 0)
+	Configure     *falcon.ConfCtrl
 )
 
 type hookfunc func(conf *falcon.ConfCtrl) error
 
 type Ctrl struct {
-	Conf falcon.ConfCtrl
+	Conf *falcon.ConfCtrl
 	// runtime
 	status       uint32
 	running      chan struct{}
@@ -39,26 +40,37 @@ type Ctrl struct {
 	httpMux      *http.ServeMux
 }
 
-func RegisterInit(fn hookfunc) {
-	initHooks = append(initHooks, fn)
+func init() {
+	falcon.RegisterModule(falcon.GetType(falcon.ConfCtrl{}), &Ctrl{})
 }
 
-func (p Ctrl) Desc() string {
+func RegisterPrestart(fn hookfunc) {
+	prestartHooks = append(prestartHooks, fn)
+}
+
+func RegisterReload(fn hookfunc) {
+	reloadHooks = append(reloadHooks, fn)
+}
+
+func (p *Ctrl) New(conf interface{}) falcon.Module {
+	return &Ctrl{Conf: conf.(*falcon.ConfCtrl)}
+}
+
+func (p *Ctrl) Name() string {
 	return fmt.Sprintf("%s", p.Conf.Name)
 }
 
-func (p Ctrl) String() string {
-	return fmt.Sprintf("%s (\n%s\n)",
-		"conf", falcon.IndentLines(1, p.Conf.String()))
+func (p *Ctrl) String() string {
+	return p.Conf.String()
 }
 
 // ugly hack
 // should called by main package
-func (p *Ctrl) Init() error {
-	Config = &p.Conf
+func (p *Ctrl) Prestart() error {
+	Configure = p.Conf
 
-	for _, fn := range initHooks {
-		if err := fn(Config); err != nil {
+	for _, fn := range prestartHooks {
+		if err := fn(Configure); err != nil {
 			panic(err)
 		}
 	}
@@ -90,12 +102,22 @@ func (p *Ctrl) Stop() error {
 	return nil
 }
 
-func (p *Ctrl) Reload() error {
-	glog.V(3).Infof(MODULE_NAME+"%s Reload", p.Conf.Name)
+func (p Ctrl) Reload(config interface{}) error {
+	p.Conf = config.(*falcon.ConfCtrl)
+	glog.V(3).Infof(MODULE_NAME+"%s Reload()", p.Conf.Name)
+
+	Configure = p.Conf
+
+	for _, fn := range prestartHooks {
+		if err := fn(Configure); err != nil {
+			panic(err)
+		}
+	}
+
 	return nil
 }
 
-func (p *Ctrl) Signal(sig os.Signal) error {
+func (p Ctrl) Signal(sig os.Signal) error {
 	glog.V(3).Infof(MODULE_NAME+"%s signal %v", p.Conf.Name, sig)
 	return nil
 }

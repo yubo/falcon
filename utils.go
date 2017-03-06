@@ -9,6 +9,9 @@ import (
 	"crypto/md5"
 	"fmt"
 	"io"
+	"io/ioutil"
+	"reflect"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -31,4 +34,26 @@ func IndentLines(i int, lines string) (ret string) {
 		ret += fmt.Sprintf("%s%s\n", indent, l)
 	}
 	return string([]byte(ret)[:len(ret)-1])
+}
+
+func readFileInt(filename string) (int, error) {
+	data, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return 0, err
+	}
+
+	if i, err := strconv.Atoi(strings.TrimSpace(string(data))); err != nil {
+		return 0, err
+	} else {
+		return i, nil
+	}
+}
+
+func GetType(myvar interface{}) string {
+	if t := reflect.TypeOf(myvar); t.Kind() == reflect.Ptr {
+		//return "*" + t.Elem().Name()
+		return t.Elem().Name()
+	} else {
+		return t.Name()
+	}
 }

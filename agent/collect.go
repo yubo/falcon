@@ -11,21 +11,34 @@ import (
 	"github.com/yubo/falcon"
 )
 
-type Collector interface {
-	Collect(int, string) ([]*falcon.MetaData, error)
-}
-
 var (
-	collectors []Collector
+	_collector []Collector
 )
 
-func Collector_Register(c Collector) {
-	collectors = append(collectors, c)
+type Collector interface {
+	Collect(int, string) ([]*falcon.MetaData, error)
+	Reset()
 }
 
-func (p *Agent) collectStart() {
-	ticker := time.NewTicker(time.Second *
-		time.Duration(p.Conf.Interval)).C
+func RegisterCollector(c Collector) {
+	_collector = append(_collector, c)
+}
+
+type collectModule struct {
+	running chan struct{}
+}
+
+func (p *collectModule) prestart(agent *Agent) error {
+	p.running = make(chan struct{}, 0)
+	return nil
+}
+
+func (p *collectModule) start(agent *Agent) error {
+
+	host := agent.Conf.Host
+	i, _ := agent.Conf.Configer.Int(falcon.C_INTERVAL)
+	ticker := time.NewTicker(time.Second * time.Duration(i)).C
+
 	go func() {
 		for {
 			select {
@@ -35,17 +48,24 @@ func (p *Agent) collectStart() {
 				}
 			case <-ticker:
 				vs := []*falcon.MetaData{}
-				for _, c := range collectors {
-					if items, err := c.Collect(p.Conf.Interval,
-						p.Conf.Params.Host); err == nil {
+				for _, c := range _collector {
+					if items, err := c.Collect(i,
+						host); err == nil {
 						vs = append(vs, items...)
 					}
 				}
-				p.appUpdateChan <- &vs
+				agent.appUpdateChan <- &vs
 			}
 		}
 	}()
+	return nil
 }
 
-func (p *Agent) collectStop() {
+func (p *collectModule) stop(agent *Agent) error {
+	close(p.running)
+	return nil
+}
+
+func (p *collectModule) reload(agent *Agent) error {
+	return nil
 }

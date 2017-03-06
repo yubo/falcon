@@ -8,6 +8,7 @@
 *.temp
 *.output
 *.tmp
+*.pid
 
 var/
 bin/

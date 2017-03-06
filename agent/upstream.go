@@ -11,6 +11,7 @@ import (
 	"net"
 	"net/rpc"
 	"net/rpc/jsonrpc"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -18,29 +19,25 @@ import (
 	"github.com/yubo/falcon"
 )
 
-var (
-	streamPool upstreamPool
-	idxClient  int
-)
-
-type upstreamPool struct {
-	idx  uint32
-	size uint32
-	pool []string
+type upstreamModule struct {
+	running chan struct{}
+	idx     uint32
+	size    uint32
+	pool    []string
 }
 
-func (p *upstreamPool) get() string {
+func (p *upstreamModule) get() string {
 	return p.pool[atomic.AddUint32(&p.idx, 1)%p.size]
 }
 
 func rpcDial(address string,
 	timeout time.Duration) (*rpc.Client, error) {
 
-	statInc(ST_UPSTREAM_DIAL, 1)
+	statsInc(ST_UPSTREAM_DIAL, 1)
 	d := net.Dialer{Timeout: timeout}
 	conn, err := d.Dial("tcp", address)
 	if err != nil {
-		statInc(ST_UPSTREAM_DIAL_ERR, 1)
+		statsInc(ST_UPSTREAM_DIAL_ERR, 1)
 		return nil, err
 	}
 	if tc, ok := conn.(*net.TCPConn); ok {
@@ -52,11 +49,11 @@ func rpcDial(address string,
 	return jsonrpc.NewClient(conn), err
 }
 
-func reconnection(client **rpc.Client, connTimeout int) {
+func (p *upstreamModule) reconnection(client **rpc.Client, connTimeout int) {
 	var err error
 
-	statInc(ST_UPSTREAM_RECONNECT, 1)
-	addr := streamPool.get()
+	statsInc(ST_UPSTREAM_RECONNECT, 1)
+	addr := p.get()
 	if *client != nil {
 		(*client).Close()
 	}
@@ -69,7 +66,7 @@ func reconnection(client **rpc.Client, connTimeout int) {
 		glog.Infof(MODULE_NAME+"%s", err)
 
 		time.Sleep(time.Millisecond * 500)
-		addr = streamPool.get()
+		addr = p.get()
 		*client, err = rpcDial(addr,
 			time.Duration(connTimeout)*time.Millisecond)
 	}
@@ -91,7 +88,7 @@ func netRpcCall(client *rpc.Client, method string, args interface{},
 	}
 }
 
-func putRpcStorageData(client **rpc.Client, items *[]*falcon.MetaData,
+func (p *upstreamModule) putRpcStorageData(client **rpc.Client, items *[]*falcon.MetaData,
 	connTimeout, callTimeout int) error {
 	var (
 		err  error
@@ -99,8 +96,8 @@ func putRpcStorageData(client **rpc.Client, items *[]*falcon.MetaData,
 		i    int
 	)
 
-	statInc(ST_UPSTREAM_UPDATE, 1)
-	statInc(ST_UPSTREAM_UPDATE_ITEM, len(*items))
+	statsInc(ST_UPSTREAM_UPDATE, 1)
+	statsInc(ST_UPSTREAM_UPDATE_ITEM, len(*items))
 	resp = &falcon.RpcResp{}
 
 	for i = 0; i < CONN_RETRY; i++ {
@@ -113,80 +110,95 @@ func putRpcStorageData(client **rpc.Client, items *[]*falcon.MetaData,
 		}
 		glog.V(3).Info(MODULE_NAME, err)
 		if err == rpc.ErrShutdown {
-			reconnection(client, connTimeout)
+			p.reconnection(client, connTimeout)
 		}
 	}
 out:
 	if err != nil {
-		statInc(ST_UPSTREAM_UPDATE_ERR, 1)
+		statsInc(ST_UPSTREAM_UPDATE_ERR, 1)
 	}
 	return err
 }
 
-func (p *Agent) upstreamStart() {
-	var (
-		client *rpc.Client
-		err    error
-		i      int
-	)
-	p.appUpdateChan = make(chan *[]*falcon.MetaData, 16)
+func (p *upstreamModule) prestart(agent *Agent) error {
+	p.running = make(chan struct{}, 0)
+	return nil
+}
 
-	streamPool = upstreamPool{}
-	streamPool.size = uint32(len(p.Conf.Upstreams))
-	streamPool.idx = rand.Uint32() % streamPool.size
-	streamPool.pool = make([]string, int(streamPool.size))
-	copy(streamPool.pool, p.Conf.Upstreams)
+func (p *upstreamModule) start(agent *Agent) error {
 
-	if p.Conf.Params.Debug > 1 {
+	backend := strings.Split(agent.Conf.Configer.Str(falcon.C_UPSTREAM), ",")
+	connTimeout, _ := agent.Conf.Configer.Int(falcon.C_CONN_TIMEOUT)
+	callTimeout, _ := agent.Conf.Configer.Int(falcon.C_CALL_TIMEOUT)
+	payloadSize, _ := agent.Conf.Configer.Int(falcon.C_PAYLOADSIZE)
+	debug := agent.Conf.Debug
+
+	p.size = uint32(len(backend))
+	p.idx = rand.Uint32() % p.size
+	p.pool = make([]string, int(p.size))
+	copy(p.pool, backend)
+
+	if debug > 1 {
 		go func() {
 			for {
-				items, ok := <-p.appUpdateChan
-				if !ok {
-					return
-				}
-				for k, v := range *items {
-					glog.V(3).Infof(MODULE_NAME+"%d %s", k, v)
+				select {
+				case _, ok := <-p.running:
+					if !ok {
+						return
+					}
+				case items := <-agent.appUpdateChan:
+					for k, v := range *items {
+						glog.V(3).Infof(MODULE_NAME+"%d %s", k, v)
+					}
 				}
 			}
 		}()
-		return
+		return nil
 	}
 
 	go func() {
 
-		client, err = rpcDial(streamPool.get(),
-			time.Duration(p.Conf.Params.ConnTimeout)*
+		client, err := rpcDial(p.get(),
+			time.Duration(connTimeout)*
 				time.Millisecond)
 		if err != nil {
-			reconnection(&client, p.Conf.Params.ConnTimeout)
+			p.reconnection(&client, connTimeout)
 		}
 
 		for {
-			items, ok := <-p.appUpdateChan
-			if !ok {
-				client.Close()
-				return
-			}
-
-			n := p.Conf.PayloadSize
-			for i = 0; i < len(*items)-n; i += n {
-				_items := (*items)[i : i+n]
-				putRpcStorageData(&client, &_items,
-					p.Conf.Params.ConnTimeout,
-					p.Conf.Params.CallTimeout)
-			}
-			if i < len(*items) {
-				_items := (*items)[i:]
-				putRpcStorageData(&client, &_items,
-					p.Conf.Params.ConnTimeout,
-					p.Conf.Params.CallTimeout)
+			select {
+			case _, ok := <-p.running:
+				if !ok {
+					return
+				}
+			case items := <-agent.appUpdateChan:
+				n := payloadSize
+				i := 0
+				for ; i < len(*items)-n; i += n {
+					_items := (*items)[i : i+n]
+					p.putRpcStorageData(&client, &_items,
+						connTimeout,
+						callTimeout)
+				}
+				if i < len(*items) {
+					_items := (*items)[i:]
+					p.putRpcStorageData(&client, &_items,
+						connTimeout,
+						callTimeout)
+				}
 			}
 
 		}
 	}()
-
+	return nil
 }
 
-func (p *Agent) upstreamStop() {
-	close(p.appUpdateChan)
+func (p *upstreamModule) stop(agent *Agent) error {
+	close(p.running)
+	return nil
+}
+
+func (p *upstreamModule) reload(agent *Agent) error {
+	// TODO
+	return nil
 }

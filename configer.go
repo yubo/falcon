@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 yubo. All rights reserved.
+ * Copyright 2017 yubo. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
@@ -20,9 +20,113 @@ const (
 	APP_CONF_SIZE
 )
 
+const (
+	C_ETCD_ENDPOINTS          = "etcdendpoints"
+	C_RUN_MODE                = "runmode"
+	C_ENABLE_DOCS             = "enabledocs"
+	C_SEESION_GC_MAX_LIFETIME = "sessiongcmaxlifetime"
+	C_SESSION_COOKIE_LIFETIME = "sessioncookielifetime"
+	C_AUTH_MODULE             = "authmodule"
+	C_CACHE_MODULE            = "cachemodule"
+	C_LDAP_ADDR               = "ldapaddr"
+	C_LDAP_BASE_DN            = "ldapbasedn"
+	C_LDAP_BIND_DN            = "ldapbinddn"
+	C_LDAP_BIND_PWD           = "ldapbindpwd"
+	C_LDAP_FILTER             = "ldapfilter"
+	C_MISSO_REDIRECT_URL      = "missoredirecturl"
+	C_GITHUB_CLIENT_ID        = "githubclientid"
+	C_GITHUB_CLIENT_SECRET    = "githubclientsecret"
+	C_GITHUB_REDIRECT_URL     = "githubredirecturl"
+	C_GOOGLE_CLIENT_ID        = "googleclientid"
+	C_GOOGLE_CLIENT_SECRET    = "googleclientsecret"
+	C_GOOGLE_REDIRECT_URL     = "googleredirecturl"
+	C_TAG_SCHEMA              = "tagschema"
+	C_CONN_TIMEOUT            = "conntimeout"
+	C_CALL_TIMEOUT            = "calltimeout"
+	C_WORKER_PROCESSES        = "workerprocesses"
+	C_HTTP_ENABLE             = "httpenable"
+	C_HTTP_ADDR               = "httpaddr"
+	C_RPC_ENABLE              = "rcpenable"
+	C_RPC_ADDR                = "rcpaddr"
+	C_GRPC_ENABLE             = "grcpenable"
+	C_GRPC_ADDR               = "grcpaddr"
+	C_INTERVAL                = "interval"
+	C_IFACE_PREFIX            = "ifaceprefix"
+	C_PAYLOADSIZE             = "payloadsize"
+	C_DSN                     = "dsn"
+	C_DB_MAX_IDLE             = "dbmaxidle"
+	C_DB_MAX_CONN             = "dbmaxconn"
+	C_HDISK                   = "hdisk"
+	C_UPSTREAM                = "upstream"
+	C_IDX                     = "idx"
+	C_IDXINTERVAL             = "idxinterval"
+	C_IDXFULLINTERVAL         = "idxfullinterval"
+	C_SHMMAGIC                = "shmmagic"
+	C_SHMKEY                  = "shmkey"
+	C_SHMSIZE                 = "shmsize"
+)
+
 var (
 	APP_CONF_NAME = [APP_CONF_SIZE]string{
 		"default", "db", "file",
+	}
+
+	ConfDefault = map[string]map[string]string{
+		"agent": map[string]string{
+			C_CONN_TIMEOUT:     "1000",
+			C_CALL_TIMEOUT:     "5000",
+			C_WORKER_PROCESSES: "2",
+			C_HTTP_ENABLE:      "true",
+			C_HTTP_ADDR:        "127.0.0.1:1988",
+			C_RPC_ENABLE:       "true",
+			C_RPC_ADDR:         "127.0.0.1:1989",
+			C_GRPC_ENABLE:      "true",
+			C_GRPC_ADDR:        "127.0.0.1:1990",
+			C_INTERVAL:         "60",
+			C_PAYLOADSIZE:      "16",
+			C_IFACE_PREFIX:     "eth,em",
+		},
+		"loadbalance": map[string]string{
+			C_CONN_TIMEOUT:     "1000",
+			C_CALL_TIMEOUT:     "5000",
+			C_WORKER_PROCESSES: "2",
+			C_HTTP_ENABLE:      "true",
+			C_HTTP_ADDR:        "127.0.0.1:6060",
+			C_RPC_ENABLE:       "true",
+			C_RPC_ADDR:         "127.0.0.1:8433",
+			C_GRPC_ENABLE:      "true",
+			C_GRPC_ADDR:        "127.0.0.1:8434",
+			C_PAYLOADSIZE:      "16",
+		},
+		"backend": map[string]string{
+			C_CONN_TIMEOUT:     "1000",
+			C_CALL_TIMEOUT:     "5000",
+			C_WORKER_PROCESSES: "2",
+			C_HTTP_ENABLE:      "true",
+			C_HTTP_ADDR:        "127.0.0.1:7021",
+			C_RPC_ENABLE:       "true",
+			C_RPC_ADDR:         "127.0.0.1:7020",
+			C_GRPC_ENABLE:      "true",
+			C_GRPC_ADDR:        "127.0.0.1:7022",
+			C_IDX:              "true",
+			C_IDXINTERVAL:      "30",
+			C_IDXFULLINTERVAL:  "86400",
+			C_DB_MAX_IDLE:      "4",
+			C_SHMMAGIC:         "0x80386",
+			C_SHMKEY:           "0x7020",
+			C_SHMSIZE:          "0x10000000",
+		},
+		"ctrl": map[string]string{
+			C_RUN_MODE:                "dev",
+			C_HTTP_ADDR:               "8001",
+			C_ENABLE_DOCS:             "true",
+			C_SEESION_GC_MAX_LIFETIME: "86400",
+			C_SESSION_COOKIE_LIFETIME: "86400",
+			C_AUTH_MODULE:             "ldap",
+			C_CACHE_MODULE:            "host,role,system,tag,user",
+			C_DB_MAX_CONN:             "30",
+			C_DB_MAX_IDLE:             "30",
+		},
 	}
 )
 
@@ -37,8 +141,13 @@ func (c Configer) String() string {
 		for k, v := range c.data[i] {
 			s1 += fmt.Sprintf("%-17s %s\n", k, v)
 		}
-		s += fmt.Sprintf("%-17s {\n%s\n}\n",
-			APP_CONF_NAME[i], IndentLines(1, s1))
+		if len(s1) > 0 {
+			s += fmt.Sprintf("%-17s {\n%s\n}\n",
+				APP_CONF_NAME[i], IndentLines(1, s1))
+		} else {
+			s += fmt.Sprintf("%-17s { }\n",
+				APP_CONF_NAME[i])
+		}
 	}
 	return s
 }

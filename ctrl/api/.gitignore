@@ -8,3 +8,5 @@ swagger/
 api
 static/
 app.conf
+*.tmp
+

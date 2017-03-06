@@ -13,7 +13,7 @@ import (
 	"github.com/golang/glog"
 )
 
-type statModule struct {
+type statsIdx struct {
 	begin, end int
 }
 
@@ -73,8 +73,12 @@ const (
 	ST_M_SIZE int = iota
 )
 
+const (
+	DEBUG_STAT_MODULE = ST_M_CACHE | ST_M_INDEX
+)
+
 var (
-	stat_module [ST_M_SIZE]statModule = [ST_M_SIZE]statModule{
+	stat_module [ST_M_SIZE]statsIdx = [ST_M_SIZE]statsIdx{
 		{
 			ST_RPC_SERV_QUERY,
 			ST_RRD_CREAT,
@@ -143,7 +147,7 @@ var (
 	statCnt [ST_ARRAY_SIZE]uint64
 )
 
-func statHandle() (ret string) {
+func statsHandle() (ret string) {
 	for i := 0; i < ST_ARRAY_SIZE; i++ {
 		ret += fmt.Sprintf("%s %d\n",
 			statName[i], atomic.LoadUint64(&statCnt[i]))
@@ -151,7 +155,7 @@ func statHandle() (ret string) {
 	return ret
 }
 
-func statModuleHandle(m uint32) (ret string) {
+func statsModuleHandle(m uint32) (ret string) {
 	for i := 0; i < ST_M_SIZE; i++ {
 		if m&1 == 1 {
 			for j := stat_module[i].begin; j < stat_module[i].end; j++ {
@@ -164,21 +168,36 @@ func statModuleHandle(m uint32) (ret string) {
 	return ret
 }
 
-func statInc(idx, n int) {
+func statsInc(idx, n int) {
 	atomic.AddUint64(&statCnt[idx], uint64(n))
 }
 
-func statSet(idx, n int) {
+func statsSet(idx, n int) {
 	atomic.StoreUint64(&statCnt[idx], uint64(n))
 }
 
-func statGet(idx int) uint64 {
+func statsGet(idx int) uint64 {
 	return atomic.LoadUint64(&statCnt[idx])
 }
 
-func (p *Backend) statStart() {
-	if p.Conf.Params.Debug > 0 {
-		ticker := falconTicker(time.Second*DEBUG_STAT_STEP, p.Conf.Params.Debug)
+func statsRrd() {
+	for i := ST_RRD_CREAT; i <= ST_RRD_FETCH_ERR; i++ {
+		glog.V(3).Infof("%s %d", statName[i], statCnt[i])
+	}
+}
+
+type statsModule struct {
+	running chan struct{}
+}
+
+func (p *statsModule) prestart(b *Backend) error {
+	p.running = make(chan struct{}, 0)
+	return nil
+}
+
+func (p *statsModule) start(b *Backend) error {
+	if b.Conf.Debug > 0 {
+		ticker := falconTicker(time.Second*DEBUG_STAT_STEP, b.Conf.Debug)
 		go func() {
 			for {
 				select {
@@ -186,20 +205,20 @@ func (p *Backend) statStart() {
 					if !ok {
 						return
 					}
-
 				case <-ticker:
-					glog.V(3).Info(MODULE_NAME + statModuleHandle(DEBUG_STAT_MODULE))
+					glog.V(3).Info(MODULE_NAME + statsModuleHandle(DEBUG_STAT_MODULE))
 				}
 			}
 		}()
 	}
+	return nil
 }
 
-func (p *Backend) statStop() {
+func (p *statsModule) stop(b *Backend) error {
+	close(p.running)
+	return nil
 }
 
-func statRrd() {
-	for i := ST_RRD_CREAT; i <= ST_RRD_FETCH_ERR; i++ {
-		glog.V(3).Infof("%s %d", statName[i], statCnt[i])
-	}
+func (p *statsModule) reload(b *Backend) error {
+	return nil
 }

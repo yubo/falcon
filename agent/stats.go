@@ -24,7 +24,8 @@ const (
 )
 
 var (
-	statName [ST_ARRAY_SIZE]string = [ST_ARRAY_SIZE]string{
+	counter     [ST_ARRAY_SIZE]uint64
+	counterName [ST_ARRAY_SIZE]string = [ST_ARRAY_SIZE]string{
 		"ST_UPSTREAM_RECONNECT",
 		"ST_UPSTREAM_DIAL",
 		"ST_UPSTREAM_DIAL_ERR",
@@ -34,47 +35,58 @@ var (
 	}
 )
 
-var (
-	statCnt [ST_ARRAY_SIZE]uint64
-)
+func statsInc(idx, n int) {
+	atomic.AddUint64(&counter[idx], uint64(n))
+}
 
-func statHandle() (ret string) {
+func statsSet(idx, n int) {
+	atomic.StoreUint64(&counter[idx], uint64(n))
+}
+
+func statsGet(idx int) uint64 {
+	return atomic.LoadUint64(&counter[idx])
+}
+
+func statsHandle() (ret string) {
 	for i := 0; i < ST_ARRAY_SIZE; i++ {
-		ret += fmt.Sprintf("%s %d\n", statName[i],
-			atomic.LoadUint64(&statCnt[i]))
+		ret += fmt.Sprintf("%s %d\n", counterName[i],
+			atomic.LoadUint64(&counter[i]))
 	}
 	return ret
 }
 
-func statInc(idx, n int) {
-	atomic.AddUint64(&statCnt[idx], uint64(n))
+type statsModule struct {
+	running chan struct{}
 }
 
-func statSet(idx, n int) {
-	atomic.StoreUint64(&statCnt[idx], uint64(n))
+func (p *statsModule) prestart(agent *Agent) error {
+	p.running = make(chan struct{}, 0)
+	return nil
 }
 
-func statGet(idx int) uint64 {
-	return atomic.LoadUint64(&statCnt[idx])
-}
-
-func (p *Agent) statStart() {
-	if p.Conf.Params.Debug > 0 {
+func (p *statsModule) start(agent *Agent) error {
+	if agent.Conf.Debug > 0 {
 		ticker := time.NewTicker(time.Second * DEBUG_STAT_STEP).C
 		go func() {
 			for {
 				select {
-				case <-ticker:
-					glog.V(3).Info(MODULE_NAME + statHandle())
 				case _, ok := <-p.running:
 					if !ok {
 						return
 					}
+				case <-ticker:
+					glog.V(3).Info(MODULE_NAME + statsHandle())
 				}
 			}
 		}()
 	}
+	return nil
 }
 
-func (p *Agent) statStop() {
+func (p *statsModule) stop(agent *Agent) error {
+	close(p.running)
+	return nil
+}
+func (p *statsModule) reload(agent *Agent) error {
+	return nil
 }

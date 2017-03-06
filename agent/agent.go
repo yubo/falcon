@@ -6,9 +6,6 @@
 package agent
 
 import (
-	"fmt"
-	"net"
-	"net/http"
 	"os"
 
 	"github.com/golang/glog"
@@ -19,108 +16,120 @@ const (
 	MODULE_NAME     = "\x1B[32m[AGENT]\x1B[0m "
 	CONN_RETRY      = 2
 	DEBUG_STAT_STEP = 60
-	CTRL_STEP       = 360
 )
 
+var (
+	modules []module
+)
+
+func init() {
+	falcon.RegisterModule(falcon.GetType(falcon.ConfAgent{}), &Agent{})
+	registerModule(&statsModule{})
+	registerModule(&collectModule{})
+	registerModule(&upstreamModule{})
+	registerModule(&httpModule{})
+}
+
+// module {{{
+
+type module interface {
+	prestart(*Agent) error // alloc public data
+	start(*Agent) error    // alloc private data, run private goroutine
+	stop(*Agent) error     // free private data, private goroutine exit
+	reload(*Agent) error   // try to keep the data, refresh configure
+}
+
+func registerModule(m module) {
+	modules = append(modules, m)
+}
+
+// }}}
+
+// Agent {{{
 type Agent struct {
-	Conf falcon.ConfAgent
+	Conf    *falcon.ConfAgent
+	oldConf *falcon.ConfAgent
 	// runtime
+	status        uint32
 	appUpdateChan chan *[]*falcon.MetaData
-	httpListener  *net.TCPListener
-	httpMux       *http.ServeMux
-	running       chan struct{}
 }
 
-func (p Agent) Desc() string {
-	return fmt.Sprintf("%s", p.Conf.Params.Name)
+func (p *Agent) New(conf interface{}) falcon.Module {
+	return &Agent{
+		Conf:          conf.(*falcon.ConfAgent),
+		appUpdateChan: make(chan *[]*falcon.MetaData, 16),
+	}
 }
 
-func (p Agent) String() string {
+func (p *Agent) Name() string {
+	return p.Conf.Name
+}
+
+func (p *Agent) String() string {
 	return p.Conf.String()
 }
 
-func (p *Agent) Init() error {
-	glog.V(3).Infof(MODULE_NAME+"%s Init()", p.Conf.Params.Name)
-	// core
-	//runtime.GOMAXPROCS(runtime.NumCPU())
+func (p *Agent) Prestart() (err error) {
+	glog.V(3).Infof(MODULE_NAME+"%s Prestart()", p.Conf.Name)
+	p.status = falcon.APP_STATUS_INIT
 
-	// http
-	p.httpMux = http.NewServeMux()
-	p.httpRoutes()
-
-	return nil
+	for i := 0; i < len(modules); i++ {
+		if e := modules[i].prestart(p); e != nil {
+			//panic(err)
+			err = e
+			glog.Error(err)
+		}
+	}
+	return err
 }
 
-func (p *Agent) Start() error {
-	glog.V(3).Infof(MODULE_NAME+"%s Start()", p.Conf.Params.Name)
-	p.running = make(chan struct{}, 0)
-	p.ctrlStart()
-	p.statStart()
-	p.upstreamStart()
-	p.httpStart()
-	p.collectStart()
-	return nil
+func (p *Agent) Start() (err error) {
+	glog.V(3).Infof(MODULE_NAME+"%s Start()", p.Conf.Name)
+	p.status = falcon.APP_STATUS_PENDING
+
+	for i := 0; i < len(modules); i++ {
+		if e := modules[i].start(p); e != nil {
+			err = e
+			glog.Error(err)
+		}
+	}
+	p.status = falcon.APP_STATUS_RUNNING
+
+	return err
 }
 
-func (p *Agent) Stop() error {
-	glog.V(3).Infof(MODULE_NAME+"%s Stop()", p.Conf.Params.Name)
-	close(p.running)
-	p.collectStop()
-	p.httpStop()
-	p.upstreamStop()
-	p.statStop()
-	p.ctrlStop()
-	return nil
-}
-
-func (p *Agent) Reload() error {
-	glog.V(3).Infof(MODULE_NAME+"%s Reload()", p.Conf.Params.Name)
-	return nil
-}
-
-func (p *Agent) Signal(sig os.Signal) error {
-	glog.V(3).Infof(MODULE_NAME+"%s signal %v", p.Conf.Params.Name, sig)
-	return nil
-}
-
-/*
-func Handle(arg interface{}) {
-
-	opts := arg.(*falcon.CmdOpts)
-
-	//atomic.StoreUint32(&appStatus, falcon.APP_STATUS_PENDING)
-	parse(&appConfig, opts.ConfigFile)
-	appProcess = falcon.NewProcess(appConfig.PidFile)
-
-	cmd := "start"
-	if len(opts.Args) > 0 {
-		cmd = opts.Args[0]
+func (p *Agent) Stop() (err error) {
+	glog.V(3).Infof(MODULE_NAME+"%s Stop()", p.Conf.Name)
+	p.status = falcon.APP_STATUS_EXIT
+	for i, n := 0, len(modules); i < n; i++ {
+		if e := modules[n-i].stop(p); e != nil {
+			err = e
+			glog.Error(err)
+		}
 	}
 
-	if cmd == "stop" {
-
-		if err := appProcess.Kill(syscall.SIGTERM); err != nil {
-			glog.Fatal(err)
-		}
-	} else if cmd == "reload" {
-		if err := appProcess.Kill(syscall.SIGUSR1); err != nil {
-			glog.Fatal(err)
-		}
-	} else if cmd == "start" {
-		if err := appProcess.Check(); err != nil {
-			glog.Fatal(err)
-		}
-		if err := appProcess.Save(); err != nil {
-			glog.Fatal(err)
-		}
-		httpStart(appConfig, appProcess)
-		upstreamStart(appConfig, appProcess)
-		collectStart(appConfig, appProcess)
-		statStart(appConfig, appProcess)
-
-		appProcess.StartSignal()
-	} else {
-		glog.Fatal(falcon.ErrUnsupported)
-	}
+	return err
 }
-*/
+
+func (p *Agent) Reload(config interface{}) (err error) {
+	glog.V(3).Infof(MODULE_NAME+"%s Reload()", p.Conf.Name)
+
+	p.oldConf = p.Conf
+	p.Conf = config.(*falcon.ConfAgent)
+
+	for i := 0; i < len(modules); i++ {
+		if e := modules[i].reload(p); e != nil {
+			err = e
+			glog.Error(err)
+		}
+	}
+
+	return err
+}
+
+func (p *Agent) Signal(sig os.Signal) (err error) {
+	glog.V(3).Infof(MODULE_NAME+"%s signal %v", p.Conf.Name, sig)
+	return err
+}
+
+// }}}

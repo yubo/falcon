@@ -5,10 +5,6 @@
  */
 package backend
 
-/*
-#include "cache.h"
-*/
-import "C"
 import (
 	"strings"
 	"time"
@@ -17,10 +13,17 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/golang/glog"
+	"github.com/yubo/falcon"
 	"github.com/yubo/gotool/list"
 )
 
-func indexUpdate(e *cacheEntry, b *Backend) {
+type indexModule struct {
+	indexUpdateCh chan *cacheEntry
+	indexDb       *sql.DB
+	running       chan struct{}
+}
+
+func indexUpdate(e *cacheEntry, db *sql.DB) {
 	var (
 		err           error
 		hid, cid, tid int64
@@ -28,19 +31,19 @@ func indexUpdate(e *cacheEntry, b *Backend) {
 		step          int
 	)
 
-	statInc(ST_INDEX_UPDATE, 1)
+	statsInc(ST_INDEX_UPDATE, 1)
 	hid = -1
-	err = b.indexDb.QueryRow("SELECT id FROM host WHERE host = ?", e.host).Scan(&hid)
+	err = db.QueryRow("SELECT id FROM host WHERE host = ?", e.host).Scan(&hid)
 	if err != nil {
-		statInc(ST_INDEX_HOST_MISS, 1)
+		statsInc(ST_INDEX_HOST_MISS, 1)
 		if err == sql.ErrNoRows || hid < 0 {
-			statInc(ST_INDEX_HOST_INSERT, 1)
-			ret, err := b.indexDb.Exec("INSERT INTO host(host, ts, t_create) "+
+			statsInc(ST_INDEX_HOST_INSERT, 1)
+			ret, err := db.Exec("INSERT INTO host(host, ts, t_create) "+
 				"VALUES (?, ?, now()) ON DUPLICATE KEY "+
 				"UPDATE id=LAST_INSERT_ID(id), ts=VALUES(ts)",
-				e.host(), int64(e.e.lastTs))
+				e.host, e.lastTs)
 			if err != nil {
-				statInc(ST_INDEX_HOST_INSERT_ERR, 1)
+				statsInc(ST_INDEX_HOST_INSERT_ERR, 1)
 				glog.Warning(MODULE_NAME, err)
 				return
 			}
@@ -51,30 +54,30 @@ func indexUpdate(e *cacheEntry, b *Backend) {
 				return
 			}
 		} else {
-			glog.Warning(MODULE_NAME+e.host(), err)
+			glog.Warning(MODULE_NAME+e.host, err)
 			return
 		}
 	}
 
 	// tag
-	tags := strings.Split(e.tags(), ",")
+	tags := strings.Split(e.tags, ",")
 	for _, tag := range tags {
 
 		tid = -1
-		err := b.indexDb.QueryRow("SELECT id FROM tag WHERE tag = ? and "+
+		err := db.QueryRow("SELECT id FROM tag WHERE tag = ? and "+
 			"host_id = ?", tag, hid).Scan(&tid)
 		if err != nil {
-			statInc(ST_INDEX_TAG_MISS, 1)
+			statsInc(ST_INDEX_TAG_MISS, 1)
 			if err == sql.ErrNoRows || tid < 0 {
-				statInc(ST_INDEX_TAG_INSERT, 1)
-				ret, err := b.indexDb.Exec("INSERT INTO tag(tag, host_id, "+
+				statsInc(ST_INDEX_TAG_INSERT, 1)
+				ret, err := db.Exec("INSERT INTO tag(tag, host_id, "+
 					"ts, t_create) "+
 					"VALUES (?, ?, ?, now()) "+
 					"ON DUPLICATE KEY "+
 					"UPDATE id=LAST_INSERT_ID(id), ts=VALUES(ts)",
-					tag, hid, int64(e.e.lastTs))
+					tag, hid, e.lastTs)
 				if err != nil {
-					statInc(ST_INDEX_TAG_INSERT_ERR, 1)
+					statsInc(ST_INDEX_TAG_INSERT_ERR, 1)
 					glog.Warning(MODULE_NAME, err)
 					return
 				}
@@ -99,23 +102,23 @@ func indexUpdate(e *cacheEntry, b *Backend) {
 	step = 0
 	dstype = "nil"
 
-	err = b.indexDb.QueryRow("SELECT id,step,type FROM counter WHERE "+
+	err = db.QueryRow("SELECT id,step,type FROM counter WHERE "+
 		"host_id = ? and counter = ?",
 		hid, counter).Scan(&cid, &step, &dstype)
 	if err != nil {
-		statInc(ST_INDEX_COUNTER_MISS, 1)
+		statsInc(ST_INDEX_COUNTER_MISS, 1)
 		if err == sql.ErrNoRows || cid < 0 {
-			statInc(ST_INDEX_COUNTER_INSERT, 1)
-			ret, err := b.indexDb.Exec("INSERT INTO counter(host_id,counter,"+
+			statsInc(ST_INDEX_COUNTER_INSERT, 1)
+			ret, err := db.Exec("INSERT INTO counter(host_id,counter,"+
 				"step,type,ts,t_create) "+
 				"VALUES (?,?,?,?,?,now()) "+
 				"ON DUPLICATE KEY "+
 				"UPDATE id=LAST_INSERT_ID(id),ts=VALUES(ts),"+
 				"step=VALUES(step),type=VALUES(type)",
-				hid, counter, int(e.e.step), e.typ(),
-				int64(e.e.lastTs))
+				hid, counter, e.step, e.typ,
+				e.lastTs)
 			if err != nil {
-				statInc(ST_INDEX_COUNTER_INSERT_ERR, 1)
+				statsInc(ST_INDEX_COUNTER_INSERT_ERR, 1)
 				glog.Warning(MODULE_NAME, err)
 				return
 			}
@@ -131,7 +134,7 @@ func indexUpdate(e *cacheEntry, b *Backend) {
 		}
 	} /* else {
 		if !(e.step == step && e.typ == dstype) {
-			_, err := b.indexDb.Exec("UPDATE counter SET step = ?, "+
+			_, err := db.Exec("UPDATE counter SET step = ?, "+
 				"type = ? where id = ?",
 				e.step, e.typ, cid)
 			if err != nil {
@@ -143,29 +146,33 @@ func indexUpdate(e *cacheEntry, b *Backend) {
 	return
 }
 
-func (this *Backend) indexTrashWorker() {
+func (this *indexModule) indexTrashWorker(b *Backend) {
 	var (
 		e     *cacheEntry
 		p, _p *list.ListHead
 	)
 	ticker := falconTicker(time.Second*INDEX_TRASH_LOOPTIME,
-		this.Conf.Params.Debug)
-	q0 := &this.cache.idx0q
-	q2 := &this.cache.idx2q
+		b.Conf.Debug)
+	q0 := &b.cache.idx0q
+	q2 := &b.cache.idx2q
 	for {
 		select {
+		case _, ok := <-this.running:
+			if !ok {
+				return
+			}
 		case <-ticker:
 			for p = q2.head.Next; p != &q2.head; p = p.Next {
 				_p = p.Next
 				e = list_idx_entry(p)
-				if this.timeNow()-int64(e.e.lastTs) < INDEX_TIMEOUT {
+				if b.timeNow()-e.lastTs < INDEX_TIMEOUT {
 					q2.Lock()
 					p.Del()
 					//q2.size--
 					q2.Unlock()
 
-					e.e.idxTs = 0
-					statInc(ST_INDEX_TRASH_PICKUP, 1)
+					e.idxTs = 0
+					statsInc(ST_INDEX_TRASH_PICKUP, 1)
 					q0.enqueue(p)
 				}
 				p = _p
@@ -174,21 +181,25 @@ func (this *Backend) indexTrashWorker() {
 	}
 }
 
-func (p *Backend) indexWorker() {
+func (p *indexModule) indexWorker(b *Backend) {
 	var (
 		e   *cacheEntry
 		l   *list.ListHead
 		now int64
 	)
-	ticker := falconTicker(time.Second/INDEX_QPS, p.Conf.Params.Debug)
-	q0 := &p.cache.idx0q
-	q1 := &p.cache.idx1q
-	q2 := &p.cache.idx2q
+	ticker := falconTicker(time.Second/INDEX_QPS, b.Conf.Debug)
+	q0 := &b.cache.idx0q
+	q1 := &b.cache.idx1q
+	q2 := &b.cache.idx2q
 
 	for {
 		select {
+		case _, ok := <-p.running:
+			if !ok {
+				return
+			}
 		case <-ticker:
-			statInc(ST_INDEX_TICK, 1)
+			statsInc(ST_INDEX_TICK, 1)
 
 			l = q0.dequeue()
 			if l != nil {
@@ -202,59 +213,78 @@ func (p *Backend) indexWorker() {
 			}
 
 			e = list_idx_entry(l)
-			now = p.timeNow()
+			now = b.timeNow()
 
-			if now-int64(e.e.idxTs) < INDEX_UPDATE_CYCLE_TIME {
+			if now-e.idxTs < INDEX_UPDATE_CYCLE_TIME {
 				q1.addHead(l)
 				continue
 			}
 
-			if now-int64(e.e.lastTs) > INDEX_TIMEOUT {
+			if now-e.lastTs > INDEX_TIMEOUT {
 				// timeout entry move to q2
 				q2.enqueue(l)
 				continue
 			}
 		out:
-			e.e.idxTs = C.int64_t(now)
+			e.idxTs = now
 			q1.enqueue(l)
 			p.indexUpdateCh <- e
 		}
 	}
 }
 
-func (p *Backend) updateWorker() {
+func (p *indexModule) updateWorker() {
 	for {
 		select {
+		case _, ok := <-p.running:
+			if !ok {
+				return
+			}
 		case e := <-p.indexUpdateCh:
-			go indexUpdate(e, p)
+			go indexUpdate(e, p.indexDb)
 		}
 	}
 }
 
-func (p *Backend) indexStart() {
+// indexModule depend on cacheModule
+func (p *indexModule) prestart(b *Backend) error {
+	p.running = make(chan struct{}, 0)
+	p.indexUpdateCh = make(chan *cacheEntry, INDEX_MAX_OPEN_CONNS)
+	return nil
+}
+
+func (p *indexModule) start(b *Backend) error {
 	var err error
 
-	p.indexDb, err = sql.Open("mysql", p.Conf.Dsn)
+	dbmaxidle, _ := b.Conf.Configer.Int(falcon.C_DB_MAX_IDLE)
+	dbmaxconn, _ := b.Conf.Configer.Int(falcon.C_DB_MAX_CONN)
+
+	p.indexDb, err = sql.Open("mysql", b.Conf.Configer.Str(falcon.C_DSN))
 	if err != nil {
 		glog.Fatal(MODULE_NAME, err)
 	}
 
-	p.indexDb.SetMaxIdleConns(p.Conf.DbMaxIdle)
-	p.indexDb.SetMaxOpenConns(0)
+	p.indexDb.SetMaxIdleConns(dbmaxidle)
+	p.indexDb.SetMaxOpenConns(dbmaxconn)
 
 	err = p.indexDb.Ping()
 	if err != nil {
 		glog.Fatal(MODULE_NAME, err)
 	}
 
-	p.indexUpdateCh = make(chan *cacheEntry, INDEX_MAX_OPEN_CONNS)
-
-	go p.indexWorker()
-	go p.indexTrashWorker()
+	go p.indexWorker(b)
+	go p.indexTrashWorker(b)
 	go p.updateWorker()
 
 	glog.Info(MODULE_NAME, "indexStart ok")
+	return nil
 }
 
-func (p *Backend) indexStop() {
+func (p *indexModule) stop(b *Backend) error {
+	close(p.running)
+	return nil
+}
+
+func (p *indexModule) reload(b *Backend) error {
+	return nil
 }

@@ -1,11 +1,8 @@
-# Copyright 2016 yubo. All rights reserved.
-# Use of this source code is governed by a BSD-style
-# license that can be found in the LICENSE file.
-.PHONY: clean run
-MODULES=agent falcon
+.PHONY: clean run vendor
+MODULES=falcon
 VERSION=$(shell cat VERSION)
 TARGETS=$(MODULES:%=dist/%)
-ORG_PATH=github.com/yubo/falcon
+ORG_PATH=github.com/open-falcon/falcon
 WORKDIR=${shell pwd}
 
 ifeq ($(strip $(OUTPUT_DIR)),)
@@ -14,13 +11,9 @@ endif
 
 all: $(TARGETS)
 
-$(TARGETS): conf/yyparse.go git.go
+$(TARGETS): yyparse.go git.go *.go */*.go */*/*.go
 	export GOPATH=$(WORKDIR)/gopath:$$GOPATH &&\
 	go build -o ${OUTPUT_DIR}/$@ github.com/yubo/falcon/$(subst dist/,cmd/,$@)
-
-conf/yyparse.go: conf/yyparse.y
-	export GOPATH=${WORKDIR}/gopath:$$GOPATH &&\
-	go tool yacc -o conf/yyparse.go conf/yyparse.y
 
 git.go: scripts/git.sh
 	/bin/sh scripts/git.sh
@@ -31,6 +24,9 @@ clean:
 run:
 	./dist/falcon -config ./etc/falcon.conf -logtostderr -v 4 start 2>&1
 
+reload:
+	./dist/falcon -config ./etc/falcon.conf -logtostderr -v 4 reload 2>&1
+
 parse:
 	./dist/falcon -config ./etc/falcon.conf -logtostderr -v 3 parse 2>&1
 #./bin/agent -http=false -v 4 start 2>&1
@@ -39,16 +35,18 @@ tools:
 	go get -u github.com/tcnksm/ghr &&\
 	go get -u github.com/kardianos/govendor
 
-test:
-	export GOPATH=${WORKDIR}/gopath:$$GOPATH &&\
-	go test ./...
+yyparse.go: yyparse.y
+	go tool yacc -o yyparse.go yyparse.y
 
-coverage: conf/yyparse.go git.go
+coverage: yyparse.go git.go
 	export GOPATH=${WORKDIR}/gopath:$$GOPATH &&\
 	./scripts/test_coverage.sh
 	curl -s https://codecov.io/bash | bash
 
-compile:
+test: yyparse.go
+	go test -logtostderr
+
+build:
 	mkdir -p "${OUTPUT_DIR}/dist"
 	make
 
@@ -61,4 +59,7 @@ shasums:
 
 release:
 	ghr --delete --prerelease -u yubo -r falcon pre-release ${OUTPUT_DIR}/dist
+
+vendor:
+	cd cmd && govendor add +external
 

@@ -59,13 +59,13 @@ func (op *Operator) ConfigGet(module string) (interface{}, error) {
 
 	switch module {
 	case "ctrl":
-		c = &ctrl.Config.Ctrl
+		c = &ctrl.Configure.Ctrl
 	case "agent":
-		c = &ctrl.Config.Agent
-	case "lb":
-		c = &ctrl.Config.Lb
+		c = &ctrl.Configure.Agent
+	case "loadbalance":
+		c = &ctrl.Configure.Loadbalance
 	case "backend":
-		c = &ctrl.Config.Backend
+		c = &ctrl.Configure.Backend
 	default:
 		return nil, ErrNoModule
 	}

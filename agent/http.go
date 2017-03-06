@@ -29,7 +29,13 @@ func (ln tcpKeepAliveListener) Accept() (c net.Conn, err error) {
 	return tc, nil
 }
 
-func (p *Agent) push_handle(w http.ResponseWriter, req *http.Request) {
+type httpModule struct {
+	httpListener  *net.TCPListener
+	httpMux       *http.ServeMux
+	appUpdateChan chan *[]*falcon.MetaData
+}
+
+func (p *httpModule) push(w http.ResponseWriter, req *http.Request) {
 	if req.ContentLength == 0 {
 		http.Error(w, "body is blank", http.StatusBadRequest)
 		return
@@ -47,25 +53,33 @@ func (p *Agent) push_handle(w http.ResponseWriter, req *http.Request) {
 	w.Write([]byte("success"))
 }
 
-func (p *Agent) httpRoutes() {
-	p.httpMux.HandleFunc("/push", p.push_handle)
+func (p *httpModule) httpRoutes() {
+	p.httpMux.HandleFunc("/push", p.push)
 }
 
-func (p *Agent) httpStart() {
-	if !p.Conf.Params.Http {
+func (p *httpModule) prestart(agent *Agent) error {
+	p.appUpdateChan = agent.appUpdateChan
+	p.httpMux = http.NewServeMux()
+	p.httpRoutes()
+	return nil
+}
+
+func (p *httpModule) start(agent *Agent) error {
+	enable, _ := agent.Conf.Configer.Bool(falcon.C_HTTP_ENABLE)
+	if !enable {
 		glog.Info(MODULE_NAME + "http.Start warning, not enabled")
-		return
+		return nil
 	}
 
-	addr := p.Conf.Params.HttpAddr
+	addr := agent.Conf.Configer.Str(falcon.C_HTTP_ADDR)
 	if addr == "" {
-		return
+		return falcon.ErrParam
 	}
 	s := &http.Server{
 		Addr:           addr,
 		MaxHeaderBytes: 1 << 30,
 	}
-	glog.Infof(MODULE_NAME+"%s http listening %s", p.Conf.Params.Name, addr)
+	glog.Infof(MODULE_NAME+"%s http listening %s", agent.Conf.Name, addr)
 
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
@@ -74,9 +88,15 @@ func (p *Agent) httpStart() {
 
 	p.httpListener = ln.(*net.TCPListener)
 	go s.Serve(tcpKeepAliveListener{p.httpListener})
+
+	return nil
 }
 
-func (p *Agent) httpStop() error {
+func (p *httpModule) stop(agent *Agent) error {
 	p.httpListener.Close()
+	return nil
+}
+
+func (p *httpModule) reload(agent *Agent) error {
 	return nil
 }

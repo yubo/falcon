@@ -64,7 +64,7 @@ export default {
       },
       props: {
         label: 'label',
-        children: 'child'
+        children: 'children'
       }
     }
   },

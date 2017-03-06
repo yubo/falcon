@@ -92,18 +92,18 @@ func (p *cpuStatSample) String() string {
 		p.procsBlocked)
 }
 
-var (
-	_cpuCollector agent.Collector
-)
-
 func init() {
-	_cpuCollector = &cpuCollector{}
-	agent.Collector_Register(_cpuCollector)
+	agent.RegisterCollector(&cpuCollector{})
 }
 
 type cpuCollector struct {
 	cur  *cpuStatSample
 	last *cpuStatSample
+}
+
+func (p *cpuCollector) Reset() {
+	p.cur = nil
+	p.last = nil
 }
 
 func (p *cpuCollector) Collect(step int,

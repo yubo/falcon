@@ -14,7 +14,7 @@ import (
 )
 
 func init() {
-	ctrl.RegisterInit(start)
+	ctrl.RegisterPrestart(start)
 }
 
 func start(conf *falcon.ConfCtrl) error {

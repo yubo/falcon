@@ -241,7 +241,7 @@ func (c *RelController) GetTagTplCnt() {
 // @Param	mine	query   bool	false	"search mine template"
 // @Param	per	query	int	false	"per page number"
 // @Param	offset	query	int	false	"offset  number"
-// @Success 200 {object} []models.Template templates info
+// @Success 200 {object} []models.RelTagTplUi templates info
 // @Failure 403 string error
 // @router /tag/template/search [get]
 func (c *RelController) GetTagTpl() {

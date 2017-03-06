@@ -37,7 +37,7 @@ type TreeNode struct {
 	Id    int64       `json:"id"`
 	Name  string      `json:"name"`
 	Label string      `json:"label"`
-	Child []*TreeNode `json:"child"`
+	Child []*TreeNode `json:"children"`
 }
 
 type tagNode struct {
@@ -68,6 +68,15 @@ type RelTagTpl struct {
 type RelTagTpls struct {
 	TagId  int64   `json:"tag_id"`
 	TplIds []int64 `json:"tpl_ids"`
+}
+
+type RelTagTplUi struct {
+	Id          int64  `json:"id"`
+	TagId       int64  `json:"tag_id"`
+	TagName     string `json:"tag_name"`
+	TplId       int64  `json:"tpl_id"`
+	TplName     string `json:"tpl_name"`
+	TplParentId int64  `json:"tpl_pid"`
 }
 
 type RelTagRoleUser struct {
@@ -108,7 +117,7 @@ func tagHostSql(tag_id int64, query string, deep bool) (where string, args []int
 	sql2 := []string{}
 	sql3 := []interface{}{}
 	if query != "" {
-		sql2 = append(sql2, "b.name like ?")
+		sql2 = append(sql2, "h.name like ?")
 		sql3 = append(sql3, "%"+query+"%")
 	}
 	if deep {
@@ -129,14 +138,14 @@ func (op *Operator) GetTagHostCnt(tag_id int64,
 	// TODO: acl filter
 	// just for admin?
 	sql, sql_args := tagHostSql(tag_id, query, deep)
-	err = op.O.Raw("SELECT count(*) FROM tag_host a left join host b on a.host_id = b.id left join tag c on a.tag_id = c.id "+sql, sql_args...).QueryRow(&cnt)
+	err = op.O.Raw("SELECT count(*) FROM tag_host a left join host h on a.host_id = h.id left join tag t on a.tag_id = t.id "+sql, sql_args...).QueryRow(&cnt)
 	return
 }
 
 func (op *Operator) GetTagHost(tag_id int64, query string, deep bool,
 	limit, offset int) (ret []RelTagHost, err error) {
 	sql, sql_args := tagHostSql(tag_id, query, deep)
-	sql = "select a.tag_id as tag_id, a.host_id as host_id, b.name as host_name, c.name as tag_name from tag_host a left join host b on a.host_id = b.id left join tag c on a.tag_id = c.id " + sql + " ORDER BY b.name LIMIT ? OFFSET ?"
+	sql = "select a.tag_id as tag_id, a.host_id as host_id, h.name as host_name, t.name as tag_name from tag_host a left join host h on a.host_id = h.id left join tag t on a.tag_id = t.id " + sql + " ORDER BY h.name LIMIT ? OFFSET ?"
 	sql_args = append(sql_args, limit, offset)
 	_, err = op.O.Raw(sql, sql_args...).QueryRows(&ret)
 	return
@@ -197,12 +206,12 @@ func (op *Operator) DeleteTagHosts(rel Ids) (int64, error) {
  ******************************************************************************/
 
 const (
-	tagTplCntSql   = "SELECT count(*) as cnt FROM tag_tpl WHERE tag_id = ?"
-	tagTplSql      = " FROM tag_tpl a LEFT JOIN template b ON a.tpl_id = b.id WHERE a.tag_id = ?"
-	tagTplQuerySql = tagTplSql + " AND b.name LIKE ?"
+//tagTplCntSql   = "SELECT count(*) as cnt FROM tag_tpl WHERE tag_id = ?"
+//tagTplSql      = " FROM tag_tpl a LEFT JOIN template b ON a.tpl_id = b.id WHERE a.tag_id = ?"
+//tagTplQuerySql = tagTplSql + " AND b.name LIKE ?"
 )
 
-func tagTplSql1(query string, deep bool, user_id int64) (where string, args []interface{}) {
+func tagTplSql(tag_id int64, query string, deep bool, user_id int64) (where string, args []interface{}) {
 	sql2 := []string{}
 	sql3 := []interface{}{}
 	if query != "" {
@@ -210,11 +219,13 @@ func tagTplSql1(query string, deep bool, user_id int64) (where string, args []in
 		sql3 = append(sql3, "%"+query+"%")
 	}
 	if deep {
-		sql2 = append(sql2, "a.create_user_id = ?")
-		sql3 = append(sql3, user_id)
+		sql2 = append(sql2, fmt.Sprintf("a.tag_id in (select tag_id from tag_rel where sup_tag_id = %d)", tag_id))
+	} else {
+		sql2 = append(sql2, "a.tag_id = ?")
+		sql3 = append(sql3, tag_id)
 	}
 	if user_id != 0 {
-		sql2 = append(sql2, "a.create_user_id = ?")
+		sql2 = append(sql2, "a.creator = ?")
 		sql3 = append(sql3, user_id)
 	}
 	if len(sql2) != 0 {
@@ -224,31 +235,31 @@ func tagTplSql1(query string, deep bool, user_id int64) (where string, args []in
 	return
 }
 
-func (op *Operator) GetTagTplCnt(tag_id int64,
-	query string, deep, mine bool) (cnt int64, err error) {
+func (op *Operator) GetTagTplCnt(tag_id int64, query string,
+	deep, mine bool) (cnt int64, err error) {
 	// TODO: acl filter
 	// just for admin?
-
-	if query == "" {
-		err = op.O.Raw(tagTplCntSql, tag_id).QueryRow(&cnt)
-	} else {
-		err = op.O.Raw("SELECT count(*) as cnt"+
-			tagTplQuerySql, tag_id, "%"+query+"%").QueryRow(&cnt)
+	var user_id int64
+	if mine {
+		user_id = op.User.Id
 	}
+
+	sql, sql_args := tagTplSql(tag_id, query, deep, user_id)
+	err = op.O.Raw("SELECT count(*) FROM tag_tpl a "+sql, sql_args...).QueryRow(&cnt)
 	return
 }
 
 func (op *Operator) GetTagTpl(tag_id int64, query string, deep, mine bool,
-	limit, offset int) (tpls []Template, err error) {
-	if query == "" {
-		_, err = op.O.Raw("SELECT b.*"+
-			tagTplSql+" LIMIT ? OFFSET ?",
-			tag_id, limit, offset).QueryRows(&tpls)
-	} else {
-		_, err = op.O.Raw("SELECT b.*"+
-			tagTplQuerySql+" LIMIT ? OFFSET ?",
-			tag_id, "%"+query+"%", limit, offset).QueryRows(&tpls)
+	limit, offset int) (ret []RelTagTplUi, err error) {
+	var user_id int64
+	if mine {
+		user_id = op.User.Id
 	}
+
+	sql, sql_args := tagTplSql(tag_id, query, deep, user_id)
+	sql = "SELECT a.id as id, t.id as tpl_id, t.name as tpl_name, t.parent_id as tpl_pid, tag.id as tag_id, tag.name as tag_name FROM tag_tpl a LEFT JOIN template t ON t.id = a.tpl_id LEFT JOIN tag ON tag.id = a.tag_id " + sql + " ORDER BY t.name, tag.name LIMIT ? OFFSET ?"
+	sql_args = append(sql_args, limit, offset)
+	_, err = op.O.Raw(sql, sql_args...).QueryRows(&ret)
 	return
 }
 

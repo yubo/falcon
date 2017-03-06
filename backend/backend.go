@@ -5,18 +5,7 @@
  */
 package backend
 
-/*
-#include "cache.h"
-*/
-import "C"
-
 import (
-	"container/list"
-	"database/sql"
-	"fmt"
-	"net"
-	"net/http"
-	"net/rpc"
 	"os"
 	"sync/atomic"
 	"time"
@@ -34,8 +23,8 @@ const (
 	FLUSH_DISK_STEP         = 1    //s
 	DEFAULT_HISTORY_SIZE    = 3
 	CONN_RETRY              = 2
-	CACHE_SIZE              = C.CACHE_SIZE     // must pow(2,n)
-	CACHE_SIZE_MASK         = C.CACHE_SIZE - 1 //
+	CACHE_SIZE              = 1 << 5
+	CACHE_SIZE_MASK         = CACHE_SIZE - 1
 	DATA_TIMESTAMP_REGULATE = true
 	INDEX_QPS               = 100
 	INDEX_UPDATE_CYCLE_TIME = 86400
@@ -45,152 +34,193 @@ const (
 	DEBUG_MULTIPLES         = 20    // demo 时间倍数
 	DEBUG_STEP              = 60    //
 	DEBUG_SAMPLE_NB         = 18000 //单周期生成样本数量
-	DEBUG_STAT_MODULE       = ST_M_CACHE | ST_M_INDEX
 	DEBUG_STAT_STEP         = 60
 	MODULE_NAME             = "\x1B[32m[BACKEND]\x1B[0m "
 	CTRL_STEP               = 360
 )
 
+var (
+	modules []module
+)
+
+func init() {
+	falcon.RegisterModule(falcon.GetType(falcon.ConfBackend{}), &Backend{})
+	registerModule(&storageModule{})
+	// cache should early register(init cache data)
+	registerModule(&cacheModule{})
+	registerModule(&httpModule{})
+	registerModule(&rpcModule{})
+	registerModule(&indexModule{})
+	registerModule(&statsModule{})
+	registerModule(&timerModule{})
+}
+
+// module {{{
+type module interface {
+	prestart(*Backend) error // alloc public data
+	start(*Backend) error    // alloc private data, run private goroutine
+	stop(*Backend) error     // free private data, private goroutine exit
+	reload(*Backend) error   // try to keep the data, refresh configure
+}
+
+func registerModule(m module) {
+	modules = append(modules, m)
+}
+
+// }}}
+
+// {{{ Backend
 type Backend struct {
-	// config
-	Conf falcon.ConfBackend
-	/*
-		Params          falcon.ModuleParams
-		Migrate         falcon.Migrate
-		Idx             bool
-		IdxInterval     int
-		IdxFullInterval int
-		Dsn             string
-		DbMaxIdle       int
-		ShmMagic        uint32
-		ShmKey          int
-		ShmSize         int
-		Storage         falcon.Storage
-	*/
+	Conf    *falcon.ConfBackend
+	oldConf *falcon.ConfBackend
 	// runtime
-	status                   uint32
-	running                  chan struct{}
-	ts                       int64
-	statTicker               chan time.Time
-	timeTicker               chan time.Time
-	commitTicker             chan time.Time
-	rpcListener              *net.TCPListener
-	rpcConnects              connList
-	rpcBkd                   *Bkd
-	httpListener             *net.TCPListener
-	httpMux                  *http.ServeMux
-	storageIoTaskCh          []chan *ioTask
+	status uint32
+
+	//cacheModule
+	cache *backendCache
+
+	//storageModule
+	hdisk                    []string
 	storageNetTaskCh         map[string]chan *netTask
-	storageMigrateClients    map[string][]*rpc.Client
+	storageIoTaskCh          []chan *ioTask
 	storageMigrateConsistent *consistent.Consistent
-	cache                    *backendCache
-	indexDb                  *sql.DB
-	indexUpdateCh            chan *cacheEntry
+
+	ts           int64
+	statTicker   chan time.Time
+	timeTicker   chan time.Time
+	commitTicker chan time.Time
 }
 
-func (p Backend) Desc() string {
-	return fmt.Sprintf("%s", p.Conf.Params.Name)
+func (p *Backend) New(conf interface{}) falcon.Module {
+	return &Backend{
+		Conf: conf.(*falcon.ConfBackend),
+	}
 }
 
-func (p Backend) String() string {
+func (p *Backend) Name() string {
+	return p.Conf.Name
+}
+
+func (p *Backend) String() string {
 	return p.Conf.String()
 }
 
-func (p *Backend) Init() error {
-	glog.V(3).Infof(MODULE_NAME+"%s Init()", p.Conf.Params.Name)
+func (p *Backend) Prestart() (err error) {
+	glog.V(3).Infof(MODULE_NAME+"%s Init()", p.Conf.Name)
+	p.status = falcon.APP_STATUS_INIT
+
+	for i := 0; i < len(modules); i++ {
+		if e := modules[i].prestart(p); e != nil {
+			//panic(err)
+			err = e
+			glog.Error(err)
+		}
+	}
+	return err
 	// core
 
-	//cache
-	p.cacheInit()
+	/*
+		//cache
+		p.cacheInit()
 
-	// rpc
-	p.rpcConnects = connList{list: list.New()}
+		// rpc
+		p.rpcConnects = connList{list: list.New()}
 
-	// http
-	p.httpMux = http.NewServeMux()
-	p.httpRoutes()
+		// http
+		p.httpMux = http.NewServeMux()
+		p.httpRoutes()
 
-	// rrdtool/sync_disk/migrate
-	p.storageNetTaskCh = make(map[string]chan *netTask)
-	p.storageMigrateClients = make(map[string][]*rpc.Client)
-	p.storageMigrateConsistent = consistent.New()
+		// rrdtool/sync_disk/migrate
+		p.storageNetTaskCh = make(map[string]chan *netTask)
+		p.storageMigrateClients = make(map[string][]*rpc.Client)
+		p.storageMigrateConsistent = consistent.New()
 
-	// store
-	size := CACHE_TIME / FLUSH_DISK_STEP
-	if size < 0 {
-		glog.Fatalf(MODULE_NAME+"store.init, bad size %d\n", size)
-	}
-	p.status = falcon.APP_STATUS_INIT
-	return nil
-
-}
-
-func (p *Backend) Start() error {
-	glog.V(3).Infof(MODULE_NAME+"%s Start()", p.Conf.Params.Name)
-	p.status = falcon.APP_STATUS_PENDING
-	p.running = make(chan struct{}, 0)
-	p.timeStart()
-	p.rrdStart()
-	p.rpcStart()
-	p.indexStart()
-	p.httpStart()
-	p.statStart()
-	p.cacheStart()
-	p.status = falcon.APP_STATUS_RUNING
-	return nil
-}
-
-func (p *Backend) Stop() error {
-	glog.V(3).Infof(MODULE_NAME+"%s Stop()", p.Conf.Params.Name)
-	p.status = falcon.APP_STATUS_EXIT
-	close(p.running)
-	p.cacheStop()
-	p.statStop()
-	p.httpStop()
-	p.indexStop()
-	p.rpcStop()
-	p.rrdStop()
-	p.timeStop()
-	return nil
-}
-
-func (p *Backend) Reload() error {
-	glog.V(3).Infof(MODULE_NAME+"%s Reload()", p.Conf.Params.Name)
-	return nil
-}
-
-func (p *Backend) Signal(sig os.Signal) error {
-	glog.V(3).Infof(MODULE_NAME+"%s signal %v", p.Conf.Params.Name, sig)
-	return nil
-}
-
-func (p *Backend) timeStart() {
-	start := time.Now().Unix()
-	ticker := time.NewTicker(time.Second).C
-	go func() {
-		for {
-			select {
-			case _, ok := <-p.running:
-				if !ok {
-					return
-				}
-
-			case <-ticker:
-				now := time.Now().Unix()
-				if p.Conf.Params.Debug > 1 {
-					atomic.StoreInt64(&p.ts,
-						start+(now-start)*DEBUG_MULTIPLES)
-				} else {
-					atomic.StoreInt64(&p.ts, now)
-				}
-			}
+		// store
+		size := CACHE_TIME / FLUSH_DISK_STEP
+		if size < 0 {
+			glog.Fatalf(MODULE_NAME+"store.init, bad size %d\n", size)
 		}
-	}()
+		p.status = falcon.APP_STATUS_INIT
+		return nil
+	*/
+
 }
 
-func (p *Backend) timeStop() {
+func (p *Backend) Start() (err error) {
+	glog.V(3).Infof(MODULE_NAME+"%s Start()", p.Conf.Name)
+	p.status = falcon.APP_STATUS_PENDING
+
+	for i := 0; i < len(modules); i++ {
+		if e := modules[i].start(p); e != nil {
+			err = e
+			glog.Error(err)
+		}
+	}
+
+	p.status = falcon.APP_STATUS_RUNNING
+	return err
+
+	/*
+		p.running = make(chan struct{}, 0)
+		p.timeStart()
+		p.rrdStart()
+		p.rpcStart()
+		p.indexStart()
+		p.httpStart()
+		p.statStart()
+		p.cacheStart()
+	*/
+}
+
+func (p *Backend) Stop() (err error) {
+	glog.V(3).Infof(MODULE_NAME+"%s Stop()", p.Conf.Name)
+	p.status = falcon.APP_STATUS_EXIT
+
+	for i, n := 0, len(modules); i < n; i++ {
+		if e := modules[n-i].stop(p); e != nil {
+			err = e
+			glog.Error(err)
+		}
+	}
+	return err
+	/*
+		close(p.running)
+		p.cacheStop()
+		p.statStop()
+		p.httpStop()
+		p.indexStop()
+		p.rpcStop()
+		p.rrdStop()
+		p.timeStop()
+	*/
+}
+
+func (p *Backend) Reload(config interface{}) (err error) {
+	glog.V(3).Infof(MODULE_NAME+"%s Reload()", p.Conf.Name)
+
+	p.oldConf = p.Conf
+	p.Conf = config.(*falcon.ConfBackend)
+
+	for i := 0; i < len(modules); i++ {
+		if e := modules[i].reload(p); e != nil {
+			err = e
+			glog.Error(err)
+		}
+	}
+	return err
+}
+
+func (p *Backend) Signal(sig os.Signal) (err error) {
+	glog.V(3).Infof(MODULE_NAME+"%s signal %v", p.Conf.Name, sig)
+	return err
 }
 
 func (p *Backend) timeNow() int64 {
-	return atomic.LoadInt64(&p.ts)
+	if p.ts != 0 {
+		return atomic.LoadInt64(&p.ts)
+	} else {
+		return time.Now().Unix()
+	}
 }
+
+//}}}
