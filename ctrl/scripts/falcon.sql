@@ -22,6 +22,43 @@ SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='TRADITIONAL,ALLOW_INVALID_DATES';
 -- CREATE SCHEMA IF NOT EXISTS `falcon` DEFAULT CHARACTER SET utf8 ;
 -- USE `falcon` ;
 
+DROP TABLE if EXISTS `idx_endpoint`;
+CREATE TABLE `idx_endpoint` (
+	`id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+	`endpoint` varchar(255) NOT NULL DEFAULT '',
+	`ts` int(11) DEFAULT NULL,
+	`t_create` DATETIME NOT NULL COMMENT 'create time',
+	`t_modify` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'last modify time',
+	PRIMARY KEY (`id`),
+	UNIQUE KEY `idx_endpoint` (`endpoint`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+DROP TABLE if EXISTS `idx_endpoint_counter`;
+CREATE TABLE `counter` (
+	`id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+	`counter` varchar(255) NOT NULL DEFAULT '',
+	`endpoint_id` int(10) unsigned NOT NULL,
+	`step` int(11) not null default 60 comment 'in second',
+	`type` varchar(16) not null comment 'GAUGE|COUNTER|DERIVE',
+	`ts` int(11) DEFAULT NULL,
+	`t_create` DATETIME NOT NULL COMMENT 'create time',
+	`t_modify` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'last modify time',
+	PRIMARY KEY (`id`),
+	UNIQUE KEY `idx_endpoint_id_counter` (`counter`, `endpoint_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+DROP TABLE if EXISTS `idx_tag`;
+CREATE TABLE `idx_tag` (
+	`id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+	`tag` varchar(255) NOT NULL DEFAULT '' COMMENT 'srv=tv',
+	`endpoint_id` int(10) unsigned NOT NULL,
+	`ts` int(11) DEFAULT NULL,
+	`t_create` DATETIME NOT NULL COMMENT 'create time',
+	`t_modify` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'last modify time',
+	PRIMARY KEY (`id`),
+	UNIQUE KEY `idx_tag_endpoint_id` (`tag`, `endpoint_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
 -- -----------------------------------------------------
 -- Table `kv`
 -- -----------------------------------------------------
@@ -107,7 +144,7 @@ CREATE TABLE `session` (
 DROP TABLE IF EXISTS `tag`;
 CREATE TABLE `tag` (
   `id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
-  `name` VARCHAR(255) NOT NULL DEFAULT '',
+  `name` VARCHAR(255) NOT NULL DEFAULT COMMENT 'cop=xiaomi,owt=inf,pdl=cs',
   `create_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE INDEX `index_name` (`name`)
@@ -263,31 +300,6 @@ CREATE TABLE `action` (
 
 
 --
--- Table structure for table `trigger`
---
-DROP TABLE IF EXISTS `trigger`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `trigger` (
-  `id` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
-  `metric_id` INT(10) UNSIGNED NOT NULL DEFAULT '0',
-  `tags` VARCHAR(2048) DEFAULT NULL,
-  `max_step` INT(11) NOT NULL DEFAULT '1',
-  `priority` TINYINT(4) NOT NULL DEFAULT '0',
-  `func` VARCHAR(16) NOT NULL DEFAULT 'last(#1)',
-  `op` VARCHAR(8) NOT NULL DEFAULT '',
-  `condition` VARCHAR(64) NOT NULL,
-  `note` VARCHAR(128) NOT NULL DEFAULT '',
-  `metric` VARCHAR(1024) DEFAULT NULL,
-  `run_begin` VARCHAR(16) NOT NULL DEFAULT '',
-  `run_end` VARCHAR(16) NOT NULL DEFAULT '',
-  `rule_id` INT(10) UNSIGNED NOT NULL DEFAULT '0',
-  PRIMARY KEY (`id`),
-  KEY `index_rule_id` (`rule_id`)
-) ENGINE=InnoDB DEFAULT CHARACTER SET = utf8 COLLATE=utf8_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
 -- Table structure for table `expression`
 --
 DROP TABLE IF EXISTS `expression`;
@@ -378,42 +390,6 @@ CREATE TABLE `template` (
   KEY `idx_tpl_create_user` (`create_user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
-
-
-DROP VIEW IF EXISTS `tag_role_user_token` ;
-DROP TABLE IF EXISTS `tag_role_user_token`;
-CREATE OR REPLACE 
-VIEW `tag_role_user_token` AS
-    SELECT 
-        `a`.`tag_id` AS `user_tag_id`,
-        `b`.`tag_id` AS `token_tag_id`,
-        `a`.`tpl_id` AS `role_id`,
-        `a`.`sub_id` AS `user_id`,
-        `b`.`sub_id` AS `token_id`
-    FROM `tpl_rel` `a` JOIN `tpl_rel` `b`
-	ON `a`.`type_id` = 0 AND `b`.`type_id` = 1
-	AND `a`.`tpl_id` = `b`.`tpl_id`;
-
-
-DROP VIEW IF EXISTS `acl`;
-DROP TABLE IF EXISTS `acl`;
-CREATE OR REPLACE 
-VIEW `acl` AS
-    SELECT 
-        `a`.`user_id` AS `user_id`,
-        `a`.`token_id` AS `token_id`,
-        `a`.`user_tag_id` AS `user_tag_id`,
-        `a`.`token_tag_id` AS `token_tag_id`,
-        `a`.`role_id` AS `role_id`
-    FROM
-        (`tag_role_user_token` `a`
-        JOIN `tag_rel` `b` ON (((`a`.`user_tag_id` = `b`.`tag_id`)
-            AND (`a`.`token_tag_id` = `b`.`sup_tag_id`))))
-    GROUP BY `a`.`user_tag_id`,`a`.`token_id`,`a`.`user_id`
-    HAVING (`a`.`token_tag_id` = MAX(`a`.`token_tag_id`));
-
-
 
 SET SQL_MODE=@OLD_SQL_MODE;
 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;

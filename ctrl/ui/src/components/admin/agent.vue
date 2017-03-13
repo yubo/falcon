@@ -2,7 +2,7 @@
 <div id="content" class="main">
   <div v-loading.lock="loading">
     <el-tabs v-model="activeName" @tab-click="handleClick" >
-      <el-tab-pane label="global" name="global">
+      <el-tab-pane label="General" name="general">
         <el-form label-position="right" label-width="200px" :model="form">
           <el-form-item label="run mode">
             <el-select v-model="form.runmode" placeholder="select run mode">
@@ -53,7 +53,7 @@ export default {
   data () {
     return {
       loading: false,
-      activeName: '',
+      activeName: 'general',
       enabledocs: false,
       optionRunModes: [{
         name: 'production', value: 'prod'

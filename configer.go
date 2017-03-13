@@ -64,6 +64,13 @@ const (
 	C_SHMMAGIC                = "shmmagic"
 	C_SHMKEY                  = "shmkey"
 	C_SHMSIZE                 = "shmsize"
+	C_EMU_ENABLE              = "emuenable"
+	C_EMU_HOST                = "emuhost"
+	C_EMU_HOSTNUM             = "emuhostnum"
+	C_EMU_METRIC              = "emumetric"
+	C_EMU_METRICNUM           = "emumetricnum"
+	C_EMU_TPL                 = "tpl"
+	C_EMU_TPLNUM              = "tplnum"
 )
 
 var (

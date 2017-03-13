@@ -194,11 +194,7 @@ loadbalance_mod: LOADBALANCE text '{' {
 ;
 
 loadbalance_mod_item:
- | ROOT text { 
-	if err := os.Chdir($2); err != nil {
-		yy.Error(err.Error())
-	}
-}| DISABLED bool   { yy_loadbalance.Disabled = $2 }
+ | DISABLED bool   { yy_loadbalance.Disabled = $2 }
  | ROOT text { 
 	if err := os.Chdir($2); err != nil {
 		yy.Error(err.Error())
@@ -219,7 +215,7 @@ loadbalance_backend:
 ;
 
 loadbalance_backend_item:
-| text text '{' loadbalance_backend '}' { 
+| text text '{' loadbalance_backend_obj '}' { 
 	yy_loadbalance_backend.Type = $1
 	yy_loadbalance_backend.Name = $2
 	if !yy_loadbalance_backend.Disabled || yy.debug {
@@ -229,11 +225,11 @@ loadbalance_backend_item:
 }
 ;
 
-loadbalance_backend:
-| loadbalance_backend loadbalance_backend_item ';'
+loadbalance_backend_obj:
+| loadbalance_backend_obj loadbalance_backend_obj_item ';'
 ;
 
-loadbalance_backend_item:
+loadbalance_backend_obj_item:
 | DISABLED bool { yy_loadbalance_backend.Disabled = $2 }
 | UPSTREAM '{' ss '}' { 
 	yy_loadbalance_backend.Upstream = yy_ss
@@ -251,11 +247,7 @@ backend_mod: BACKEND text '{'   {
 
 
 backend_mod_item:
- | ROOT text { 
-	if err := os.Chdir($2); err != nil {
-		yy.Error(err.Error())
-	}
-}| DISABLED bool   { yy_backend.Disabled = $2 }
+ | DISABLED bool   { yy_backend.Disabled = $2 }
  | ROOT text { 
 	if err := os.Chdir($2); err != nil {
 		yy.Error(err.Error())

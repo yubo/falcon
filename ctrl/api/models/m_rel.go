@@ -596,14 +596,16 @@ func addTplRel(o orm.Ormer, user_id, tag_id, tpl_id, sub_id, type_id int64) (id 
 	return
 }
 
-func delTplRel(o orm.Ormer, user_id, tag_id, tpl_id, sub_id, type_id int64) (n int64, err error) {
+func delTplRel(o orm.Ormer, user_id, tag_id, tpl_id, sub_id, type_id int64) (int64, error) {
 	t := &Tpl_rel{TplId: tpl_id, TagId: tag_id, SubId: sub_id,
 		TypeId: type_id}
 
-	n, err = o.Delete(t)
+	res, err := o.Raw("DELETE FROM `tpl_rel` "+
+		"WHERE tpl_id = ? AND tag_id = ? and sub_id = ? and type_id = ?", tpl_id, tag_id, sub_id, type_id).Exec()
 	if err != nil {
-		return
+		return 0, err
 	}
+
 	DbLog(o, user_id, CTL_M_TPL, 0, CTL_A_DEL, jsonStr(t))
-	return
+	return res.RowsAffected()
 }

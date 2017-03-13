@@ -8,6 +8,8 @@ import login from './components/login'
 import admin from './components/admin'
 import ctrl from './components/admin/ctrl'
 import agent from './components/admin/agent'
+import transfer from './components/admin/transfer'
+import graph from './components/admin/graph'
 import loadbalance from './components/admin/loadbalance'
 import backend from './components/admin/backend'
 import debug from './components/admin/debug'
@@ -110,6 +112,8 @@ const router = new VueRouter({
     children: [
     { path: 'ctrl', component: ctrl },
     { path: 'agent', component: agent },
+    { path: 'transfer', component: transfer },
+    { path: 'graph', component: graph },
     { path: 'loadbalance', component: loadbalance },
     { path: 'backend', component: backend },
     { path: 'profile', component: profile },

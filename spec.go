@@ -190,7 +190,7 @@ func (c ConfCtrl) String() string {
 	var s string
 	for k, v := range c.Metrics {
 		s += fmt.Sprintf("%s ", v)
-		if k%5 == 0 {
+		if k%5 == 4 {
 			s += "\n"
 		}
 	}

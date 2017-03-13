@@ -16,6 +16,7 @@ import (
 	"github.com/yubo/falcon"
 	_ "github.com/yubo/falcon/agent"
 	_ "github.com/yubo/falcon/agent/plugin"
+	_ "github.com/yubo/falcon/agent/plugin/emulator"
 	_ "github.com/yubo/falcon/backend"
 	_ "github.com/yubo/falcon/ctrl"
 	_ "github.com/yubo/falcon/ctrl/api/models/auth"

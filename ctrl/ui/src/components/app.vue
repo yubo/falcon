@@ -69,6 +69,8 @@ export default {
         admin: [
         {url: '/admin/ctrl', text: 'Ctrl'},
         {url: '/admin/agent', text: 'Agent'},
+        {url: '/admin/transfer', text: 'Transfer'},
+        {url: '/admin/graph', text: 'Graph'},
         {url: '/admin/loadbalance', text: 'LoadBalance'},
         {url: '/admin/backend', text: 'Backend'},
         {url: '/admin/debug', text: 'Debug'}

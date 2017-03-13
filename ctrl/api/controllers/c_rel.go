@@ -405,7 +405,7 @@ func (c *RelController) CreateTagRoleUser() {
 // @Title delete tag role user relation
 // @Description delete tag/role/user relation
 // @Param	body		body 	models.RelTagHost	true	""
-// @Success 200 {object} models.Total affected number
+// @Success 200 {object} models.Id affected id
 // @Failure 403 string error
 // @router /tag/role/user [delete]
 func (c *RelController) DelTagRoleUser() {
@@ -417,7 +417,7 @@ func (c *RelController) DelTagRoleUser() {
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendMsg(200, totalObj(n))
+		c.SendMsg(200, idObj(n))
 	}
 }
 
@@ -425,7 +425,7 @@ func (c *RelController) DelTagRoleUser() {
 // @Description get tag role token number
 // @Param	query	query   string  false	"token name"
 // @Param	tag_id	query   int	true	"tag id"
-// @Success 200 {object} models.Total token total number
+// @Success 200 {object} models.Id affected id
 // @Failure 403 string error
 // @router /tag/role/token/cnt [get]
 func (c *RelController) GetTagRoleTokenCnt() {
@@ -438,7 +438,7 @@ func (c *RelController) GetTagRoleTokenCnt() {
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendMsg(200, totalObj(n))
+		c.SendMsg(200, idObj(n))
 	}
 }
 

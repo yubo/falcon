@@ -16,6 +16,7 @@ var (
 )
 
 type Collector interface {
+	Start(*Agent) error
 	Collect(int, string) ([]*falcon.MetaData, error)
 	Reset()
 }
@@ -38,6 +39,12 @@ func (p *collectModule) start(agent *Agent) error {
 	host := agent.Conf.Host
 	i, _ := agent.Conf.Configer.Int(falcon.C_INTERVAL)
 	ticker := time.NewTicker(time.Second * time.Duration(i)).C
+
+	for _, c := range _collector {
+		if err := c.Start(agent); err != nil {
+			return err
+		}
+	}
 
 	go func() {
 		for {

@@ -251,8 +251,8 @@ func init() {
 		new(User), new(Host), new(Tag),
 		new(Role), new(Token), new(Log),
 		new(Tag_rel), new(Tpl_rel), new(Team),
-		new(Template), new(Trigger), new(Expression),
-		new(Action), new(Strategy))
+		new(Template), new(Expression), new(Action),
+		new(Strategy))
 
 	ctrl.RegisterPrestart(initModels)
 	ctrl.RegisterReload(initModels)
