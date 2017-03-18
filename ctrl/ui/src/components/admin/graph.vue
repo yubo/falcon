@@ -8,7 +8,7 @@
           <el-form-item label="dsn"><el-input v-model="form.dsn"></el-input></el-form-item>
           <el-form-item label="db max idle"><el-input v-model="form.dbmaxidle"></el-input></el-form-item>
           <el-form-item label="http">
-            <el-switch on-text="" off-text="" v-model="httpenable"></el-switch> 
+            <el-switch on-text="" off-text="" v-model="httpenable" desabled></el-switch> 
             <el-input  v-model="form.httpaddr"></el-input>
           </el-form-item>
           <el-form-item label="rpc">
@@ -21,17 +21,17 @@
           </el-form-item>
           <el-form-item label="rrd_storage"> <el-input v-model="form.rrd_storage"></el-input></el-form-item>
           <el-form-item label="call timeout"> <el-input v-model="form.calltimeout"></el-input></el-form-item>
-          <el-form-item label="leasekey"> <el-input v-model="form.leasekey"></el-input></el-form-item>
           <el-form-item label="leasettl"> <el-input v-model="form.leasettl"></el-input></el-form-item>
         </el-form>
       </el-tab-pane>
 
       <el-tab-pane label="Migrate" name="migrate">
+        扩容相关操作请使用admin->expansion->graph
         <el-form label-position="right" label-width="200px" :model="form">
-          <el-form-item label="enable"> <el-switch on-text="" off-text="" v-model="migrate_enable"></el-switch> </el-form-item>
+          <el-form-item label="enable"> <el-switch on-text="" off-text="" v-model="migrate_enabled" disabled></el-switch> </el-form-item>
           <el-form-item label="concurrency"><el-input v-model="form.migrate_concurrency"></el-input></el-form-item>
-          <el-form-item label="replicas"><el-input v-model="form.migrate_replicas"></el-input></el-form-item>
-          <el-form-item label="cluster"><el-input v-model="form.migrate_cluster"></el-input></el-form-item>
+          <el-form-item label="replicas"><el-input v-model="form.migrate_replicas" disabled></el-input></el-form-item>
+          <el-form-item label="cluster"> <el-input style="width:380px;" type="textarea" :autosize="{minRows:2, maxRows:10}" v-model="migrate_cluster" disabled></el-input></el-form-item>
         </el-form>
       </el-tab-pane>
 
@@ -58,7 +58,8 @@ export default {
       httpenable: false,
       rpcenable: false,
       grpcenable: false,
-      migrate_enable: false,
+      migrate_enabled: false,
+      migrate_cluster: '',
       optionRunModes: [{
         name: 'production', value: 'prod'
       }, { name: 'develop', value: 'dev'
@@ -75,8 +76,6 @@ export default {
         grpcaddr: '',
         rrd_storage: '',
         calltimeout: '',
-        leasekey: '',
-        leasevalue: '',
         leasettl: '',
         migrate_enabled: '',
         migrate_concurrency: '',
@@ -110,7 +109,8 @@ export default {
         this.httpenable = this.form.httpenable === 'true'
         this.rpcenable = this.form.rpcenable === 'true'
         this.grpcenable = this.form.grpcenable === 'true'
-        this.migrate_enable = this.form.migrate_enable === 'true'
+        this.migrate_enabled = this.form.migrate_enabled === 'true'
+        this.migrate_cluster = this.form.migrate_cluster.split(';').join('\n')
         this.loading = false
       }).catch((err) => {
         Msg.error('get failed', err)
@@ -124,7 +124,7 @@ export default {
       this.form.httpenable = this.httpenable ? 'true' : 'false'
       this.form.rpcenable = this.rpcenable ? 'true' : 'false'
       this.form.grpcenable = this.grpcenable ? 'true' : 'false'
-      this.form.migrate_enable = this.migrate_enable ? 'true' : 'false'
+      this.form.migrate_enabled = this.migrate_enabled ? 'true' : 'false'
 
       for (let k in this.form) {
         if (this.form[k] !== '') {

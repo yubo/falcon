@@ -10,8 +10,7 @@
 </template>
 
 <script>
-import { fetch } from 'src/utils'
-import { Notification } from 'element-ui'
+import { fetch, Msg } from 'src/utils'
 export default {
   data () {
     return {
@@ -24,10 +23,10 @@ export default {
         method: 'get',
         url: '/admin/debug/' + action
       }).then((res) => {
-        Notification.success({title: 'Success', message: res.data})
+        Msg.success(res.data)
         this.loading = false
       }).catch((err) => {
-        Notification.error({title: 'Error', message: err.response.data})
+        Msg.error(err)
         this.loading = false
       })
     }

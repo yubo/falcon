@@ -5,8 +5,7 @@
       <el-tab-pane label="General" name="general">
         <el-form label-position="right" label-width="200px" :model="form">
           <el-form-item label="debug"> <el-switch on-text="" off-text="" v-model="debug"></el-switch> </el-form-item>
-          <el-form-item label="dsn"><el-input v-model="form.dsn"></el-input></el-form-item>
-          <el-form-item label="db max idle"><el-input v-model="form.dbmaxidle"></el-input></el-form-item>
+          <el-form-item label="minstep"> <el-input v-model="form.minstep"></el-input> </el-form-item>
           <el-form-item label="http">
             <el-switch on-text="" off-text="" v-model="httpenable"></el-switch> 
             <el-input  v-model="form.httpaddr"></el-input>
@@ -24,7 +23,6 @@
           <el-form-item label="socket timeout">
             <el-input  v-model="form.socket_timeout"></el-input>
           </el-form-item>
-          <el-form-item label="lease key"> <el-input v-model="form.leasekey"></el-input></el-form-item>
           <el-form-item label="leasettl"> <el-input v-model="form.leasettl"></el-input></el-form-item>
         </el-form>
       </el-tab-pane>
@@ -38,7 +36,7 @@
           <el-form-item label="maxconns"><el-input v-model="form.judge_maxconns"></el-input></el-form-item>
           <el-form-item label="maxidle"><el-input v-model="form.judge_maxidle"></el-input></el-form-item>
           <el-form-item label="replicas"><el-input v-model="form.judge_replicas"></el-input></el-form-item>
-          <el-form-item label="cluster"> <el-input v-model="form.judge_cluster"></el-input> (judge-00=127.0.0.1:6080,judge-01=127.0.0.1:6081) </el-form-item>
+          <el-form-item label="cluster"> <el-input style="width:380px;" type="textarea" :autosize="{minRows:2, maxRows:10}" v-model="judge_cluster"></el-input></el-form-item>
         </el-form>
       </el-tab-pane>
 
@@ -51,25 +49,15 @@
           <el-form-item label="maxconns"><el-input v-model="form.graph_maxconns"></el-input></el-form-item>
           <el-form-item label="maxidle"><el-input v-model="form.graph_maxidle"></el-input></el-form-item>
           <el-form-item label="replicas"><el-input v-model="form.graph_replicas"></el-input></el-form-item>
+          <el-form-item label="cluster"> <el-input style="width:380px;" type="textarea" :autosize="{minRows:2, maxRows:10}" v-model="graph_cluster"></el-input> </el-form-item>
+          <!--
           <el-form-item label="cluster">
-            <el-select
-              style="width: 100%"
-              placeholder="graph cluster"
-              v-model="graph_cluster"
-              multiple
-              filterable
-              remote
-              :remote-method="getGraphs"
-              :loading="sloading">
-              <el-option
-                v-for="obj in optionGraphs"
-                :key="obj.name"
-                :label="obj.name"
-                :value="obj.name">
-              </el-option>
-            </el-select>
-
+            <el-checkbox-group v-model="graph_cluster" style="width: 80%">
+              <el-checkbox v-for="graph in graphs" :label="graph">{{graph}}</el-checkbox>
+            </el-checkbox-group>
           </el-form-item>
+          -->
+
         </el-form>
       </el-tab-pane>
 
@@ -82,7 +70,7 @@
           <el-form-item label="maxconns"><el-input v-model="form.tsdb_maxconns"></el-input></el-form-item>
           <el-form-item label="maxidle"><el-input v-model="form.tsdb_maxidle"></el-input></el-form-item>
           <el-form-item label="retry"><el-input v-model="form.tsdb_retry"></el-input></el-form-item>
-          <el-form-item label="address"><el-input v-model="form.tsdb_address"></el-input>(127.0.0.1:8088)</el-form-item>
+          <el-form-item label="address"> <el-input style="width:380px;" type="textarea" :autosize="{minRows:2, maxRows:10}" v-model="tsdb_address"></el-input></el-form-item>
         </el-form>
       </el-tab-pane>
 
@@ -100,11 +88,11 @@
 
 <script>
 import { fetch, Msg } from 'src/utils'
+const { _ } = window
 export default {
   data () {
     return {
       loading: false,
-      sloading: false,
       activeName: 'general',
       debug: false,
       httpenable: false,
@@ -117,8 +105,10 @@ export default {
         name: 'production', value: 'prod'
       }, { name: 'develop', value: 'dev'
       }],
-      optionGraphs: [],
-      graph_cluster: [],
+      judge_cluster: '',
+      graph_cluster: '',
+      tsdb_address: '',
+      // graphs: [],
       form: {
         debug: '',
         minstep: '',
@@ -130,7 +120,6 @@ export default {
         socket_listen: '',
         socket_timeout: '',
         leasettl: '',
-        leasekey: '',
         judge_enabled: '',
         judge_batch: '',
         judge_conntimeout: '',
@@ -164,31 +153,18 @@ export default {
   methods: {
     handleClick (tab, event) {
     },
-
-    getGraphs (query) {
-      if (query !== '') {
-        this.sloading = true
-        fetch({
-          method: 'get',
-          url: 'admin/online/graph',
-          params: {
-            query: query,
-            per: 10
-          }
-        }).then((res) => {
-          this.optionGraphs = res.data.map((v) => {
-            return {name: v.value + '=' + v.key}
-          })
-          this.sloading = false
-        }).catch((err) => {
-          Msg.error('get failed', err)
-          this.sloading = false
-        })
-      } else {
-        this.optionGraphs = []
-      }
+    getGraphs () {
+      fetch({
+        method: 'get',
+        url: 'admin/online/graph'
+      }).then((res) => {
+        this.graphs = _.union(res.data.map((v) => {
+          return v.value + '=' + v.key
+        }), this.graphs).sort()
+      }).catch((err) => {
+        Msg.error('get failed', err)
+      })
     },
-
     fetchData () {
       this.loading = true
       fetch({
@@ -207,15 +183,17 @@ export default {
         this.debug = this.form.debug === 'true'
         this.httpenable = this.form.httpenable === 'true'
         this.rpcenable = this.form.rpcenable === 'true'
-        this.socket_enabled = this.form.socket_enable === 'true'
+        this.socket_enable = this.form.socket_enable === 'true'
         this.judge_enabled = this.form.judge_enabled === 'true'
         this.graph_enabled = this.form.graph_enabled === 'true'
         this.tsdb_enabled = this.form.tsdb_enabled === 'true'
-        this.graph_cluster = this.form.graph_cluster.split(',')
-        this.optionGraphs = this.graph_cluster.map((v) => {
-          return {name: v}
-        })
+
+        this.judge_cluster = this.form.judge_cluster.split(';').join('\n')
+        this.graph_cluster = this.form.graph_cluster.split(';').join('\n')
+        this.tsdb_address = this.form.tsdb_address.split(';').join('\n')
+        // this.graphs = this.graph_cluster.sort()
         this.loading = false
+        // this.getGraphs()
       }).catch((err) => {
         Msg.error('get failed', err)
         this.loading = false
@@ -224,14 +202,17 @@ export default {
     putData () {
       this.loading = true
       let conf = {}
-      this.form.enable = this.enable ? 'true' : 'false'
+      this.form.debug = this.debug ? 'true' : 'false'
       this.form.httpenable = this.httpenable ? 'true' : 'false'
       this.form.rpcenable = this.rpcenable ? 'true' : 'false'
       this.form.socket_enable = this.socket_enable ? 'true' : 'false'
       this.form.judge_enabled = this.judge_enabled ? 'true' : 'false'
       this.form.graph_enabled = this.graph_enabled ? 'true' : 'false'
       this.form.tsdb_enabled = this.tsdb_enabled ? 'true' : 'false'
-      this.form.graph_cluster = this.graph_cluster.join(',')
+      this.form.judge_cluster = this.judge_cluster.split('\n').join(';')
+      this.form.graph_cluster = this.graph_cluster.split('\n').join(';')
+      this.form.tsdb_address = this.tsdb_address.split('\n').join(';')
+      console.log(this.form.graph_cluster)
 
       for (let k in this.form) {
         if (this.form[k] !== '') {

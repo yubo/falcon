@@ -21,6 +21,7 @@ import {
   RadioGroup,
   Radio,
   Checkbox,
+  CheckboxGroup,
   Tabs,
   TabPane,
   Dialog,
@@ -43,6 +44,7 @@ Vue.use(Switch)
 Vue.use(RadioGroup)
 Vue.use(Radio)
 Vue.use(Checkbox)
+Vue.use(CheckboxGroup)
 Vue.use(Tabs)
 Vue.use(TabPane)
 Vue.use(Dialog)
