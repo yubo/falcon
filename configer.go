@@ -1,8 +1,17 @@
-/*
- * Copyright 2017 yubo. All rights reserved.
- * Use of this source code is governed by a BSD-style
- * license that can be found in the LICENSE file.
- */
+ * Copyright 2016 2017 yubo. All rights reserved.
+// Copyright 2014 beego Author. All Rights Reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package falcon
 
 import (
@@ -22,6 +31,14 @@ const (
 
 const (
 	C_ETCD_ENDPOINTS          = "etcdendpoints"
+	C_ETCD_USERNAME           = "etcdusername"
+	C_ETCD_PASSWORD           = "etcdpassword"
+	C_ETCD_CERTFILE           = "certfile"
+	C_ETCD_KEYFILE            = "keyfile"
+	C_ETCD_CAFILE             = "cafile"
+	C_LEASE_KEY               = "leasekey"
+	C_LEASE_VALUE             = "leasevalue"
+	C_LEASE_TTL               = "leasettl"
 	C_RUN_MODE                = "runmode"
 	C_ENABLE_DOCS             = "enabledocs"
 	C_SEESION_GC_MAX_LIFETIME = "sessiongcmaxlifetime"
@@ -46,10 +63,10 @@ const (
 	C_WORKER_PROCESSES        = "workerprocesses"
 	C_HTTP_ENABLE             = "httpenable"
 	C_HTTP_ADDR               = "httpaddr"
-	C_RPC_ENABLE              = "rcpenable"
-	C_RPC_ADDR                = "rcpaddr"
-	C_GRPC_ENABLE             = "grcpenable"
-	C_GRPC_ADDR               = "grcpaddr"
+	C_RPC_ENABLE              = "rpcenable"
+	C_RPC_ADDR                = "rpcaddr"
+	C_GRPC_ENABLE             = "grpcenable"
+	C_GRPC_ADDR               = "grpcaddr"
 	C_INTERVAL                = "interval"
 	C_IFACE_PREFIX            = "ifaceprefix"
 	C_PAYLOADSIZE             = "payloadsize"
@@ -71,6 +88,42 @@ const (
 	C_EMU_METRICNUM           = "emumetricnum"
 	C_EMU_TPL                 = "tpl"
 	C_EMU_TPLNUM              = "tplnum"
+	// falcon-plus
+	C_DEBUG                = "debug"
+	C_RRD_STORAGE          = "rrd_storage"
+	C_MIGRATE_ENABLE       = "migrate_enabled"
+	C_MIGRATE_CONCURRENCY  = "migrate_concurrency"
+	C_MIGRATE_REPLICAS     = "migrate_replicas"
+	C_MIGRATE_CLUSTER      = "migrate_cluster"
+	C_MIGRATE_NEW_ENDPOINT = "migrate_newendpoint"
+	C_MINSTEP              = "minstep"
+	C_SOCKET_ENABLE        = "socket_enable"
+	C_SOCKET_ADDR          = "socket_listen"
+	C_SOCKET_TIMEOUT       = "socket_timeout"
+	C_JUDGE_ENABLE         = "judge_enabled"
+	C_JUDGE_BATCH          = "judge_batch"
+	C_JUDGE_CONNTIMEOUT    = "judge_conntimeout"
+	C_JUDGE_CALLTIMEOUT    = "judge_calltimeout"
+	C_JUDGE_MAXCONNS       = "judge_maxconns"
+	C_JUDGE_MAXIDLE        = "judge_maxidle"
+	C_JUDGE_REPLICAS       = "judge_replicas"
+	C_JUDGE_CLUSTER        = "judge_cluster"
+	C_GRAPH_ENABLE         = "graph_enabled"
+	C_GRAPH_BATCH          = "graph_batch"
+	C_GRAPH_CONNTIMEOUT    = "graph_conntimeout"
+	C_GRAPH_CALLTIMEOUT    = "graph_calltimeout"
+	C_GRAPH_MAXCONNS       = "graph_maxconns"
+	C_GRAPH_MAXIDLE        = "graph_maxidle"
+	C_GRAPH_REPLICAS       = "graph_replicas"
+	C_GRAPH_CLUSTER        = "graph_cluster"
+	C_TSDB_ENABLE          = "tsdb_enabled"
+	C_TSDB_BATCH           = "tsdb_batch"
+	C_TSDB_CONNTIMEOUT     = "tsdb_conntimeout"
+	C_TSDB_CALLTIMEOUT     = "tsdb_calltimeout"
+	C_TSDB_MAXCONNS        = "tsdb_maxconns"
+	C_TSDB_MAXIDLE         = "tsdb_maxidle"
+	C_TSDB_RETRY           = "tsdb_retry"
+	C_TSDB_ADDRESS         = "tsdb_address"
 )
 
 var (

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 yubo. All rights reserved.
+ * Copyright 2016 2017 yubo. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
@@ -122,7 +122,7 @@ func (p *Process) Start() {
 			os.Rename(p.Config.pidFile, pidfile)
 
 			for i, n := 0, len(p.module); i < n; i++ {
-				p.module[n-i].Stop()
+				p.module[n-i-1].Stop()
 			}
 
 			glog.Infof(MODULE_NAME+"pid:%d exit", p.Pid)

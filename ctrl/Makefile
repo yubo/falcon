@@ -1,6 +1,4 @@
 all: api/swagger/swagger.json
-WORKDIR=$(shell pwd)
-VENDOR=${WORKDIR}/../vendor
 
 .PHONY: db dev doc web
 
@@ -18,9 +16,6 @@ dev:
 db:
 	mysql -uroot -p12341234 falcon < ./scripts/falcon.sql
 	mysql -uroot -p12341234 falcon_test < ./scripts/falcon.sql
-
-env:
-	@echo export GOPATH=${VENDOR}
 
 pkg:
 	tar --exclude=./ui/node_modules -czvf /tmp/ui.tar.gz . 

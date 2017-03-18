@@ -2,7 +2,6 @@
 MODULES=falcon
 VERSION=$(shell cat VERSION)
 TARGETS=$(MODULES:%=dist/%)
-ORG_PATH=github.com/open-falcon/falcon
 WORKDIR=${shell pwd}
 
 ifeq ($(strip $(OUTPUT_DIR)),)

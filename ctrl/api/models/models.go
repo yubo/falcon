@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 yubo. All rights reserved.
+ * Copyright 2016 2017 yubo. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
@@ -9,11 +9,9 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/orm"
-	"github.com/coreos/etcd/clientv3"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/ctrl"
@@ -105,8 +103,12 @@ type Total struct {
 	Total int64 `json:"total"`
 }
 
+type KeyValue struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}
+
 var (
-	etcdConfig   clientv3.Config
 	moduleCache  [CTL_M_SIZE]cache
 	sysTagSchema *TagSchema
 
@@ -133,6 +135,7 @@ func initModels(conf *falcon.ConfCtrl) (err error) {
 	if err = initMetric(conf); err != nil {
 		panic(err)
 	}
+	prepareEtcdConfig()
 	return nil
 }
 
@@ -205,17 +208,6 @@ func initConfig(conf *falcon.ConfCtrl) error {
 	beego.BConfig.WebConfig.Session.SessionGCMaxLifetime, _ = c.Int64(falcon.C_SEESION_GC_MAX_LIFETIME)
 	beego.BConfig.WebConfig.Session.SessionCookieLifeTime, _ = c.Int(falcon.C_SESSION_COOKIE_LIFETIME)
 
-	etcdConfig = clientv3.Config{
-		Endpoints:   strings.Split(c.Str(falcon.C_ETCD_ENDPOINTS), ","),
-		DialTimeout: 3 * time.Second,
-	}
-	// test etcd
-	if cli, err := clientv3.New(etcdConfig); err != nil {
-		beego.Error("etcd client:" + err.Error())
-	} else {
-		cli.Close()
-	}
-
 	if beego.BConfig.RunMode == "dev" {
 		beego.Debug("orm debug on")
 		orm.Debug = true
@@ -245,6 +237,7 @@ func initCache(c *falcon.ConfCtrl) error {
 	}
 	return nil
 }
+
 func init() {
 	orm.RegisterDriver("mysql", orm.DRMySQL)
 	orm.RegisterModelWithPrefix("",

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 yubo. All rights reserved.
+ * Copyright 2016 2017 yubo. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
@@ -26,6 +26,7 @@ var (
 	prestartHooks = make([]hookfunc, 0)
 	reloadHooks   = make([]hookfunc, 0)
 	Configure     *falcon.ConfCtrl
+	EtcdCli       *falcon.EtcdCli
 )
 
 type hookfunc func(conf *falcon.ConfCtrl) error
@@ -69,6 +70,9 @@ func (p *Ctrl) String() string {
 func (p *Ctrl) Prestart() error {
 	Configure = p.Conf
 
+	EtcdCli = falcon.NewEtcdCli(Configure.Ctrl)
+
+	EtcdCli.Prestart()
 	for _, fn := range prestartHooks {
 		if err := fn(Configure); err != nil {
 			panic(err)
@@ -83,8 +87,7 @@ func (p *Ctrl) Start() error {
 	p.status = falcon.APP_STATUS_PENDING
 	p.running = make(chan struct{}, 0)
 
-	// TODO: move configurations from conf/app.conf to falcon.conf(yyparse)
-
+	EtcdCli.Start()
 	// p.rpcStart()
 	// p.httpStart()
 	p.statStart()
@@ -97,17 +100,20 @@ func (p *Ctrl) Stop() error {
 	p.status = falcon.APP_STATUS_EXIT
 	close(p.running)
 	p.statStop()
+	EtcdCli.Stop()
 	// p.httpStop()
 	// p.rpcStop()
 	return nil
 }
 
+// TODO: reload is not yet implemented
 func (p Ctrl) Reload(config interface{}) error {
 	p.Conf = config.(*falcon.ConfCtrl)
 	glog.V(3).Infof(MODULE_NAME+"%s Reload()", p.Conf.Name)
 
 	Configure = p.Conf
 
+	EtcdCli.Reload(Configure.Ctrl)
 	for _, fn := range prestartHooks {
 		if err := fn(Configure); err != nil {
 			panic(err)

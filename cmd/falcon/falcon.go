@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 yubo. All rights reserved.
+ * Copyright 2016 2017 yubo. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
@@ -14,15 +14,24 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/yubo/falcon"
+	"github.com/yubo/gotool/flags"
+
+	//agent
 	_ "github.com/yubo/falcon/agent"
 	_ "github.com/yubo/falcon/agent/plugin"
 	_ "github.com/yubo/falcon/agent/plugin/emulator"
+
+	// loadbalance
+	_ "github.com/yubo/falcon/loadbalance"
+
+	// backend
 	_ "github.com/yubo/falcon/backend"
+
+	// ctrl
 	_ "github.com/yubo/falcon/ctrl"
+	_ "github.com/yubo/falcon/ctrl/api/models"
 	_ "github.com/yubo/falcon/ctrl/api/models/auth"
 	_ "github.com/yubo/falcon/ctrl/api/routers"
-	_ "github.com/yubo/falcon/loadbalance"
-	"github.com/yubo/gotool/flags"
 )
 
 var opts falcon.CmdOpts

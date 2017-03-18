@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 yubo. All rights reserved.
+ * Copyright 2016 2017 yubo. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
@@ -489,7 +489,7 @@ func (c *RelController) CreateTagRoleToken() {
 // @Title delete tag role token relation
 // @Description delete tag/role/token relation
 // @Param	body		body 	models.RelTagHost	true	""
-// @Success 200 {object} models.Total affected number
+// @Success 200 {object} models.Id affected id
 // @Failure 403 string error
 // @router /tag/role/token [delete]
 func (c *RelController) DelTagRoleToken() {
@@ -501,6 +501,6 @@ func (c *RelController) DelTagRoleToken() {
 	if err != nil {
 		c.SendMsg(403, err.Error())
 	} else {
-		c.SendMsg(200, totalObj(n))
+		c.SendMsg(200, idObj(n))
 	}
 }

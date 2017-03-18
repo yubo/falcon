@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 yubo. All rights reserved.
+ * Copyright 2016 2017 yubo. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
@@ -182,6 +182,7 @@ func MdiffStr(src, dst []string) (add, del []string) {
 	}
 	return
 }
+
 func MdiffInt(src, dst []int64) (add, del []int64) {
 	_src := make(map[int64]bool)
 	_dst := make(map[int64]bool)

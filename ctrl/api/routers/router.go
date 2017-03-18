@@ -24,7 +24,8 @@ const (
 )
 
 func init() {
-	beego.InsertFilter("/*", beego.BeforeRouter, profileFilter)
+	beego.InsertFilter("/v1.0/*", beego.BeforeRouter, profileFilter)
+	beego.InsertFilter("/v1.0/*", beego.BeforeRouter, accessFilter)
 
 	if ACL {
 		beego.InsertFilter("/v1.0/*", beego.BeforeRouter, accessFilter)
