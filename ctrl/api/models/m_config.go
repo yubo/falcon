@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 2017 yubo. All rights reserved.
+ * Copyright 2016 falcon Author. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
@@ -169,12 +169,10 @@ func (op *Operator) ConfigGet(module string) (interface{}, error) {
 		c = &ctrl.Configure.Ctrl
 	case "agent":
 		c = &ctrl.Configure.Agent
-	case "loadbalance":
-		c = &ctrl.Configure.Loadbalance
 	case "backend":
 		c = &ctrl.Configure.Backend
-	case "graph": // for falcon-plus
-		c = &ctrl.Configure.Graph
+	//case "graph": // for falcon-plus
+	//	c = &ctrl.Configure.Graph
 	case "transfer": // for falcon-plus
 		c = &ctrl.Configure.Transfer
 	default:

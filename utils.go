@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 2017 yubo. All rights reserved.
+ * Copyright 2016 falcon Author. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
@@ -11,9 +11,14 @@ import (
 	"io"
 	"io/ioutil"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
+)
+
+var (
+	f_network = regexp.MustCompile(`^(tcp)|(unix)+:`)
 )
 
 func Md5sum(raw string) string {
@@ -56,4 +61,11 @@ func GetType(myvar interface{}) string {
 	} else {
 		return t.Name()
 	}
+}
+
+func ParseAddr(url string) (net, addr string) {
+	if f := f_network.Find([]byte(url)); f != nil {
+		return url[:len(f)-1], url[len(f):]
+	}
+	return "tcp", url
 }

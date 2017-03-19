@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 2017 yubo. All rights reserved.
+ * Copyright 2016 falcon Author. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
@@ -71,7 +71,7 @@ func (p *httpModule) start(agent *Agent) error {
 		return nil
 	}
 
-	addr := agent.Conf.Configer.Str(falcon.C_HTTP_ADDR)
+	network, addr := falcon.ParseAddr(agent.Conf.Configer.Str(falcon.C_HTTP_ADDR))
 	if addr == "" {
 		return falcon.ErrParam
 	}
@@ -81,13 +81,17 @@ func (p *httpModule) start(agent *Agent) error {
 	}
 	glog.Infof(MODULE_NAME+"%s http listening %s", agent.Conf.Name, addr)
 
-	ln, err := net.Listen("tcp", addr)
+	ln, err := net.Listen(network, addr)
 	if err != nil {
 		glog.Fatal(MODULE_NAME, err)
 	}
 
-	p.httpListener = ln.(*net.TCPListener)
-	go s.Serve(tcpKeepAliveListener{p.httpListener})
+	if network == "tcp" {
+		p.httpListener = ln.(*net.TCPListener)
+		go s.Serve(tcpKeepAliveListener{p.httpListener})
+	} else {
+		go s.Serve(ln)
+	}
 
 	return nil
 }

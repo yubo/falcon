@@ -1,4 +1,4 @@
- * Copyright 2016 2017 yubo. All rights reserved.
+// Copyright 2016 falcon Author. All rights reserved.
 // Copyright 2014 beego Author. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -86,8 +87,8 @@ const (
 	C_EMU_HOSTNUM             = "emuhostnum"
 	C_EMU_METRIC              = "emumetric"
 	C_EMU_METRICNUM           = "emumetricnum"
-	C_EMU_TPL                 = "tpl"
-	C_EMU_TPLNUM              = "tplnum"
+	C_EMU_TPL                 = "emutpl"
+	C_EMU_TPLNUM              = "emutplnum"
 	// falcon-plus
 	C_DEBUG                = "debug"
 	C_RRD_STORAGE          = "rrd_storage"
@@ -146,7 +147,7 @@ var (
 			C_PAYLOADSIZE:      "16",
 			C_IFACE_PREFIX:     "eth,em",
 		},
-		"loadbalance": map[string]string{
+		"transfer": map[string]string{
 			C_CONN_TIMEOUT:     "1000",
 			C_CALL_TIMEOUT:     "5000",
 			C_WORKER_PROCESSES: "2",
@@ -197,17 +198,25 @@ type Configer struct {
 func (c Configer) String() string {
 	s := ""
 	for i := 0; i < len(c.data); i++ {
-		s1 := ""
-		for k, v := range c.data[i] {
-			s1 += fmt.Sprintf("%-17s %s\n", k, v)
-		}
-		if len(s1) > 0 {
-			s += fmt.Sprintf("%-17s {\n%s\n}\n",
-				APP_CONF_NAME[i], IndentLines(1, s1))
-		} else {
+		if len(c.data[i]) == 0 {
 			s += fmt.Sprintf("%-17s { }\n",
 				APP_CONF_NAME[i])
+			continue
 		}
+
+		keys := make([]string, 0)
+		for k, _ := range c.data[i] {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+
+		s1 := ""
+		for _, k := range keys {
+			s1 += fmt.Sprintf("%-17s %s\n", k, c.data[i][k])
+		}
+
+		s += fmt.Sprintf("%-17s {\n%s\n}\n",
+			APP_CONF_NAME[i], IndentLines(1, s1))
 	}
 	return s
 }

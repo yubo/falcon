@@ -1,9 +1,9 @@
 /*
- * Copyright 2016 2017 yubo. All rights reserved.
+ * Copyright 2016 falcon Author. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
-package loadbalance
+package transfer
 
 import (
 	"errors"
@@ -30,7 +30,7 @@ type senderFalcon struct {
 	chans           map[string]chan *falcon.MetaData
 }
 
-func (p *senderFalcon) new(L *Loadbalance) sender {
+func (p *senderFalcon) new(L *Transfer) sender {
 	workerprocesses, _ := L.Conf.Configer.Int(falcon.C_WORKER_PROCESSES)
 	conntimeout, _ := L.Conf.Configer.Int(falcon.C_CONN_TIMEOUT)
 	calltimeout, _ := L.Conf.Configer.Int(falcon.C_CALL_TIMEOUT)
@@ -59,17 +59,29 @@ func (p *senderFalcon) addClientChan(key, addr string,
 		addr: addr,
 		cli:  make([]*rpc.Client, p.workerProcesses),
 	}
-	for i := 0; i < p.workerProcesses; i++ {
-		p.clients[key].cli[i], err = p.dial(addr, p.connTimeout)
-		if err != nil {
-			glog.Fatalf(MODULE_NAME+"node:%s addr:%s err:%s\n",
-				key, addr, err)
+	/*
+		for i := 0; i < p.workerProcesses; i++ {
+			p.clients[key].cli[i], err = p.dial(addr, p.connTimeout)
+			if err != nil {
+				glog.Fatalf(MODULE_NAME+"node:%s addr:%s err:%s\n",
+					key, addr, err)
+			}
 		}
-	}
+	*/
 	return nil
 }
 
-func (p *senderFalcon) start(name string) error {
+func (p *senderFalcon) start(name string) (err error) {
+	for key, _ := range p.clients {
+		for i := 0; i < p.workerProcesses; i++ {
+			p.clients[key].cli[i], err = p.dial(p.clients[key].addr, p.connTimeout)
+			if err != nil {
+				glog.Fatalf(MODULE_NAME+"node:%s addr:%s err:%s\n",
+					key, p.clients[key].addr, err)
+			}
+		}
+	}
+
 	for node, ch := range p.chans {
 		for i := 0; i < len(p.clients[node].cli); i++ {
 			go falconUpstreamWorker(name, i,
@@ -94,7 +106,7 @@ func (p *senderFalcon) stop() error {
 func rpcDial(address string, timeout time.Duration) (*rpc.Client, error) {
 	statsInc(ST_UPSTREAM_DIAL, 1)
 	d := net.Dialer{Timeout: timeout}
-	conn, err := d.Dial("tcp", address)
+	conn, err := d.Dial(falcon.ParseAddr(address))
 	if err != nil {
 		statsInc(ST_UPSTREAM_DIAL_ERR, 1)
 		return nil, err
@@ -154,7 +166,7 @@ func putRpcBackendData(client **rpc.Client, items []*falcon.RrdItem,
 	resp = &falcon.RpcResp{}
 
 	for i = 0; i < CONN_RETRY; i++ {
-		err = netRpcCall(*client, "Backend.Put", items, resp,
+		err = netRpcCall(*client, "Bkd.Put", items, resp,
 			time.Duration(callTimeout)*time.Millisecond)
 
 		if err == nil {

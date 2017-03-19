@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 2017 yubo. All rights reserved.
+ * Copyright 2016 falcon Author. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
@@ -39,10 +39,10 @@ func (p FalconConfig) String() string {
 			ret += fmt.Sprintf("\n%s (\n%s\n)",
 				v.(*ConfCtrl).Name,
 				IndentLines(1, v.(*ConfCtrl).String()))
-		case "ConfLoadbalance":
+		case "ConfTransfer":
 			ret += fmt.Sprintf("\n%s (\n%s\n)",
-				v.(*ConfLoadbalance).Name,
-				IndentLines(1, v.(*ConfLoadbalance).String()))
+				v.(*ConfTransfer).Name,
+				IndentLines(1, v.(*ConfTransfer).String()))
 		case "ConfBackend":
 			ret += fmt.Sprintf("\n%s (\n%s\n)",
 				v.(*ConfBackend).Name,
@@ -75,16 +75,16 @@ func (c ConfAgent) String() string {
 	)
 }
 
-type ConfLoadbalance struct {
+type ConfTransfer struct {
 	Debug    int
 	Disabled bool
 	Name     string
 	Host     string
-	Backend  []LbBackend
+	Backend  []TransferBackend
 	Configer Configer
 }
 
-func (c ConfLoadbalance) String() string {
+func (c ConfTransfer) String() string {
 	var s1 string
 	for _, v := range c.Backend {
 		s1 += fmt.Sprintf("%s\n", v.String())
@@ -104,14 +104,14 @@ func (c ConfLoadbalance) String() string {
 	)
 }
 
-type LbBackend struct {
+type TransferBackend struct {
 	Disabled bool
 	Name     string
 	Type     string
 	Upstream map[string]string
 }
 
-func (p LbBackend) String() string {
+func (p TransferBackend) String() string {
 	var s1, s2 string
 
 	s1 = fmt.Sprintf("%s %s", p.Type, p.Name)
@@ -173,17 +173,16 @@ func (p Migrate) String() string {
 
 type ConfCtrl struct {
 	// only in falcon.conf
-	Debug       int
-	Disabled    bool
-	Name        string
-	Host        string
-	Metrics     []string
-	Ctrl        Configer
-	Agent       Configer
-	Loadbalance Configer
-	Backend     Configer
-	Graph       Configer
-	Transfer    Configer
+	Debug    int
+	Disabled bool
+	Name     string
+	Host     string
+	Metrics  []string
+	Ctrl     Configer
+	Agent    Configer
+	Transfer Configer
+	Backend  Configer
+	//Graph       Configer
 	// 1: default, 2: db, 3: ConfCtrl.Container
 	// height will cover low
 }

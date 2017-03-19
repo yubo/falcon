@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 2017 yubo. All rights reserved.
+ * Copyright 2016 falcon Author. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
@@ -14,10 +14,11 @@ import (
 )
 
 var (
-	cacheModule *cacheModule
-	testEntry   *cacheEntry
-	rrdItem     *falcon.RrdItem
-	err         error
+	cacheApp  *Backend
+	cache     *cacheModule
+	testEntry *cacheEntry
+	rrdItem   *falcon.RrdItem
+	err       error
 )
 
 func newRrdItem1(i int) *falcon.RrdItem {
@@ -37,20 +38,21 @@ func newRrdItem1(i int) *falcon.RrdItem {
 
 func test_cache_init() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	cacheApp = nil
+	cacheApp = &Backend{}
+	cache = &cacheModule{}
 	cacheApp.Conf = &falcon.ConfBackend{
 		Name: "cacheApp",
 	}
-	cacheApp.Conf.Configer.Set(APP_CONF_FILE, map[string]string{
+	cacheApp.Conf.Configer.Set(falcon.APP_CONF_FILE, map[string]string{
 		"hdisks": "/tmp/falcon",
 	})
-	cacheApp.cacheInit()
+	cache.prestart(cacheApp)
 }
 
 func TestCache(t *testing.T) {
 	//fmt.Println(runtime.Caller(0))
 	test_cache_init()
-	cacheApp.cacheReset()
+	cache.prestart(cacheApp)
 	rrdItem = newRrdItem1(1)
 	key := rrdItem.Csum()
 
@@ -93,7 +95,7 @@ func TestCache(t *testing.T) {
 }
 
 func TestCacheQueue(t *testing.T) {
-	cacheApp.cacheReset()
+	cache.prestart(cacheApp)
 
 	rrdItem = newRrdItem1(0)
 	testEntry, err = cacheApp.createEntry(rrdItem.Csum(), rrdItem)
@@ -118,7 +120,7 @@ func TestCacheQueue(t *testing.T) {
 	fmt.Printf("e.getItems() success\n")
 
 	testEntry.dequeueAll()
-	if testEntry.e.commitId != testEntry.e.dataId {
-		t.Errorf("len(cache) %d want %d", int(testEntry.e.dataId-testEntry.e.commitId), 0)
+	if testEntry.commitId != testEntry.dataId {
+		t.Errorf("len(cache) %d want %d", int(testEntry.dataId-testEntry.commitId), 0)
 	}
 }

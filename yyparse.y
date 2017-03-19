@@ -1,4 +1,4 @@
-// Copyright 2016 2017 yubo. All rights reserved.
+// Copyright 2016 falcon Author. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 %{
@@ -27,7 +27,7 @@ import (
 
 %token '{' '}' ';'
 %token ON YES OFF NO INCLUDE ROOT PID_FILE LOG HOST DISABLED DEBUG
-%token CTRL AGENT LOADBALANCE BACKEND
+%token CTRL AGENT TRANSFER BACKEND
 %token UPSTREAM METRIC MIGRATE
 
 %%
@@ -99,16 +99,16 @@ conf: ';'
 	if !yy_agent.Disabled || yy.debug {
 		conf.conf = append(conf.conf, yy_agent)
 	}
-}| loadbalance_mod '}'   {
- 	yy_loadbalance.Configer.Set(APP_CONF_FILE, yy_ss2)
+}| transfer_mod '}'   {
+ 	yy_transfer.Configer.Set(APP_CONF_FILE, yy_ss2)
 	yy_ss2 = make(map[string]string)
 
-	yy_loadbalance.Name = fmt.Sprintf("loadbalance_%s", yy_loadbalance.Name)
-	if yy_loadbalance.Host == ""{
-		yy_loadbalance.Host, _ = os.Hostname()
+	yy_transfer.Name = fmt.Sprintf("transfer_%s", yy_transfer.Name)
+	if yy_transfer.Host == ""{
+		yy_transfer.Host, _ = os.Hostname()
 	}
-	if !yy_loadbalance.Disabled || yy.debug {
-		conf.conf = append(conf.conf, yy_loadbalance)
+	if !yy_transfer.Disabled || yy.debug {
+		conf.conf = append(conf.conf, yy_transfer)
 	}
 }| backend_mod '}'      {
  	yy_backend.Configer.Set(APP_CONF_FILE, yy_ss2)
@@ -175,24 +175,24 @@ agent_mod_item:
 ;
 
 
-////////////////////// loadbalance  /////////////////////////
-loadbalance_mod: LOADBALANCE text '{' {
-	yy_loadbalance      = &ConfLoadbalance{}
-	yy_loadbalance.Configer.Set(APP_CONF_DEFAULT, ConfDefault["loadbalance"])
-	yy_loadbalance.Name = $2
-}| loadbalance_mod loadbalance_mod_item ';'
+////////////////////// transfer  /////////////////////////
+transfer_mod: TRANSFER text '{' {
+	yy_transfer      = &ConfTransfer{}
+	yy_transfer.Configer.Set(APP_CONF_DEFAULT, ConfDefault["transfer"])
+	yy_transfer.Name = $2
+}| transfer_mod transfer_mod_item ';'
 ;
 
-loadbalance_mod_item:
- | DISABLED bool   { yy_loadbalance.Disabled = $2 }
+transfer_mod_item:
+ | DISABLED bool   { yy_transfer.Disabled = $2 }
  | ROOT text { 
 	if err := os.Chdir($2); err != nil {
 		yy.Error(err.Error())
 	}
-}| DEBUG           { yy_loadbalance.Debug = 1 }
- | DEBUG num       { yy_loadbalance.Debug = $2 }
- | HOST text       { yy_loadbalance.Host = $2 }
- | BACKEND '{' loadbalance_backend '}'
+}| DEBUG           { yy_transfer.Debug = 1 }
+ | DEBUG num       { yy_transfer.Debug = $2 }
+ | HOST text       { yy_transfer.Host = $2 }
+ | BACKEND '{' transfer_backend '}'
  | text text       { yy_ss2[$1] = $2 }
  | text num        { yy_ss2[$1] = fmt.Sprintf("%d", $2) }
  | text bool       { yy_ss2[$1] = fmt.Sprintf("%v", $2) }
@@ -200,29 +200,29 @@ loadbalance_mod_item:
 
 ;
 
-loadbalance_backend:
-| loadbalance_backend loadbalance_backend_item ';'
+transfer_backend:
+| transfer_backend transfer_backend_item ';'
 ;
 
-loadbalance_backend_item:
-| text text '{' loadbalance_backend_obj '}' { 
-	yy_loadbalance_backend.Type = $1
-	yy_loadbalance_backend.Name = $2
-	if !yy_loadbalance_backend.Disabled || yy.debug {
-		yy_loadbalance.Backend = append(yy_loadbalance.Backend, *yy_loadbalance_backend)
+transfer_backend_item:
+| text text '{' transfer_backend_obj '}' { 
+	yy_transfer_backend.Type = $1
+	yy_transfer_backend.Name = $2
+	if !yy_transfer_backend.Disabled || yy.debug {
+		yy_transfer.Backend = append(yy_transfer.Backend, *yy_transfer_backend)
 	}
-	yy_loadbalance_backend = &LbBackend{}
+	yy_transfer_backend = &TransferBackend{}
 }
 ;
 
-loadbalance_backend_obj:
-| loadbalance_backend_obj loadbalance_backend_obj_item ';'
+transfer_backend_obj:
+| transfer_backend_obj transfer_backend_obj_item ';'
 ;
 
-loadbalance_backend_obj_item:
-| DISABLED bool { yy_loadbalance_backend.Disabled = $2 }
+transfer_backend_obj_item:
+| DISABLED bool { yy_transfer_backend.Disabled = $2 }
 | UPSTREAM '{' ss '}' { 
-	yy_loadbalance_backend.Upstream = yy_ss
+	yy_transfer_backend.Upstream = yy_ss
 	yy_ss = make(map[string]string)
 }
 ;

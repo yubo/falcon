@@ -1,9 +1,9 @@
 /*
- * Copyright 2016 2017 yubo. All rights reserved.
+ * Copyright 2016 falcon Author. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
-package loadbalance
+package transfer
 
 import (
 	"bytes"
@@ -31,7 +31,7 @@ type senderTsdb struct {
 	chans           map[string]chan *falcon.MetaData
 }
 
-func (p *senderTsdb) new(L *Loadbalance) sender {
+func (p *senderTsdb) new(L *Transfer) sender {
 	workerprocesses, _ := L.Conf.Configer.Int(falcon.C_WORKER_PROCESSES)
 	conntimeout, _ := L.Conf.Configer.Int(falcon.C_CONN_TIMEOUT)
 	calltimeout, _ := L.Conf.Configer.Int(falcon.C_CALL_TIMEOUT)

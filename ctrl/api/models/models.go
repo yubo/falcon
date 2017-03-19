@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 2017 yubo. All rights reserved.
+ * Copyright 2016 falcon Author. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
@@ -166,7 +166,7 @@ func initConfig(conf *falcon.ConfCtrl) error {
 	beego.Debug(fmt.Sprintf("%s Init()", conf.Name))
 
 	conf.Agent.Set(falcon.APP_CONF_DEFAULT, falcon.ConfDefault["agent"])
-	conf.Loadbalance.Set(falcon.APP_CONF_DEFAULT, falcon.ConfDefault["loadbalance"])
+	conf.Transfer.Set(falcon.APP_CONF_DEFAULT, falcon.ConfDefault["transfer"])
 	conf.Backend.Set(falcon.APP_CONF_DEFAULT, falcon.ConfDefault["backend"])
 	conf.Ctrl.Set(falcon.APP_CONF_DEFAULT, falcon.ConfDefault["ctrl"])
 

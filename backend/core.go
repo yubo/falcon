@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 2017 yubo. All rights reserved.
+ * Copyright 2016 falcon Author. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
@@ -42,6 +42,8 @@ func (p *Backend) createEntry(key string, item *falcon.RrdItem) (*cacheEntry, er
 		min:       []byte(item.Min)[0],
 		max:       []byte(item.Max)[0],
 		hashkey:   key,
+		time:      make([]int64, CACHE_SIZE),
+		value:     make([]float64, CACHE_SIZE),
 	}
 
 	cache.Lock()

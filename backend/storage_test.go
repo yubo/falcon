@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 2017 yubo. All rights reserved.
+ * Copyright 2016 falcon Author. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
@@ -27,6 +27,7 @@ const (
 
 var (
 	storageApp *Backend
+	storage    *storageModule
 	testDirs   []string
 	wg         sync.WaitGroup
 	lock       sync.RWMutex
@@ -49,21 +50,19 @@ func newRrdItem2(i int, ts int64) *falcon.RrdItem {
 	}
 }
 
-func test_storage_init() (err error) {
+func testStoragetInit() (err error) {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	flag.Set("alsologtostderr", "true")
 	flag.Set("v", "2")
 	flag.Parse()
 
-	storageApp = new(Backend)
-	storageApp.Conf = falcon.ConfBackend{
-		ShmMagic: 0x80386,
-		ShmKey:   0x6020,
-		ShmSize:  1 << 28, // 256m
-		Storage: falcon.Storage{
-			Type: "rrdlite",
-		},
-	}
+	storageApp = &Backend{}
+	storage = &storageModule{}
+	cache = &cacheModule{}
+
+	storageApp.Conf.Configer.Set(falcon.APP_CONF_FILE, map[string]string{
+		"hdisks": "/tmp/falcon",
+	})
 
 	testDirs = make([]string, MAX_HD_NUMBER)
 
@@ -81,15 +80,14 @@ func test_storage_init() (err error) {
 	storageApp.storageIoTaskCh = make([]chan *ioTask, MAX_HD_NUMBER)
 	for i := 0; i < MAX_HD_NUMBER; i++ {
 		storageApp.storageIoTaskCh[i] = make(chan *ioTask, 320)
-		go storageApp.ioWorker(storageApp.storageIoTaskCh[i])
+		go storage.ioWorker(storageApp.storageIoTaskCh[i])
 	}
 
-	storageApp.cacheInit()
-	if err := storageApp.cacheReset(); err != nil {
-		fmt.Println(err)
-	}
+	cache.prestart(storageApp)
+	storage.prestart(storageApp)
+	cache.start(storageApp)
+	storage.start(storageApp)
 
-	storageApp.timeStart()
 	now = time.Now().Unix()
 	storageApp.ts = now
 
@@ -101,36 +99,38 @@ func test_storage_init() (err error) {
 				glog.Infof("benchmarkAdd %s\n", err)
 				return err
 			}
-			es[i][j].setName(fmt.Sprintf("key_%d_%d", i, j))
-			es[i][j].setHashkey(es[i][j].csum())
+			es[i][j].name = fmt.Sprintf("key_%d_%d", i, j)
+			es[i][j].hashkey = es[i][j].csum()
 		}
 	}
 	return nil
 }
 
+func testStorageDone() (err error) {
+	storage.stop(storageApp)
+	cache.stop(storageApp)
+	return nil
+}
+
 func (p *Backend) rrdToEntry(item *falcon.RrdItem) (*cacheEntry, error) {
-	e, err := p.getPoolEntry()
-	if err != nil {
-		glog.V(4).Infoln(err)
-		return nil, err
-	}
-	if err = e.reset(now, item.Host, item.Name, item.Tags, item.Type,
-		item.Step, item.Heartbeat, item.Min[0], item.Max[0]); err != nil {
-		p.putPoolEntry(e)
-		glog.V(4).Infoln(err)
-		return nil, err
-	}
-	return e, nil
+
+	return &cacheEntry{
+		createTs:  p.timeNow(),
+		host:      item.Host,
+		name:      item.Name,
+		tags:      item.Tags,
+		typ:       item.Type,
+		step:      item.Step,
+		heartbeat: item.Heartbeat,
+		min:       []byte(item.Min)[0],
+		max:       []byte(item.Max)[0],
+	}, nil
 }
 
 func testAdd(n int, t *testing.T) {
 	var ts int64
 
-	if storageApp == nil {
-		test_storage_init()
-	}
-
-	hds := &storageApp.Conf.Storage.Hdisks
+	hds := &storageApp.hdisk
 	*hds = make([]string, n)
 	for i := 0; i < n; i++ {
 		(*hds)[i] = fmt.Sprintf("%s/%d", testDirs[i], n)
@@ -162,11 +162,7 @@ func testAdd(n int, t *testing.T) {
 func testUpdate(n int, t *testing.T) {
 	var ts int64
 
-	if storageApp == nil {
-		test_storage_init()
-	}
-
-	hds := &storageApp.Conf.Storage.Hdisks
+	hds := &storageApp.hdisk
 	*hds = make([]string, n)
 	for i := 0; i < n; i++ {
 		(*hds)[i] = fmt.Sprintf("%s/%d", testDirs[i], n)
@@ -200,10 +196,7 @@ func testUpdate(n int, t *testing.T) {
 func testFetch(n int, t *testing.T) {
 	var ts int64
 
-	if storageApp == nil {
-		test_storage_init()
-	}
-	hds := &storageApp.Conf.Storage.Hdisks
+	hds := &storageApp.hdisk
 	*hds = make([]string, n)
 	for i := 0; i < n; i++ {
 		(*hds)[i] = fmt.Sprintf("%s/%d", testDirs[i], n)
@@ -220,8 +213,8 @@ func testFetch(n int, t *testing.T) {
 			start := time.Now().UnixNano()
 
 			for j := 0; j < m; j++ {
-				if _, err := storageApp.taskRrdFetch(es[i][j].hashkey(), "AVERAGE",
-					now-60, now+600, int(es[i][j].e.step)); err != nil {
+				if _, err := storageApp.taskRrdFetch(es[i][j].hashkey, "AVERAGE",
+					now-60, now+600, es[i][j].step); err != nil {
 					glog.V(4).Infof("%s", err)
 				}
 			}
@@ -234,6 +227,7 @@ func testFetch(n int, t *testing.T) {
 }
 
 func TestAll(t *testing.T) {
+	testStoragetInit()
 	for i := 0; i < MAX_HD_NUMBER; i++ {
 		testAdd(i+1, t)
 	}
@@ -243,5 +237,6 @@ func TestAll(t *testing.T) {
 	for i := 0; i < MAX_HD_NUMBER; i++ {
 		testFetch(i+1, t)
 	}
-	statRrd()
+	statsRrd()
+	testStorageDone()
 }

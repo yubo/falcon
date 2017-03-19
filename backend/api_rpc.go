@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 2017 yubo. All rights reserved.
+ * Copyright 2016 falcon Author. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
@@ -77,7 +77,7 @@ func (p *Bkd) Send(items []*falcon.RrdItem,
 type rpcModule struct {
 	running     chan struct{}
 	b           *Backend
-	rpcListener *net.TCPListener
+	rpcListener net.Listener
 	rpcConnects connList
 }
 
@@ -351,25 +351,22 @@ func (p *Backend) Query(param falcon.RrdQuery,
 func (p *rpcModule) prestart(b *Backend) error {
 	p.running = make(chan struct{}, 0)
 	p.b = b
+	p.rpcConnects = connList{list: list.New()}
 	return nil
 }
 
-func (p *rpcModule) start(b *Backend) error {
+func (p *rpcModule) start(b *Backend) (err error) {
 	enable, _ := b.Conf.Configer.Bool(falcon.C_HTTP_ENABLE)
 	if !enable {
 		glog.Info(MODULE_NAME + "rpc not enabled")
 		return nil
 	}
 
-	addr, err := net.ResolveTCPAddr("tcp", b.Conf.Configer.Str(falcon.C_RPC_ADDR))
-	if err != nil {
-		glog.Fatalf(MODULE_NAME+"rpc.Start error, net.ResolveTCPAddr failed, %s", err)
-	}
-
 	rpcServer := rpc.NewServer()
 	rpcServer.Register(&Bkd{b: b})
 
-	p.rpcListener, err = net.ListenTCP("tcp", addr)
+	addr := b.Conf.Configer.Str(falcon.C_RPC_ADDR)
+	p.rpcListener, err = net.Listen(falcon.ParseAddr(addr))
 	if err != nil {
 		glog.Fatalf(MODULE_NAME+"rpc.Start error, listen %s failed, %s",
 			addr, err)

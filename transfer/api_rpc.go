@@ -1,9 +1,9 @@
 /*
- * Copyright 2016 2017 yubo. All rights reserved.
+ * Copyright 2016 falcon Author. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
-package loadbalance
+package transfer
 
 import (
 	"container/list"
@@ -104,15 +104,15 @@ func (p *LB) Update(args []*falcon.MetaData,
 
 type rpcModule struct {
 	rpcConnects connList
-	rpcListener *net.TCPListener
+	rpcListener net.Listener
 }
 
-func (p *rpcModule) prestart(L *Loadbalance) error {
+func (p *rpcModule) prestart(L *Transfer) error {
 	p.rpcConnects = connList{list: list.New()}
 	return nil
 }
 
-func (p *rpcModule) start(L *Loadbalance) error {
+func (p *rpcModule) start(L *Transfer) (err error) {
 
 	enable, _ := L.Conf.Configer.Bool(falcon.C_RPC_ENABLE)
 	if !enable {
@@ -122,12 +122,8 @@ func (p *rpcModule) start(L *Loadbalance) error {
 
 	rpc.Register(&LB{appUpdateChan: L.appUpdateChan})
 
-	addr, err := net.ResolveTCPAddr("tcp", L.Conf.Configer.Str(falcon.C_RPC_ADDR))
-	if err != nil {
-		glog.Fatalf(MODULE_NAME+"rpc.Start error, net.ResolveTCPAddr failed, %s", err)
-	}
-
-	p.rpcListener, err = net.ListenTCP("tcp", addr)
+	addr := L.Conf.Configer.Str(falcon.C_RPC_ADDR)
+	p.rpcListener, err = net.Listen(falcon.ParseAddr(addr))
 	if err != nil {
 		glog.Fatalf(MODULE_NAME+"rpc.Start error, listen %s failed, %s",
 			addr, err)
@@ -165,7 +161,7 @@ func (p *rpcModule) start(L *Loadbalance) error {
 	return err
 }
 
-func (p *rpcModule) stop(L *Loadbalance) error {
+func (p *rpcModule) stop(L *Transfer) error {
 	if p.rpcListener == nil {
 		return falcon.ErrNoent
 	}
@@ -181,7 +177,7 @@ func (p *rpcModule) stop(L *Loadbalance) error {
 	return nil
 }
 
-func (p *rpcModule) reload(L *Loadbalance) error {
+func (p *rpcModule) reload(L *Transfer) error {
 	// TODO
 	return nil
 }

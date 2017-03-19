@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 2017 yubo. All rights reserved.
+ * Copyright 2016 falcon Author. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
@@ -30,12 +30,12 @@ func (p *upstreamModule) get() string {
 	return p.pool[atomic.AddUint32(&p.idx, 1)%p.size]
 }
 
-func rpcDial(address string,
+func rpcDial(addr string,
 	timeout time.Duration) (*rpc.Client, error) {
 
 	statsInc(ST_UPSTREAM_DIAL, 1)
 	d := net.Dialer{Timeout: timeout}
-	conn, err := d.Dial("tcp", address)
+	conn, err := d.Dial(falcon.ParseAddr(addr))
 	if err != nil {
 		statsInc(ST_UPSTREAM_DIAL_ERR, 1)
 		return nil, err

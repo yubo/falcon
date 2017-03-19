@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 2017 yubo. All rights reserved.
+ * Copyright 2016 falcon Author. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
@@ -22,16 +22,16 @@ const (
 )
 
 var (
-	conf                   *FalconConfig
-	yy                     *yyLex
-	yy_ctrl                *ConfCtrl
-	yy_agent               *ConfAgent
-	yy_loadbalance         *ConfLoadbalance
-	yy_backend             *ConfBackend
-	yy_loadbalance_backend = &LbBackend{}
-	yy_ss                  = make(map[string]string)
-	yy_ss2                 = make(map[string]string)
-	yy_as                  = make([]string, 0)
+	conf                *FalconConfig
+	yy                  *yyLex
+	yy_ctrl             *ConfCtrl
+	yy_agent            *ConfAgent
+	yy_transfer         *ConfTransfer
+	yy_backend          *ConfBackend
+	yy_transfer_backend = &TransferBackend{}
+	yy_ss               = make(map[string]string)
+	yy_ss2              = make(map[string]string)
+	yy_as               = make([]string, 0)
 
 	f_ip      = regexp.MustCompile(`^[0-9]+\.[0-0]+\.[0-9]+\.[0-9]+[ \t\n;{}]{1}`)
 	f_num     = regexp.MustCompile(`^0x[0-9a-fA-F]+|^[0-9]+[ \t\n;{}]{1}`)
@@ -54,10 +54,10 @@ var (
 		"debug":    DEBUG,
 
 		// module name
-		"ctrl":        CTRL,
-		"agent":       AGENT,
-		"loadbalance": LOADBALANCE,
-		"backend":     BACKEND,
+		"ctrl":     CTRL,
+		"agent":    AGENT,
+		"transfer": TRANSFER,
+		"backend":  BACKEND,
 
 		// module
 		"upstream": UPSTREAM,

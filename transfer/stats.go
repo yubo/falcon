@@ -1,9 +1,9 @@
 /*
- * Copyright 2016 2017 yubo. All rights reserved.
+ * Copyright 2016 falcon Author. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
-package loadbalance
+package transfer
 
 import (
 	"fmt"
@@ -65,12 +65,12 @@ type statsModule struct {
 	running chan struct{}
 }
 
-func (p *statsModule) prestart(L *Loadbalance) error {
+func (p *statsModule) prestart(L *Transfer) error {
 	p.running = make(chan struct{}, 0)
 	return nil
 }
 
-func (p *statsModule) start(L *Loadbalance) error {
+func (p *statsModule) start(L *Transfer) error {
 	if L.Conf.Debug > 0 {
 		statsTicker := time.NewTicker(time.Second * DEBUG_STAT_STEP).C
 		go func() {
@@ -89,11 +89,11 @@ func (p *statsModule) start(L *Loadbalance) error {
 	return nil
 }
 
-func (p *statsModule) stop(L *Loadbalance) error {
+func (p *statsModule) stop(L *Transfer) error {
 	close(p.running)
 	return nil
 }
 
-func (p *statsModule) reload(L *Loadbalance) error {
+func (p *statsModule) reload(L *Transfer) error {
 	return nil
 }

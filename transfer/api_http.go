@@ -1,9 +1,9 @@
 /*
- * Copyright 2016 2017 yubo. All rights reserved.
+ * Copyright 2016 falcon Author. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
-package loadbalance
+package transfer
 
 import (
 	"io/ioutil"
@@ -46,20 +46,20 @@ func (p *httpModule) httpRoutes() {
 	p.httpMux.HandleFunc("/echo", echo_handle)
 }
 
-func (p *httpModule) prestart(L *Loadbalance) error {
+func (p *httpModule) prestart(L *Transfer) error {
 	p.httpMux = http.NewServeMux()
 	p.httpRoutes()
 	return nil
 }
 
-func (p *httpModule) start(L *Loadbalance) error {
+func (p *httpModule) start(L *Transfer) error {
 	enable, _ := L.Conf.Configer.Bool(falcon.C_HTTP_ENABLE)
 	if !enable {
 		glog.Info(MODULE_NAME + "http.Start warning, not enabled")
 		return nil
 	}
 
-	addr := L.Conf.Configer.Str(falcon.C_HTTP_ADDR)
+	network, addr := falcon.ParseAddr(L.Conf.Configer.Str(falcon.C_HTTP_ADDR))
 	if addr == "" {
 		return falcon.ErrParam
 	}
@@ -70,22 +70,25 @@ func (p *httpModule) start(L *Loadbalance) error {
 	}
 	glog.Infof(MODULE_NAME+"%s httpStart listening %s", L.Conf.Name, addr)
 
-	ln, err := net.Listen("tcp", addr)
+	ln, err := net.Listen(network, addr)
 	if err != nil {
 		glog.Fatal(MODULE_NAME, err)
 	}
 
-	p.httpListener = ln.(*net.TCPListener)
-	go s.Serve(tcpKeepAliveListener{p.httpListener})
-
+	if network == "tcp" {
+		p.httpListener = ln.(*net.TCPListener)
+		go s.Serve(tcpKeepAliveListener{p.httpListener})
+	} else {
+		go s.Serve(ln)
+	}
 	return nil
 }
 
-func (p *httpModule) stop(L *Loadbalance) error {
+func (p *httpModule) stop(L *Transfer) error {
 	p.httpListener.Close()
 	return nil
 }
 
-func (p *httpModule) reload(L *Loadbalance) error {
+func (p *httpModule) reload(L *Transfer) error {
 	return nil
 }
