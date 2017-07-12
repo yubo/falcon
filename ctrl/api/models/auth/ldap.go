@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 falcon Author. All rights reserved.
+ * Copyright 2016 yubo. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
@@ -10,9 +10,10 @@ import (
 	"fmt"
 
 	"github.com/astaxie/beego"
-	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/ctrl/api/controllers"
 	"github.com/yubo/falcon/ctrl/api/models"
+	"github.com/yubo/falcon/ctrl/config"
+	"github.com/yubo/falcon/utils"
 	"gopkg.in/ldap.v2"
 )
 
@@ -33,12 +34,12 @@ func init() {
 	models.RegisterAuth(LDAP_NAME, &ldapAuth{})
 }
 
-func (p *ldapAuth) Init(conf *falcon.ConfCtrl) error {
-	p.addr = conf.Ctrl.Str(falcon.C_LDAP_ADDR)
-	p.baseDN = conf.Ctrl.Str(falcon.C_LDAP_BASE_DN)
-	p.bindDN = conf.Ctrl.Str(falcon.C_LDAP_BIND_DN)
-	p.bindPwd = conf.Ctrl.Str(falcon.C_LDAP_BIND_PWD)
-	p.filter = conf.Ctrl.Str(falcon.C_LDAP_FILTER)
+func (p *ldapAuth) Init(conf *config.ConfCtrl) error {
+	p.addr = conf.Ctrl.Str(utils.C_LDAP_ADDR)
+	p.baseDN = conf.Ctrl.Str(utils.C_LDAP_BASE_DN)
+	p.bindDN = conf.Ctrl.Str(utils.C_LDAP_BIND_DN)
+	p.bindPwd = conf.Ctrl.Str(utils.C_LDAP_BIND_PWD)
+	p.filter = conf.Ctrl.Str(utils.C_LDAP_FILTER)
 	return nil
 }
 
@@ -65,8 +66,11 @@ func (p *ldapAuth) AuthorizeUrl(c interface{}) string {
 	return ""
 }
 
-func (p *ldapAuth) CallBack(c interface{}) (uuid string, err error) {
-	return "", models.EPERM
+func (p *ldapAuth) LoginCb(c interface{}) (uuid string, err error) {
+	return "", utils.EPERM
+}
+
+func (p *ldapAuth) LogoutCb(c interface{}) {
 }
 
 func ldapUserAuthentication(addr, baseDN, filter, username, password, bindusername, bindpassword string, TLS bool) (success bool, userDN string, err error) {

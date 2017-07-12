@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 falcon Author. All rights reserved.
+ * Copyright 2016 yubo. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
@@ -40,10 +40,9 @@ var (
 
 func statHandle() (ret string) {
 	for i := 0; i < ST_ARRAY_SIZE; i++ {
-		ret += fmt.Sprintf("%s %d\n", statName[i],
-			atomic.LoadUint64(&statCnt[i]))
+		ret += fmt.Sprintf("%d ", atomic.LoadUint64(&statCnt[i]))
 	}
-	return ret
+	return ret[:len(ret)-1]
 }
 
 func statInc(idx, n int) {

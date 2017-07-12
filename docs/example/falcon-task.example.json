@@ -1,0 +1,59 @@
+{
+    "debug": false,
+    "http": {
+        "enable": true,
+        "listen": "%%TASK_HTTP%%"
+    },
+    "index": {
+        "enable": false,
+        "delCheckCron" : "0 0 2 ? * 6",
+        "lifeSpan" : 1209600,
+        "dsn": "%%DB_GRAPH%%?loc=Local&parseTime=true",
+        "maxIdle": 4,
+        "autoDelete": false,
+        "cluster":{
+            "%%GRAPH_HTTP%%" : "0 0 0 ? * 0-5"
+        }
+    },
+    "collector" : {
+        "enable": false,
+        "destUrl" : "http://%%AGENT_HTTP%%/v1/push",
+        "srcUrlFmt" : "http://%s/statistics/all",
+        "cluster" : [
+            "transfer,%%TRANSFER_HTTP%%",
+            "graph,%%GRAPH_HTTP%%",
+            "task,%%TASK_HTTP%%"
+        ]
+    },
+    "agent": {
+        "enable": false,
+        "dsn": "%%DB_FALCON%%?loc=Local&parseTime=true",
+        "maxIdle": 4,
+        "plugin": {
+            "apiUrlFmt": "http://%s:%%AGENT_PORT%%/plugin/update",
+            "interval": 20000,
+            "concurrent": 2,
+            "connectTimeout": 5000,
+            "requestTimeout": 10000
+        },
+        "cleaner": {
+            "interval": 20000
+        }
+    },
+    "report" : {
+        "enable": true,
+        "dsn" : "%%DB_ALARM%%?loc=Local&parseTime=true",
+        "maxIdle" : 4
+    },
+    "counter" : {
+        "enable": true,
+        "dsn" : "%%DB_GRAPH%%?loc=Local&parseTime=true",
+        "maxIdle" : 4,
+        "hostnameUrl": "http://%%NORNS_HTTP%%/api/v1/tagstring/cop.xiaomi/hostnames",
+        "tagUrl": "http://%%NORNS_HTTP%%/api/v1/tagstring/cop.xiaomi/childtags?schema=%s",
+        "tagHostnameUrl": "http://%%NORNS_HTTP%%/api/v1/tagstring/%s/hostnames",
+        "interval": 24,
+        "hourToTick": 14,
+        "minuteToTick": 33
+    }
+}

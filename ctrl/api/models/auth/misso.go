@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 falcon Author. All rights reserved.
+ * Copyright 2016 yubo. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
@@ -14,8 +14,9 @@ import (
 
 	"github.com/astaxie/beego/context"
 	"github.com/astaxie/beego/httplib"
-	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/ctrl/api/models"
+	"github.com/yubo/falcon/ctrl/config"
+	"github.com/yubo/falcon/utils"
 )
 
 const (
@@ -36,8 +37,8 @@ func init() {
 	models.RegisterAuth(MISSO_NAME, &missoAuth{})
 }
 
-func (p *missoAuth) Init(conf *falcon.ConfCtrl) error {
-	p.RedirectURL = conf.Ctrl.Str(falcon.C_MISSO_REDIRECT_URL)
+func (p *missoAuth) Init(conf *config.ConfCtrl) error {
+	p.RedirectURL = conf.Ctrl.Str(utils.C_MISSO_REDIRECT_URL)
 	p.CookieSecretKey = "secret-key-for-encrypt-cookie"
 	p.missoAuthDomain = "http://sso.pt.xiaomi.com"
 	p.BrokerName = "test"
@@ -46,7 +47,7 @@ func (p *missoAuth) Init(conf *falcon.ConfCtrl) error {
 }
 
 func (p *missoAuth) Verify(c interface{}) (bool, string, error) {
-	return false, "", models.EPERM
+	return false, "", utils.EPERM
 }
 
 func (p *missoAuth) AuthorizeUrl(c interface{}) string {
@@ -66,10 +67,8 @@ func (p *missoAuth) AuthorizeUrl(c interface{}) string {
 	return fmt.Sprintf("%s&%s", url, v.Encode())
 }
 
-func (p *missoAuth) CallBack(c interface{}) (uuid string, err error) {
+func (p *missoAuth) LoginCb(c interface{}) (uuid string, err error) {
 	ctx := c.(*context.Context)
-
-	remote_ip := models.GetIPAdress(ctx.Input.Context.Request)
 
 	user_name, result := ctx.GetSecureCookie(p.CookieSecretKey, "user_name")
 	broker_cookie := ctx.GetCookie("broker_cookie")
@@ -84,9 +83,10 @@ func (p *missoAuth) CallBack(c interface{}) (uuid string, err error) {
 			//try to get user_name from sso, may be login use service account
 			authorization := ctx.Input.Header("Authorization")
 			if authorization != "" {
-				uuid, err = p.GetServiceUser(authorization, remote_ip)
+				remote_ip := models.GetIPAdress(ctx.Input.Context.Request)
+				user_name, err = p.GetServiceUser(authorization, remote_ip)
 				if err == nil && user_name != "" {
-					uuid = fmt.Sprintf("%s@%s", uuid, MISSO_NAME)
+					uuid = fmt.Sprintf("%s@%s", user_name, MISSO_NAME)
 					return
 				}
 			}
@@ -100,8 +100,13 @@ func (p *missoAuth) CallBack(c interface{}) (uuid string, err error) {
 			}
 		}
 	}
-	err = models.ErrLogin
+	err = utils.ErrLogin
 	return
+}
+
+func (p *missoAuth) LogoutCb(c interface{}) {
+	ctx := c.(*context.Context)
+	ctx.SetCookie("user_name", "", -1)
 }
 
 /***********************
@@ -129,7 +134,7 @@ func (p *missoAuth) GetServiceUser(authorization, user_ip string) (string,
 	if err != nil {
 		return "", err
 	}
-	var resp_js map[string]string
+	resp_js := make(map[string]string)
 	err = json.Unmarshal([]byte(resp), &resp_js)
 	if err != nil {
 		return "", fmt.Errorf(resp)

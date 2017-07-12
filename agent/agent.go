@@ -10,6 +10,9 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/agent/config"
+	"github.com/yubo/falcon/agent/parse"
+	"github.com/yubo/falcon/utils"
 )
 
 const (
@@ -22,14 +25,6 @@ var (
 	modules []module
 )
 
-func init() {
-	falcon.RegisterModule(falcon.GetType(falcon.ConfAgent{}), &Agent{})
-	registerModule(&statsModule{})
-	registerModule(&collectModule{})
-	registerModule(&upstreamModule{})
-	registerModule(&httpModule{})
-}
-
 // module {{{
 
 type module interface {
@@ -39,7 +34,7 @@ type module interface {
 	reload(*Agent) error   // try to keep the data, refresh configure
 }
 
-func registerModule(m module) {
+func RegisterModule(m module) {
 	modules = append(modules, m)
 }
 
@@ -47,22 +42,27 @@ func registerModule(m module) {
 
 // Agent {{{
 type Agent struct {
-	Conf    *falcon.ConfAgent
-	oldConf *falcon.ConfAgent
+	Conf    *config.ConfAgent
+	oldConf *config.ConfAgent
 	// runtime
 	status        uint32
-	appUpdateChan chan *[]*falcon.MetaData
+	appUpdateChan chan *[]*utils.MetaData
 }
 
 func (p *Agent) New(conf interface{}) falcon.Module {
 	return &Agent{
-		Conf:          conf.(*falcon.ConfAgent),
-		appUpdateChan: make(chan *[]*falcon.MetaData, 16),
+		Conf:          conf.(*config.ConfAgent),
+		appUpdateChan: make(chan *[]*utils.MetaData, 16),
 	}
 }
 
 func (p *Agent) Name() string {
 	return p.Conf.Name
+}
+
+func (p *Agent) Parse(text []byte, filename string, lino int, debug bool) interface{} {
+	p.Conf = parse.Parse(text, filename, lino, debug).(*config.ConfAgent)
+	return p.Conf
 }
 
 func (p *Agent) String() string {
@@ -111,11 +111,11 @@ func (p *Agent) Stop() (err error) {
 	return err
 }
 
-func (p *Agent) Reload(config interface{}) (err error) {
+func (p *Agent) Reload(c interface{}) (err error) {
 	glog.V(3).Infof(MODULE_NAME+"%s Reload()", p.Conf.Name)
 
 	p.oldConf = p.Conf
-	p.Conf = config.(*falcon.ConfAgent)
+	p.Conf = c.(*config.ConfAgent)
 
 	for i := 0; i < len(modules); i++ {
 		if e := modules[i].reload(p); e != nil {

@@ -1,7 +1,6 @@
 *.o
 *.a
 *.so
-
 *.swp
 *.swo
 *.log
@@ -9,20 +8,18 @@
 *.output
 *.tmp
 *.pid
+*.sh
 
 var/
 bin/
 dist/
-etc/
-tmp
-git.go
-*.sh
-.gdbinit
+tmp/
 
+git.go
 yyparse.go
 
-vendor/bin
-vendor/pkg
+.gdbinit
 
-ctrl/swagger/
-ctrl/ctrl
+
+cmd/vendor
+swagger

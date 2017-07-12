@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 falcon Author. All rights reserved.
+ * Copyright 2016 yubo. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
@@ -44,6 +44,24 @@ func Testintscmp64(t *testing.T) {
 		if got := intscmp64(c.a, c.b); (got == 0) != c.want {
 			t.Errorf("intscmp64(%v,%v) = %v; want %v",
 				c.a, c.b, got, c.want)
+		}
+	}
+}
+
+func Test_t(t *testing.T) {
+	cases := []struct {
+		a string
+		b string
+	}{
+		{a: "a=1,b=2", b: "a.1_b.2"},
+		{a: "a=1=2,b=2", b: "a.1=2_b.2"},
+	}
+	for _, c := range cases {
+		if got := TagToOld(c.a); got != c.b {
+			t.Errorf("_t(%s) = %s; want %v", c.a, got, c.b)
+		}
+		if got := TagToNew(c.b); got != c.a {
+			t.Errorf("_T(%s) = %s; want %v", c.b, got, c.a)
 		}
 	}
 }

@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/utils"
 )
 
 type tcpKeepAliveListener struct {
@@ -29,20 +29,20 @@ func (ln tcpKeepAliveListener) Accept() (c net.Conn, err error) {
 	return tc, nil
 }
 
-type httpModule struct {
+type HttpModule struct {
 	httpListener  *net.TCPListener
 	httpMux       *http.ServeMux
-	appUpdateChan chan *[]*falcon.MetaData
+	appUpdateChan chan *[]*utils.MetaData
 }
 
-func (p *httpModule) push(w http.ResponseWriter, req *http.Request) {
+func (p *HttpModule) push(w http.ResponseWriter, req *http.Request) {
 	if req.ContentLength == 0 {
 		http.Error(w, "body is blank", http.StatusBadRequest)
 		return
 	}
 
 	decoder := json.NewDecoder(req.Body)
-	var meta []*falcon.MetaData
+	var meta []*utils.MetaData
 	err := decoder.Decode(&meta)
 	if err != nil {
 		http.Error(w, "connot decode body", http.StatusBadRequest)
@@ -53,27 +53,27 @@ func (p *httpModule) push(w http.ResponseWriter, req *http.Request) {
 	w.Write([]byte("success"))
 }
 
-func (p *httpModule) httpRoutes() {
+func (p *HttpModule) httpRoutes() {
 	p.httpMux.HandleFunc("/push", p.push)
 }
 
-func (p *httpModule) prestart(agent *Agent) error {
+func (p *HttpModule) prestart(agent *Agent) error {
 	p.appUpdateChan = agent.appUpdateChan
 	p.httpMux = http.NewServeMux()
 	p.httpRoutes()
 	return nil
 }
 
-func (p *httpModule) start(agent *Agent) error {
-	enable, _ := agent.Conf.Configer.Bool(falcon.C_HTTP_ENABLE)
+func (p *HttpModule) start(agent *Agent) error {
+	enable, _ := agent.Conf.Configer.Bool(utils.C_HTTP_ENABLE)
 	if !enable {
 		glog.Info(MODULE_NAME + "http.Start warning, not enabled")
 		return nil
 	}
 
-	network, addr := falcon.ParseAddr(agent.Conf.Configer.Str(falcon.C_HTTP_ADDR))
+	network, addr := utils.ParseAddr(agent.Conf.Configer.Str(utils.C_HTTP_ADDR))
 	if addr == "" {
-		return falcon.ErrParam
+		return utils.ErrParam
 	}
 	s := &http.Server{
 		Addr:           addr,
@@ -96,11 +96,11 @@ func (p *httpModule) start(agent *Agent) error {
 	return nil
 }
 
-func (p *httpModule) stop(agent *Agent) error {
+func (p *HttpModule) stop(agent *Agent) error {
 	p.httpListener.Close()
 	return nil
 }
 
-func (p *httpModule) reload(agent *Agent) error {
+func (p *HttpModule) reload(agent *Agent) error {
 	return nil
 }

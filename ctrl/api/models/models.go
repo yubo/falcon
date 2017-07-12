@@ -1,29 +1,34 @@
 /*
- * Copyright 2016 falcon Author. All rights reserved.
+ * Copyright 2016 yubo. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
 package models
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/orm"
-	_ "github.com/go-sql-driver/mysql"
-	"github.com/yubo/falcon"
+	"github.com/golang/glog"
 	"github.com/yubo/falcon/ctrl"
+	"github.com/yubo/falcon/ctrl/config"
+	"github.com/yubo/falcon/utils"
+	"github.com/yubo/gotool/ratelimits"
+
+	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/yubo/falcon/ctrl/api/models/session"
 )
 
 const (
 	DB_PREFIX   = ""
-	PAGE_PER    = 10
+	PAGE_LIMIT  = 10
 	SYS_R_TOKEN = "falcon_read"
 	SYS_O_TOKEN = "falcon_operate"
 	SYS_A_TOKEN = "falcon_admin"
+	MODULE_NAME = "\x1B[32m[CTRL_MODELS]\x1B[0m "
 )
 
 const (
@@ -40,26 +45,34 @@ const (
 )
 
 var (
+	SysOp    *Operator
 	dbTables = []string{
-		"action",
-		"expression",
-		"host",
+		"agents_info",
+		"plugin_dir",
+		"mockcfg",
+		"aggreator",
+		"dashboard_graph",
+		"dashboard_screen",
+		"tmp_graph",
 		"kv",
-		"log",
+		"host",
+		"token",
 		"role",
 		"session",
-		"strategy",
 		"tag",
-		"tag_host",
 		"tag_rel",
-		"tag_tpl",
+		"tag_host",
+		"user",
 		"team",
 		"team_user",
-		"template",
-		"token",
+		"log",
 		"tpl_rel",
-		"trigger",
-		"user",
+		"tag_tpl",
+		"action",
+		"expression",
+		"action",
+		"strategy",
+		"template",
 	}
 )
 
@@ -79,6 +92,11 @@ const (
 	CTL_M_TEAM
 	CTL_M_TAG_HOST
 	CTL_M_TAG_TPL
+	CTL_M_TMP_GRAPH
+	CTL_M_DASHBOARD_GRAPH
+	CTL_M_DASHBOARD_SCREEN
+	CTL_M_MOCKCFG
+	CTL_M_AGGREATOR
 	CTL_M_SIZE
 )
 
@@ -89,6 +107,13 @@ const (
 	CTL_A_SET
 	CTL_A_GET
 	CTL_A_SIZE
+)
+
+// ctl runmode name
+const (
+	CTL_RUNMODE_MASTER = 1 << iota
+	CTL_RUNMODE_DEV
+	CTL_RUNMODE_MI
 )
 
 type Ids struct {
@@ -103,18 +128,37 @@ type Total struct {
 	Total int64 `json:"total"`
 }
 
+type Stats struct {
+	Success int64 `json:"success"`
+	Failure int64 `json:"failure"`
+}
+
 type KeyValue struct {
 	Key   string `json:"key"`
 	Value string `json:"value"`
 }
 
+type Falcon_db struct {
+	Ctrl  orm.Ormer
+	Idx   orm.Ormer
+	Alarm orm.Ormer
+}
+
 var (
-	moduleCache  [CTL_M_SIZE]cache
+	//RunMode      string
+	Db           Falcon_db
 	sysTagSchema *TagSchema
+	transferUrl  string
+	RunMode      uint32
+	ApiRl        *ratelimits.RateLimits
+	admin        map[string]bool
 
 	moduleName = [CTL_M_SIZE]string{
 		"host", "role", "system", "tag", "user", "token",
 		"template", "rule", "trigger", "expression", "team",
+		"tag_host", "tag_template", "tmp_graph",
+		"dashboard_graph", "dashboard_screen",
+		"mockcfg", "aggreator",
 	}
 
 	actionName = [CTL_A_SIZE]string{
@@ -122,7 +166,7 @@ var (
 	}
 )
 
-func initModels(conf *falcon.ConfCtrl) (err error) {
+func initModels(conf *config.ConfCtrl) (err error) {
 	if err = initConfig(conf); err != nil {
 		panic(err)
 	}
@@ -136,19 +180,26 @@ func initModels(conf *falcon.ConfCtrl) (err error) {
 		panic(err)
 	}
 	prepareEtcdConfig()
+
+	SysOp = &Operator{
+		O:     orm.NewOrm(),
+		Token: SYS_F_A_TOKEN | SYS_F_O_TOKEN | SYS_F_A_TOKEN,
+	}
+	SysOp.User, _ = GetUser(1, SysOp.O)
+
 	return nil
 }
 
-func initMetric(c *falcon.ConfCtrl) error {
+func initMetric(c *config.ConfCtrl) error {
 	for _, m := range c.Metrics {
 		metrics = append(metrics, &Metric{Name: m})
 	}
 	return nil
 }
 
-func initAuth(c *falcon.ConfCtrl) error {
+func initAuth(c *config.ConfCtrl) error {
 	Auths = make(map[string]AuthInterface)
-	for _, name := range strings.Split(c.Ctrl.Str(falcon.C_AUTH_MODULE), ",") {
+	for _, name := range strings.Split(c.Ctrl.Str(utils.C_AUTH_MODULE), ",") {
 		if auth, ok := allAuths[name]; ok {
 			if auth.Init(c) == nil {
 				Auths[name] = auth
@@ -158,24 +209,97 @@ func initAuth(c *falcon.ConfCtrl) error {
 	return nil
 }
 
+func initConfigRl(c *utils.Configer) *ratelimits.RateLimits {
+	limit, _ := c.Int(utils.C_RL_LIMIT)
+	accuracy, _ := c.Int(utils.C_RL_ACCURACY)
+	if limit <= 0 {
+		return nil
+
+	}
+	rl, err := ratelimits.New(uint32(limit), uint32(accuracy))
+	if err != nil {
+		return nil
+	}
+	timeout, _ := c.Int(utils.C_RL_GC_TIMEOUT)
+	interval, _ := c.Int(utils.C_RL_GC_INTERVAL)
+	err = rl.GcStart(time.Duration(timeout)*time.Millisecond, time.Duration(interval)*time.Millisecond)
+	if err != nil {
+		return nil
+	}
+	return rl
+}
+
+func initConfigAdmin(c *utils.Configer) map[string]bool {
+	ret := make(map[string]bool)
+	for _, u := range strings.Split(c.Str(utils.C_ADMIN), ",") {
+		ret[u] = true
+	}
+	return ret
+}
+
 // called by (p *Ctrl) Init()
 // already load file config and def config
 // will load db config
-func initConfig(conf *falcon.ConfCtrl) error {
+func initConfig(conf *config.ConfCtrl) error {
+	var err error
 
-	beego.Debug(fmt.Sprintf("%s Init()", conf.Name))
+	glog.V(4).Infof(MODULE_NAME+"%s Init()", conf.Name)
 
-	conf.Agent.Set(falcon.APP_CONF_DEFAULT, falcon.ConfDefault["agent"])
-	conf.Transfer.Set(falcon.APP_CONF_DEFAULT, falcon.ConfDefault["transfer"])
-	conf.Backend.Set(falcon.APP_CONF_DEFAULT, falcon.ConfDefault["backend"])
-	conf.Ctrl.Set(falcon.APP_CONF_DEFAULT, falcon.ConfDefault["ctrl"])
+	orm.RegisterDriver("mysql", orm.DRMySQL)
 
-	c := &conf.Ctrl
-	dsn := c.Str(falcon.C_DSN)
-	dbMaxConn, _ := c.Int(falcon.C_DB_MAX_CONN)
-	dbMaxIdle, _ := c.Int(falcon.C_DB_MAX_IDLE)
+	// set default
+	//conf.Agent.Set(utils.APP_CONF_DEFAULT, config.ConfDefault["agent"])
+	//conf.Loadbalance.Set(utils.APP_CONF_DEFAULT, config.ConfDefault["loadbalance"])
+	//conf.Backend.Set(utils.APP_CONF_DEFAULT, config.ConfDefault["backend"])
 
-	// config
+	// ctrl config
+	conf.Ctrl.Set(utils.APP_CONF_DEFAULT, config.ConfDefault)
+	cf := &conf.Ctrl
+	dsn := cf.Str(utils.C_DSN)
+	dbMaxConn, _ := cf.Int(utils.C_DB_MAX_CONN)
+	dbMaxIdle, _ := cf.Int(utils.C_DB_MAX_IDLE)
+	// connect db, can not register db twice  :(
+	orm.RegisterDataBase("default", "mysql", dsn, dbMaxIdle, dbMaxConn)
+	// get ctrl config from db
+	Db.Ctrl = orm.NewOrm()
+	if c, err := GetDbConfig(Db.Ctrl, "ctrl"); err == nil {
+		conf.Ctrl.Set(utils.APP_CONF_DB, c)
+	}
+	glog.V(4).Infof(MODULE_NAME+"initConfig get config %s", cf.String())
+
+	// ctrl config
+	orm.RegisterDataBase("idx", "mysql", cf.Str(utils.C_IDX_DSN), dbMaxIdle, dbMaxConn)
+	Db.Idx = orm.NewOrm()
+	Db.Idx.Using("idx")
+	orm.RegisterDataBase("alarm", "mysql", cf.Str(utils.C_ALARM_DSN), dbMaxIdle, dbMaxConn)
+	Db.Alarm = orm.NewOrm()
+	Db.Alarm.Using("alarm")
+	sysTagSchema, err = NewTagSchema(cf.Str(utils.C_TAG_SCHEMA))
+	transferUrl = cf.Str(utils.C_TRANSFER_URL)
+
+	if cf.DefaultBool(utils.C_MASTER_MODE, false) {
+		RunMode |= CTL_RUNMODE_MASTER
+	}
+	if cf.DefaultBool(utils.C_MI_MODE, false) {
+		RunMode |= CTL_RUNMODE_MI
+	}
+	if cf.DefaultBool(utils.C_DEV_MODE, false) {
+		RunMode |= CTL_RUNMODE_DEV
+	}
+
+	if RunMode&CTL_RUNMODE_MI != 0 {
+		url := cf.Str(utils.C_MI_NORNS_URL)
+		interval, _ := cf.Int(utils.C_MI_NORNS_INTERVAL)
+		miStart(url, interval)
+	}
+
+	// ratelimits
+	ApiRl = initConfigRl(cf)
+
+	// admin
+	admin = initConfigAdmin(cf)
+
+	// ctrl beggo config
 	beego.BConfig.CopyRequestBody = true
 	beego.BConfig.WebConfig.AutoRender = false
 	beego.BConfig.WebConfig.Session.SessionOn = true
@@ -185,68 +309,29 @@ func initConfig(conf *falcon.ConfCtrl) error {
 	beego.BConfig.WebConfig.Session.SessionDisableHTTPOnly = false
 	beego.BConfig.WebConfig.StaticDir["/"] = "static"
 	beego.BConfig.WebConfig.StaticDir["/static"] = "static/static"
-
-	// connect db, can not register db twice  :(
-	orm.RegisterDataBase("default", "mysql", dsn, dbMaxIdle, dbMaxConn)
-
-	// get config from db
-	o := orm.NewOrm()
-	if c, err := GetDbConfig(o, "ctrl"); err == nil {
-		conf.Ctrl.Set(falcon.APP_CONF_DB, c)
+	beego.BConfig.AppName = conf.Name
+	beego.BConfig.WebConfig.Session.SessionGCMaxLifetime, _ = cf.Int64(utils.C_SESSION_GC_MAX_LIFETIME)
+	beego.BConfig.WebConfig.Session.SessionCookieLifeTime, _ = cf.Int(utils.C_SESSION_COOKIE_LIFETIME)
+	if RunMode&CTL_RUNMODE_DEV != 0 {
+		orm.Debug = true
+		beego.BConfig.RunMode = "dev"
+		beego.BConfig.WebConfig.EnableDocs = true
+		beego.BConfig.WebConfig.DirectoryIndex = true
+		beego.BConfig.WebConfig.StaticDir["/doc"] = "swagger"
+	} else {
+		beego.BConfig.RunMode = "prod"
 	}
-
-	// config -> beego config
-	if addr := strings.Split(c.Str(falcon.C_HTTP_ADDR), ":"); len(addr) == 2 {
+	if addr := strings.Split(cf.Str(utils.C_HTTP_ADDR), ":"); len(addr) == 2 {
 		beego.BConfig.Listen.HTTPAddr = addr[0]
 		beego.BConfig.Listen.HTTPPort, _ = strconv.Atoi(addr[1])
 	} else if len(addr) == 1 {
 		beego.BConfig.Listen.HTTPPort, _ = strconv.Atoi(addr[0])
 	}
-	beego.BConfig.AppName = conf.Name
-	beego.BConfig.RunMode = c.Str(falcon.C_RUN_MODE)
-	beego.BConfig.WebConfig.EnableDocs, _ = c.Bool(falcon.C_ENABLE_DOCS)
-	beego.BConfig.WebConfig.Session.SessionGCMaxLifetime, _ = c.Int64(falcon.C_SEESION_GC_MAX_LIFETIME)
-	beego.BConfig.WebConfig.Session.SessionCookieLifeTime, _ = c.Int(falcon.C_SESSION_COOKIE_LIFETIME)
-
-	if beego.BConfig.RunMode == "dev" {
-		beego.Debug("orm debug on")
-		orm.Debug = true
-		beego.BConfig.WebConfig.DirectoryIndex = true
-		beego.BConfig.WebConfig.StaticDir["/doc"] = "swagger"
-	}
-
-	// tag
-	var err error
-	sysTagSchema, err = NewTagSchema(c.Str(falcon.C_TAG_SCHEMA))
 
 	return err
 }
 
-func initCache(c *falcon.ConfCtrl) error {
-	for _, module := range strings.Split(
-		c.Ctrl.Str(falcon.C_CACHE_MODULE), ",") {
-		for k, v := range moduleName {
-			if v == module {
-				moduleCache[k] = cache{
-					enable: true,
-					data:   make(map[int64]interface{}),
-				}
-				break
-			}
-		}
-	}
-	return nil
-}
-
 func init() {
-	orm.RegisterDriver("mysql", orm.DRMySQL)
-	orm.RegisterModelWithPrefix("",
-		new(User), new(Host), new(Tag),
-		new(Role), new(Token), new(Log),
-		new(Tag_rel), new(Tpl_rel), new(Team),
-		new(Template), new(Expression), new(Action),
-		new(Strategy))
-
 	ctrl.RegisterPrestart(initModels)
 	ctrl.RegisterReload(initModels)
 }

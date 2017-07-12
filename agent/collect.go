@@ -8,7 +8,7 @@ package agent
 import (
 	"time"
 
-	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/utils"
 )
 
 var (
@@ -17,7 +17,7 @@ var (
 
 type Collector interface {
 	Start(*Agent) error
-	Collect(int, string) ([]*falcon.MetaData, error)
+	Collect(int, string) ([]*utils.MetaData, error)
 	Reset()
 }
 
@@ -25,19 +25,19 @@ func RegisterCollector(c Collector) {
 	_collector = append(_collector, c)
 }
 
-type collectModule struct {
+type CollectModule struct {
 	running chan struct{}
 }
 
-func (p *collectModule) prestart(agent *Agent) error {
+func (p *CollectModule) prestart(agent *Agent) error {
 	p.running = make(chan struct{}, 0)
 	return nil
 }
 
-func (p *collectModule) start(agent *Agent) error {
+func (p *CollectModule) start(agent *Agent) error {
 
 	host := agent.Conf.Host
-	i, _ := agent.Conf.Configer.Int(falcon.C_INTERVAL)
+	i, _ := agent.Conf.Configer.Int(utils.C_INTERVAL)
 	ticker := time.NewTicker(time.Second * time.Duration(i)).C
 
 	for _, c := range _collector {
@@ -54,7 +54,7 @@ func (p *collectModule) start(agent *Agent) error {
 					return
 				}
 			case <-ticker:
-				vs := []*falcon.MetaData{}
+				vs := []*utils.MetaData{}
 				for _, c := range _collector {
 					if items, err := c.Collect(i,
 						host); err == nil {
@@ -68,11 +68,11 @@ func (p *collectModule) start(agent *Agent) error {
 	return nil
 }
 
-func (p *collectModule) stop(agent *Agent) error {
+func (p *CollectModule) stop(agent *Agent) error {
 	close(p.running)
 	return nil
 }
 
-func (p *collectModule) reload(agent *Agent) error {
+func (p *CollectModule) reload(agent *Agent) error {
 	return nil
 }

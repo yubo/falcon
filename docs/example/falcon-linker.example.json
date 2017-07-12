@@ -1,0 +1,14 @@
+{
+    "api": {
+        "listen": "%%LINKER_HTTP%%"
+    },
+    "db": {
+        "uri": "%%DB_LINKER%%",
+        "maxIdleConns": 3,
+        "maxOpenConns": 3
+    },
+    "shard": {
+        "enable": true,
+        "maxTables": 100
+    }
+}

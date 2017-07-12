@@ -1,0 +1,15 @@
+{
+    "debug": false,
+    "database": "%%DB_FALCON%%?loc=Local&parseTime=true",
+    "maxIdle": 100,
+    "listen": "%%HBS_RPC%%",
+    "whiteIps": [""],
+    "http": {
+        "enabled": true,
+        "listen": "%%HBS_HTTP%%"
+    },
+    "ctrl": {
+    	"hostname_api": "http://%%CTRL_HTTP%%/v1.0/pub/rel/tag/host/search",
+    	"concurrent": 10
+    }
+}

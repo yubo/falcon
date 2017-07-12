@@ -1,0 +1,35 @@
+{
+    "debug": true,
+    "debugHost": "nil",
+    "remain": 11, 
+    "last": 5,
+    "http": {
+        "enabled": true,
+        "listen": "%%JUDGE_HTTP%%"
+    },
+    "rpc": {
+        "enabled": true,
+        "listen": "%%JUDGE_RPC%%"
+    },
+    "grpc": {
+        "enabled": true,
+        "listen": "%%JUDGE_GRPC%%"
+    },
+    "hbs": {
+        "servers": ["%%HBS_RPC%%"],
+        "timeout": 300,
+        "interval": 60
+    },
+    "alarm": {
+        "enabled": true,
+        "minInterval": 300,
+        "queuePattern": "event:p%v",
+        "redis": {
+            "dsn": "%%REDIS_HTTP%%",
+            "maxIdle": 5,
+            "connTimeout": 5000,
+            "readTimeout": 5000,
+            "writeTimeout": 5000
+        }
+    }
+}

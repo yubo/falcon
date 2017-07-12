@@ -1,0 +1,18 @@
+{
+    "debug": "false",
+    "http": {
+        "enable":  true,
+        "listen":   "0.0.0.0:9966"
+    },
+    "graph": {
+        "connTimeout": 1000,
+        "callTimeout": 5000,
+        "maxConns": 32,
+        "maxIdle": 32,
+        "replicas": 500,
+        "cluster": {
+			"node-00": "127.0.0.1:6070",
+			"node-01": "127.0.0.1:6071,127.0.0.1:6072"
+        }
+    }
+}

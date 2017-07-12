@@ -55,16 +55,16 @@ func statsHandle() (ret string) {
 	return ret
 }
 
-type statsModule struct {
+type StatsModule struct {
 	running chan struct{}
 }
 
-func (p *statsModule) prestart(agent *Agent) error {
+func (p *StatsModule) prestart(agent *Agent) error {
 	p.running = make(chan struct{}, 0)
 	return nil
 }
 
-func (p *statsModule) start(agent *Agent) error {
+func (p *StatsModule) start(agent *Agent) error {
 	if agent.Conf.Debug > 0 {
 		ticker := time.NewTicker(time.Second * DEBUG_STAT_STEP).C
 		go func() {
@@ -83,10 +83,10 @@ func (p *statsModule) start(agent *Agent) error {
 	return nil
 }
 
-func (p *statsModule) stop(agent *Agent) error {
+func (p *StatsModule) stop(agent *Agent) error {
 	close(p.running)
 	return nil
 }
-func (p *statsModule) reload(agent *Agent) error {
+func (p *StatsModule) reload(agent *Agent) error {
 	return nil
 }

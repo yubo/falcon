@@ -1,0 +1,38 @@
+{
+    "debug": true,
+    "log": true,
+    "http": {
+        "enabled": true,
+        "listen": "%%SENDER_HTTP%%"
+    },
+    "redis": {
+        "addr": "%%REDIS_HTTP%%",
+        "maxIdle": 5
+    },
+    "queue": {
+        "sms": "/sms",
+        "mail": "/mail"
+    },
+    "worker": {
+        "sms": 10,
+        "mail": 50
+    },
+    "api": {
+        "sms": "http://%%SMS_HTTP%%/api/send",
+        "agent": "http://%%AGENT_HTTP%%/v1/push"
+    },
+    "smtp": {
+        "addr": "%%SMTP_ADDR%%",
+        "username": "%%SMTP_USER%%",
+        "password": "%%SMTP_PASS%%",
+        "from": "%%SMTP_USER%%"
+    },
+    "maintainer": {
+        "emails": ["zhaowenwen@xiaomi.com"],
+        "phones": ["18513557035"]
+    },
+    "account": {
+        "name": "%%SENDER_NAME%%",
+        "token": "%%SENDER_TOKEN%%"
+    }
+}

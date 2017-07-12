@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 falcon Author. All rights reserved.
+ * Copyright 2016 yubo. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
@@ -13,8 +13,9 @@ import (
 	"net/url"
 
 	"github.com/astaxie/beego/context"
-	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/ctrl/api/models"
+	"github.com/yubo/falcon/ctrl/config"
+	"github.com/yubo/falcon/utils"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/github"
 )
@@ -32,19 +33,19 @@ func init() {
 	models.RegisterAuth(GITHUB_NAME, &githubAuth{})
 }
 
-func (p *githubAuth) Init(conf *falcon.ConfCtrl) error {
+func (p *githubAuth) Init(conf *config.ConfCtrl) error {
 	p.config = oauth2.Config{
 		Endpoint:     github.Endpoint,
 		Scopes:       []string{"user:email"},
-		ClientID:     conf.Ctrl.Str(falcon.C_GITHUB_CLIENT_ID),
-		ClientSecret: conf.Ctrl.Str(falcon.C_GITHUB_CLIENT_SECRET),
-		RedirectURL:  conf.Ctrl.Str(falcon.C_GITHUB_REDIRECT_URL),
+		ClientID:     conf.Ctrl.Str(utils.C_GITHUB_CLIENT_ID),
+		ClientSecret: conf.Ctrl.Str(utils.C_GITHUB_CLIENT_SECRET),
+		RedirectURL:  conf.Ctrl.Str(utils.C_GITHUB_REDIRECT_URL),
 	}
 	return nil
 }
 
 func (p *githubAuth) Verify(c interface{}) (bool, string, error) {
-	return false, "", models.EPERM
+	return false, "", utils.EPERM
 }
 
 func (p *githubAuth) AuthorizeUrl(c interface{}) string {
@@ -58,7 +59,7 @@ func (p *githubAuth) AuthorizeUrl(c interface{}) string {
 	return conf.AuthCodeURL(models.RandString(8))
 }
 
-func (p *githubAuth) CallBack(c interface{}) (uuid string, err error) {
+func (p *githubAuth) LoginCb(c interface{}) (uuid string, err error) {
 	var user githubUser
 
 	r := c.(*context.Context).Request
@@ -85,9 +86,11 @@ func (p *githubAuth) CallBack(c interface{}) (uuid string, err error) {
 		return
 	}
 
-	//beego.Debug(fmt.Sprintf("name:%s login:%s id:%d email:%s", user.Name, user.Login, user.ID, user.Email))
 	uuid = fmt.Sprintf("%s@%s", user.Login, GITHUB_NAME)
 	return
+}
+
+func (p *githubAuth) LogoutCb(c interface{}) {
 }
 
 type githubUser struct {

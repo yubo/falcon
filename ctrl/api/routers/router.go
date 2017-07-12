@@ -27,9 +27,6 @@ func init() {
 	beego.InsertFilter("/v1.0/*", beego.BeforeRouter, profileFilter)
 	beego.InsertFilter("/v1.0/*", beego.BeforeRouter, accessFilter)
 
-	if ACL {
-		beego.InsertFilter("/v1.0/*", beego.BeforeRouter, accessFilter)
-	}
 	ns := beego.NewNamespace("/v1.0",
 		beego.NSNamespace("/auth", beego.NSInclude(&controllers.AuthController{})),
 		beego.NSNamespace("/host", beego.NSInclude(&controllers.HostController{})),
@@ -45,12 +42,31 @@ func init() {
 		beego.NSNamespace("/settings", beego.NSInclude(&controllers.SetController{})),
 		beego.NSNamespace("/metric", beego.NSInclude(&controllers.MetricController{})),
 		beego.NSNamespace("/admin", beego.NSInclude(&controllers.AdminController{})),
+		beego.NSNamespace("/matter", beego.NSInclude(&controllers.MatterController{})),
+		beego.NSNamespace("/dashboard", beego.NSInclude(&controllers.DashboardController{})),
+		beego.NSNamespace("/nodata", beego.NSInclude(&controllers.MockcfgController{})),
+		beego.NSNamespace("/aggreator", beego.NSInclude(&controllers.AggreatorController{})),
+		beego.NSNamespace("/graph", beego.NSInclude(&controllers.GraphController{})),
+		beego.NSNamespace("/pub", beego.NSInclude(&controllers.PubController{})),
 	)
 	beego.AddNamespace(ns)
 }
 
 func accessFilter(ctx *context.Context) {
+
+	if models.ApiRl != nil {
+		ip := models.GetIPAdress(ctx.Request)
+		if !models.ApiRl.Update(ip) {
+			http.Error(ctx.ResponseWriter, "Too Many Requests", 429)
+			return
+		}
+	}
+
 	if strings.HasPrefix(ctx.Request.RequestURI, "/v1.0/auth") {
+		return
+	}
+
+	if strings.HasPrefix(ctx.Request.RequestURI, "/v1.0/pub") {
 		return
 	}
 
@@ -81,12 +97,27 @@ func accessFilter(ctx *context.Context) {
 			beego.Debug("TOKEN ", op.Token)
 			http.Error(ctx.ResponseWriter, "permission denied, operate", 403)
 		}
+		if models.RunMode&models.CTL_RUNMODE_MI != 0 {
+			if strings.HasPrefix(ctx.Request.RequestURI, "/v1.0/host") &&
+				ctx.Request.Method == "PUT" {
+				return
+			}
+			if strings.HasPrefix(ctx.Request.RequestURI, "/v1.0/host") ||
+				strings.HasPrefix(ctx.Request.RequestURI, "/v1.0/role") ||
+				strings.HasPrefix(ctx.Request.RequestURI, "/v1.0/tag") ||
+				strings.HasPrefix(ctx.Request.RequestURI, "/v1.0/token") ||
+				strings.HasPrefix(ctx.Request.RequestURI, "/v1.0/rel/tag/host") ||
+				strings.HasPrefix(ctx.Request.RequestURI, "/v1.0/rel/tag/role") {
+				http.Error(ctx.ResponseWriter, "permission denied, xiaomi runmode", 403)
+			}
+		}
 	default:
 		http.Error(ctx.ResponseWriter, "Method Not Allowed", 405)
 	}
 }
 
 func profileFilter(ctx *context.Context) {
+	//需要 切换数据库 和 事务处理 的话，不要使用全局保存的 Ormer 对象。
 	op := &models.Operator{O: orm.NewOrm()}
 	ctx.Input.SetData("op", op)
 	if id, ok := ctx.Input.Session("uid").(int64); ok {
@@ -99,6 +130,6 @@ func profileFilter(ctx *context.Context) {
 		op.User = u
 		op.Token, _ = ctx.Input.Session("token").(int)
 	} else {
-		beego.Debug("not login 2")
+		//beego.Debug("not login")
 	}
 }

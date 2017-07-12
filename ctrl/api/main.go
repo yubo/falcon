@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 falcon Author. All rights reserved.
+ * Copyright 2016 yubo. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
@@ -14,11 +14,11 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/yubo/falcon"
-	_ "github.com/yubo/falcon/ctrl/api/models"
-	_ "github.com/yubo/falcon/ctrl/api/models/auth"
-	_ "github.com/yubo/falcon/ctrl/api/routers"
 	"github.com/yubo/gotool/flags"
+
+	_ "github.com/yubo/falcon/ctrl/ctrl"
 	//_ "github.com/yubo/falcon/ctrl/api/models/plugin/demo"
+	//_ "github.com/yubo/falcon/ctrl/api/models/plugin/alarm"
 )
 
 var opts falcon.CmdOpts
@@ -57,7 +57,6 @@ func start(arg interface{}) {
 
 	dir, _ := os.Getwd()
 	glog.V(4).Infof("work dir :%s", dir)
-	glog.V(4).Infof("\n%s", c)
 
 	runtime.GOMAXPROCS(runtime.NumCPU())
 

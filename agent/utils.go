@@ -9,13 +9,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/utils"
 )
 
 func NewMetricValue(step int, host, metric string,
-	val float64, dataType string, tags ...string) *falcon.MetaData {
+	val float64, dataType string, tags ...string) *utils.MetaData {
 
-	mv := &falcon.MetaData{
+	mv := &utils.MetaData{
 		Host:  host,
 		Name:  metric,
 		Value: val,
@@ -31,10 +31,10 @@ func NewMetricValue(step int, host, metric string,
 	return mv
 }
 
-func GaugeValue(step int, host, metric string, val float64, tags ...string) *falcon.MetaData {
-	return NewMetricValue(step, host, metric, val, falcon.GAUGE, tags...)
+func GaugeValue(step int, host, metric string, val float64, tags ...string) *utils.MetaData {
+	return NewMetricValue(step, host, metric, val, utils.GAUGE, tags...)
 }
 
-func CounterValue(step int, host, metric string, val float64, tags ...string) *falcon.MetaData {
-	return NewMetricValue(step, host, metric, val, falcon.COUNTER, tags...)
+func CounterValue(step int, host, metric string, val float64, tags ...string) *utils.MetaData {
+	return NewMetricValue(step, host, metric, val, utils.COUNTER, tags...)
 }

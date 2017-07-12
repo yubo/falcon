@@ -1,0 +1,42 @@
+{
+    "debug": false,
+    "threshold": 50000,
+    "http": {
+        "enable": true,
+        "listen": "%%GRAPH_HTTP%%"
+    },
+    "rpc": {
+        "enable": true,
+        "listen": "%%GRAPH_RPC%%"
+    },
+    "grpc": {
+        "enable": true,
+        "listen": "%%GRAPH_GRPC%%"
+    },
+    "rrd": {
+        "storage": "%%GRAPH_RRD%%"
+    }, 
+    "db": {
+        "dsn": "%%DB_GRAPH%%?loc=Local&parseTime=true&wait_timeout=3600",
+        "maxIdle": 4
+    },
+    "graph": {
+        "flushBeforeScp": false,
+        "migrating": false,
+        "concurrency": 1,
+        "minScpInterval": 200,
+        "replicas": 500,
+        "connTimeout": 1000,
+        "callTimeout": 5000,
+        "maxConns": 6,
+        "maxIdleConns": 6,
+        "cluster": {
+            "01": "%%GRAPH_RPC%%"
+        }
+    },
+    "cron":{
+        "interval":60,
+        "pushAddr":"http://%%AGENT_HTTP%%/v1/push",
+        "expPeriod":120
+    }
+}

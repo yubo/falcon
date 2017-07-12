@@ -1,6 +1,6 @@
 #!/bin/sh
 commit=$(git log -1 --pretty=%h)
-output='./git.go'
+output='./gitlog.go'
 cat <<EOF > $output
 package falcon
 const (

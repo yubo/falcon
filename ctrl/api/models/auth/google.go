@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 falcon Author. All rights reserved.
+ * Copyright 2016 yubo. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
@@ -9,8 +9,9 @@ import (
 	"fmt"
 
 	"github.com/astaxie/beego/context"
-	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/ctrl/api/models"
+	"github.com/yubo/falcon/ctrl/config"
+	"github.com/yubo/falcon/utils"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	googleOauth2 "google.golang.org/api/oauth2/v1"
@@ -28,19 +29,19 @@ func init() {
 	models.RegisterAuth(GOOGLE_NAME, &googleAuth{})
 }
 
-func (p *googleAuth) Init(conf *falcon.ConfCtrl) error {
+func (p *googleAuth) Init(conf *config.ConfCtrl) error {
 	p.config = oauth2.Config{
 		Endpoint:     google.Endpoint,
 		Scopes:       []string{googleOauth2.PlusMeScope, googleOauth2.UserinfoEmailScope},
-		ClientID:     conf.Ctrl.Str(falcon.C_GOOGLE_CLIENT_ID),
-		ClientSecret: conf.Ctrl.Str(falcon.C_GOOGLE_CLIENT_SECRET),
-		RedirectURL:  conf.Ctrl.Str(falcon.C_GOOGLE_REDIRECT_URL),
+		ClientID:     conf.Ctrl.Str(utils.C_GOOGLE_CLIENT_ID),
+		ClientSecret: conf.Ctrl.Str(utils.C_GOOGLE_CLIENT_SECRET),
+		RedirectURL:  conf.Ctrl.Str(utils.C_GOOGLE_REDIRECT_URL),
 	}
 	return nil
 }
 
 func (p *googleAuth) Verify(_c interface{}) (bool, string, error) {
-	return false, "", models.EPERM
+	return false, "", utils.EPERM
 }
 
 func (p *googleAuth) AuthorizeUrl(c interface{}) string {
@@ -50,7 +51,7 @@ func (p *googleAuth) AuthorizeUrl(c interface{}) string {
 	return conf.AuthCodeURL(models.RandString(8))
 }
 
-func (p *googleAuth) CallBack(c interface{}) (uuid string, err error) {
+func (p *googleAuth) LoginCb(c interface{}) (uuid string, err error) {
 	r := c.(*context.Context).Request
 	q := r.URL.Query()
 
@@ -82,4 +83,7 @@ func (p *googleAuth) CallBack(c interface{}) (uuid string, err error) {
 
 	uuid = fmt.Sprintf("%s@%s", user.Email, GOOGLE_NAME)
 	return
+}
+
+func (p *googleAuth) LogoutCb(c interface{}) {
 }

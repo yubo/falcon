@@ -1,0 +1,2 @@
+# Bootstrap golang runner
+dpkg -i pkg/ftp_0.17-31_amd64.deb

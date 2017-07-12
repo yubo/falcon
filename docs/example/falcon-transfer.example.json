@@ -1,0 +1,81 @@
+{
+    "debug": true,
+    "safeguard": {
+        "maxMemMByte": 10000,
+        "threshold":350000,
+        "interval":5
+    },
+    "http": {
+        "enable": true,
+        "listen": "%%TRANSFER_HTTP%%"
+    },
+    "rpc": {
+        "enable": true,
+        "listen": "%%TRANSFER_RPC%%"
+    },
+    "grpc": {
+        "enable": true,
+        "listen": "%%TRANSFER_GRPC%%"
+    },
+    "socket": {
+        "enable": true,
+        "listen": "%%TRANSFER_SOCKET%%",
+        "timeout": 3600
+    },
+    "mysql": {
+        "enable": true,
+        "addr": "%%DB_GRAPH%%?charset=utf8&&loc=Asia%2FShanghai",
+        "idle": 2,
+        "max": 50
+    },
+    "judge": {
+        "enable": true,
+        "batch": 200,
+        "connTimeout": 1000,
+        "callTimeout": 5000,
+        "maxConns": 32,
+        "maxIdle": 32,
+        "replicas": 500,
+        "isGrpcBackend": false,
+        "cluster": {
+            "01":"%%JUDGE_RPC%%"
+        }
+    },
+    "graph": {
+        "enable": true,
+        "batch": 200,
+        "connTimeout": 1000,
+        "callTimeout": 5000,
+        "maxConns": 32,
+        "maxIdle": 32,
+        "replicas": 500,
+        "migrating": false,
+        "isGrpcBackend": false,
+        "cluster": {
+            "01":"%%GRAPH_RPC%%"
+        },
+        "clusterMigrating": {
+        }
+    },
+    "transfer": {
+        "enable": false,
+        "batch": 200,
+        "connTimeout": 1000,
+        "callTimeout": 5000,
+        "maxConns": 8,
+        "maxIdle": 8,
+        "isGrpcBackend": false,
+        "cluster": {
+            "01":"%%TRANSFER_RPC%%"
+        }
+    },
+    "norns":{
+        "hostname":"http://%%NORNS_HTTP%%/api/v1/tagstring/cop.xiaomi/hostnames",
+        "pdl": "http://%%NORNS_HTTP%%/api/v1/hostname/%s/tags/forwarden",
+        "interval": 60
+    },
+    "alarm":{
+        "unrecovery":"http://%%ALARM_HTTP%%/endpoint/unrecovery/event",
+        "solve":"http://%%ALARM_HTTP%%/event/solve"
+    }
+}

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 falcon Author. All rights reserved.
+ * Copyright 2016 yubo. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
@@ -10,16 +10,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"os/signal"
 	"strings"
-	"sync/atomic"
 	"syscall"
 
 	"github.com/golang/glog"
-)
-
-var (
-	falconModules map[string]Module
+	"github.com/yubo/falcon/utils"
 )
 
 type Module interface {
@@ -31,32 +26,41 @@ type Module interface {
 	Signal(os.Signal) error
 	String() string
 	Name() string
+	Parse(text []byte, filename string, lino int, debug bool) interface{}
 }
 
 // reload not support add/del/disable module
 type Process struct {
 	Config *FalconConfig
 	Pid    int
-	status uint32
-	module []Module
+	Status uint32
+	Module []Module
+}
+
+const (
+	APP_STATUS_INIT = iota
+	APP_STATUS_PENDING
+	APP_STATUS_RUNNING
+	APP_STATUS_EXIT
+	APP_STATUS_RELOAD
+)
+
+func init() {
+	ModuleTpls = make(map[string]Module)
 }
 
 func NewProcess(c *FalconConfig) *Process {
 	p := &Process{
 		Config: c,
 		Pid:    os.Getpid(),
-		status: APP_STATUS_PENDING,
-		module: make([]Module, len(c.conf)),
+		Status: APP_STATUS_PENDING,
+		Module: make([]Module, len(c.Conf)),
 	}
 	return p
 }
 
-func (p *Process) Status() uint32 {
-	return atomic.LoadUint32(&p.status)
-}
-
 func (p *Process) Kill(sig syscall.Signal) error {
-	if pid, err := readFileInt(p.Config.pidFile); err != nil {
+	if pid, err := utils.ReadFileInt(p.Config.PidFile); err != nil {
 		return err
 	} else {
 		glog.Infof("kill %d %s\n", pid, sig)
@@ -65,7 +69,7 @@ func (p *Process) Kill(sig syscall.Signal) error {
 }
 
 func (p *Process) Check() error {
-	pid, err := readFileInt(p.Config.pidFile)
+	pid, err := utils.ReadFileInt(p.Config.PidFile)
 	if os.IsNotExist(err) {
 		return nil
 	} else {
@@ -81,118 +85,57 @@ func (p *Process) Check() error {
 }
 
 func (p *Process) Save() error {
-	return ioutil.WriteFile(p.Config.pidFile,
+	return ioutil.WriteFile(p.Config.PidFile,
 		[]byte(fmt.Sprintf("%d", p.Pid)), 0644)
 }
 
 func (p *Process) Start() {
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGUSR1)
-	atomic.StoreUint32(&p.status, APP_STATUS_RUNNING)
 
-	setGlog(p.Config)
+	SetGlog(p.Config)
 
-	for i := 0; i < len(p.Config.conf); i++ {
-		m, ok := falconModules[GetType(p.Config.conf[i])]
+	for i := 0; i < len(p.Config.Conf); i++ {
+		m, ok := ModuleTpls[utils.GetType(p.Config.Conf[i])]
 		if !ok {
-			glog.Exitf("%s's module not support", GetType(p.Config.conf[i]))
+			glog.Exitf("%s's module not support", utils.GetType(p.Config.Conf[i]))
 		}
-		p.module[i] = m.New(p.Config.conf[i])
+		p.Module[i] = m.New(p.Config.Conf[i])
 	}
 
-	for i := 0; i < len(p.module); i++ {
-		p.module[i].Prestart()
+	for i := 0; i < len(p.Module); i++ {
+		p.Module[i].Prestart()
 	}
 
-	for i := 0; i < len(p.module); i++ {
-		p.module[i].Start()
-	}
-
-	glog.Infof(MODULE_NAME+"[%d] register signal notify", p.Pid)
-
-	for {
-		s := <-sigs
-		glog.Infof(MODULE_NAME+"recv %v", s)
-
-		switch s {
-		case syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
-			pidfile := fmt.Sprintf("%s.%d", p.Config.pidFile, p.Pid)
-			glog.Info(MODULE_NAME + "exiting")
-			atomic.StoreUint32(&p.status, APP_STATUS_EXIT)
-			os.Rename(p.Config.pidFile, pidfile)
-
-			for i, n := 0, len(p.module); i < n; i++ {
-				p.module[n-i-1].Stop()
-			}
-
-			glog.Infof(MODULE_NAME+"pid:%d exit", p.Pid)
-			os.Remove(pidfile)
-			os.Exit(0)
-		case syscall.SIGUSR1:
-			glog.Info(MODULE_NAME + "reload")
-
-			// reparse config, get new config
-			newConfig := Parse(p.Config.ConfigFile, false)
-
-			// check config diff
-			if len(newConfig.conf) != len(p.Config.conf) {
-				glog.Error("not support add/del module\n")
-				break
-			}
-
-			for i, config := range newConfig.conf {
-				m, ok := falconModules[GetType(config)]
-				if !ok {
-					glog.Exitf("%s's module not support", GetType(config))
-					break
-				}
-				newM := m.New(config)
-				if newM.Name() != p.module[i].Name() {
-					glog.Exitf("%s's module not support, not support "+
-						"add/del/disable module", GetType(config))
-					break
-				}
-			}
-
-			// do it
-			atomic.StoreUint32(&p.status, APP_STATUS_RELOAD)
-			setGlog(newConfig)
-			for i, m := range p.module {
-				m.Reload(newConfig.conf[i])
-			}
-			atomic.StoreUint32(&p.status, APP_STATUS_RUNNING)
-		default:
-			for _, m := range p.module {
-				m.Signal(s)
-			}
-		}
+	for i := 0; i < len(p.Module); i++ {
+		p.Module[i].Start()
 	}
 }
 
-func RegisterModule(name string, m Module) error {
-	if _, ok := falconModules[name]; ok {
-		return ErrExist
-	} else {
-		falconModules[name] = m
-		return nil
+func RegisterModule(m Module, names ...string) error {
+	for _, name := range names {
+		if _, ok := ModuleTpls[name]; ok {
+			return utils.ErrExist
+		} else {
+			ModuleTpls[name] = m
+		}
 	}
+	return nil
 }
 
-func setGlog(c *FalconConfig) {
-	glog.V(3).Infof("set glog %s, %d", c.log, c.logv)
-	flag.Lookup("v").Value.Set(fmt.Sprintf("%d", c.logv))
+func SetGlog(c *FalconConfig) {
+	glog.V(3).Infof(MODULE_NAME+"set glog %s, %d", c.Log, c.Logv)
+	flag.Lookup("v").Value.Set(fmt.Sprintf("%d", c.Logv))
 
-	if strings.ToLower(c.log) == "stdout" {
+	if strings.ToLower(c.Log) == "stdout" {
 		flag.Lookup("logtostderr").Value.Set("true")
 		return
 	} else {
 		flag.Lookup("logtostderr").Value.Set("false")
 	}
 
-	if fi, err := os.Stat(c.log); err != nil || !fi.IsDir() {
-		glog.Errorf("log dir %s does not exist or not dir", c.log)
+	if fi, err := os.Stat(c.Log); err != nil || !fi.IsDir() {
+		glog.Errorf("log dir %s does not exist or not dir", c.Log)
 	} else {
 		flag.Lookup("logtostderr").Value.Set("false")
-		flag.Lookup("log_dir").Value.Set(c.log)
+		flag.Lookup("log_dir").Value.Set(c.Log)
 	}
 }
