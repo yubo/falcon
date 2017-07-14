@@ -102,19 +102,19 @@ func (p *LB) Update(args []*falcon.MetaData,
 	return nil
 }
 
-type rpcModule struct {
+type RpcModule struct {
 	rpcConnects connList
 	rpcListener net.Listener
 }
 
-func (p *rpcModule) prestart(L *Transfer) error {
+func (p *RpcModule) prestart(L *Transfer) error {
 	p.rpcConnects = connList{list: list.New()}
 	return nil
 }
 
-func (p *rpcModule) start(L *Transfer) (err error) {
+func (p *RpcModule) start(L *Transfer) (err error) {
 
-	enable, _ := L.Conf.Configer.Bool(falcon.C_RPC_ENABLE)
+	enable, _ := L.Conf.Configer.Bool(C_RPC_ENABLE)
 	if !enable {
 		glog.Info(MODULE_NAME + "rpc.Start warning, not enabled")
 		return nil
@@ -122,7 +122,7 @@ func (p *rpcModule) start(L *Transfer) (err error) {
 
 	rpc.Register(&LB{appUpdateChan: L.appUpdateChan})
 
-	addr := L.Conf.Configer.Str(falcon.C_RPC_ADDR)
+	addr := L.Conf.Configer.Str(C_RPC_ADDR)
 	p.rpcListener, err = net.Listen(falcon.ParseAddr(addr))
 	if err != nil {
 		glog.Fatalf(MODULE_NAME+"rpc.Start error, listen %s failed, %s",
@@ -161,9 +161,9 @@ func (p *rpcModule) start(L *Transfer) (err error) {
 	return err
 }
 
-func (p *rpcModule) stop(L *Transfer) error {
+func (p *RpcModule) stop(L *Transfer) error {
 	if p.rpcListener == nil {
-		return falcon.ErrNoent
+		return falcon.ErrNoExits
 	}
 
 	p.rpcListener.Close()
@@ -177,7 +177,7 @@ func (p *rpcModule) stop(L *Transfer) error {
 	return nil
 }
 
-func (p *rpcModule) reload(L *Transfer) error {
+func (p *RpcModule) reload(L *Transfer) error {
 	// TODO
 	return nil
 }

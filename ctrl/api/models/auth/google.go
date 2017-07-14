@@ -9,9 +9,10 @@ import (
 	"fmt"
 
 	"github.com/astaxie/beego/context"
+	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/ctrl"
 	"github.com/yubo/falcon/ctrl/api/models"
 	"github.com/yubo/falcon/ctrl/config"
-	"github.com/yubo/falcon/utils"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	googleOauth2 "google.golang.org/api/oauth2/v1"
@@ -33,15 +34,15 @@ func (p *googleAuth) Init(conf *config.ConfCtrl) error {
 	p.config = oauth2.Config{
 		Endpoint:     google.Endpoint,
 		Scopes:       []string{googleOauth2.PlusMeScope, googleOauth2.UserinfoEmailScope},
-		ClientID:     conf.Ctrl.Str(utils.C_GOOGLE_CLIENT_ID),
-		ClientSecret: conf.Ctrl.Str(utils.C_GOOGLE_CLIENT_SECRET),
-		RedirectURL:  conf.Ctrl.Str(utils.C_GOOGLE_REDIRECT_URL),
+		ClientID:     conf.Ctrl.Str(ctrl.C_GOOGLE_CLIENT_ID),
+		ClientSecret: conf.Ctrl.Str(ctrl.C_GOOGLE_CLIENT_SECRET),
+		RedirectURL:  conf.Ctrl.Str(ctrl.C_GOOGLE_REDIRECT_URL),
 	}
 	return nil
 }
 
 func (p *googleAuth) Verify(_c interface{}) (bool, string, error) {
-	return false, "", utils.EPERM
+	return false, "", falcon.EPERM
 }
 
 func (p *googleAuth) AuthorizeUrl(c interface{}) string {

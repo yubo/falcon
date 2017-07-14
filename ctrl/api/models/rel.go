@@ -13,7 +13,7 @@ import (
 
 	"github.com/astaxie/beego/orm"
 	"github.com/golang/glog"
-	"github.com/yubo/falcon/utils"
+	"github.com/yubo/falcon"
 )
 
 // relation
@@ -248,7 +248,7 @@ func (op *Operator) DeleteTagHost(rel *RelTagHostApiDel) (int64, error) {
 
 func (op *Operator) DeleteTagHosts(rel *RelTagHosts) (int64, error) {
 	if len(rel.HostIds) == 0 {
-		return 0, utils.ErrEmpty
+		return 0, falcon.ErrEmpty
 	}
 	ids := array2sql(rel.HostIds)
 	res, err := op.O.Raw("DELETE FROM `tag_host` "+
@@ -386,7 +386,7 @@ func (op *Operator) DeleteTagTpl(rel *RelTagTpl) (int64, error) {
 
 func (op *Operator) DeleteTagTpls(rel *RelTagTpls) (int64, error) {
 	if len(rel.TplIds) == 0 {
-		return 0, utils.ErrEmpty
+		return 0, falcon.ErrEmpty
 	}
 	res, err := op.O.Raw("DELETE FROM `tag_tpl` "+
 		"WHERE tag_id = ? and tpl_id IN "+array2sql(rel.TplIds),
@@ -780,7 +780,7 @@ func userHasTokenTag0(o orm.Ormer, user_id, token_id int64) (tag_ids []int64, er
 	n, err = o.Raw("SELECT distinct b1.user_tag_id FROM (SELECT a1.tag_id AS user_tag_id, a2.tag_id AS token_tag_id, a1.tpl_id AS role_id, a1.sub_id AS user_id, a2.sub_id AS token_id FROM tpl_rel a1 JOIN tpl_rel a2 ON a1.type_id = ? AND a1.sub_id = ? AND a2.type_id = ?  AND a2.sub_id = ? AND a1.tpl_id = a2.tpl_id) b1 JOIN tag_rel b2 ON b1.user_tag_id = b2.tag_id AND b1.token_tag_id = b2.sup_tag_id",
 		TPL_REL_T_ACL_USER, user_id, TPL_REL_T_ACL_TOKEN, token_id).QueryRows(&tag_ids)
 	if err != nil || n == 0 {
-		err = utils.EACCES
+		err = falcon.EACCES
 	}
 	return
 }
@@ -792,7 +792,7 @@ func userHasTokenTag(o orm.Ormer, user_id, token_id int64) (tag_ids []int64, err
 	n, err = o.Raw("SELECT distinct c1.tag_id FROM tag_rel c1 JOIN ( SELECT distinct b1.user_tag_id FROM (SELECT a1.tag_id AS user_tag_id, a2.tag_id AS token_tag_id, a1.tpl_id AS role_id, a1.sub_id AS user_id, a2.sub_id AS token_id FROM tpl_rel a1 JOIN tpl_rel a2 ON a1.type_id = ? AND a1.sub_id = ? AND a2.type_id = ?  AND a2.sub_id = ? AND a1.tpl_id = a2.tpl_id) b1 JOIN tag_rel b2 ON b1.user_tag_id = b2.tag_id AND b1.token_tag_id = b2.sup_tag_id) c2 on c1.sup_tag_id = c2.user_tag_id",
 		TPL_REL_T_ACL_USER, user_id, TPL_REL_T_ACL_TOKEN, token_id).QueryRows(&tag_ids)
 	if err != nil || n == 0 {
-		err = utils.EACCES
+		err = falcon.EACCES
 	}
 
 	return
@@ -803,7 +803,7 @@ func userHasToken(o orm.Ormer, user_id, token_id int64) (tag_id int64, err error
 	err = o.Raw("SELECT b1.user_tag_id FROM (SELECT a1.tag_id AS user_tag_id, a2.tag_id AS token_tag_id, a1.tpl_id AS role_id, a1.sub_id AS user_id, a2.sub_id AS token_id FROM tpl_rel a1 JOIN tpl_rel a2 ON a1.type_id = ? AND a1.sub_id = ? AND a2.type_id = ?  AND a2.sub_id = ? AND a1.tpl_id = a2.tpl_id) b1 JOIN tag_rel b2 ON b1.user_tag_id = b2.tag_id AND b1.token_tag_id = b2.sup_tag_id LIMIT 1",
 		TPL_REL_T_ACL_USER, user_id, TPL_REL_T_ACL_TOKEN, token_id).QueryRow(&tag_id)
 	if err != nil {
-		err = utils.EACCES
+		err = falcon.EACCES
 	}
 	return
 }
@@ -813,7 +813,7 @@ func access(o orm.Ormer, user_id, token_id, tag_id int64) (tid int64, err error)
 	err = o.Raw("SELECT c2.token_tag_id FROM tag_rel c1 JOIN ( SELECT MAX(b1.token_tag_id) as token_tag_id, b1.user_tag_id FROM (SELECT a1.tag_id AS user_tag_id, a2.tag_id AS token_tag_id, a1.tpl_id AS role_id, a1.sub_id AS user_id, a2.sub_id AS token_id FROM tpl_rel a1 JOIN tpl_rel a2 ON a1.type_id = ? AND a1.sub_id = ? AND a2.type_id = ?  AND a2.sub_id = ? AND a1.tpl_id = a2.tpl_id) b1 JOIN tag_rel b2 ON b1.user_tag_id = b2.tag_id AND b1.token_tag_id = b2.sup_tag_id GROUP BY b1.user_tag_id) c2 ON c1.sup_tag_id = c2.user_tag_id WHERE c1.tag_id = ?",
 		TPL_REL_T_ACL_USER, user_id, TPL_REL_T_ACL_TOKEN, token_id, tag_id).QueryRow(&tid)
 	if err != nil {
-		err = utils.EACCES
+		err = falcon.EACCES
 	}
 
 	return

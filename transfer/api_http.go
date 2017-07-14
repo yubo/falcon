@@ -29,7 +29,7 @@ func (ln tcpKeepAliveListener) Accept() (c net.Conn, err error) {
 	return tc, nil
 }
 
-type httpModule struct {
+type HttpModule struct {
 	httpListener *net.TCPListener
 	httpMux      *http.ServeMux
 }
@@ -42,24 +42,24 @@ func echo_handle(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func (p *httpModule) httpRoutes() {
+func (p *HttpModule) httpRoutes() {
 	p.httpMux.HandleFunc("/echo", echo_handle)
 }
 
-func (p *httpModule) prestart(L *Transfer) error {
+func (p *HttpModule) prestart(L *Transfer) error {
 	p.httpMux = http.NewServeMux()
 	p.httpRoutes()
 	return nil
 }
 
-func (p *httpModule) start(L *Transfer) error {
-	enable, _ := L.Conf.Configer.Bool(falcon.C_HTTP_ENABLE)
+func (p *HttpModule) start(L *Transfer) error {
+	enable, _ := L.Conf.Configer.Bool(C_HTTP_ENABLE)
 	if !enable {
 		glog.Info(MODULE_NAME + "http.Start warning, not enabled")
 		return nil
 	}
 
-	network, addr := falcon.ParseAddr(L.Conf.Configer.Str(falcon.C_HTTP_ADDR))
+	network, addr := falcon.ParseAddr(L.Conf.Configer.Str(C_HTTP_ADDR))
 	if addr == "" {
 		return falcon.ErrParam
 	}
@@ -84,11 +84,11 @@ func (p *httpModule) start(L *Transfer) error {
 	return nil
 }
 
-func (p *httpModule) stop(L *Transfer) error {
+func (p *HttpModule) stop(L *Transfer) error {
 	p.httpListener.Close()
 	return nil
 }
 
-func (p *httpModule) reload(L *Transfer) error {
+func (p *HttpModule) reload(L *Transfer) error {
 	return nil
 }

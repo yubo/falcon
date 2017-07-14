@@ -8,7 +8,7 @@ package config
 import (
 	"fmt"
 
-	"github.com/yubo/falcon/utils"
+	"github.com/yubo/falcon/config"
 )
 
 type ConfAgent struct {
@@ -16,7 +16,11 @@ type ConfAgent struct {
 	Disabled bool
 	Name     string
 	Host     string
-	Configer utils.Configer
+	Configer config.Configer
+}
+
+func (c ConfAgent) GetName() string {
+	return c.Name
 }
 
 func (c ConfAgent) String() string {
@@ -32,20 +36,3 @@ func (c ConfAgent) String() string {
 		c.Configer.String(),
 	)
 }
-
-var (
-	ConfDefault = map[string]string{
-		utils.C_CONN_TIMEOUT:     "1000",
-		utils.C_CALL_TIMEOUT:     "5000",
-		utils.C_WORKER_PROCESSES: "2",
-		utils.C_HTTP_ENABLE:      "true",
-		utils.C_HTTP_ADDR:        "127.0.0.1:1988",
-		utils.C_RPC_ENABLE:       "true",
-		utils.C_RPC_ADDR:         "127.0.0.1:1989",
-		utils.C_GRPC_ENABLE:      "true",
-		utils.C_GRPC_ADDR:        "127.0.0.1:1990",
-		utils.C_INTERVAL:         "60",
-		utils.C_PAYLOADSIZE:      "16",
-		utils.C_IFACE_PREFIX:     "eth,em",
-	}
-)

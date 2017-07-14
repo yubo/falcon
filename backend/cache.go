@@ -336,10 +336,10 @@ func (p *backendCache) unlink(key string) *cacheEntry {
 // }}}
 
 // cacheModule {{{
-type cacheModule struct {
+type CacheModule struct {
 }
 
-func (p *cacheModule) prestart(b *Backend) error {
+func (p *CacheModule) prestart(b *Backend) error {
 	glog.V(3).Infof(MODULE_NAME + " cache prestart \n")
 	cache := &backendCache{
 		hash: make(map[string]*cacheEntry),
@@ -353,17 +353,17 @@ func (p *cacheModule) prestart(b *Backend) error {
 	return nil
 }
 
-func (p *cacheModule) start(b *Backend) error {
+func (p *CacheModule) start(b *Backend) error {
 	glog.V(3).Infof(MODULE_NAME + " cache start \n")
 	return nil
 }
 
-func (p *cacheModule) stop(b *Backend) error {
+func (p *CacheModule) stop(b *Backend) error {
 	//p.cache.close()
 	return nil
 }
 
-func (p *cacheModule) reload(b *Backend) error {
+func (p *CacheModule) reload(b *Backend) error {
 	return nil
 }
 

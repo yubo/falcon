@@ -19,6 +19,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/agent"
+	"github.com/yubo/falcon/agent/utils"
 )
 
 const (
@@ -101,12 +102,17 @@ type cpuCollector struct {
 	last *cpuStatSample
 }
 
+func (p *cpuCollector) Name() string {
+	return "cpu"
+}
+
 func (p *cpuCollector) Reset() {
 	p.cur = nil
 	p.last = nil
 }
 
 func (p *cpuCollector) Start(agent *agent.Agent) error {
+	glog.V(4).Infof("")
 	return nil
 }
 
@@ -159,14 +165,14 @@ func (p *cpuCollector) stat(step int,
 	}
 
 	for i := 1; i < PROC_STAT_TOTAL; i++ {
-		ret = append(ret, agent.GaugeValue(step, host, procStatName[i],
+		ret = append(ret, utils.GaugeValue(step, host, procStatName[i],
 			float64(p.cur.cpu.data[i]-p.last.cpu.data[i])*n))
 	}
-	ret = append(ret, agent.GaugeValue(step, host, "cpu.busy",
+	ret = append(ret, utils.GaugeValue(step, host, "cpu.busy",
 		float64(100.0-float64(p.cur.cpu.data[PROC_STAT_IDLE]-
 			p.last.cpu.data[PROC_STAT_IDLE])*n)))
 
-	ret = append(ret, agent.GaugeValue(step, host, "cpu.switches",
+	ret = append(ret, utils.GaugeValue(step, host, "cpu.switches",
 		float64(p.cur.ctxt-p.last.ctxt)))
 
 	return ret, nil

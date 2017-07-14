@@ -9,8 +9,8 @@ import (
 	"strings"
 
 	"github.com/astaxie/beego"
+	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/ctrl/api/models"
-	"github.com/yubo/falcon/utils"
 )
 
 // Operations about Auth
@@ -43,7 +43,7 @@ func (c *AuthController) Authorize() {
 
 	auth, ok := models.Auths[module]
 	if !ok {
-		c.SendMsg(405, utils.ErrNoModule.Error())
+		c.SendMsg(405, falcon.ErrNoModule.Error())
 		return
 	}
 
@@ -65,7 +65,7 @@ func (c *AuthController) Authorize() {
 func (c *AuthController) Callback() {
 	auth, ok := models.Auths[c.GetString(":module")]
 	if !ok {
-		c.SendMsg(406, utils.ErrNoModule.Error())
+		c.SendMsg(406, falcon.ErrNoModule.Error())
 		return
 	}
 	cb := c.GetString("cb")
@@ -120,17 +120,17 @@ func (c *AuthController) PostLogin() {
 	}
 
 	if method = c.GetString("method"); method == "" {
-		err = utils.ErrParam
+		err = falcon.ErrParam
 		goto out_err
 	}
 
 	if auth, ok = models.Auths[method]; !ok {
-		err = utils.ErrNoExits
+		err = falcon.ErrNoExits
 		goto out_err
 	}
 
 	if ok, uuid, err = auth.Verify(c); !ok {
-		err = utils.ErrLogin
+		err = falcon.ErrLogin
 		goto out_err
 	}
 
@@ -160,7 +160,7 @@ func (c *AuthController) Logout() {
 		}
 		c.SendMsg(200, "logout success!")
 	} else {
-		c.SendMsg(405, utils.ErrNoLogged.Error())
+		c.SendMsg(405, falcon.ErrNoLogged.Error())
 	}
 }
 

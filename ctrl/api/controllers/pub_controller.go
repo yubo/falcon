@@ -8,8 +8,8 @@ package controllers
 import (
 	"strings"
 
+	"github.com/yubo/falcon/ctrl"
 	"github.com/yubo/falcon/ctrl/api/models"
-	"github.com/yubo/falcon/utils"
 )
 
 // Operations about porfile/config/info
@@ -51,10 +51,10 @@ func (c *PubController) GetConfig() {
 
 	// config filter
 	ret := map[string]interface{}{
-		utils.C_AUTH_MODULE: conf.Str(utils.C_AUTH_MODULE),
-		utils.C_MASTER_MODE: conf.DefaultBool(utils.C_MASTER_MODE, false),
-		utils.C_DEV_MODE:    conf.DefaultBool(utils.C_DEV_MODE, false),
-		utils.C_MI_MODE:     conf.DefaultBool(utils.C_MI_MODE, false),
+		ctrl.C_AUTH_MODULE: conf.Str(ctrl.C_AUTH_MODULE),
+		ctrl.C_MASTER_MODE: conf.DefaultBool(ctrl.C_MASTER_MODE, false),
+		ctrl.C_DEV_MODE:    conf.DefaultBool(ctrl.C_DEV_MODE, false),
+		ctrl.C_MI_MODE:     conf.DefaultBool(ctrl.C_MI_MODE, false),
 	}
 
 	c.SendMsg(200, ret)

@@ -14,9 +14,10 @@ import (
 
 	"github.com/astaxie/beego/context"
 	"github.com/astaxie/beego/httplib"
+	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/ctrl"
 	"github.com/yubo/falcon/ctrl/api/models"
 	"github.com/yubo/falcon/ctrl/config"
-	"github.com/yubo/falcon/utils"
 )
 
 const (
@@ -38,7 +39,7 @@ func init() {
 }
 
 func (p *missoAuth) Init(conf *config.ConfCtrl) error {
-	p.RedirectURL = conf.Ctrl.Str(utils.C_MISSO_REDIRECT_URL)
+	p.RedirectURL = conf.Ctrl.Str(ctrl.C_MISSO_REDIRECT_URL)
 	p.CookieSecretKey = "secret-key-for-encrypt-cookie"
 	p.missoAuthDomain = "http://sso.pt.xiaomi.com"
 	p.BrokerName = "test"
@@ -47,7 +48,7 @@ func (p *missoAuth) Init(conf *config.ConfCtrl) error {
 }
 
 func (p *missoAuth) Verify(c interface{}) (bool, string, error) {
-	return false, "", utils.EPERM
+	return false, "", falcon.EPERM
 }
 
 func (p *missoAuth) AuthorizeUrl(c interface{}) string {
@@ -100,7 +101,7 @@ func (p *missoAuth) LoginCb(c interface{}) (uuid string, err error) {
 			}
 		}
 	}
-	err = utils.ErrLogin
+	err = falcon.ErrLogin
 	return
 }
 

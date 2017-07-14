@@ -6,8 +6,8 @@
 package models
 
 import (
+	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/ctrl/config"
-	"github.com/yubo/falcon/utils"
 )
 
 var (
@@ -31,7 +31,7 @@ type AuthInterface interface {
 
 func RegisterAuth(name string, p AuthInterface) error {
 	if _, ok := allAuths[name]; ok {
-		return utils.ErrExist
+		return falcon.ErrExist
 	} else {
 		allAuths[name] = p
 		return nil

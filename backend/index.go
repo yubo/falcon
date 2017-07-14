@@ -13,11 +13,10 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/golang/glog"
-	"github.com/yubo/falcon"
 	"github.com/yubo/gotool/list"
 )
 
-type indexModule struct {
+type IndexModule struct {
 	indexUpdateCh chan *cacheEntry
 	indexDb       *sql.DB
 	running       chan struct{}
@@ -146,7 +145,7 @@ func indexUpdate(e *cacheEntry, db *sql.DB) {
 	return
 }
 
-func (this *indexModule) indexTrashWorker(b *Backend) {
+func (this *IndexModule) indexTrashWorker(b *Backend) {
 	var (
 		e     *cacheEntry
 		p, _p *list.ListHead
@@ -181,7 +180,7 @@ func (this *indexModule) indexTrashWorker(b *Backend) {
 	}
 }
 
-func (p *indexModule) indexWorker(b *Backend) {
+func (p *IndexModule) indexWorker(b *Backend) {
 	var (
 		e   *cacheEntry
 		l   *list.ListHead
@@ -233,7 +232,7 @@ func (p *indexModule) indexWorker(b *Backend) {
 	}
 }
 
-func (p *indexModule) updateWorker() {
+func (p *IndexModule) updateWorker() {
 	for {
 		select {
 		case _, ok := <-p.running:
@@ -247,19 +246,19 @@ func (p *indexModule) updateWorker() {
 }
 
 // indexModule depend on cacheModule
-func (p *indexModule) prestart(b *Backend) error {
+func (p *IndexModule) prestart(b *Backend) error {
 	p.running = make(chan struct{}, 0)
 	p.indexUpdateCh = make(chan *cacheEntry, INDEX_MAX_OPEN_CONNS)
 	return nil
 }
 
-func (p *indexModule) start(b *Backend) error {
+func (p *IndexModule) start(b *Backend) error {
 	var err error
 
-	dbmaxidle, _ := b.Conf.Configer.Int(falcon.C_DB_MAX_IDLE)
-	dbmaxconn, _ := b.Conf.Configer.Int(falcon.C_DB_MAX_CONN)
+	dbmaxidle, _ := b.Conf.Configer.Int(C_DB_MAX_IDLE)
+	dbmaxconn, _ := b.Conf.Configer.Int(C_DB_MAX_CONN)
 
-	p.indexDb, err = sql.Open("mysql", b.Conf.Configer.Str(falcon.C_DSN))
+	p.indexDb, err = sql.Open("mysql", b.Conf.Configer.Str(C_DSN))
 	if err != nil {
 		glog.Fatal(MODULE_NAME, err)
 	}
@@ -280,11 +279,11 @@ func (p *indexModule) start(b *Backend) error {
 	return nil
 }
 
-func (p *indexModule) stop(b *Backend) error {
+func (p *IndexModule) stop(b *Backend) error {
 	close(p.running)
 	return nil
 }
 
-func (p *indexModule) reload(b *Backend) error {
+func (p *IndexModule) reload(b *Backend) error {
 	return nil
 }

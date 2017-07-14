@@ -14,6 +14,7 @@ import (
 	"strconv"
 
 	"github.com/golang/glog"
+	fconfig "github.com/yubo/falcon/config"
 	"github.com/yubo/falcon/ctrl/config"
 )
 
@@ -50,6 +51,9 @@ var (
 		"disabled": DISABLED,
 		"debug":    DEBUG,
 		"metric":   METRIC,
+		"agent":    AGENT,
+		"transfer": TRANSFER,
+		"BACKEND":  BACKEND,
 	}
 )
 
@@ -61,7 +65,7 @@ type yyCtx struct {
 }
 
 // The parser uses the type <prefix>Lex as a lexer.  It must provide
-// the methods Lex(*<prefix>SymType) int and utils.Error(string).
+// the methods Lex(*<prefix>SymType) int and falcon.Error(string).
 type yyLex struct {
 	ctxData [MAX_CTX_LEVEL]yyCtx
 	ctxL    int
@@ -285,7 +289,7 @@ func (p *yyLex) Error(s string) {
 	os.Exit(1)
 }
 
-func Parse(text []byte, filename string, lino int, debug bool) interface{} {
+func Parse(text []byte, filename string, lino int, debug bool) fconfig.ModuleConf {
 	yy = &yyLex{
 		ctxL:  0,
 		debug: debug,
@@ -296,7 +300,7 @@ func Parse(text []byte, filename string, lino int, debug bool) interface{} {
 	yy.ctx.pos = 0
 	yy.ctx.text = text
 
-	glog.V(4).Infof("ctrl parse text %s", string(yy.ctx.text))
+	glog.V(5).Infof("ctrl parse text %s", string(yy.ctx.text))
 	yyParse(yy)
 	return conf
 }

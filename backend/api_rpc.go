@@ -74,7 +74,7 @@ func (p *Bkd) Send(items []*falcon.RrdItem,
 	return nil
 }
 
-type rpcModule struct {
+type RpcModule struct {
 	running     chan struct{}
 	b           *Backend
 	rpcListener net.Listener
@@ -133,7 +133,7 @@ func (p *Backend) queryGetCacheEntry(param *falcon.RrdQuery,
 
 	e := p.cache.get(param.Csum())
 	if e == nil {
-		return nil, falcon.ErrNoent
+		return nil, falcon.ErrNoExits
 	}
 
 	resp.Type = e.typ
@@ -348,15 +348,15 @@ func (p *Backend) Query(param falcon.RrdQuery,
 	return nil
 }
 
-func (p *rpcModule) prestart(b *Backend) error {
+func (p *RpcModule) prestart(b *Backend) error {
 	p.running = make(chan struct{}, 0)
 	p.b = b
 	p.rpcConnects = connList{list: list.New()}
 	return nil
 }
 
-func (p *rpcModule) start(b *Backend) (err error) {
-	enable, _ := b.Conf.Configer.Bool(falcon.C_HTTP_ENABLE)
+func (p *RpcModule) start(b *Backend) (err error) {
+	enable, _ := b.Conf.Configer.Bool(C_HTTP_ENABLE)
 	if !enable {
 		glog.Info(MODULE_NAME + "rpc not enabled")
 		return nil
@@ -365,7 +365,7 @@ func (p *rpcModule) start(b *Backend) (err error) {
 	rpcServer := rpc.NewServer()
 	rpcServer.Register(&Bkd{b: b})
 
-	addr := b.Conf.Configer.Str(falcon.C_RPC_ADDR)
+	addr := b.Conf.Configer.Str(C_RPC_ADDR)
 	p.rpcListener, err = net.Listen(falcon.ParseAddr(addr))
 	if err != nil {
 		glog.Fatalf(MODULE_NAME+"rpc.Start error, listen %s failed, %s",
@@ -405,9 +405,9 @@ func (p *rpcModule) start(b *Backend) (err error) {
 	return err
 }
 
-func (p *rpcModule) stop(b *Backend) (err error) {
+func (p *RpcModule) stop(b *Backend) (err error) {
 	if p.rpcListener == nil {
-		return falcon.ErrNoent
+		return falcon.ErrNoExits
 	}
 
 	p.rpcListener.Close()
@@ -421,7 +421,7 @@ func (p *rpcModule) stop(b *Backend) (err error) {
 	return nil
 }
 
-func (p *rpcModule) reload(b *Backend) error {
+func (p *RpcModule) reload(b *Backend) error {
 	// TODO
 	return nil
 }

@@ -15,20 +15,20 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/yubo/falcon/agent/config"
+	fconfig "github.com/yubo/falcon/config"
 )
 
 const (
 	eof           = 0
 	MAX_CTX_LEVEL = 16
-	MODULE_NAME   = "\x1B[32m[CTRL_PARSE]\x1B[0m "
+	MODULE_NAME   = "\x1B[32m[AGENT_PARSE]\x1B[0m "
 )
 
 var (
-	yy     *yyLex
-	conf   *config.ConfAgent
-	yy_ss  = make(map[string]string)
-	yy_ss2 = make(map[string]string)
-	yy_as  = make([]string, 0)
+	yy    *yyLex
+	conf  *config.ConfAgent
+	yy_ss = make(map[string]string)
+	yy_as = make([]string, 0)
 
 	f_ip      = regexp.MustCompile(`^[0-9]+\.[0-0]+\.[0-9]+\.[0-9]+[ \t\n;{}]{1}`)
 	f_num     = regexp.MustCompile(`^0x[0-9a-fA-F]+|^[0-9]+[ \t\n;{}]{1}`)
@@ -61,7 +61,7 @@ type yyCtx struct {
 }
 
 // The parser uses the type <prefix>Lex as a lexer.  It must provide
-// the methods Lex(*<prefix>SymType) int and utils.Error(string).
+// the methods Lex(*<prefix>SymType) int and falcon.Error(string).
 type yyLex struct {
 	ctxData [MAX_CTX_LEVEL]yyCtx
 	ctxL    int
@@ -285,7 +285,7 @@ func (p *yyLex) Error(s string) {
 	os.Exit(1)
 }
 
-func Parse(text []byte, filename string, lino int, debug bool) interface{} {
+func Parse(text []byte, filename string, lino int, debug bool) fconfig.ModuleConf {
 	yy = &yyLex{
 		ctxL:  0,
 		debug: debug,
@@ -296,7 +296,7 @@ func Parse(text []byte, filename string, lino int, debug bool) interface{} {
 	yy.ctx.pos = 0
 	yy.ctx.text = text
 
-	glog.V(4).Infof("ctrl parse text %s", string(yy.ctx.text))
+	glog.V(5).Infof("agent parse text %s", string(yy.ctx.text))
 	yyParse(yy)
 	return conf
 }

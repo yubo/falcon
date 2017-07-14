@@ -8,24 +8,26 @@ package config
 import (
 	"fmt"
 
-	"github.com/yubo/falcon/utils"
+	"github.com/yubo/falcon/config"
 )
 
 type ConfCtrl struct {
-	// only in falcon.conf
-	Debug       int
-	Disabled    bool
-	Name        string
-	Host        string
-	Metrics     []string
-	Ctrl        utils.Configer
-	Agent       utils.Configer
-	Loadbalance utils.Configer
-	Backend     utils.Configer
-	Graph       utils.Configer
-	Transfer    utils.Configer
+	// only in config.conf
+	Debug    int
+	Disabled bool
+	Name     string
+	Host     string
+	Metrics  []string
+	Ctrl     config.Configer
+	Agent    config.Configer
+	Transfer config.Configer
+	Backend  config.Configer
 	// 1: default, 2: db, 3: ConfCtrl.Container
 	// height will cover low
+}
+
+func (c ConfCtrl) GetName() string {
+	return c.Name
 }
 
 func (c ConfCtrl) String() string {
@@ -41,30 +43,18 @@ func (c ConfCtrl) String() string {
 		"%-17s %s\n"+
 		"%-17s %s\n"+
 		"%s (\n%s\n)\n"+
-		"%s",
+		"%s (\n%s\n)\n"+
+		"%s (\n%s\n)\n"+
+		"%s (\n%s\n)\n"+
+		"%s (\n%s\n)\n",
 		"debug", c.Debug,
 		"disabled", c.Disabled,
 		"Name", c.Name,
 		"Host", c.Host,
-		"Metrics", utils.IndentLines(1, s),
-		c.Ctrl.String(),
+		"Metrics", config.IndentLines(1, s),
+		"ctrl", config.IndentLines(1, c.Ctrl.String()),
+		"agent", config.IndentLines(1, c.Agent.String()),
+		"transfer", config.IndentLines(1, c.Transfer.String()),
+		"backend", config.IndentLines(1, c.Backend.String()),
 	)
 }
-
-var (
-	ConfDefault = map[string]string{
-		//C_RUN_MODE:                "pub",
-		utils.C_MASTER_MODE:             "true",
-		utils.C_MI_MODE:                 "false",
-		utils.C_DEV_MODE:                "false",
-		utils.C_HTTP_ADDR:               "8001",
-		utils.C_SESSION_GC_MAX_LIFETIME: "86400",
-		utils.C_SESSION_COOKIE_LIFETIME: "86400",
-		utils.C_AUTH_MODULE:             "ldap",
-		utils.C_CACHE_MODULE:            "host,role,system,tag,user",
-		utils.C_DB_MAX_CONN:             "30",
-		utils.C_DB_MAX_IDLE:             "30",
-		utils.C_MI_NORNS_URL:            "http://norns.dev/api/v1/tagstring/cop.xiaomi/hostinfos",
-		utils.C_MI_NORNS_INTERVAL:       "5",
-	}
-)

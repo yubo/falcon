@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/yubo/falcon/utils"
+	"github.com/yubo/falcon"
 )
 
 type tcpKeepAliveListener struct {
@@ -32,7 +32,7 @@ func (ln tcpKeepAliveListener) Accept() (c net.Conn, err error) {
 type HttpModule struct {
 	httpListener  *net.TCPListener
 	httpMux       *http.ServeMux
-	appUpdateChan chan *[]*utils.MetaData
+	appUpdateChan chan *[]*falcon.MetaData
 }
 
 func (p *HttpModule) push(w http.ResponseWriter, req *http.Request) {
@@ -42,7 +42,7 @@ func (p *HttpModule) push(w http.ResponseWriter, req *http.Request) {
 	}
 
 	decoder := json.NewDecoder(req.Body)
-	var meta []*utils.MetaData
+	var meta []*falcon.MetaData
 	err := decoder.Decode(&meta)
 	if err != nil {
 		http.Error(w, "connot decode body", http.StatusBadRequest)
@@ -65,15 +65,15 @@ func (p *HttpModule) prestart(agent *Agent) error {
 }
 
 func (p *HttpModule) start(agent *Agent) error {
-	enable, _ := agent.Conf.Configer.Bool(utils.C_HTTP_ENABLE)
+	enable, _ := agent.Conf.Configer.Bool(C_HTTP_ENABLE)
 	if !enable {
 		glog.Info(MODULE_NAME + "http.Start warning, not enabled")
 		return nil
 	}
 
-	network, addr := utils.ParseAddr(agent.Conf.Configer.Str(utils.C_HTTP_ADDR))
+	network, addr := falcon.ParseAddr(agent.Conf.Configer.Str(C_HTTP_ADDR))
 	if addr == "" {
-		return utils.ErrParam
+		return falcon.ErrParam
 	}
 	s := &http.Server{
 		Addr:           addr,

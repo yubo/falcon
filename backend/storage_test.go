@@ -17,6 +17,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/yubo/falcon"
+	fconfig "github.com/yubo/falcon/config"
 )
 
 const (
@@ -27,7 +28,7 @@ const (
 
 var (
 	storageApp *Backend
-	storage    *storageModule
+	storage    *StorageModule
 	testDirs   []string
 	wg         sync.WaitGroup
 	lock       sync.RWMutex
@@ -57,10 +58,10 @@ func testStoragetInit() (err error) {
 	flag.Parse()
 
 	storageApp = &Backend{}
-	storage = &storageModule{}
-	cache = &cacheModule{}
+	storage = &StorageModule{}
+	cache = &CacheModule{}
 
-	storageApp.Conf.Configer.Set(falcon.APP_CONF_FILE, map[string]string{
+	storageApp.Conf.Configer.Set(fconfig.APP_CONF_FILE, map[string]string{
 		"hdisks": "/tmp/falcon",
 	})
 

@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	"github.com/yubo/falcon/ctrl"
 	"github.com/yubo/falcon/ctrl/config"
-	"github.com/yubo/falcon/utils"
 )
 
 var (
@@ -122,7 +122,7 @@ func (tree *cacheTreeT) _build() {
 /* called by initModels() */
 func initCache(c *config.ConfCtrl) error {
 	for _, module := range strings.Split(
-		c.Ctrl.Str(utils.C_CACHE_MODULE), ",") {
+		c.Ctrl.Str(ctrl.C_CACHE_MODULE), ",") {
 		for k, v := range moduleName {
 			if v == module {
 				moduleCache[k] = cache{

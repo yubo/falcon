@@ -8,7 +8,7 @@ package models
 import (
 	"strings"
 
-	"github.com/yubo/falcon/utils"
+	"github.com/yubo/falcon"
 )
 
 type ExpressionActionApiPut struct {
@@ -166,7 +166,7 @@ func (op *Operator) PauseExpression(id int64, pause int) (e *Expression, err err
 	}
 
 	if e, err = op.getExpression(id); err != nil {
-		return nil, utils.ErrNoExits
+		return nil, falcon.ErrNoExits
 	}
 	DbLog(op.O, op.User.Id, CTL_M_EXPRESSION, id, CTL_A_SET, jsonStr(pause))
 	return e, err
@@ -176,7 +176,7 @@ func (op *Operator) UpdateExpression(id int64, e *ExpressionApiPut) (o *Expressi
 	_, err = op.SqlExec("update expression set expression = ?, op = ?, `condition` = ?, max_step = ?, priority = ?, msg = ?, action_threshold = ?, pause = ? where id = ?", e.Expression, e.Op, e.Condition, e.MaxStep, e.Priority, e.Msg, e.ActionThreshold, e.Pause, id)
 
 	if o, err = op.getExpression(id); err != nil {
-		return nil, utils.ErrNoExits
+		return nil, falcon.ErrNoExits
 	}
 
 	DbLog(op.O, op.User.Id, CTL_M_EXPRESSION, id, CTL_A_SET, jsonStr(e))

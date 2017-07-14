@@ -23,6 +23,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/backend/config"
 	"github.com/yubo/rrdlite"
 )
 
@@ -81,7 +82,7 @@ type netTask struct {
 	Reply  interface{}
 }
 
-func (p *storageModule) rrdCreate(filename string, e *cacheEntry) error {
+func (p *StorageModule) rrdCreate(filename string, e *cacheEntry) error {
 	now := time.Unix(p.b.timeNow(), 0)
 	start := now.Add(time.Duration(-1) * time.Hour)
 
@@ -160,7 +161,7 @@ func ioFileWrite(filename string, data []byte, perm os.FileMode) error {
 
 // flush to disk from cacheEntry
 // call by ioWorker
-func (p *storageModule) ioRrdAdd(e *cacheEntry) (err error) {
+func (p *StorageModule) ioRrdAdd(e *cacheEntry) (err error) {
 	filename := e.filename(p.b)
 
 	// unlikely
@@ -185,7 +186,7 @@ func (p *storageModule) ioRrdAdd(e *cacheEntry) (err error) {
 	return err
 }
 
-func (p *storageModule) ioRrdUpdate(e *cacheEntry) (err error) {
+func (p *StorageModule) ioRrdUpdate(e *cacheEntry) (err error) {
 	if e == nil || e.dataId == 0 {
 		return falcon.ErrEmpty
 	}
@@ -283,7 +284,7 @@ func dial(address string, timeout int) (*rpc.Client, error) {
 }
 
 // TODO addr to node
-func (p *storageModule) reconnection(client **rpc.Client, addr string) {
+func (p *StorageModule) reconnection(client **rpc.Client, addr string) {
 	var err error
 
 	statsInc(ST_RPC_CLI_RECONNECT, 1)
@@ -319,7 +320,7 @@ func netRpcCall(client *rpc.Client, method string, args interface{},
 /*
  * get remote data to local disk
  */
-func (p *storageModule) netRrdFetch(client **rpc.Client, e *cacheEntry,
+func (p *StorageModule) netRrdFetch(client **rpc.Client, e *cacheEntry,
 	addr string) error {
 	var (
 		err     error
@@ -368,7 +369,7 @@ out:
 /* push cacheEntry data
  * by
  * call remote storage.send  */
-func (p *storageModule) netSendData(client **rpc.Client, e *cacheEntry, addr string) error {
+func (p *StorageModule) netSendData(client **rpc.Client, e *cacheEntry, addr string) error {
 	var (
 		err  error
 		flag uint32
@@ -409,7 +410,7 @@ out:
 }
 
 // called by networker
-func (p *storageModule) netQueryData(client **rpc.Client, addr string,
+func (p *StorageModule) netQueryData(client **rpc.Client, addr string,
 	args interface{}, resp interface{}) (err error) {
 
 	for i := 0; i < CONN_RETRY; i++ {
@@ -426,7 +427,7 @@ func (p *storageModule) netQueryData(client **rpc.Client, addr string,
 	return err
 }
 
-func (p *storageModule) netWorker(idx int, ch chan *netTask, client **rpc.Client, addr string) {
+func (p *StorageModule) netWorker(idx int, ch chan *netTask, client **rpc.Client, addr string) {
 	var err error
 	for {
 		select {
@@ -468,7 +469,7 @@ func (p *storageModule) netWorker(idx int, ch chan *netTask, client **rpc.Client
 }
 
 // ioworker never return
-func (p *storageModule) ioWorker(ch chan *ioTask) {
+func (p *StorageModule) ioWorker(ch chan *ioTask) {
 	var err error
 	for {
 		select {
@@ -515,7 +516,7 @@ type commitCacheArg struct {
 /* called by  commitCacheWorker per FLUSH_DISK_STEP
  * or called after stop
  */
-func (p *storageModule) commitCache(whole bool) {
+func (p *StorageModule) commitCache(whole bool) {
 	var lastTs int64
 	var percent int
 
@@ -581,7 +582,7 @@ func (p *storageModule) commitCache(whole bool) {
 	}
 }
 
-func (p *storageModule) commitCacheWorker() {
+func (p *StorageModule) commitCacheWorker() {
 	var init bool
 
 	debug := p.debug
@@ -617,7 +618,7 @@ func storageCheckHds(hds []string) error {
 	return nil
 }
 
-type storageModule struct {
+type StorageModule struct {
 	b                     *Backend
 	running               chan struct{}
 	storageMigrateClients map[string][]*rpc.Client
@@ -626,10 +627,10 @@ type storageModule struct {
 	payloadsize           int
 	workerProcesses       int
 	debug                 int
-	migrate               falcon.Migrate
+	migrate               config.Migrate
 }
 
-func (p *storageModule) prestart(b *Backend) error {
+func (p *StorageModule) prestart(b *Backend) error {
 	p.b = b
 	p.migrate = b.Conf.Migrate
 	p.running = make(chan struct{}, 0)
@@ -641,13 +642,13 @@ func (p *storageModule) prestart(b *Backend) error {
 	return nil
 }
 
-func (p *storageModule) start(b *Backend) error {
-	b.hdisk = strings.Split(b.Conf.Configer.Str(falcon.C_HDISK), ",")
+func (p *StorageModule) start(b *Backend) error {
+	b.hdisk = strings.Split(b.Conf.Configer.Str(C_HDISK), ",")
 
-	p.workerProcesses, _ = b.Conf.Configer.Int(falcon.C_WORKER_PROCESSES)
-	p.connTimeout, _ = b.Conf.Configer.Int(falcon.C_CONN_TIMEOUT)
-	p.callTimeout, _ = b.Conf.Configer.Int(falcon.C_CALL_TIMEOUT)
-	p.payloadsize, _ = b.Conf.Configer.Int(falcon.C_PAYLOADSIZE)
+	p.workerProcesses, _ = b.Conf.Configer.Int(C_WORKER_PROCESSES)
+	p.connTimeout, _ = b.Conf.Configer.Int(C_CONN_TIMEOUT)
+	p.callTimeout, _ = b.Conf.Configer.Int(C_CALL_TIMEOUT)
+	p.payloadsize, _ = b.Conf.Configer.Int(C_PAYLOADSIZE)
 	p.debug = b.Conf.Debug
 
 	err := storageCheckHds(b.hdisk)
@@ -690,14 +691,14 @@ func (p *storageModule) start(b *Backend) error {
 	return nil
 }
 
-func (p *storageModule) stop(b *Backend) error {
+func (p *StorageModule) stop(b *Backend) error {
 	for i, _ := range b.hdisk {
 		close(b.storageIoTaskCh[i])
 	}
 	return nil
 }
 
-func (p *storageModule) reload(b *Backend) error {
+func (p *StorageModule) reload(b *Backend) error {
 	// TODO
 	return nil
 }

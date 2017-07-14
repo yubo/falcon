@@ -9,8 +9,8 @@ import (
 	"encoding/json"
 	"strings"
 
+	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/ctrl/api/models"
-	"github.com/yubo/falcon/utils"
 )
 
 // Operations about Relations
@@ -440,7 +440,7 @@ func (c *RelController) CreateTagTpl0() {
 	}
 
 	if !op.IsAdmin() {
-		c.SendMsg(400, utils.EACCES.Error())
+		c.SendMsg(400, falcon.EACCES.Error())
 		return
 	}
 
@@ -618,7 +618,7 @@ func (c *RelController) CreateTagRoleUser() {
 	json.Unmarshal(c.Ctx.Input.RequestBody, &rel)
 
 	if rel.RoleId == 0 || rel.TagId == 0 || rel.UserId == 0 {
-		c.SendMsg(400, utils.ErrParam.Error())
+		c.SendMsg(400, falcon.ErrParam.Error())
 		return
 	}
 
@@ -729,7 +729,7 @@ func (c *RelController) CreateTagRoleToken() {
 	json.Unmarshal(c.Ctx.Input.RequestBody, &rel)
 
 	if rel.RoleId == 0 || rel.TagId == 0 || rel.TokenId == 0 {
-		c.SendMsg(400, utils.ErrParam.Error())
+		c.SendMsg(400, falcon.ErrParam.Error())
 		return
 	}
 

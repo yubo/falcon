@@ -186,16 +186,16 @@ func statsRrd() {
 	}
 }
 
-type statsModule struct {
+type StatsModule struct {
 	running chan struct{}
 }
 
-func (p *statsModule) prestart(b *Backend) error {
+func (p *StatsModule) prestart(b *Backend) error {
 	p.running = make(chan struct{}, 0)
 	return nil
 }
 
-func (p *statsModule) start(b *Backend) error {
+func (p *StatsModule) start(b *Backend) error {
 	if b.Conf.Debug > 0 {
 		ticker := falconTicker(time.Second*DEBUG_STAT_STEP, b.Conf.Debug)
 		go func() {
@@ -214,11 +214,11 @@ func (p *statsModule) start(b *Backend) error {
 	return nil
 }
 
-func (p *statsModule) stop(b *Backend) error {
+func (p *StatsModule) stop(b *Backend) error {
 	close(p.running)
 	return nil
 }
 
-func (p *statsModule) reload(b *Backend) error {
+func (p *StatsModule) reload(b *Backend) error {
 	return nil
 }

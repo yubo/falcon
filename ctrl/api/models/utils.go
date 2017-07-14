@@ -18,7 +18,7 @@ import (
 	"time"
 
 	"github.com/astaxie/beego/orm"
-	"github.com/yubo/falcon/utils"
+	"github.com/yubo/falcon"
 )
 
 type Log struct {
@@ -307,7 +307,7 @@ func (op *Operator) RelCheck(sql string, args ...interface{}) (err error) {
 	}
 
 	if n > 0 {
-		return utils.ErrInUse
+		return falcon.ErrInUse
 	}
 	return nil
 }

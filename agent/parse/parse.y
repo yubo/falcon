@@ -11,7 +11,7 @@ import (
 	"fmt"
 
 	"github.com/yubo/falcon/agent/config"
-	"github.com/yubo/falcon/utils"
+	fconfig "github.com/yubo/falcon/config"
 )
 
 %}
@@ -56,18 +56,13 @@ num:
 	NUM { $$ = yy.i }
 ;
 
-as:
-	| as text             { yy_as = append(yy_as, $2) }
-	| as INCLUDE text ';' { yy.include($3) }
-;
-
 conf: ';'
 	| agent '}' ';'      {
 		// end
-	 	conf.Configer.Set(utils.APP_CONF_FILE, yy_ss2)
-		yy_ss2 = make(map[string]string)
+	 	conf.Configer.Set(fconfig.APP_CONF_FILE, yy_ss)
+		yy_ss = make(map[string]string)
 	
-		conf.Name = fmt.Sprintf("ctrl_%s", conf.Name)
+		//conf.Name = fmt.Sprintf("agent_%s", conf.Name)
 		if conf.Host == "" {
 			conf.Host, _ = os.Hostname()
 		}
@@ -78,7 +73,6 @@ agent:
 	'{' {
 	 	// begin
 		conf = &config.ConfAgent{Name: "agent"}
-		conf.Configer.Set(utils.APP_CONF_DEFAULT, config.ConfDefault)
 	}| agent agent_item ';'
 ;
 
@@ -87,10 +81,10 @@ agent_item:
 	| HOST text	{ conf.Host = $2 }
 	| DEBUG		{ conf.Debug = 1 }
 	| DEBUG num	{ conf.Debug = $2 }
-	| text num	{ yy_ss2[$1] = fmt.Sprintf("%d", $2) }
-	| text bool	{ yy_ss2[$1] = fmt.Sprintf("%v", $2) }
+	| text num	{ yy_ss[$1] = fmt.Sprintf("%d", $2) }
+	| text bool	{ yy_ss[$1] = fmt.Sprintf("%v", $2) }
 	| INCLUDE text	{ yy.include($2) }
-	| text text	{ yy_ss2[$1] = $2 }
+	| text text	{ yy_ss[$1] = $2 }
 	| ROOT text { 
 		if err := os.Chdir($2); err != nil {
 			yy.Error(err.Error())

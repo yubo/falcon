@@ -1,10 +1,11 @@
 .PHONY: clean parse doc deploy run
 
 MODULES=falcon
+SUBMODULES=ctrl agent transfer backend
 TARGETS=$(MODULES:%=dist/bin/%)
 
 DOCFILES=dist/html/swagger/swagger.json dist/etc/falcon.example.conf
-YYFILES=parse/parse.go ctrl/parse/parse.go agent/parse/parse.go
+YYFILES=parse/parse.go $(SUBMODULES:%=%/parse/parse.go)
 DEPENDS=$(DOCFILES) $(YYFILES) dist gitlog.go
 
 
@@ -43,7 +44,7 @@ dist/etc/metric_names: docs/etc/metric_names dist
 	cp docs/etc/metric_names dist/etc/metric_names
 
 clean:
-	rm -rf ./dist gitlog.go
+	rm -rf ./dist gitlog.go $(YYFILES)
 
 install: $(DEPENDS)
 	./scripts/install.sh
@@ -52,8 +53,7 @@ deploy: $(DEPENDS)
 	cd dist && ../scripts/deploy.sh
 
 run:
-	export GOPATH=${VENDOR} && \
-	./scripts/run.sh
+	./dist/bin/falcon -config ./etc/agent.example.conf -logtostderr -v 4 start 2>&1
 
 reload:
 	./dist/bin/falcon -config ./etc/falcon.conf -logtostderr -v 4 reload 2>&1

@@ -11,7 +11,7 @@ import (
 	"fmt"
 
 	"github.com/yubo/falcon/ctrl/config"
-	"github.com/yubo/falcon/utils"
+	fconfig "github.com/yubo/falcon/config"
 )
 
 %}
@@ -31,7 +31,7 @@ import (
 
 %token '{' '}' ';'
 %token ON YES OFF NO INCLUDE ROOT PID_FILE LOG HOST DISABLED DEBUG
-%token METRIC
+%token METRIC AGENT TRANSFER BACKEND
 
 %%
 
@@ -64,10 +64,10 @@ as:
 conf: ';'
 	| ctrl '}' ';'      {
 		// end
-	 	conf.Ctrl.Set(utils.APP_CONF_FILE, yy_ss2)
-		yy_ss2 = make(map[string]string)
+	 	conf.Ctrl.Set(fconfig.APP_CONF_FILE, yy_ss)
+		yy_ss = make(map[string]string)
 	
-		conf.Name = fmt.Sprintf("ctrl_%s", conf.Name)
+		//conf.Name = fmt.Sprintf("ctrl_%s", conf.Name)
 		if conf.Host == "" {
 			conf.Host, _ = os.Hostname()
 		}
@@ -78,7 +78,6 @@ ctrl:
 	'{' {
 	 	// begin
 		conf = &config.ConfCtrl{Name: "ctrl"}
-		conf.Ctrl.Set(utils.APP_CONF_DEFAULT, config.ConfDefault)
 	}| ctrl ctrl_item ';'
 ;
 
@@ -87,10 +86,10 @@ ctrl_item:
 	| HOST text	{ conf.Host = $2 }
 	| DEBUG		{ conf.Debug = 1 }
 	| DEBUG num	{ conf.Debug = $2 }
-	| text num	{ yy_ss2[$1] = fmt.Sprintf("%d", $2) }
-	| text bool	{ yy_ss2[$1] = fmt.Sprintf("%v", $2) }
+	| text num	{ yy_ss[$1] = fmt.Sprintf("%d", $2) }
+	| text bool	{ yy_ss[$1] = fmt.Sprintf("%v", $2) }
 	| INCLUDE text	{ yy.include($2) }
-	| text text	{ yy_ss2[$1] = $2 }
+	| text text	{ yy_ss[$1] = $2 }
 	| METRIC '{' as '}' {
 	 	conf.Metrics = yy_as
 		yy_as = make([]string, 0)
@@ -98,7 +97,38 @@ ctrl_item:
 		if err := os.Chdir($2); err != nil {
 			yy.Error(err.Error())
 		}
-	};
+	}| agent '}' {
+	 	conf.Agent.Set(fconfig.APP_CONF_FILE, yy_ss2)
+		yy_ss2 = make(map[string]string)
+	}| transfer '}' {
+	 	conf.Transfer.Set(fconfig.APP_CONF_FILE, yy_ss2)
+		yy_ss2 = make(map[string]string)
+	}| backend '}' {
+	 	conf.Backend.Set(fconfig.APP_CONF_FILE, yy_ss2)
+		yy_ss2 = make(map[string]string)
+	}
+;
+
+agent: AGENT '{'
+	| agent kv_item ';'
+
+transfer: TRANSFER '{'
+	| transfer kv_item ';'
+
+backend: BACKEND '{'
+       | backend kv_item ';'
+
+
+kv_item:
+	| ROOT text { 
+		if err := os.Chdir($2); err != nil {
+			yy.Error(err.Error())
+		}
+	}
+	| text num	{ yy_ss2[$1] = fmt.Sprintf("%d", $2) }
+	| text bool	{ yy_ss2[$1] = fmt.Sprintf("%v", $2) }
+	| text text	{ yy_ss2[$1] = $2 }
+	| INCLUDE text	{ yy.include($2) }
 
 
 %%

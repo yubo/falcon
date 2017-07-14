@@ -9,7 +9,7 @@ import (
 	"os"
 
 	"github.com/yubo/falcon/agent/config"
-	"github.com/yubo/falcon/utils"
+	fconfig "github.com/yubo/falcon/config"
 )
 
 //line agent/parse/parse.y:19
@@ -65,7 +65,7 @@ const yyEofCode = 1
 const yyErrCode = 2
 const yyInitialStackSize = 16
 
-//line agent/parse/parse.y:100
+//line agent/parse/parse.y:94
 
 //line yacctab:1
 var yyExca = [...]int{
@@ -94,33 +94,33 @@ var yyPact = [...]int{
 }
 var yyPgo = [...]int{
 
-	0, 26, 19, 8, 37, 36, 36, 27, 21,
+	0, 26, 19, 8, 37, 36, 27, 21,
 }
 var yyR1 = [...]int{
 
 	0, 4, 4, 1, 1, 1, 1, 1, 2, 2,
-	3, 6, 6, 6, 5, 5, 7, 7, 8, 8,
-	8, 8, 8, 8, 8, 8, 8, 8,
+	3, 5, 5, 6, 6, 7, 7, 7, 7, 7,
+	7, 7, 7, 7, 7,
 }
 var yyR2 = [...]int{
 
 	0, 0, 2, 1, 1, 1, 1, 0, 1, 1,
-	1, 0, 2, 4, 1, 3, 1, 3, 0, 2,
-	2, 1, 2, 2, 2, 2, 2, 2,
+	1, 1, 3, 1, 3, 0, 2, 2, 1, 2,
+	2, 2, 2, 2, 2,
 }
 var yyChk = [...]int{
 
-	-1000, -4, -5, 9, -7, 7, 8, -8, 19, 18,
+	-1000, -4, -5, 9, -6, 7, 8, -7, 19, 18,
 	20, -2, 14, 15, 6, 5, 9, 9, -1, 10,
 	11, 12, 13, -2, -3, 4, -3, -1, -2, -2,
 	-2,
 }
 var yyDef = [...]int{
 
-	1, -2, 2, 14, 18, 16, 0, 0, 7, 0,
-	21, 7, 0, 0, 8, 9, 15, 17, 19, 3,
-	4, 5, 6, 20, 22, 10, 23, 24, 26, 25,
-	27,
+	1, -2, 2, 11, 15, 13, 0, 0, 7, 0,
+	18, 7, 0, 0, 8, 9, 12, 14, 16, 3,
+	4, 5, 6, 17, 19, 10, 20, 21, 23, 22,
+	24,
 }
 var yyTok1 = [...]int{
 
@@ -533,89 +533,76 @@ yydefault:
 			yyVAL.num = yy.i
 		}
 	case 12:
-		yyDollar = yyS[yypt-2 : yypt+1]
+		yyDollar = yyS[yypt-3 : yypt+1]
 		//line agent/parse/parse.y:60
 		{
-			yy_as = append(yy_as, yyDollar[2].text)
-		}
-	case 13:
-		yyDollar = yyS[yypt-4 : yypt+1]
-		//line agent/parse/parse.y:61
-		{
-			yy.include(yyDollar[3].text)
-		}
-	case 15:
-		yyDollar = yyS[yypt-3 : yypt+1]
-		//line agent/parse/parse.y:65
-		{
 			// end
-			conf.Configer.Set(utils.APP_CONF_FILE, yy_ss2)
-			yy_ss2 = make(map[string]string)
+			conf.Configer.Set(fconfig.APP_CONF_FILE, yy_ss)
+			yy_ss = make(map[string]string)
 
-			conf.Name = fmt.Sprintf("ctrl_%s", conf.Name)
+			//conf.Name = fmt.Sprintf("agent_%s", conf.Name)
 			if conf.Host == "" {
 				conf.Host, _ = os.Hostname()
 			}
 		}
-	case 16:
+	case 13:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line agent/parse/parse.y:78
+		//line agent/parse/parse.y:73
 		{
 			// begin
 			conf = &config.ConfAgent{Name: "agent"}
-			conf.Configer.Set(utils.APP_CONF_DEFAULT, config.ConfDefault)
 		}
-	case 19:
+	case 16:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line agent/parse/parse.y:86
+		//line agent/parse/parse.y:80
 		{
 			conf.Disabled = yyDollar[2].b
 		}
-	case 20:
+	case 17:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line agent/parse/parse.y:87
+		//line agent/parse/parse.y:81
 		{
 			conf.Host = yyDollar[2].text
 		}
-	case 21:
+	case 18:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line agent/parse/parse.y:88
+		//line agent/parse/parse.y:82
 		{
 			conf.Debug = 1
 		}
-	case 22:
+	case 19:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line agent/parse/parse.y:89
+		//line agent/parse/parse.y:83
 		{
 			conf.Debug = yyDollar[2].num
 		}
-	case 23:
+	case 20:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line agent/parse/parse.y:90
+		//line agent/parse/parse.y:84
 		{
-			yy_ss2[yyDollar[1].text] = fmt.Sprintf("%d", yyDollar[2].num)
+			yy_ss[yyDollar[1].text] = fmt.Sprintf("%d", yyDollar[2].num)
 		}
-	case 24:
+	case 21:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line agent/parse/parse.y:91
+		//line agent/parse/parse.y:85
 		{
-			yy_ss2[yyDollar[1].text] = fmt.Sprintf("%v", yyDollar[2].b)
+			yy_ss[yyDollar[1].text] = fmt.Sprintf("%v", yyDollar[2].b)
 		}
-	case 25:
+	case 22:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line agent/parse/parse.y:92
+		//line agent/parse/parse.y:86
 		{
 			yy.include(yyDollar[2].text)
 		}
-	case 26:
+	case 23:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line agent/parse/parse.y:93
+		//line agent/parse/parse.y:87
 		{
-			yy_ss2[yyDollar[1].text] = yyDollar[2].text
+			yy_ss[yyDollar[1].text] = yyDollar[2].text
 		}
-	case 27:
+	case 24:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line agent/parse/parse.y:94
+		//line agent/parse/parse.y:88
 		{
 			if err := os.Chdir(yyDollar[2].text); err != nil {
 				yy.Error(err.Error())

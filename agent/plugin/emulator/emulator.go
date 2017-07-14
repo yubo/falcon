@@ -14,6 +14,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/agent"
+	"github.com/yubo/falcon/agent/utils"
 )
 
 func init() {
@@ -66,24 +67,28 @@ func (p *tpl) emuValue(ts int64) float64 {
 	return p.v[idx] + float64(time%p.interval)*((p.v[(idx+1)%p.n]-p.v[idx])/float64(p.interval))
 }
 
-func (p *emulator) Start(agent *agent.Agent) (err error) {
+func (p *emulator) Name() string {
+	return "emulator"
+}
+
+func (p *emulator) Start(ag *agent.Agent) (err error) {
 	var (
 		host   string
 		metric string
 		tp     string
 		tplnum int
 	)
-	p.enable, err = agent.Conf.Configer.Bool(falcon.C_EMU_ENABLE)
+	p.enable, err = ag.Conf.Configer.Bool(agent.C_EMU_ENABLE)
 	if !p.enable {
 		return nil
 	}
 
-	host = agent.Conf.Configer.Str(falcon.C_EMU_HOST)
-	p.hn, _ = agent.Conf.Configer.Int(falcon.C_EMU_HOSTNUM)
-	metric = agent.Conf.Configer.Str(falcon.C_EMU_METRIC)
-	p.mn, _ = agent.Conf.Configer.Int(falcon.C_EMU_METRICNUM)
-	tp = agent.Conf.Configer.Str(falcon.C_EMU_TPL)
-	tplnum, _ = agent.Conf.Configer.Int(falcon.C_EMU_TPLNUM)
+	host = ag.Conf.Configer.Str(agent.C_EMU_HOST)
+	p.hn, _ = ag.Conf.Configer.Int(agent.C_EMU_HOSTNUM)
+	metric = ag.Conf.Configer.Str(agent.C_EMU_METRIC)
+	p.mn, _ = ag.Conf.Configer.Int(agent.C_EMU_METRICNUM)
+	tp = ag.Conf.Configer.Str(agent.C_EMU_TPL)
+	tplnum, _ = ag.Conf.Configer.Int(agent.C_EMU_TPLNUM)
 
 	p.tpl = make(map[string]map[string]tpl, p.hn)
 
@@ -118,7 +123,7 @@ func (p *emulator) Collect(step int,
 	for host, _ := range p.tpl {
 		for metric, _ := range p.tpl[host] {
 			tpl := p.tpl[host][metric]
-			ret[n] = agent.GaugeValue(tpl.interval, host, metric,
+			ret[n] = utils.GaugeValue(tpl.interval, host, metric,
 				tpl.emuValue(now))
 		}
 	}

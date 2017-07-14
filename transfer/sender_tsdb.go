@@ -32,10 +32,10 @@ type senderTsdb struct {
 }
 
 func (p *senderTsdb) new(L *Transfer) sender {
-	workerprocesses, _ := L.Conf.Configer.Int(falcon.C_WORKER_PROCESSES)
-	conntimeout, _ := L.Conf.Configer.Int(falcon.C_CONN_TIMEOUT)
-	calltimeout, _ := L.Conf.Configer.Int(falcon.C_CALL_TIMEOUT)
-	payloadsize, _ := L.Conf.Configer.Int(falcon.C_PAYLOADSIZE)
+	workerprocesses, _ := L.Conf.Configer.Int(C_WORKER_PROCESSES)
+	conntimeout, _ := L.Conf.Configer.Int(C_CONN_TIMEOUT)
+	calltimeout, _ := L.Conf.Configer.Int(C_CALL_TIMEOUT)
+	payloadsize, _ := L.Conf.Configer.Int(C_PAYLOADSIZE)
 
 	return &senderTsdb{
 		name:            "tsdb",

@@ -14,7 +14,7 @@ import (
 	"syscall"
 
 	"github.com/golang/glog"
-	"github.com/yubo/falcon/utils"
+	"github.com/yubo/falcon/config"
 )
 
 type Module interface {
@@ -26,12 +26,12 @@ type Module interface {
 	Signal(os.Signal) error
 	String() string
 	Name() string
-	Parse(text []byte, filename string, lino int, debug bool) interface{}
+	Parse(text []byte, filename string, lino int, debug bool) config.ModuleConf
 }
 
 // reload not support add/del/disable module
 type Process struct {
-	Config *FalconConfig
+	Config *config.FalconConfig
 	Pid    int
 	Status uint32
 	Module []Module
@@ -49,7 +49,7 @@ func init() {
 	ModuleTpls = make(map[string]Module)
 }
 
-func NewProcess(c *FalconConfig) *Process {
+func NewProcess(c *config.FalconConfig) *Process {
 	p := &Process{
 		Config: c,
 		Pid:    os.Getpid(),
@@ -60,7 +60,7 @@ func NewProcess(c *FalconConfig) *Process {
 }
 
 func (p *Process) Kill(sig syscall.Signal) error {
-	if pid, err := utils.ReadFileInt(p.Config.PidFile); err != nil {
+	if pid, err := ReadFileInt(p.Config.PidFile); err != nil {
 		return err
 	} else {
 		glog.Infof("kill %d %s\n", pid, sig)
@@ -69,7 +69,7 @@ func (p *Process) Kill(sig syscall.Signal) error {
 }
 
 func (p *Process) Check() error {
-	pid, err := utils.ReadFileInt(p.Config.PidFile)
+	pid, err := ReadFileInt(p.Config.PidFile)
 	if os.IsNotExist(err) {
 		return nil
 	} else {
@@ -94,9 +94,9 @@ func (p *Process) Start() {
 	SetGlog(p.Config)
 
 	for i := 0; i < len(p.Config.Conf); i++ {
-		m, ok := ModuleTpls[utils.GetType(p.Config.Conf[i])]
+		m, ok := ModuleTpls[GetType(p.Config.Conf[i])]
 		if !ok {
-			glog.Exitf("%s's module not support", utils.GetType(p.Config.Conf[i]))
+			glog.Exitf("%s's module not support", GetType(p.Config.Conf[i]))
 		}
 		p.Module[i] = m.New(p.Config.Conf[i])
 	}
@@ -113,7 +113,7 @@ func (p *Process) Start() {
 func RegisterModule(m Module, names ...string) error {
 	for _, name := range names {
 		if _, ok := ModuleTpls[name]; ok {
-			return utils.ErrExist
+			return ErrExist
 		} else {
 			ModuleTpls[name] = m
 		}
@@ -121,7 +121,7 @@ func RegisterModule(m Module, names ...string) error {
 	return nil
 }
 
-func SetGlog(c *FalconConfig) {
+func SetGlog(c *config.FalconConfig) {
 	glog.V(3).Infof(MODULE_NAME+"set glog %s, %d", c.Log, c.Logv)
 	flag.Lookup("v").Value.Set(fmt.Sprintf("%d", c.Logv))
 

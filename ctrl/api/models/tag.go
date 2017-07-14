@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/yubo/falcon/utils"
+	"github.com/yubo/falcon"
 )
 
 type Tag struct {
@@ -55,7 +55,7 @@ func NewTagSchema(tag string) (*TagSchema, error) {
 	for i, j = 0, 0; j < len(tag); j++ {
 		if tag[j] == ',' {
 			if i >= j {
-				return nil, utils.ErrParam
+				return nil, falcon.ErrParam
 			}
 			ret.nodes = append(ret.nodes, TagNode{
 				Key:  strings.TrimSpace(tag[i:j]),
@@ -64,7 +64,7 @@ func NewTagSchema(tag string) (*TagSchema, error) {
 			i = j + 1
 		} else if tag[j] == ';' {
 			if i >= j {
-				return nil, utils.ErrParam
+				return nil, falcon.ErrParam
 			}
 			ret.nodes = append(ret.nodes, TagNode{
 				Key:  strings.TrimSpace(tag[i:j]),
@@ -74,7 +74,7 @@ func NewTagSchema(tag string) (*TagSchema, error) {
 		}
 	}
 	if i != j || i == 0 {
-		return nil, utils.ErrParam
+		return nil, falcon.ErrParam
 	}
 
 	return ret, nil
@@ -99,7 +99,7 @@ func tagMap(tag string) (map[string]string, error) {
 				ret[k] = v
 				k, v = "", ""
 			} else {
-				return ret, utils.ErrParam
+				return ret, falcon.ErrParam
 			}
 			i = j + 1
 			keyZone = true
@@ -111,7 +111,7 @@ func tagMap(tag string) (map[string]string, error) {
 		ret[k] = v
 		return ret, nil
 	} else {
-		return ret, utils.ErrParam
+		return ret, falcon.ErrParam
 	}
 }
 
@@ -134,7 +134,7 @@ func (ts *TagSchema) Fmt(tag string, force bool) (string, error) {
 			ret += fmt.Sprintf("%s=%s,", node.Key, v)
 			n++
 		} else if !force && node.Must {
-			return ret, utils.ErrParam
+			return ret, falcon.ErrParam
 		}
 
 		// done
@@ -148,7 +148,7 @@ func (ts *TagSchema) Fmt(tag string, force bool) (string, error) {
 		return ret[0 : len(ret)-1], nil
 	}
 
-	return ret, utils.ErrParam
+	return ret, falcon.ErrParam
 }
 
 func TagRelation(t string) (ret []string) {

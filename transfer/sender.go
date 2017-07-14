@@ -10,7 +10,7 @@ import (
 	"github.com/yubo/falcon"
 )
 
-// backendModule: transfer's module for banckend
+// BackendModule: transfer's module for banckend
 // backendgroup: upstream container
 // upstream: connection to the
 var (
@@ -41,12 +41,12 @@ type backend struct {
 }
 
 /* upstream */
-type backendModule struct {
+type BackendModule struct {
 	running  chan struct{}
 	backends []*backend
 }
 
-func (p *backendModule) prestart(L *Transfer) error {
+func (p *BackendModule) prestart(L *Transfer) error {
 	p.running = make(chan struct{}, 0)
 
 	p.backends = make([]*backend, 0)
@@ -74,7 +74,7 @@ func (p *backendModule) prestart(L *Transfer) error {
 	return nil
 }
 
-func (p *backendModule) start(L *Transfer) error {
+func (p *BackendModule) start(L *Transfer) error {
 
 	glog.V(3).Infof(MODULE_NAME+"%s upstreamStart len(bs) %d", L.Conf.Name, len(p.backends))
 	appUpdateChan := L.appUpdateChan
@@ -104,7 +104,7 @@ func (p *backendModule) start(L *Transfer) error {
 	return nil
 }
 
-func (p *backendModule) stop(L *Transfer) error {
+func (p *BackendModule) stop(L *Transfer) error {
 
 	close(p.running)
 	for _, b := range p.backends {
@@ -113,6 +113,6 @@ func (p *backendModule) stop(L *Transfer) error {
 	return nil
 }
 
-func (p *backendModule) reload(L *Transfer) error {
+func (p *BackendModule) reload(L *Transfer) error {
 	return nil
 }

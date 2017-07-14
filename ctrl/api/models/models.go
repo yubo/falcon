@@ -13,9 +13,9 @@ import (
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/orm"
 	"github.com/golang/glog"
+	fconfig "github.com/yubo/falcon/config"
 	"github.com/yubo/falcon/ctrl"
 	"github.com/yubo/falcon/ctrl/config"
-	"github.com/yubo/falcon/utils"
 	"github.com/yubo/gotool/ratelimits"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -199,7 +199,7 @@ func initMetric(c *config.ConfCtrl) error {
 
 func initAuth(c *config.ConfCtrl) error {
 	Auths = make(map[string]AuthInterface)
-	for _, name := range strings.Split(c.Ctrl.Str(utils.C_AUTH_MODULE), ",") {
+	for _, name := range strings.Split(c.Ctrl.Str(ctrl.C_AUTH_MODULE), ",") {
 		if auth, ok := allAuths[name]; ok {
 			if auth.Init(c) == nil {
 				Auths[name] = auth
@@ -209,9 +209,9 @@ func initAuth(c *config.ConfCtrl) error {
 	return nil
 }
 
-func initConfigRl(c *utils.Configer) *ratelimits.RateLimits {
-	limit, _ := c.Int(utils.C_RL_LIMIT)
-	accuracy, _ := c.Int(utils.C_RL_ACCURACY)
+func initConfigRl(c *fconfig.Configer) *ratelimits.RateLimits {
+	limit, _ := c.Int(ctrl.C_RL_LIMIT)
+	accuracy, _ := c.Int(ctrl.C_RL_ACCURACY)
 	if limit <= 0 {
 		return nil
 
@@ -220,8 +220,8 @@ func initConfigRl(c *utils.Configer) *ratelimits.RateLimits {
 	if err != nil {
 		return nil
 	}
-	timeout, _ := c.Int(utils.C_RL_GC_TIMEOUT)
-	interval, _ := c.Int(utils.C_RL_GC_INTERVAL)
+	timeout, _ := c.Int(ctrl.C_RL_GC_TIMEOUT)
+	interval, _ := c.Int(ctrl.C_RL_GC_INTERVAL)
 	err = rl.GcStart(time.Duration(timeout)*time.Millisecond, time.Duration(interval)*time.Millisecond)
 	if err != nil {
 		return nil
@@ -229,9 +229,9 @@ func initConfigRl(c *utils.Configer) *ratelimits.RateLimits {
 	return rl
 }
 
-func initConfigAdmin(c *utils.Configer) map[string]bool {
+func initConfigAdmin(c *fconfig.Configer) map[string]bool {
 	ret := make(map[string]bool)
-	for _, u := range strings.Split(c.Str(utils.C_ADMIN), ",") {
+	for _, u := range strings.Split(c.Str(ctrl.C_ADMIN), ",") {
 		ret[u] = true
 	}
 	return ret
@@ -248,48 +248,48 @@ func initConfig(conf *config.ConfCtrl) error {
 	orm.RegisterDriver("mysql", orm.DRMySQL)
 
 	// set default
-	//conf.Agent.Set(utils.APP_CONF_DEFAULT, config.ConfDefault["agent"])
-	//conf.Loadbalance.Set(utils.APP_CONF_DEFAULT, config.ConfDefault["loadbalance"])
-	//conf.Backend.Set(utils.APP_CONF_DEFAULT, config.ConfDefault["backend"])
+	//conf.Agent.Set(fconfig.APP_CONF_DEFAULT, config.ConfDefault["agent"])
+	//conf.Loadbalance.Set(fconPfig.APP_CONF_DEFAULT, config.ConfDefault["loadbalance"])
+	//conf.Backend.Set(fconfig.APP_CONF_DEFAULT, config.ConfDefault["backend"])
 
 	// ctrl config
-	conf.Ctrl.Set(utils.APP_CONF_DEFAULT, config.ConfDefault)
+	conf.Ctrl.Set(fconfig.APP_CONF_DEFAULT, ctrl.ConfDefault)
 	cf := &conf.Ctrl
-	dsn := cf.Str(utils.C_DSN)
-	dbMaxConn, _ := cf.Int(utils.C_DB_MAX_CONN)
-	dbMaxIdle, _ := cf.Int(utils.C_DB_MAX_IDLE)
+	dsn := cf.Str(ctrl.C_DSN)
+	dbMaxConn, _ := cf.Int(ctrl.C_DB_MAX_CONN)
+	dbMaxIdle, _ := cf.Int(ctrl.C_DB_MAX_IDLE)
 	// connect db, can not register db twice  :(
 	orm.RegisterDataBase("default", "mysql", dsn, dbMaxIdle, dbMaxConn)
 	// get ctrl config from db
 	Db.Ctrl = orm.NewOrm()
 	if c, err := GetDbConfig(Db.Ctrl, "ctrl"); err == nil {
-		conf.Ctrl.Set(utils.APP_CONF_DB, c)
+		conf.Ctrl.Set(fconfig.APP_CONF_DB, c)
 	}
 	glog.V(4).Infof(MODULE_NAME+"initConfig get config %s", cf.String())
 
 	// ctrl config
-	orm.RegisterDataBase("idx", "mysql", cf.Str(utils.C_IDX_DSN), dbMaxIdle, dbMaxConn)
+	orm.RegisterDataBase("idx", "mysql", cf.Str(ctrl.C_IDX_DSN), dbMaxIdle, dbMaxConn)
 	Db.Idx = orm.NewOrm()
 	Db.Idx.Using("idx")
-	orm.RegisterDataBase("alarm", "mysql", cf.Str(utils.C_ALARM_DSN), dbMaxIdle, dbMaxConn)
+	orm.RegisterDataBase("alarm", "mysql", cf.Str(ctrl.C_ALARM_DSN), dbMaxIdle, dbMaxConn)
 	Db.Alarm = orm.NewOrm()
 	Db.Alarm.Using("alarm")
-	sysTagSchema, err = NewTagSchema(cf.Str(utils.C_TAG_SCHEMA))
-	transferUrl = cf.Str(utils.C_TRANSFER_URL)
+	sysTagSchema, err = NewTagSchema(cf.Str(ctrl.C_TAG_SCHEMA))
+	transferUrl = cf.Str(ctrl.C_TRANSFER_URL)
 
-	if cf.DefaultBool(utils.C_MASTER_MODE, false) {
+	if cf.DefaultBool(ctrl.C_MASTER_MODE, false) {
 		RunMode |= CTL_RUNMODE_MASTER
 	}
-	if cf.DefaultBool(utils.C_MI_MODE, false) {
+	if cf.DefaultBool(ctrl.C_MI_MODE, false) {
 		RunMode |= CTL_RUNMODE_MI
 	}
-	if cf.DefaultBool(utils.C_DEV_MODE, false) {
+	if cf.DefaultBool(ctrl.C_DEV_MODE, false) {
 		RunMode |= CTL_RUNMODE_DEV
 	}
 
 	if RunMode&CTL_RUNMODE_MI != 0 {
-		url := cf.Str(utils.C_MI_NORNS_URL)
-		interval, _ := cf.Int(utils.C_MI_NORNS_INTERVAL)
+		url := cf.Str(ctrl.C_MI_NORNS_URL)
+		interval, _ := cf.Int(ctrl.C_MI_NORNS_INTERVAL)
 		miStart(url, interval)
 	}
 
@@ -310,8 +310,8 @@ func initConfig(conf *config.ConfCtrl) error {
 	beego.BConfig.WebConfig.StaticDir["/"] = "static"
 	beego.BConfig.WebConfig.StaticDir["/static"] = "static/static"
 	beego.BConfig.AppName = conf.Name
-	beego.BConfig.WebConfig.Session.SessionGCMaxLifetime, _ = cf.Int64(utils.C_SESSION_GC_MAX_LIFETIME)
-	beego.BConfig.WebConfig.Session.SessionCookieLifeTime, _ = cf.Int(utils.C_SESSION_COOKIE_LIFETIME)
+	beego.BConfig.WebConfig.Session.SessionGCMaxLifetime, _ = cf.Int64(ctrl.C_SESSION_GC_MAX_LIFETIME)
+	beego.BConfig.WebConfig.Session.SessionCookieLifeTime, _ = cf.Int(ctrl.C_SESSION_COOKIE_LIFETIME)
 	if RunMode&CTL_RUNMODE_DEV != 0 {
 		orm.Debug = true
 		beego.BConfig.RunMode = "dev"
@@ -321,7 +321,7 @@ func initConfig(conf *config.ConfCtrl) error {
 	} else {
 		beego.BConfig.RunMode = "prod"
 	}
-	if addr := strings.Split(cf.Str(utils.C_HTTP_ADDR), ":"); len(addr) == 2 {
+	if addr := strings.Split(cf.Str(ctrl.C_HTTP_ADDR), ":"); len(addr) == 2 {
 		beego.BConfig.Listen.HTTPAddr = addr[0]
 		beego.BConfig.Listen.HTTPPort, _ = strconv.Atoi(addr[1])
 	} else if len(addr) == 1 {

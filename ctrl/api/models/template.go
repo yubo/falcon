@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/yubo/falcon/utils"
+	"github.com/yubo/falcon"
 )
 
 type TemplateAction struct {
@@ -197,7 +197,7 @@ func (op *Operator) UpdateTemplate(id int64, _o *TemplateAction) (o *Template, e
 	}
 
 	if !op.IsOperator() && op.User.Id != t.CreateUserId {
-		return nil, utils.EACCES
+		return nil, falcon.EACCES
 	}
 
 	t, err = op.updateTemplate(id, &_o.Template)
@@ -215,7 +215,7 @@ func (op *Operator) updateTemplate(id int64, _o *Template) (o *Template, err err
 	_, err = op.SqlExec("update template set name = ?, parent_id = ? where id = ?", _o.Name, _o.ParentId, id)
 
 	if o, err = op.getTemplate(id); err != nil {
-		return nil, utils.ErrNoExits
+		return nil, falcon.ErrNoExits
 	}
 	return o, err
 }
@@ -237,7 +237,7 @@ func (op *Operator) DeleteTemplate(id int64) error {
 	}
 
 	if !op.IsAdmin() && op.User.Id != t.CreateUserId {
-		return utils.EACCES
+		return falcon.EACCES
 	}
 
 	if err = op.RelCheck("SELECT count(*) FROM tag_tpl where tpl_id = ?", id); err != nil {

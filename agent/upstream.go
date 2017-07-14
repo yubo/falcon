@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/yubo/falcon/utils"
+	"github.com/yubo/falcon"
 )
 
 type UpstreamModule struct {
@@ -35,7 +35,7 @@ func rpcDial(addr string,
 
 	statsInc(ST_UPSTREAM_DIAL, 1)
 	d := net.Dialer{Timeout: timeout}
-	conn, err := d.Dial(utils.ParseAddr(addr))
+	conn, err := d.Dial(falcon.ParseAddr(addr))
 	if err != nil {
 		statsInc(ST_UPSTREAM_DIAL_ERR, 1)
 		return nil, err
@@ -88,17 +88,17 @@ func netRpcCall(client *rpc.Client, method string, args interface{},
 	}
 }
 
-func (p *UpstreamModule) putRpcStorageData(client **rpc.Client, items *[]*utils.MetaData,
+func (p *UpstreamModule) putRpcStorageData(client **rpc.Client, items *[]*falcon.MetaData,
 	connTimeout, callTimeout int) error {
 	var (
 		err  error
-		resp *utils.RpcResp
+		resp *falcon.RpcResp
 		i    int
 	)
 
 	statsInc(ST_UPSTREAM_UPDATE, 1)
 	statsInc(ST_UPSTREAM_UPDATE_ITEM, len(*items))
-	resp = &utils.RpcResp{}
+	resp = &falcon.RpcResp{}
 
 	for i = 0; i < CONN_RETRY; i++ {
 		err = netRpcCall(*client, "LB.Update", *items, resp,
@@ -127,10 +127,10 @@ func (p *UpstreamModule) prestart(agent *Agent) error {
 
 func (p *UpstreamModule) start(agent *Agent) error {
 
-	backend := strings.Split(agent.Conf.Configer.Str(utils.C_UPSTREAM), ",")
-	connTimeout, _ := agent.Conf.Configer.Int(utils.C_CONN_TIMEOUT)
-	callTimeout, _ := agent.Conf.Configer.Int(utils.C_CALL_TIMEOUT)
-	payloadSize, _ := agent.Conf.Configer.Int(utils.C_PAYLOADSIZE)
+	backend := strings.Split(agent.Conf.Configer.Str(C_UPSTREAM), ",")
+	connTimeout, _ := agent.Conf.Configer.Int(C_CONN_TIMEOUT)
+	callTimeout, _ := agent.Conf.Configer.Int(C_CALL_TIMEOUT)
+	payloadSize, _ := agent.Conf.Configer.Int(C_PAYLOADSIZE)
 	debug := agent.Conf.Debug
 
 	p.size = uint32(len(backend))

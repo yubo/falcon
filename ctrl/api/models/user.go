@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/astaxie/beego/orm"
-	"github.com/yubo/falcon/utils"
+	"github.com/yubo/falcon"
 )
 
 type User struct {
@@ -185,7 +185,7 @@ func (op *Operator) UpdateUser(id int64, _u *User) (user *User, err error) {
 
 	moduleCache[CTL_M_USER].del(id)
 	if user, err = op.GetUser(id); err != nil {
-		return nil, utils.ErrNoExits
+		return nil, falcon.ErrNoExits
 	}
 
 	DbLog(op.O, op.User.Id, CTL_M_USER, id, CTL_A_SET, "")

@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/yubo/falcon/utils"
+	"github.com/yubo/falcon"
 )
 
 type TeamUi struct {
@@ -124,7 +124,7 @@ func (op *Operator) UpdateTeam(id int64, team *Team) (ret *Team, err error) {
 
 	moduleCache[CTL_M_TEAM].del(id)
 	if ret, err = op.GetTeam(id); err != nil {
-		return nil, utils.ErrNoExits
+		return nil, falcon.ErrNoExits
 	}
 
 	DbLog(op.O, op.User.Id, CTL_M_TEAM, id, CTL_A_SET, jsonStr(team))
@@ -135,7 +135,7 @@ func (op *Operator) UpdateMember(id int64, _m *TeamMemberIds) (m *TeamMemberIds,
 	var tm *TeamMembers
 
 	if tm, err = op.GetMember(id, ""); err != nil {
-		return nil, utils.ErrNoExits
+		return nil, falcon.ErrNoExits
 	}
 
 	m = &TeamMemberIds{}

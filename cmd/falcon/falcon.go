@@ -17,11 +17,12 @@ import (
 	"github.com/golang/glog"
 	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/parse"
-	"github.com/yubo/falcon/utils"
 	"github.com/yubo/gotool/flags"
 
 	_ "github.com/yubo/falcon/agent/agent"
-	_ "github.com/yubo/falcon/ctrl/ctrl"
+	//_ "github.com/yubo/falcon/backend/backend"
+	//_ "github.com/yubo/falcon/ctrl/ctrl"
+	//_ "github.com/yubo/falcon/transfer/transfer"
 )
 
 var opts falcon.CmdOpts
@@ -99,17 +100,17 @@ func signalNotify(p *falcon.Process) {
 			}
 
 			for i, config := range newConfig.Conf {
-				m, ok := falcon.ModuleTpls[utils.GetType(config)]
+				m, ok := falcon.ModuleTpls[falcon.GetType(config)]
 				if !ok {
 					glog.Exitf("%s's module not support, you should"+
-						" import module ", utils.GetType(config))
+						" import module ", falcon.GetType(config))
 					break
 				}
 				newM := m.New(config)
 				if newM.Name() != p.Module[i].Name() {
 					glog.Exitf("%s's module not support,"+
 						" not support add/del/disable module",
-						utils.GetType(config))
+						falcon.GetType(config))
 					break
 				}
 			}

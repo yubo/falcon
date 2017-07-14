@@ -15,6 +15,9 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/golang/glog"
 	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/backend/config"
+	"github.com/yubo/falcon/backend/parse"
+	fconfig "github.com/yubo/falcon/config"
 )
 
 const (
@@ -37,23 +40,50 @@ const (
 	DEBUG_STAT_STEP         = 60
 	MODULE_NAME             = "\x1B[32m[BACKEND]\x1B[0m "
 	CTRL_STEP               = 360
+
+	C_CONN_TIMEOUT     = "conntimeout"
+	C_CALL_TIMEOUT     = "calltimeout"
+	C_WORKER_PROCESSES = "workerprocesses"
+	C_HTTP_ENABLE      = "http_enable"
+	C_HTTP_ADDR        = "httpaddr"
+	C_RPC_ENABLE       = "rpc_enable"
+	C_RPC_ADDR         = "rpcaddr"
+	C_GRPC_ENABLE      = "grpc_enable"
+	C_GRPC_ADDR        = "grpcaddr"
+	C_IDX              = "idx"
+	C_IDXINTERVAL      = "idxinterval"
+	C_IDXFULLINTERVAL  = "idxfullinterval"
+	C_DB_MAX_IDLE      = "dbmaxidle"
+	C_DB_MAX_CONN      = "dbmaxconn"
+	C_SHMMAGIC         = "shmmagic"
+	C_SHMKEY           = "shmkey"
+	C_SHMSIZE          = "shmsize"
+	C_DSN              = "dsn"
+	C_HDISK            = "hdisk"
+	C_PAYLOADSIZE      = "payloadsize"
 )
 
 var (
-	modules []module
+	modules     []module
+	ConfDefault = map[string]string{
+		C_CONN_TIMEOUT:     "1000",
+		C_CALL_TIMEOUT:     "5000",
+		C_WORKER_PROCESSES: "2",
+		C_HTTP_ENABLE:      "true",
+		C_HTTP_ADDR:        "127.0.0.1:7021",
+		C_RPC_ENABLE:       "true",
+		C_RPC_ADDR:         "127.0.0.1:7020",
+		C_GRPC_ENABLE:      "true",
+		C_GRPC_ADDR:        "127.0.0.1:7022",
+		C_IDX:              "true",
+		C_IDXINTERVAL:      "30",
+		C_IDXFULLINTERVAL:  "86400",
+		C_DB_MAX_IDLE:      "4",
+		C_SHMMAGIC:         "0x80386",
+		C_SHMKEY:           "0x7020",
+		C_SHMSIZE:          "0x10000000",
+	}
 )
-
-func init() {
-	falcon.RegisterModule(falcon.GetType(falcon.ConfBackend{}), &Backend{})
-	registerModule(&storageModule{})
-	// cache should early register(init cache data)
-	registerModule(&cacheModule{})
-	registerModule(&httpModule{})
-	registerModule(&rpcModule{})
-	registerModule(&indexModule{})
-	registerModule(&statsModule{})
-	registerModule(&timerModule{})
-}
 
 // module {{{
 type module interface {
@@ -63,7 +93,7 @@ type module interface {
 	reload(*Backend) error   // try to keep the data, refresh configure
 }
 
-func registerModule(m module) {
+func RegisterModule(m module) {
 	modules = append(modules, m)
 }
 
@@ -71,8 +101,8 @@ func registerModule(m module) {
 
 // {{{ Backend
 type Backend struct {
-	Conf    *falcon.ConfBackend
-	oldConf *falcon.ConfBackend
+	Conf    *config.ConfBackend
+	oldConf *config.ConfBackend
 	// runtime
 	status uint32
 
@@ -93,12 +123,18 @@ type Backend struct {
 
 func (p *Backend) New(conf interface{}) falcon.Module {
 	return &Backend{
-		Conf: conf.(*falcon.ConfBackend),
+		Conf: conf.(*config.ConfBackend),
 	}
 }
 
 func (p *Backend) Name() string {
 	return p.Conf.Name
+}
+
+func (p *Backend) Parse(text []byte, filename string, lino int, debug bool) fconfig.ModuleConf {
+	p.Conf = parse.Parse(text, filename, lino, debug).(*config.ConfBackend)
+	p.Conf.Configer.Set(fconfig.APP_CONF_DEFAULT, ConfDefault)
+	return p.Conf
 }
 
 func (p *Backend) String() string {
@@ -176,8 +212,8 @@ func (p *Backend) Stop() (err error) {
 	glog.V(3).Infof(MODULE_NAME+"%s Stop()", p.Conf.Name)
 	p.status = falcon.APP_STATUS_EXIT
 
-	for i, n := 0, len(modules); i < n; i++ {
-		if e := modules[n-i].stop(p); e != nil {
+	for i := len(modules) - 1; i >= 0; i-- {
+		if e := modules[i].stop(p); e != nil {
 			err = e
 			glog.Error(err)
 		}
@@ -195,11 +231,11 @@ func (p *Backend) Stop() (err error) {
 	*/
 }
 
-func (p *Backend) Reload(config interface{}) (err error) {
+func (p *Backend) Reload(c interface{}) (err error) {
 	glog.V(3).Infof(MODULE_NAME+"%s Reload()", p.Conf.Name)
 
 	p.oldConf = p.Conf
-	p.Conf = config.(*falcon.ConfBackend)
+	p.Conf = c.(*config.ConfBackend)
 
 	for i := 0; i < len(modules); i++ {
 		if e := modules[i].reload(p); e != nil {

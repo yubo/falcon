@@ -12,7 +12,6 @@ import (
 	"os"
 
 	"github.com/yubo/falcon"
-	"github.com/yubo/falcon/utils"
 )
 
 
@@ -71,7 +70,7 @@ conf: ';'
 	 	}
 	}
 	| module '}' '}' {
-		p1, _ := utils.PreByte(yy.ctx.text, yy.ctx.pos)
+		p1, _ := falcon.PreByte(yy.ctx.text, yy.ctx.pos)
 		yy.ctx.text[p1] = ';'
 
 		conf.Conf  = append(conf.Conf, yy_module_parse(
@@ -97,8 +96,8 @@ module: text '{' {
 	}
 	| module ';' {
 		if (yy_module.level == 0) {
-			p1, c1 := utils.PreByte(yy.ctx.text, yy.ctx.pos)
-			p2, c2 := utils.PreByte(yy.ctx.text, p1 - 1)
+			p1, c1 := falcon.PreByte(yy.ctx.text, yy.ctx.pos)
+			p2, c2 := falcon.PreByte(yy.ctx.text, p1 - 1)
 			if c1 == ';' && c2 == '}' {
 				yy.ctx.text[p1] = '}'
 			}

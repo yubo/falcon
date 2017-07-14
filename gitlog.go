@@ -1,8 +1,9 @@
 package falcon
 const (
-	COMMIT = "df63f87"
+	COMMIT = "7abb4d6"
 	CHANGELOG = `
-- (df63f87) feature: lb -> transfer; support unix sock (HEAD -> master, origin/master, origin/HEAD)
+- (7abb4d6) feature: support module parse (HEAD -> master, origin/master, origin/HEAD)
+- (df63f87) feature: lb -> transfer; support unix sock
 - (736cc97) feature: add expansion
 - (569b897) feature: support etcdv3 client
 - (347e0d2) feature: support prestart/start/stop/reload interface

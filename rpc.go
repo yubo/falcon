@@ -3,7 +3,7 @@
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
-package utils
+package falcon
 
 import (
 	"fmt"
@@ -12,11 +12,10 @@ import (
 )
 
 const (
-	IndentSize = 4
-	MIN_STEP   = 30 //s
-	GAUGE      = "GAUGE"
-	DERIVE     = "DERIVE"
-	COUNTER    = "COUNTER"
+	MIN_STEP = 30 //s
+	GAUGE    = "GAUGE"
+	DERIVE   = "DERIVE"
+	COUNTER  = "COUNTER"
 )
 
 type Dto struct {

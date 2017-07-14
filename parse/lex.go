@@ -14,7 +14,7 @@ import (
 	"strconv"
 
 	"github.com/golang/glog"
-	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/config"
 )
 
 const (
@@ -32,10 +32,10 @@ type yyModule struct {
 }
 
 var (
-	conf            *falcon.FalconConfig
+	conf            *config.FalconConfig
 	yy              *yyLex
 	yy_module       *yyModule
-	yy_module_parse func(text []byte, filename string, lino int, debug bool) interface{}
+	yy_module_parse func(text []byte, filename string, lino int, debug bool) config.ModuleConf
 	yy_ss           = make(map[string]string)
 	yy_ss2          = make(map[string]string)
 	yy_as           = make([]string, 0)
@@ -71,7 +71,7 @@ type yyCtx struct {
 }
 
 // The parser uses the type <prefix>Lex as a lexer.  It must provide
-// the methods Lex(*<prefix>SymType) int and utils.Error(string).
+// the methods Lex(*<prefix>SymType) int and falcon.Error(string).
 type yyLex struct {
 	ctxData [MAX_CTX_LEVEL]yyCtx
 	ctxL    int
@@ -295,10 +295,10 @@ func (p *yyLex) Error(s string) {
 	os.Exit(1)
 }
 
-func Parse(filename string, debug bool) *falcon.FalconConfig {
+func Parse(filename string, debug bool) *config.FalconConfig {
 	var err error
 
-	conf = &falcon.FalconConfig{ConfigFile: filename}
+	conf = &config.FalconConfig{ConfigFile: filename}
 	yy = &yyLex{
 		ctxL:  0,
 		debug: debug,

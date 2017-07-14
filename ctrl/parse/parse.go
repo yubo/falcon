@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"os"
 
+	fconfig "github.com/yubo/falcon/config"
 	"github.com/yubo/falcon/ctrl/config"
-	"github.com/yubo/falcon/utils"
 )
 
 //line ctrl/parse/parse.y:19
@@ -35,6 +35,9 @@ const HOST = 57357
 const DISABLED = 57358
 const DEBUG = 57359
 const METRIC = 57360
+const AGENT = 57361
+const TRANSFER = 57362
+const BACKEND = 57363
 
 var yyToknames = [...]string{
 	"$end",
@@ -58,6 +61,9 @@ var yyToknames = [...]string{
 	"DISABLED",
 	"DEBUG",
 	"METRIC",
+	"AGENT",
+	"TRANSFER",
+	"BACKEND",
 }
 var yyStatenames = [...]string{}
 
@@ -65,7 +71,7 @@ const yyEofCode = 1
 const yyErrCode = 2
 const yyInitialStackSize = 16
 
-//line ctrl/parse/parse.y:104
+//line ctrl/parse/parse.y:134
 
 //line yacctab:1
 var yyExca = [...]int{
@@ -76,52 +82,70 @@ var yyExca = [...]int{
 
 const yyPrivate = 57344
 
-const yyLast = 49
+const yyLast = 85
 
 var yyAct = [...]int{
 
-	11, 20, 21, 22, 23, 38, 18, 25, 16, 15,
-	24, 6, 29, 30, 17, 32, 19, 12, 14, 27,
-	31, 9, 8, 10, 13, 7, 16, 15, 28, 36,
-	26, 26, 16, 15, 34, 35, 37, 20, 21, 22,
-	23, 5, 4, 3, 16, 15, 33, 2, 1,
+	42, 5, 31, 3, 25, 11, 64, 59, 19, 18,
+	30, 6, 35, 36, 33, 38, 34, 12, 14, 58,
+	52, 9, 8, 10, 13, 20, 21, 22, 32, 19,
+	18, 24, 23, 50, 26, 27, 28, 29, 40, 19,
+	18, 32, 53, 56, 57, 54, 49, 55, 19, 18,
+	17, 46, 60, 48, 37, 45, 47, 43, 41, 16,
+	19, 18, 63, 44, 19, 18, 15, 39, 7, 43,
+	41, 4, 51, 43, 41, 19, 18, 2, 62, 26,
+	27, 28, 29, 1, 61,
 }
 var yyPact = [...]int{
 
-	-1000, 34, -1000, -1000, 3, -1000, 5, -3, -9, 39,
-	26, 27, 39, 13, 39, -1000, -1000, -1000, -1000, -1000,
+	-1000, -6, -1000, -1000, 3, -1000, 23, 22, 69, 34,
+	37, 24, 34, 47, 34, 59, 55, 43, -1000, -1000,
+	46, 39, 26, -1000, -1000, -1000, -1000, -1000, -1000, -1000,
 	-1000, -1000, -1000, -1000, -1000, -1000, -1000, -1000, -1000, -1000,
-	-1000, -1000, -1000, 21, -1000, 39, -1000, -4, -1000,
+	11, 34, 24, 34, -1000, 10, -1000, -2, -1000, -1000,
+	-1000, 70, -1000, -1000, -1000, -1000, -1000, -1000, -1000, -1000,
+	-1000, 34, -1000, -3, -1000,
 }
 var yyPgo = [...]int{
 
-	0, 16, 0, 7, 48, 47, 46, 42, 25,
+	0, 4, 0, 2, 83, 77, 72, 71, 68, 66,
+	59, 50, 38,
 }
 var yyR1 = [...]int{
 
 	0, 4, 4, 1, 1, 1, 1, 1, 2, 2,
 	3, 6, 6, 6, 5, 5, 7, 7, 8, 8,
-	8, 8, 8, 8, 8, 8, 8, 8, 8,
+	8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+	8, 8, 9, 9, 10, 10, 11, 11, 12, 12,
+	12, 12, 12, 12,
 }
 var yyR2 = [...]int{
 
 	0, 0, 2, 1, 1, 1, 1, 0, 1, 1,
 	1, 0, 2, 4, 1, 3, 1, 3, 0, 2,
-	2, 1, 2, 2, 2, 2, 2, 4, 2,
+	2, 1, 2, 2, 2, 2, 2, 4, 2, 2,
+	2, 2, 2, 3, 2, 3, 2, 3, 0, 2,
+	2, 2, 2, 2,
 }
 var yyChk = [...]int{
 
 	-1000, -4, -5, 9, -7, 7, 8, -8, 19, 18,
-	20, -2, 14, 21, 15, 6, 5, 9, 9, -1,
-	10, 11, 12, 13, -2, -3, 4, -3, -1, -2,
-	-2, 7, -2, -6, -2, 14, 8, -2, 9,
+	20, -2, 14, 21, 15, -9, -10, -11, 6, 5,
+	22, 23, 24, 9, 9, -1, 10, 11, 12, 13,
+	-2, -3, 4, -3, -1, -2, -2, 7, -2, 8,
+	-12, 15, -2, 14, 8, -12, 8, -12, 7, 7,
+	7, -6, 9, -2, -3, -1, -2, -2, 9, 9,
+	-2, 14, 8, -2, 9,
 }
 var yyDef = [...]int{
 
 	1, -2, 2, 14, 18, 16, 0, 0, 7, 0,
-	21, 7, 0, 0, 0, 8, 9, 15, 17, 19,
-	3, 4, 5, 6, 20, 22, 10, 23, 24, 26,
-	25, 11, 28, 0, 12, 0, 27, 0, 13,
+	21, 7, 0, 0, 0, 38, 38, 38, 8, 9,
+	0, 0, 0, 15, 17, 19, 3, 4, 5, 6,
+	20, 22, 10, 23, 24, 26, 25, 11, 28, 29,
+	0, 0, 7, 0, 30, 0, 31, 0, 32, 34,
+	36, 0, 33, 39, 40, 41, 42, 43, 35, 37,
+	12, 0, 27, 0, 13,
 }
 var yyTok1 = [...]int{
 
@@ -142,7 +166,7 @@ var yyTok1 = [...]int{
 var yyTok2 = [...]int{
 
 	2, 3, 4, 5, 6, 10, 11, 12, 13, 14,
-	15, 16, 17, 18, 19, 20, 21,
+	15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
 }
 var yyTok3 = [...]int{
 	0,
@@ -550,10 +574,10 @@ yydefault:
 		//line ctrl/parse/parse.y:65
 		{
 			// end
-			conf.Ctrl.Set(utils.APP_CONF_FILE, yy_ss2)
-			yy_ss2 = make(map[string]string)
+			conf.Ctrl.Set(fconfig.APP_CONF_FILE, yy_ss)
+			yy_ss = make(map[string]string)
 
-			conf.Name = fmt.Sprintf("ctrl_%s", conf.Name)
+			//conf.Name = fmt.Sprintf("ctrl_%s", conf.Name)
 			if conf.Host == "" {
 				conf.Host, _ = os.Hostname()
 			}
@@ -564,70 +588,122 @@ yydefault:
 		{
 			// begin
 			conf = &config.ConfCtrl{Name: "ctrl"}
-			conf.Ctrl.Set(utils.APP_CONF_DEFAULT, config.ConfDefault)
 		}
 	case 19:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line ctrl/parse/parse.y:86
+		//line ctrl/parse/parse.y:85
 		{
 			conf.Disabled = yyDollar[2].b
 		}
 	case 20:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line ctrl/parse/parse.y:87
+		//line ctrl/parse/parse.y:86
 		{
 			conf.Host = yyDollar[2].text
 		}
 	case 21:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line ctrl/parse/parse.y:88
+		//line ctrl/parse/parse.y:87
 		{
 			conf.Debug = 1
 		}
 	case 22:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line ctrl/parse/parse.y:89
+		//line ctrl/parse/parse.y:88
 		{
 			conf.Debug = yyDollar[2].num
 		}
 	case 23:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line ctrl/parse/parse.y:90
+		//line ctrl/parse/parse.y:89
 		{
-			yy_ss2[yyDollar[1].text] = fmt.Sprintf("%d", yyDollar[2].num)
+			yy_ss[yyDollar[1].text] = fmt.Sprintf("%d", yyDollar[2].num)
 		}
 	case 24:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line ctrl/parse/parse.y:91
+		//line ctrl/parse/parse.y:90
 		{
-			yy_ss2[yyDollar[1].text] = fmt.Sprintf("%v", yyDollar[2].b)
+			yy_ss[yyDollar[1].text] = fmt.Sprintf("%v", yyDollar[2].b)
 		}
 	case 25:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line ctrl/parse/parse.y:92
+		//line ctrl/parse/parse.y:91
 		{
 			yy.include(yyDollar[2].text)
 		}
 	case 26:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line ctrl/parse/parse.y:93
+		//line ctrl/parse/parse.y:92
 		{
-			yy_ss2[yyDollar[1].text] = yyDollar[2].text
+			yy_ss[yyDollar[1].text] = yyDollar[2].text
 		}
 	case 27:
 		yyDollar = yyS[yypt-4 : yypt+1]
-		//line ctrl/parse/parse.y:94
+		//line ctrl/parse/parse.y:93
 		{
 			conf.Metrics = yy_as
 			yy_as = make([]string, 0)
 		}
 	case 28:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line ctrl/parse/parse.y:97
+		//line ctrl/parse/parse.y:96
 		{
 			if err := os.Chdir(yyDollar[2].text); err != nil {
 				yy.Error(err.Error())
 			}
+		}
+	case 29:
+		yyDollar = yyS[yypt-2 : yypt+1]
+		//line ctrl/parse/parse.y:100
+		{
+			conf.Agent.Set(fconfig.APP_CONF_FILE, yy_ss2)
+			yy_ss2 = make(map[string]string)
+		}
+	case 30:
+		yyDollar = yyS[yypt-2 : yypt+1]
+		//line ctrl/parse/parse.y:103
+		{
+			conf.Transfer.Set(fconfig.APP_CONF_FILE, yy_ss2)
+			yy_ss2 = make(map[string]string)
+		}
+	case 31:
+		yyDollar = yyS[yypt-2 : yypt+1]
+		//line ctrl/parse/parse.y:106
+		{
+			conf.Backend.Set(fconfig.APP_CONF_FILE, yy_ss2)
+			yy_ss2 = make(map[string]string)
+		}
+	case 39:
+		yyDollar = yyS[yypt-2 : yypt+1]
+		//line ctrl/parse/parse.y:123
+		{
+			if err := os.Chdir(yyDollar[2].text); err != nil {
+				yy.Error(err.Error())
+			}
+		}
+	case 40:
+		yyDollar = yyS[yypt-2 : yypt+1]
+		//line ctrl/parse/parse.y:128
+		{
+			yy_ss2[yyDollar[1].text] = fmt.Sprintf("%d", yyDollar[2].num)
+		}
+	case 41:
+		yyDollar = yyS[yypt-2 : yypt+1]
+		//line ctrl/parse/parse.y:129
+		{
+			yy_ss2[yyDollar[1].text] = fmt.Sprintf("%v", yyDollar[2].b)
+		}
+	case 42:
+		yyDollar = yyS[yypt-2 : yypt+1]
+		//line ctrl/parse/parse.y:130
+		{
+			yy_ss2[yyDollar[1].text] = yyDollar[2].text
+		}
+	case 43:
+		yyDollar = yyS[yypt-2 : yypt+1]
+		//line ctrl/parse/parse.y:131
+		{
+			yy.include(yyDollar[2].text)
 		}
 	}
 	goto yystack /* stack new state and value */

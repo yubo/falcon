@@ -61,16 +61,16 @@ func statsHandle() (ret string) {
 	return ret
 }
 
-type statsModule struct {
+type StatsModule struct {
 	running chan struct{}
 }
 
-func (p *statsModule) prestart(L *Transfer) error {
+func (p *StatsModule) prestart(L *Transfer) error {
 	p.running = make(chan struct{}, 0)
 	return nil
 }
 
-func (p *statsModule) start(L *Transfer) error {
+func (p *StatsModule) start(L *Transfer) error {
 	if L.Conf.Debug > 0 {
 		statsTicker := time.NewTicker(time.Second * DEBUG_STAT_STEP).C
 		go func() {
@@ -89,11 +89,11 @@ func (p *statsModule) start(L *Transfer) error {
 	return nil
 }
 
-func (p *statsModule) stop(L *Transfer) error {
+func (p *StatsModule) stop(L *Transfer) error {
 	close(p.running)
 	return nil
 }
 
-func (p *statsModule) reload(L *Transfer) error {
+func (p *StatsModule) reload(L *Transfer) error {
 	return nil
 }

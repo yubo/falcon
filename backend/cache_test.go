@@ -11,11 +11,13 @@ import (
 	"testing"
 
 	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/backend/config"
+	fconfig "github.com/yubo/falcon/config"
 )
 
 var (
 	cacheApp  *Backend
-	cache     *cacheModule
+	cache     *CacheModule
 	testEntry *cacheEntry
 	rrdItem   *falcon.RrdItem
 	err       error
@@ -39,11 +41,11 @@ func newRrdItem1(i int) *falcon.RrdItem {
 func test_cache_init() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	cacheApp = &Backend{}
-	cache = &cacheModule{}
-	cacheApp.Conf = &falcon.ConfBackend{
+	cache = &CacheModule{}
+	cacheApp.Conf = &config.ConfBackend{
 		Name: "cacheApp",
 	}
-	cacheApp.Conf.Configer.Set(falcon.APP_CONF_FILE, map[string]string{
+	cacheApp.Conf.Configer.Set(fconfig.APP_CONF_FILE, map[string]string{
 		"hdisks": "/tmp/falcon",
 	})
 	cache.prestart(cacheApp)

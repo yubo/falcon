@@ -3,7 +3,7 @@
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
-package utils
+package falcon
 
 import (
 	"crypto/md5"
@@ -21,10 +21,6 @@ var (
 	f_network = regexp.MustCompile(`^(tcp)|(unix)+:`)
 )
 
-const (
-	MODULE_NAME = "\x1B[32m[UTILS]\x1B[0m "
-)
-
 func Md5sum(raw string) string {
 	h := md5.New()
 	io.WriteString(h, raw)
@@ -34,15 +30,6 @@ func Md5sum(raw string) string {
 
 func FmtTs(ts int64) string {
 	return time.Unix(ts, 0).Format("2006-01-02 15:04:05")
-}
-
-func IndentLines(i int, lines string) (ret string) {
-	ls := strings.Split(strings.Trim(lines, "\n"), "\n")
-	indent := strings.Repeat(" ", i*IndentSize)
-	for _, l := range ls {
-		ret += fmt.Sprintf("%s%s\n", indent, l)
-	}
-	return string([]byte(ret)[:len(ret)-1])
 }
 
 func ReadFileInt(filename string) (int, error) {
@@ -83,4 +70,13 @@ func PreByte(data []byte, pos int) (int, byte) {
 		return i, c
 	}
 	return -1, ' '
+}
+
+func IndentLines(i int, lines string) (ret string) {
+	ls := strings.Split(strings.Trim(lines, "\n"), "\n")
+	indent := strings.Repeat(" ", i*IndentSize)
+	for _, l := range ls {
+		ret += fmt.Sprintf("%s%s\n", indent, l)
+	}
+	return string([]byte(ret)[:len(ret)-1])
 }

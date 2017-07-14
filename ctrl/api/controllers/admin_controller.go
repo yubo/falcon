@@ -10,8 +10,8 @@ import (
 	"fmt"
 
 	"github.com/astaxie/beego"
+	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/ctrl/api/models"
-	"github.com/yubo/falcon/utils"
 )
 
 // Operations about porfile/config/info
@@ -89,7 +89,7 @@ func (c *AdminController) UpdateConfig() {
 
 	module := c.GetString(":module")
 
-	c.SendMsg(400, utils.EACCES.Error())
+	c.SendMsg(400, falcon.EACCES.Error())
 	return
 
 	beego.Debug(string(c.Ctx.Input.RequestBody))
@@ -125,7 +125,7 @@ func (c *AdminController) GetDebugAction() {
 	case "reset_db":
 		obj, err = op.ResetDb(false)
 	default:
-		err = fmt.Errorf("%s %s", utils.ErrUnsupported.Error(), action)
+		err = fmt.Errorf("%s %s", falcon.ErrUnsupported.Error(), action)
 	}
 
 	if err != nil {
@@ -186,7 +186,7 @@ func (c *AdminController) SetExpansion() {
 		goto out
 	}
 
-	err = utils.ErrParam
+	err = falcon.ErrParam
 out:
 	if err != nil {
 		c.SendMsg(400, err.Error())

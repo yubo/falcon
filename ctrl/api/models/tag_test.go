@@ -13,7 +13,7 @@ func TestNewTagSchema(t *testing.T) {
 		schema string
 		want   error
 	}{
-		{name: "1", schema: "cop,owt", want: utils.ErrParam},
+		{name: "1", schema: "cop,owt", want: falcon.ErrParam},
 		{name: "2", schema: "", want: nil},
 		{name: "3", schema: "cop,owt,pdl,servicegroup;service,jobgroup;job,sbs;mod;srv;grp;cluster;loc;idc;status;", want: nil},
 	}
@@ -30,12 +30,12 @@ func TestTagMap(t *testing.T) {
 		tag  string
 		want error
 	}{
-		{name: "empty string", tag: "", want: utils.ErrParam},
-		{name: "incomplete kv", tag: "a=b,", want: utils.ErrParam},
-		{name: "incomplete value1", tag: "a=", want: utils.ErrParam},
-		{name: "incomplete value2", tag: "a=b,c=", want: utils.ErrParam},
-		{name: "incomplete key1", tag: "=b", want: utils.ErrParam},
-		{name: "incomplete key2", tag: "a=b,=d", want: utils.ErrParam},
+		{name: "empty string", tag: "", want: falcon.ErrParam},
+		{name: "incomplete kv", tag: "a=b,", want: falcon.ErrParam},
+		{name: "incomplete value1", tag: "a=", want: falcon.ErrParam},
+		{name: "incomplete value2", tag: "a=b,c=", want: falcon.ErrParam},
+		{name: "incomplete key1", tag: "=b", want: falcon.ErrParam},
+		{name: "incomplete key2", tag: "a=b,=d", want: falcon.ErrParam},
 		{name: "sample tag1", tag: "a=b", want: nil},
 		{name: "sample tag2", tag: "a=b,c=d", want: nil},
 		{name: "sample tag2", tag: "a=b=b,c=d", want: nil},
@@ -57,14 +57,14 @@ func TestTagFmtErr(t *testing.T) {
 		force bool
 		want  error
 	}{
-		{name: "1", force: false, tag: "b=1", want: utils.ErrParam},
-		{name: "2", force: false, tag: "a=1,c=1", want: utils.ErrParam},
-		{name: "3", force: false, tag: "g=1", want: utils.ErrParam},
-		{name: "4", force: false, tag: "a=1,g=1", want: utils.ErrParam},
+		{name: "1", force: false, tag: "b=1", want: falcon.ErrParam},
+		{name: "2", force: false, tag: "a=1,c=1", want: falcon.ErrParam},
+		{name: "3", force: false, tag: "g=1", want: falcon.ErrParam},
+		{name: "4", force: false, tag: "a=1,g=1", want: falcon.ErrParam},
 
 		{name: "5", force: true, tag: "b=1", want: nil},
 		{name: "6", force: true, tag: "a=1,c=1", want: nil},
-		{name: "7", force: true, tag: "g=1", want: utils.ErrParam},
+		{name: "7", force: true, tag: "g=1", want: falcon.ErrParam},
 		{name: "8", force: true, tag: "a=1,g=1", want: nil},
 	}
 	for _, tc := range cases {

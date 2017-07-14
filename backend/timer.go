@@ -10,16 +10,16 @@ import (
 	"time"
 )
 
-type timerModule struct {
+type TimerModule struct {
 	running chan struct{}
 }
 
-func (p *timerModule) prestart(b *Backend) error {
+func (p *TimerModule) prestart(b *Backend) error {
 	p.running = make(chan struct{}, 0)
 	return nil
 }
 
-func (p *timerModule) start(b *Backend) error {
+func (p *TimerModule) start(b *Backend) error {
 	start := time.Now().Unix()
 	ticker := time.NewTicker(time.Second).C
 	go func() {
@@ -44,12 +44,12 @@ func (p *timerModule) start(b *Backend) error {
 	return nil
 }
 
-func (p *timerModule) stop(b *Backend) error {
+func (p *TimerModule) stop(b *Backend) error {
 	close(p.running)
 	atomic.StoreInt64(&b.ts, 0)
 	return nil
 }
 
-func (p *timerModule) reload(b *Backend) error {
+func (p *TimerModule) reload(b *Backend) error {
 	return nil
 }

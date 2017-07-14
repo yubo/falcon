@@ -31,13 +31,13 @@ func (ln tcpKeepAliveListener) Accept() (c net.Conn, err error) {
 	return tc, nil
 }
 
-type httpModule struct {
+type HttpModule struct {
 	httpListener *net.TCPListener
 	httpMux      *http.ServeMux
 	b            *Backend
 }
 
-func (p *httpModule) count_handler(w http.ResponseWriter, r *http.Request) {
+func (p *HttpModule) count_handler(w http.ResponseWriter, r *http.Request) {
 	ts := p.b.timeNow() - 3600
 	count := 0
 
@@ -49,7 +49,7 @@ func (p *httpModule) count_handler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(fmt.Sprintf("%d\n", count)))
 }
 
-func (p *httpModule) recv_hanlder(w http.ResponseWriter, r *http.Request) {
+func (p *HttpModule) recv_hanlder(w http.ResponseWriter, r *http.Request) {
 	urlParam := r.URL.Path[len("/api/recv/"):]
 	args := strings.Split(urlParam, "/")
 
@@ -89,7 +89,7 @@ func (p *httpModule) recv_hanlder(w http.ResponseWriter, r *http.Request) {
 	renderDataJson(w, "ok")
 }
 
-func (p *httpModule) recv2_handler(w http.ResponseWriter, r *http.Request) {
+func (p *HttpModule) recv2_handler(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 
 	if !(len(r.Form["e"]) > 0 && len(r.Form["m"]) > 0 &&
@@ -140,7 +140,7 @@ func stat_handler(w http.ResponseWriter, r *http.Request) {
 	renderDataJson(w, statsHandle())
 }
 
-func (p *httpModule) httpRoutes() {
+func (p *HttpModule) httpRoutes() {
 	p.httpMux.HandleFunc("/count", p.count_handler)
 
 	p.httpMux.HandleFunc("/api/recv/", p.recv_hanlder)
@@ -171,21 +171,21 @@ func (p *httpModule) httpRoutes() {
 
 }
 
-func (p *httpModule) prestart(b *Backend) error {
+func (p *HttpModule) prestart(b *Backend) error {
 	p.httpMux = http.NewServeMux()
 	p.httpRoutes()
 	p.b = b
 	return nil
 }
 
-func (p *httpModule) start(b *Backend) error {
-	enable, _ := b.Conf.Configer.Bool(falcon.C_HTTP_ENABLE)
+func (p *HttpModule) start(b *Backend) error {
+	enable, _ := b.Conf.Configer.Bool(C_HTTP_ENABLE)
 	if !enable {
 		glog.Info(MODULE_NAME + "http not enabled")
 		return nil
 	}
 
-	network, addr := falcon.ParseAddr(b.Conf.Configer.Str(falcon.C_HTTP_ADDR))
+	network, addr := falcon.ParseAddr(b.Conf.Configer.Str(C_HTTP_ADDR))
 	if addr == "" {
 		return falcon.ErrParam
 	}
@@ -209,11 +209,11 @@ func (p *httpModule) start(b *Backend) error {
 	return nil
 }
 
-func (p *httpModule) stop(b *Backend) error {
+func (p *HttpModule) stop(b *Backend) error {
 	p.httpListener.Close()
 	return nil
 }
 
-func (p *httpModule) reload(b *Backend) error {
+func (p *HttpModule) reload(b *Backend) error {
 	return nil
 }
