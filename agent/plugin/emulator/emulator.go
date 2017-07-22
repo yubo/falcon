@@ -111,13 +111,13 @@ func (p *emulator) Start(ag *agent.Agent) (err error) {
 }
 
 func (p *emulator) Collect(step int,
-	host string) (ret []*falcon.MetaData, err error) {
+	host string) (ret []*falcon.Item, err error) {
 	if !p.enable {
 		return nil, errors.New("not enable")
 	}
 
 	now := time.Now().Unix()
-	ret = make([]*falcon.MetaData, p.hn*p.mn)
+	ret = make([]*falcon.Item, p.hn*p.mn)
 
 	n := 0
 	for host, _ := range p.tpl {

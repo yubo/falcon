@@ -1,21 +1,21 @@
-#!/bin/sh
-VENDOR=$PWD/cmd/vendor
-DIR=$PWD/cmd/$1
+#!/bin/bash
+OD=${PWD}
+FD=${PWD}/cmd/falcon
+VD=${PWD}/cmd/vendor
 
-if [ ! -d $DIR ]; then
-	echo "$DIR dir not found"
-	exit 1
-fi
-
-if [ ! -d $VENDOR ]; then
-	echo "cmd/vendor not found"
-	exit 1
+if ! [[ "$0" =~ "scripts/vendor.sh" ]]; then
+	echo "must be run from repository root"
+	exit 255
 fi
 
 
-cd $DIR
-mkdir vendor
+cd ${FD}
+
+rm -rf ${VD}
+mkdir ${VD}
 govendor add +external
-rm -rf vendor/github.com/open-falcon/falcon
-tar cf - vendor | tar xf - -C $VENDOR/..
-rm -rf vendor
+cd ${VD}/github.com/yubo
+rm -rf falcon
+ln -s ../../../.. falcon
+cd ${OD}
+

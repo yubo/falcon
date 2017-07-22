@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 falcon Author. All rights reserved.
+ * Copyright 2016,2017 falcon Author. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	"golang.org/x/net/context"
 )
 
 const (
@@ -56,24 +57,23 @@ func statsHandle() (ret string) {
 }
 
 type StatsModule struct {
-	running chan struct{}
+	ctx    context.Context
+	cancel context.CancelFunc
 }
 
 func (p *StatsModule) prestart(agent *Agent) error {
-	p.running = make(chan struct{}, 0)
 	return nil
 }
 
 func (p *StatsModule) start(agent *Agent) error {
+	p.ctx, p.cancel = context.WithCancel(context.Background())
 	if agent.Conf.Debug > 0 {
 		ticker := time.NewTicker(time.Second * DEBUG_STAT_STEP).C
 		go func() {
 			for {
 				select {
-				case _, ok := <-p.running:
-					if !ok {
-						return
-					}
+				case <-p.ctx.Done():
+					return
 				case <-ticker:
 					glog.V(3).Info(MODULE_NAME + statsHandle())
 				}
@@ -84,9 +84,12 @@ func (p *StatsModule) start(agent *Agent) error {
 }
 
 func (p *StatsModule) stop(agent *Agent) error {
-	close(p.running)
+	p.cancel()
 	return nil
 }
 func (p *StatsModule) reload(agent *Agent) error {
-	return nil
+	p.stop(agent)
+	time.Sleep(time.Second)
+	p.prestart(agent)
+	return p.start(agent)
 }

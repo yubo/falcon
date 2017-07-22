@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 falcon Author. All rights reserved.
+ * Copyright 2016,2017 falcon Author. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
@@ -82,13 +82,13 @@ type Agent struct {
 	oldConf *config.ConfAgent
 	// runtime
 	status        uint32
-	appUpdateChan chan *[]*falcon.MetaData
+	appUpdateChan chan []*falcon.Item
 }
 
 func (p *Agent) New(conf interface{}) falcon.Module {
 	return &Agent{
 		Conf:          conf.(*config.ConfAgent),
-		appUpdateChan: make(chan *[]*falcon.MetaData, 16),
+		appUpdateChan: make(chan []*falcon.Item, 64),
 	}
 }
 

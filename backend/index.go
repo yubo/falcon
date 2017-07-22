@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 falcon Author. All rights reserved.
+ * Copyright 2016,2017 falcon Author. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
@@ -53,13 +53,13 @@ func indexUpdate(e *cacheEntry, db *sql.DB) {
 				return
 			}
 		} else {
-			glog.Warning(MODULE_NAME+e.host, err)
+			glog.Warning(MODULE_NAME+string(e.host), err)
 			return
 		}
 	}
 
 	// tag
-	tags := strings.Split(e.tags, ",")
+	tags := strings.Split(string(e.tags), ",")
 	for _, tag := range tags {
 
 		tid = -1

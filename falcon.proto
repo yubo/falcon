@@ -1,0 +1,76 @@
+syntax = "proto3";
+option go_package = "github.com/yubo/falcon";
+package falcon;
+
+enum ItemType {
+	GAUGE   = 0; // default
+	DERIVE  = 1;
+	COUNTER = 2;
+}
+
+enum Cf {
+	MIN     = 0; // default
+	MAX     = 1;
+	AVERAGE = 2;
+}
+
+message File {
+	string name = 1;
+	bytes data = 2;
+}
+
+message RRDData {
+	int64  ts = 1;
+	double v  = 2;
+}
+
+message Item {
+	double   value = 1;
+	int64    ts    = 2;
+	int32    step  = 3;
+	ItemType type  = 4;
+	bytes    host  = 5;
+	bytes    name  = 6;
+	bytes    tags  = 7;
+}
+
+message Response {
+	int32 code = 1;
+}
+
+message UpdateRequest {
+	repeated Item items = 1;
+}
+
+message UpdateResponse {
+	int32  total  = 1;
+	int32  errors = 2;
+}
+
+message GetRrdRequest {
+	bytes key = 1;
+}
+
+message GetRrdResponse {
+	File file = 1;	
+}
+
+message GetRequest {
+	int64    start     = 1;
+	int64    end       = 2;
+	bytes    host      = 3;
+	bytes    name      = 4;
+	int32    step      = 5;
+	Cf       consolFun = 6;
+	ItemType type      = 7;
+
+}
+
+message GetResponse {
+	bytes            host = 1;
+	bytes            name = 2;
+	ItemType         type = 3;
+	int32            step = 4;
+	repeated RRDData vs   = 5; 
+}
+

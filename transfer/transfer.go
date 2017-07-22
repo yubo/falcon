@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 falcon Author. All rights reserved.
+ * Copyright 2016,2017 falcon Author. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
@@ -48,10 +48,6 @@ var (
 	}
 )
 
-func init() {
-	//falcon.RegisterModule(falcon.GetType(config.ConfTransfer{}), &Transfer{})
-}
-
 // module {{{
 type module interface {
 	prestart(*Transfer) error // alloc public data
@@ -73,13 +69,13 @@ type Transfer struct {
 	oldConf *config.ConfTransfer
 	// runtime
 	status        uint32
-	appUpdateChan chan *[]*falcon.MetaData // upstreams
+	appUpdateChan chan []*falcon.Item // upstreams
 }
 
 func (p *Transfer) New(conf interface{}) falcon.Module {
 	return &Transfer{
 		Conf:          conf.(*config.ConfTransfer),
-		appUpdateChan: make(chan *[]*falcon.MetaData, 16),
+		appUpdateChan: make(chan []*falcon.Item, 16),
 	}
 }
 

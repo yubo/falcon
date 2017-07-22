@@ -9,17 +9,13 @@
 *.tmp
 *.pid
 *.sh
+*.pb.go
+*.pb.gw.go
+*.swagger.json
 
 var/
-bin/
 dist/
 tmp/
 
-git.go
-yyparse.go
-
 .gdbinit
-
-
 cmd/vendor
-swagger

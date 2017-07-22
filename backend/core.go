@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 falcon Author. All rights reserved.
+ * Copyright 2016,2017 falcon Author. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
@@ -17,7 +17,7 @@ import (
 )
 
 // called by rpc
-func (p *Backend) createEntry(key string, item *falcon.RrdItem) (*cacheEntry, error) {
+func (p *Backend) createEntry(key string, item *falcon.Item) (*cacheEntry, error) {
 	var (
 		e     *cacheEntry
 		ok    bool
@@ -32,18 +32,18 @@ func (p *Backend) createEntry(key string, item *falcon.RrdItem) (*cacheEntry, er
 	}
 
 	e = &cacheEntry{
-		createTs:  p.timeNow(),
-		host:      item.Host,
-		name:      item.Name,
-		tags:      item.Tags,
-		typ:       item.Type,
-		step:      item.Step,
-		heartbeat: item.Heartbeat,
-		min:       []byte(item.Min)[0],
-		max:       []byte(item.Max)[0],
-		hashkey:   key,
-		time:      make([]int64, CACHE_SIZE),
-		value:     make([]float64, CACHE_SIZE),
+		createTs: p.timeNow(),
+		host:     item.Host,
+		name:     item.Name,
+		tags:     item.Tags,
+		typ:      item.Type,
+		step:     item.Step,
+		hashkey:  key,
+		time:     make([]int64, CACHE_SIZE),
+		value:    make([]float64, CACHE_SIZE),
+		//heartbeat: item.Heartbeat,
+		//min:       []byte(item.Min)[0],
+		//max:       []byte(item.Max)[0],
 	}
 
 	cache.Lock()
@@ -62,7 +62,7 @@ func (p *Backend) createEntry(key string, item *falcon.RrdItem) (*cacheEntry, er
 	return e, nil
 }
 
-func (p *Backend) getItems(key string) (ret []*falcon.RrdItem) {
+func (p *Backend) getItems(key string) (ret []*falcon.Item) {
 	e := p.cache.get(key)
 	if e == nil {
 		return
@@ -70,7 +70,7 @@ func (p *Backend) getItems(key string) (ret []*falcon.RrdItem) {
 	return e.getItems()
 }
 
-func (p *Backend) getLastItem(key string) (ret *falcon.RrdItem) {
+func (p *Backend) getLastItem(key string) (ret *falcon.Item) {
 	e := p.cache.get(key)
 	if e == nil {
 		return
@@ -78,27 +78,24 @@ func (p *Backend) getLastItem(key string) (ret *falcon.RrdItem) {
 	return e.getItem()
 }
 
-func (p *Backend) handleItems(items []*falcon.RrdItem) {
+func (p *Backend) handleItems(items []*falcon.Item) (total, errors int) {
 	var (
 		err error
 		e   *cacheEntry
 	)
 
-	if items == nil {
+	total = len(items)
+	if total == 0 {
 		return
 	}
 
-	n := len(items)
-	if n == 0 {
-		return
-	}
-
-	glog.V(4).Infof(MODULE_NAME+"recv %d", n)
+	glog.V(4).Infof(MODULE_NAME+"recv %d", total)
 	statsInc(ST_RPC_SERV_RECV, 1)
-	statsInc(ST_RPC_SERV_RECV_ITEM, n)
+	statsInc(ST_RPC_SERV_RECV_ITEM, total)
 
-	for i := 0; i < n; i++ {
+	for i := 0; i < total; i++ {
 		if items[i] == nil {
+			errors++
 			continue
 		}
 		key := items[i].Csum()
@@ -107,26 +104,29 @@ func (p *Backend) handleItems(items []*falcon.RrdItem) {
 		if e == nil {
 			e, err = p.createEntry(key, items[i])
 			if err != nil {
+				errors++
 				continue
 			}
 		}
 
 		if DATA_TIMESTAMP_REGULATE {
-			items[i].TimeStemp = items[i].TimeStemp -
-				items[i].TimeStemp%int64(items[i].Step)
+			items[i].Ts = items[i].Ts -
+				items[i].Ts%int64(items[i].Step)
 		}
 
-		if items[i].TimeStemp <= e.lastTs || items[i].TimeStemp <= 0 {
+		if items[i].Ts <= e.lastTs || items[i].Ts <= 0 {
+			errors++
 			continue
 		}
 
 		e.put(items[i])
 	}
+	return
 }
 
 // 非法值: ts=0,value无意义
 func (p *Backend) getLast(csum string) *falcon.RRDData {
-	nan := &falcon.RRDData{Ts: 0, V: falcon.JsonFloat(0.0)}
+	nan := &falcon.RRDData{}
 
 	e := p.cache.get(csum)
 	if e == nil {
@@ -137,19 +137,19 @@ func (p *Backend) getLast(csum string) *falcon.RRDData {
 	defer e.RUnlock()
 
 	typ := e.typ
-	if typ == falcon.GAUGE {
+	if typ == falcon.ItemType_DERIVE {
 		if e.dataId == 0 {
 			return nan
 		}
 
 		idx := uint32(e.dataId-1) & CACHE_SIZE_MASK
 		return &falcon.RRDData{
-			Ts: int64(e.time[idx]),
-			V:  falcon.JsonFloat(e.value[idx]),
+			Ts: e.time[idx],
+			V:  e.value[idx],
 		}
 	}
 
-	if typ == falcon.COUNTER || typ == falcon.DERIVE {
+	if typ == falcon.ItemType_COUNTER || typ == falcon.ItemType_DERIVE {
 
 		if e.dataId < 2 {
 			return nan
@@ -167,14 +167,16 @@ func (p *Backend) getLast(csum string) *falcon.RRDData {
 			delta_v = 0
 		}
 
-		return &falcon.RRDData{Ts: data[0].Ts,
-			V: falcon.JsonFloat(float64(delta_v) / float64(delta_ts))}
+		return &falcon.RRDData{
+			Ts: data[0].Ts,
+			V:  float64(delta_v) / float64(delta_ts),
+		}
 	}
 	return nan
 }
 
 func (p *Backend) getLastRaw(csum string) *falcon.RRDData {
-	nan := &falcon.RRDData{Ts: 0, V: falcon.JsonFloat(0.0)}
+	nan := &falcon.RRDData{}
 	e := p.cache.get(csum)
 	if e == nil {
 		return nan
@@ -183,14 +185,14 @@ func (p *Backend) getLastRaw(csum string) *falcon.RRDData {
 	e.RLock()
 	defer e.RUnlock()
 
-	if e.typ == falcon.GAUGE {
+	if e.typ == falcon.ItemType_GAUGE {
 		if e.dataId == 0 {
 			return nan
 		}
 		idx := uint32(e.dataId-1) & CACHE_SIZE_MASK
 		return &falcon.RRDData{
-			Ts: int64(e.time[idx]),
-			V:  falcon.JsonFloat(e.value[idx]),
+			Ts: e.time[idx],
+			V:  e.value[idx],
 		}
 	}
 	return nan
@@ -210,7 +212,7 @@ func (p *Backend) taskFileRead(key string) ([]byte, error) {
 	done := make(chan error, 1)
 	task := &ioTask{
 		method: IO_TASK_M_FILE_READ,
-		args:   &falcon.File{Filename: p.ktofname(key)},
+		args:   &falcon.File{Name: p.ktofname(key)},
 		done:   done,
 	}
 
@@ -220,7 +222,7 @@ func (p *Backend) taskFileRead(key string) ([]byte, error) {
 }
 
 // get local data
-func (p *Backend) taskRrdFetch(key string, cf string, start, end int64,
+func (p *Backend) taskRrdFetch(key string, cf falcon.Cf, start, end int64,
 	step int) ([]*falcon.RRDData, error) {
 	done := make(chan error, 1)
 	task := &ioTask{

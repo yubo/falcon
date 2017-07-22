@@ -1,204 +1,131 @@
 /*
- * Copyright 2016 falcon Author. All rights reserved.
+ * Copyright 2016,2017 falcon Author. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
 package agent
 
 import (
-	"errors"
 	"math/rand"
-	"net"
-	"net/rpc"
-	"net/rpc/jsonrpc"
-	"strings"
-	"sync/atomic"
 	"time"
 
 	"github.com/golang/glog"
 	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/transfer"
+	"golang.org/x/net/context"
+	"google.golang.org/grpc"
 )
 
 type UpstreamModule struct {
-	running chan struct{}
-	idx     uint32
-	size    uint32
-	pool    []string
+	conn   *grpc.ClientConn
+	client transfer.TransferClient
+	ctx    context.Context
+	cancel context.CancelFunc
 }
 
-func (p *UpstreamModule) get() string {
-	return p.pool[atomic.AddUint32(&p.idx, 1)%p.size]
-}
-
-func rpcDial(addr string,
-	timeout time.Duration) (*rpc.Client, error) {
-
-	statsInc(ST_UPSTREAM_DIAL, 1)
-	d := net.Dialer{Timeout: timeout}
-	conn, err := d.Dial(falcon.ParseAddr(addr))
-	if err != nil {
-		statsInc(ST_UPSTREAM_DIAL_ERR, 1)
-		return nil, err
-	}
-	if tc, ok := conn.(*net.TCPConn); ok {
-		if err := tc.SetKeepAlive(true); err != nil {
-			conn.Close()
-			return nil, err
-		}
-	}
-	return jsonrpc.NewClient(conn), err
-}
-
-func (p *UpstreamModule) reconnection(client **rpc.Client, connTimeout int) {
-	var err error
-
-	statsInc(ST_UPSTREAM_RECONNECT, 1)
-	addr := p.get()
-	if *client != nil {
-		(*client).Close()
-	}
-
-	*client, err = rpcDial(addr, time.Duration(connTimeout)*
-		time.Millisecond)
-
-	for err != nil {
-		//danger!! block routine
-		glog.Infof(MODULE_NAME+"%s", err)
-
-		time.Sleep(time.Millisecond * 500)
-		addr = p.get()
-		*client, err = rpcDial(addr,
-			time.Duration(connTimeout)*time.Millisecond)
-	}
-}
-
-func netRpcCall(client *rpc.Client, method string, args interface{},
-	reply interface{}, timeout time.Duration) error {
-	done := make(chan *rpc.Call, 1)
-	client.Go(method, args, reply, done)
-	select {
-	case <-time.After(timeout):
-		return errors.New("i/o timeout[rpc]")
-	case call := <-done:
-		if call.Error == nil {
-			return nil
-		} else {
-			return call.Error
-		}
-	}
-}
-
-func (p *UpstreamModule) putRpcStorageData(client **rpc.Client, items *[]*falcon.MetaData,
-	connTimeout, callTimeout int) error {
-	var (
-		err  error
-		resp *falcon.RpcResp
-		i    int
-	)
+func (p *UpstreamModule) update(items []*falcon.Item, timeout int) (err error) {
 
 	statsInc(ST_UPSTREAM_UPDATE, 1)
-	statsInc(ST_UPSTREAM_UPDATE_ITEM, len(*items))
-	resp = &falcon.RpcResp{}
+	statsInc(ST_UPSTREAM_UPDATE_ITEM, len(items))
 
-	for i = 0; i < CONN_RETRY; i++ {
-		err = netRpcCall(*client, "LB.Update", *items, resp,
-			time.Duration(callTimeout)*time.Millisecond)
-
-		if err == nil {
-			glog.V(3).Infof(MODULE_NAME+"send success %d", len(*items))
-			goto out
-		}
-		glog.V(3).Info(MODULE_NAME, err)
-		if err == rpc.ErrShutdown {
-			p.reconnection(client, connTimeout)
-		}
-	}
-out:
+	ctx, _ := context.WithTimeout(context.Background(),
+		time.Duration(timeout)*time.Millisecond)
+	_, err = p.client.Update(ctx, &falcon.UpdateRequest{Items: items})
 	if err != nil {
 		statsInc(ST_UPSTREAM_UPDATE_ERR, 1)
 	}
 	return err
 }
 
-func (p *UpstreamModule) prestart(agent *Agent) error {
-	p.running = make(chan struct{}, 0)
-	return nil
-}
-
-func (p *UpstreamModule) start(agent *Agent) error {
-
-	backend := strings.Split(agent.Conf.Configer.Str(C_UPSTREAM), ",")
-	connTimeout, _ := agent.Conf.Configer.Int(C_CONN_TIMEOUT)
+func (p *UpstreamModule) mainLoop(agent *Agent) error {
 	callTimeout, _ := agent.Conf.Configer.Int(C_CALL_TIMEOUT)
 	payloadSize, _ := agent.Conf.Configer.Int(C_PAYLOADSIZE)
-	debug := agent.Conf.Debug
 
-	p.size = uint32(len(backend))
-	p.idx = rand.Uint32() % p.size
-	p.pool = make([]string, int(p.size))
-	copy(p.pool, backend)
-
-	if debug > 1 {
-		go func() {
-			for {
-				select {
-				case _, ok := <-p.running:
-					if !ok {
-						return
-					}
-				case items := <-agent.appUpdateChan:
-					for k, v := range *items {
-						glog.V(3).Infof(MODULE_NAME+"%d %s", k, v)
-					}
-				}
-			}
-		}()
-		return nil
+	conn, _, err := falcon.DialRr(p.ctx, agent.Conf.Configer.Str(C_UPSTREAM), true)
+	if err != nil {
+		return err
 	}
 
+	p.client = transfer.NewTransferClient(conn)
+	ch := agent.appUpdateChan
+	items := make([]*falcon.Item, payloadSize)
+	i := 0
+
 	go func() {
-
-		client, err := rpcDial(p.get(),
-			time.Duration(connTimeout)*
-				time.Millisecond)
-		if err != nil {
-			p.reconnection(&client, connTimeout)
-		}
-
+		defer conn.Close()
 		for {
 			select {
-			case _, ok := <-p.running:
-				if !ok {
-					return
+			case <-p.ctx.Done():
+				return
+			case _items := <-ch:
+				for _, item := range _items {
+					items[i] = item
+					i++
+					if i == payloadSize {
+						p.update(items[:i], callTimeout)
+						i = 0
+					}
+
 				}
-			case items := <-agent.appUpdateChan:
-				n := payloadSize
-				i := 0
-				for ; i < len(*items)-n; i += n {
-					_items := (*items)[i : i+n]
-					p.putRpcStorageData(&client, &_items,
-						connTimeout,
-						callTimeout)
-				}
-				if i < len(*items) {
-					_items := (*items)[i:]
-					p.putRpcStorageData(&client, &_items,
-						connTimeout,
-						callTimeout)
-				}
+			case <-time.After(time.Second):
+				p.update(items[:i], callTimeout)
+				i = 0
+
 			}
 
 		}
 	}()
 	return nil
+
+}
+
+func (p *UpstreamModule) debugLoop(agent *Agent) error {
+
+	if agent.Conf.Debug > 1 {
+		go func() {
+			for {
+				select {
+				case <-p.ctx.Done():
+					return
+				case items := <-agent.appUpdateChan:
+					for k, v := range items {
+						glog.V(3).Infof(MODULE_NAME+"%d %s", k, v)
+					}
+				}
+			}
+		}()
+	}
+	return nil
+}
+
+func (p *UpstreamModule) prestart(agent *Agent) error {
+	rand.Seed(time.Now().Unix())
+	return nil
+}
+
+func (p *UpstreamModule) start(agent *Agent) error {
+
+	p.ctx, p.cancel = context.WithCancel(context.Background())
+
+	if err := p.debugLoop(agent); err != nil {
+		return err
+	}
+
+	if err := p.mainLoop(agent); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (p *UpstreamModule) stop(agent *Agent) error {
-	close(p.running)
+	p.cancel()
 	return nil
 }
 
 func (p *UpstreamModule) reload(agent *Agent) error {
-	// TODO
-	return nil
+	p.stop(agent)
+	time.Sleep(time.Second)
+	p.prestart(agent)
+	return p.start(agent)
 }

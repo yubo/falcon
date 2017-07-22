@@ -1,13 +1,16 @@
 /*
- * Copyright 2016 falcon Author. All rights reserved.
+ * Copyright 2016,2017 falcon Author. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
 package transfer
 
 import (
+	"time"
+
 	"github.com/golang/glog"
 	"github.com/yubo/falcon"
+	"golang.org/x/net/context"
 )
 
 // BackendModule: transfer's module for banckend
@@ -21,7 +24,7 @@ type sender interface {
 	new(*Transfer) sender
 	start(string) error
 	stop() error
-	addClientChan(string, string, chan *falcon.MetaData) error
+	addClientChan(string, string, chan *falcon.Item) error
 }
 
 func registerSender(name string, u sender) {
@@ -30,11 +33,11 @@ func registerSender(name string, u sender) {
 
 func init() {
 	_sender = make(map[string]sender)
-	registerSender("tsdb", &senderTsdb{})
+	//registerSender("tsdb", &senderTsdb{})
 	registerSender("falcon", &senderFalcon{})
 }
 
-type backend struct {
+type upstream struct {
 	name      string
 	upstream  sender
 	scheduler scheduler
@@ -42,21 +45,21 @@ type backend struct {
 
 /* upstream */
 type BackendModule struct {
-	running  chan struct{}
-	backends []*backend
+	backends []*upstream
+	ctx      context.Context
+	cancel   context.CancelFunc
 }
 
-func (p *BackendModule) prestart(L *Transfer) error {
-	p.running = make(chan struct{}, 0)
+func (p *BackendModule) prestart(transfer *Transfer) error {
 
-	p.backends = make([]*backend, 0)
-	for _, v := range L.Conf.Backend {
+	p.backends = make([]*upstream, 0)
+	for _, v := range transfer.Conf.Backend {
 		if v.Disabled {
 			continue
 		}
-		b := &backend{name: v.Name}
+		b := &upstream{name: v.Name}
 		if st, ok := _sender[v.Type]; ok {
-			b.upstream = st.new(L)
+			b.upstream = st.new(transfer)
 		} else {
 			return falcon.ErrUnsupported
 		}
@@ -64,7 +67,7 @@ func (p *BackendModule) prestart(L *Transfer) error {
 		b.scheduler = newSchedConsistent()
 
 		for node, addr := range v.Upstream {
-			ch := make(chan *falcon.MetaData)
+			ch := make(chan *falcon.Item)
 			b.scheduler.addChan(node, ch)
 			b.upstream.addClientChan(node, addr, ch)
 		}
@@ -74,10 +77,13 @@ func (p *BackendModule) prestart(L *Transfer) error {
 	return nil
 }
 
-func (p *BackendModule) start(L *Transfer) error {
+func (p *BackendModule) start(transfer *Transfer) error {
 
-	glog.V(3).Infof(MODULE_NAME+"%s upstreamStart len(bs) %d", L.Conf.Name, len(p.backends))
-	appUpdateChan := L.appUpdateChan
+	glog.V(3).Infof(MODULE_NAME+"%s upstreamStart len(bs) %d", transfer.Conf.Name, len(p.backends))
+
+	p.ctx, p.cancel = context.WithCancel(context.Background())
+
+	appUpdateChan := transfer.appUpdateChan
 
 	for _, b := range p.backends {
 		b.upstream.start(b.name)
@@ -86,15 +92,15 @@ func (p *BackendModule) start(L *Transfer) error {
 	go func() {
 		for {
 			select {
-			case _, ok := <-p.running:
-				if !ok {
-					return
+			case <-p.ctx.Done():
+				for _, b := range p.backends {
+					b.upstream.stop()
 				}
+				return
 			case items := <-appUpdateChan:
 				for _, b := range p.backends {
-					for _, item := range *items {
-						ch := b.scheduler.sched(item.Id())
-						ch <- item
+					for _, item := range items {
+						b.scheduler.sched(item.Id()) <- item
 					}
 				}
 			}
@@ -104,15 +110,14 @@ func (p *BackendModule) start(L *Transfer) error {
 	return nil
 }
 
-func (p *BackendModule) stop(L *Transfer) error {
-
-	close(p.running)
-	for _, b := range p.backends {
-		b.upstream.stop()
-	}
+func (p *BackendModule) stop(transfer *Transfer) error {
+	p.cancel()
 	return nil
 }
 
-func (p *BackendModule) reload(L *Transfer) error {
-	return nil
+func (p *BackendModule) reload(transfer *Transfer) error {
+	p.stop(transfer)
+	time.Sleep(time.Second)
+	p.prestart(transfer)
+	return p.start(transfer)
 }

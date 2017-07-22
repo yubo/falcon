@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 falcon Author. All rights reserved.
+ * Copyright 2016,2017 falcon Author. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
@@ -11,6 +11,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/yubo/falcon"
+	"golang.org/x/net/context"
 )
 
 type collector_t struct {
@@ -25,7 +26,7 @@ var (
 type Collector interface {
 	Name() string
 	Start(*Agent) error
-	Collect(int, string) ([]*falcon.MetaData, error)
+	Collect(int, string) ([]*falcon.Item, error)
 	Reset()
 }
 
@@ -39,11 +40,11 @@ func RegisterCollector(c Collector) {
 }
 
 type CollectModule struct {
-	running chan struct{}
+	ctx    context.Context
+	cancel context.CancelFunc
 }
 
 func (p *CollectModule) prestart(agent *Agent) error {
-	p.running = make(chan struct{}, 0)
 	keys := make(map[string]bool)
 
 	plugins := strings.Split(agent.Conf.Configer.Str(C_PLUGINS), ",")
@@ -65,9 +66,11 @@ func (p *CollectModule) prestart(agent *Agent) error {
 
 func (p *CollectModule) start(agent *Agent) error {
 
+	p.ctx, p.cancel = context.WithCancel(context.Background())
 	host := agent.Conf.Host
 	i, _ := agent.Conf.Configer.Int(C_INTERVAL)
 	ticker := time.NewTicker(time.Second * time.Duration(i)).C
+
 	for _, c := range collector.a {
 		if err := c.Start(agent); err != nil {
 			return err
@@ -77,19 +80,15 @@ func (p *CollectModule) start(agent *Agent) error {
 	go func() {
 		for {
 			select {
-			case _, ok := <-p.running:
-				if !ok {
-					return
-				}
+			case <-p.ctx.Done():
+				return
 			case <-ticker:
-				vs := []*falcon.MetaData{}
 				for _, c := range collector.a {
 					if items, err := c.Collect(i,
 						host); err == nil {
-						vs = append(vs, items...)
+						agent.appUpdateChan <- items
 					}
 				}
-				agent.appUpdateChan <- &vs
 			}
 		}
 	}()
@@ -97,10 +96,13 @@ func (p *CollectModule) start(agent *Agent) error {
 }
 
 func (p *CollectModule) stop(agent *Agent) error {
-	close(p.running)
+	p.cancel()
 	return nil
 }
 
 func (p *CollectModule) reload(agent *Agent) error {
-	return nil
+	p.stop(agent)
+	time.Sleep(time.Second)
+	p.prestart(agent)
+	return p.start(agent)
 }

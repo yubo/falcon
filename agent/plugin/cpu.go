@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 falcon Author. All rights reserved.
+ * Copyright 2016,2017 falcon Author. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
@@ -117,7 +117,7 @@ func (p *cpuCollector) Start(agent *agent.Agent) error {
 }
 
 func (p *cpuCollector) Collect(step int,
-	host string) (ret []*falcon.MetaData, err error) {
+	host string) (ret []*falcon.Item, err error) {
 	p.last = p.cur
 	p.cur, err = p.collect()
 	if err != nil {
@@ -151,7 +151,7 @@ func (p *cpuCollector) collect() (*cpuStatSample, error) {
 }
 
 func (p *cpuCollector) stat(step int,
-	host string) (ret []*falcon.MetaData, err error) {
+	host string) (ret []*falcon.Item, err error) {
 	var n float64
 	if p.last == nil {
 		return nil, errors.New("no data")

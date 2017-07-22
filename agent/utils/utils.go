@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 yubo. All rights reserved.
+ * Copyright 2016,2017 falcon Author. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
@@ -13,28 +13,28 @@ import (
 )
 
 func NewMetricValue(step int, host, metric string,
-	val float64, dataType string, tags ...string) *falcon.MetaData {
+	val float64, dataType falcon.ItemType, tags ...string) *falcon.Item {
 
-	mv := &falcon.MetaData{
-		Host:  host,
-		Name:  metric,
+	item := &falcon.Item{
 		Value: val,
 		Ts:    time.Now().Unix(),
-		Step:  int64(step),
+		Step:  int32(step),
 		Type:  dataType,
+		Host:  []byte(host),
+		Name:  []byte(metric),
 	}
 
 	if len(tags) > 0 {
-		mv.Tags = strings.Join(tags, ",")
+		item.Tags = []byte(strings.Join(tags, ","))
 	}
 
-	return mv
+	return item
 }
 
-func GaugeValue(step int, host, metric string, val float64, tags ...string) *falcon.MetaData {
-	return NewMetricValue(step, host, metric, val, falcon.GAUGE, tags...)
+func GaugeValue(step int, host, metric string, val float64, tags ...string) *falcon.Item {
+	return NewMetricValue(step, host, metric, val, falcon.ItemType_GAUGE, tags...)
 }
 
-func CounterValue(step int, host, metric string, val float64, tags ...string) *falcon.MetaData {
-	return NewMetricValue(step, host, metric, val, falcon.COUNTER, tags...)
+func CounterValue(step int, host, metric string, val float64, tags ...string) *falcon.Item {
+	return NewMetricValue(step, host, metric, val, falcon.ItemType_COUNTER, tags...)
 }

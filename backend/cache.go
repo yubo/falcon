@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 falcon Author. All rights reserved.
+ * Copyright 2016,2017 falcon Author. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
@@ -24,23 +24,23 @@ type cacheEntry struct {
 	// point to idx0q/idx1q
 	list_idx list.ListHead // no init queue
 	//e        *C.struct_cache_entry
-	hashkey   string
-	idxTs     int64
-	commitTs  int64
-	createTs  int64
-	lastTs    int64
-	host      string
-	name      string
-	tags      string
-	typ       string
-	step      int
-	heartbeat int
-	min       byte
-	max       byte
-	dataId    uint32
-	commitId  uint32
-	time      []int64
-	value     []float64
+	hashkey  string
+	idxTs    int64
+	commitTs int64
+	createTs int64
+	lastTs   int64
+	host     []byte
+	name     []byte
+	tags     []byte
+	typ      falcon.ItemType
+	step     int32
+	dataId   uint32
+	commitId uint32
+	time     []int64
+	value    []float64
+	//heartbeat int
+	//min       byte
+	//max       byte
 }
 
 // should === falcon.RrdItem.Id()
@@ -58,12 +58,12 @@ func (p *cacheEntry) csum() string {
 }
 
 // called by rpc
-func (p *cacheEntry) put(item *falcon.RrdItem) {
+func (p *cacheEntry) put(item *falcon.Item) {
 	p.Lock()
 	defer p.Unlock()
-	p.lastTs = item.TimeStemp
+	p.lastTs = item.Ts
 	idx := p.dataId & CACHE_SIZE_MASK
-	p.time[idx] = item.TimeStemp
+	p.time[idx] = item.Ts
 	p.value[idx] = item.Value
 	p.dataId += 1
 }
@@ -153,8 +153,8 @@ func (p *cacheEntry) _getData(l, h uint32) (ret []*falcon.RRDData,
 	for i := uint32(0); i < size; i++ {
 		idx := (L + i) & CACHE_SIZE_MASK
 		ret[i] = &falcon.RRDData{
-			Ts: int64(p.time[idx]),
-			V:  falcon.JsonFloat(p.value[idx]),
+			Ts: p.time[idx],
+			V:  p.value[idx],
 		}
 	}
 	/*
@@ -185,26 +185,26 @@ func (p *cacheEntry) dequeueAll() []*falcon.RRDData {
 	return p._dequeueAll()
 }
 
-func (p *cacheEntry) _getItems() (ret []*falcon.RrdItem) {
+func (p *cacheEntry) _getItems() (ret []*falcon.Item) {
 
 	rrds, _ := p._getData(0, p.dataId)
 
 	for _, v := range rrds {
-		ret = append(ret, &falcon.RrdItem{
-			Host:      p.host,
-			Name:      p.name,
-			Tags:      p.tags,
-			Value:     float64(v.V),
-			TimeStemp: v.Ts,
-			Type:      p.typ,
-			Step:      p.step,
+		ret = append(ret, &falcon.Item{
+			Host:  p.host,
+			Name:  p.name,
+			Tags:  p.tags,
+			Value: v.V,
+			Ts:    v.Ts,
+			Type:  p.typ,
+			Step:  p.step,
 		})
 	}
 
 	return ret
 }
 
-func (p *cacheEntry) getItems() (ret []*falcon.RrdItem) {
+func (p *cacheEntry) getItems() (ret []*falcon.Item) {
 	p.Lock()
 	defer p.Unlock()
 
@@ -212,20 +212,20 @@ func (p *cacheEntry) getItems() (ret []*falcon.RrdItem) {
 }
 
 /* the last item(dequeue) */
-func (p *cacheEntry) getItem() (ret *falcon.RrdItem) {
+func (p *cacheEntry) getItem() (ret *falcon.Item) {
 	p.RLock()
 	defer p.RUnlock()
 
 	//p.dataId always > 0
 	idx := uint32(p.dataId-1) & CACHE_SIZE_MASK
-	return &falcon.RrdItem{
-		Host:      p.host,
-		Name:      p.name,
-		Tags:      p.tags,
-		Value:     p.value[idx],
-		TimeStemp: p.time[idx],
-		Type:      p.typ,
-		Step:      p.step,
+	return &falcon.Item{
+		Host:  p.host,
+		Name:  p.name,
+		Tags:  p.tags,
+		Value: p.value[idx],
+		Ts:    p.time[idx],
+		Type:  p.typ,
+		Step:  p.step,
 	}
 	return
 }

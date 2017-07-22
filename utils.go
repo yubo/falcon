@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 yubo. All rights reserved.
+ * Copyright 2016,2017 falcon Author. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
@@ -10,8 +10,10 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"reflect"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -54,13 +56,6 @@ func GetType(v interface{}) string {
 	}
 }
 
-func ParseAddr(url string) (net, addr string) {
-	if f := f_network.Find([]byte(url)); f != nil {
-		return url[:len(f)-1], url[len(f):]
-	}
-	return "tcp", url
-}
-
 func PreByte(data []byte, pos int) (int, byte) {
 	for i := pos; i >= 0; i-- {
 		c := data[i]
@@ -79,4 +74,27 @@ func IndentLines(i int, lines string) (ret string) {
 		ret += fmt.Sprintf("%s%s\n", indent, l)
 	}
 	return string([]byte(ret)[:len(ret)-1])
+}
+
+func Dialer(addr string, timeout time.Duration) (net.Conn, error) {
+	d := net.Dialer{Timeout: timeout}
+	return d.Dial(ParseAddr(addr))
+}
+
+func ParseAddr(url string) (net, addr string) {
+	if f := f_network.Find([]byte(url)); f != nil {
+		return url[:len(f)-1], url[len(f):]
+	}
+	return "tcp", url
+}
+
+func sortTags(s []byte) []byte {
+	str := strings.Replace(string(s), " ", "", -1)
+	if str == "" {
+		return []byte{}
+	}
+
+	tags := strings.Split(str, ",")
+	sort.Strings(tags)
+	return []byte(strings.Join(tags, ","))
 }

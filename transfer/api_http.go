@@ -1,94 +1,78 @@
 /*
- * Copyright 2016 falcon Author. All rights reserved.
+ * Copyright 2016,2017 falcon Author. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
 package transfer
 
 import (
-	"io/ioutil"
-	"net"
 	"net/http"
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/yubo/falcon"
+	"golang.org/x/net/context"
 )
 
-type tcpKeepAliveListener struct {
-	*net.TCPListener
-}
-
-func (ln tcpKeepAliveListener) Accept() (c net.Conn, err error) {
-	tc, err := ln.AcceptTCP()
-	if err != nil {
-		return
-	}
-	tc.SetKeepAlive(true)
-	tc.SetKeepAlivePeriod(3 * time.Minute)
-	return tc, nil
-}
-
 type HttpModule struct {
-	httpListener *net.TCPListener
-	httpMux      *http.ServeMux
+	enable   bool
+	ctx      context.Context
+	cancel   context.CancelFunc
+	upstream string
+	address  string
 }
 
-func echo_handle(w http.ResponseWriter, req *http.Request) {
-	if ctx, err := ioutil.ReadAll(req.Body); err != nil {
-		w.Write([]byte(err.Error()))
-	} else {
-		w.Write(ctx)
-	}
-}
-
-func (p *HttpModule) httpRoutes() {
-	p.httpMux.HandleFunc("/echo", echo_handle)
-}
-
-func (p *HttpModule) prestart(L *Transfer) error {
-	p.httpMux = http.NewServeMux()
-	p.httpRoutes()
+func (p *HttpModule) prestart(transfer *Transfer) error {
+	p.upstream = transfer.Conf.Configer.Str(C_GRPC_ADDR)
+	p.address = transfer.Conf.Configer.Str(C_HTTP_ADDR)
+	p.enable, _ = transfer.Conf.Configer.Bool(C_HTTP_ENABLE)
 	return nil
 }
 
-func (p *HttpModule) start(L *Transfer) error {
-	enable, _ := L.Conf.Configer.Bool(C_HTTP_ENABLE)
-	if !enable {
-		glog.Info(MODULE_NAME + "http.Start warning, not enabled")
+func (p *HttpModule) start(transfer *Transfer) error {
+	if !p.enable {
+		glog.Info(MODULE_NAME + "http.Start not enabled")
 		return nil
 	}
 
-	network, addr := falcon.ParseAddr(L.Conf.Configer.Str(C_HTTP_ADDR))
-	if addr == "" {
-		return falcon.ErrParam
-	}
+	p.ctx, p.cancel = context.WithCancel(context.Background())
 
-	s := &http.Server{
-		Addr:           addr,
-		MaxHeaderBytes: 1 << 30,
-	}
-	glog.Infof(MODULE_NAME+"%s httpStart listening %s", L.Conf.Name, addr)
+	mux := http.NewServeMux()
 
-	ln, err := net.Listen(network, addr)
+	err := Gateway(p.ctx, mux, p.upstream)
 	if err != nil {
-		glog.Fatal(MODULE_NAME, err)
+		return nil
 	}
 
-	if network == "tcp" {
-		p.httpListener = ln.(*net.TCPListener)
-		go s.Serve(tcpKeepAliveListener{p.httpListener})
-	} else {
-		go s.Serve(ln)
-	}
+	server := &http.Server{Addr: p.address, Handler: mux}
+
+	go func() {
+		if err := server.ListenAndServe(); err != nil {
+			p.cancel()
+		}
+		return
+	}()
+
+	go func() {
+		<-p.ctx.Done()
+		ctx, _ := context.WithTimeout(context.Background(), 1*time.Second)
+		server.Shutdown(ctx)
+	}()
 	return nil
 }
 
-func (p *HttpModule) stop(L *Transfer) error {
-	p.httpListener.Close()
+func (p *HttpModule) stop(transfer *Transfer) error {
+	if !p.enable {
+		return nil
+	}
+	p.cancel()
 	return nil
 }
 
-func (p *HttpModule) reload(L *Transfer) error {
-	return nil
+func (p *HttpModule) reload(transfer *Transfer) error {
+	if p.enable {
+		p.stop(transfer)
+		time.Sleep(time.Second)
+	}
+	p.prestart(transfer)
+	return p.start(transfer)
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 yubo. All rights reserved.
+ * Copyright 2016,2017 falcon Author. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
@@ -20,9 +20,9 @@ import (
 	"github.com/yubo/gotool/flags"
 
 	_ "github.com/yubo/falcon/agent/agent"
-	//_ "github.com/yubo/falcon/backend/backend"
+	_ "github.com/yubo/falcon/backend/backend"
+	_ "github.com/yubo/falcon/transfer/transfer"
 	//_ "github.com/yubo/falcon/ctrl/ctrl"
-	//_ "github.com/yubo/falcon/transfer/transfer"
 )
 
 var opts falcon.CmdOpts

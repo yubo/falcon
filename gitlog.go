@@ -1,8 +1,10 @@
 package falcon
 const (
-	COMMIT = "7abb4d6"
+	COMMIT = "ec458c8"
 	CHANGELOG = `
-- (7abb4d6) feature: support module parse (HEAD -> master, origin/master, origin/HEAD)
+- (ec458c8) feature: support grpc/grpc_gw api (HEAD -> master, origin/master, origin/HEAD)
+- (ac5fee6) feature: add agent/transfer/backend parse
+- (7abb4d6) feature: support module parse
 - (df63f87) feature: lb -> transfer; support unix sock
 - (736cc97) feature: add expansion
 - (569b897) feature: support etcdv3 client

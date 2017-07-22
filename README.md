@@ -35,7 +35,7 @@ go test -bench=.
 | lite-falcon |   falcon                            |  description                                        |
 |-------------|-------------------------------------|-----------------------------------------------------|
 |   agent     |   agent, _aggregator, nodata, task_ | 安装在需要监控的宿主机上，采集数据，发送给lb        |
-|   lb        |   transfer, _query_                 | 将接收到的请求按一定策略处理或转给后端服务(backend) |
+|   transfer  |   transfer, _query_                 | 将接收到的请求按一定策略处理或转给后端服务(backend) |
 |   backend   |   graph, _judge, sender_            | 存储、处理数据的后端服务                            |
 |   ctrl      |   _fe, dashboard, hbs, portal_      | 配置、统计各组件,另提供web服务                      |
 |   _no plan_ |   _gateway, ..._                    | 其他组件                                            |

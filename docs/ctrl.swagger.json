@@ -29,7 +29,7 @@
                             "$ref": "#/definitions/.map[string]string"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -49,7 +49,7 @@
                             "$ref": "#/definitions/.map[string]string"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -81,7 +81,7 @@
                             }
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -110,7 +110,7 @@
                     "200": {
                         "description": "{string} success"
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -136,7 +136,7 @@
                     "200": {
                         "description": "{string} result"
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -165,7 +165,7 @@
                             "$ref": "#/definitions/models.ExpansionStatus"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -198,7 +198,7 @@
                     "200": {
                         "description": "string success"
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -227,7 +227,7 @@
                             "$ref": "#/definitions/.map[string]string"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -247,7 +247,7 @@
                         "description": "body for aggreator content",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.Aggreator"
+                            "$ref": "#/definitions/models.APICreateAggregatorInput"
                         }
                     }
                 ],
@@ -258,7 +258,67 @@
                             "$ref": "#/definitions/models.Id"
                         }
                     },
-                    "403": {
+                    "400": {
+                        "description": "string error"
+                    }
+                }
+            }
+        },
+        "/aggreator/0": {
+            "post": {
+                "tags": [
+                    "aggreator"
+                ],
+                "description": "create aggreators by tag_string",
+                "operationId": "AggreatorController.CreateAggreator",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for aggreator content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.APICreateAggregatorInput0"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Id",
+                        "schema": {
+                            "$ref": "#/definitions/models.Id"
+                        }
+                    },
+                    "400": {
+                        "description": "string error"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "aggreator"
+                ],
+                "description": "delete the aggreator by tag string",
+                "operationId": "AggreatorController.DeleteAggreators by tag string",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "rule",
+                        "description": "The aggreators you want to delete",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.DeleteAggreator0"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "delete aggreator total number",
+                        "schema": {
+                            "$ref": "#/definitions/models.Total"
+                        }
+                    },
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -294,7 +354,42 @@
                             "$ref": "#/definitions/models.Total"
                         }
                     },
-                    "403": {
+                    "400": {
+                        "description": "string error"
+                    }
+                }
+            }
+        },
+        "/aggreator/cnt/0": {
+            "get": {
+                "tags": [
+                    "aggreator"
+                ],
+                "description": "get Aggreators number",
+                "operationId": "AggreatorController.GeaggreatorgreatorsCnt",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "tag_string",
+                        "description": "tag string",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "deep",
+                        "description": "search sub tag",
+                        "type": "boolean"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "aggreator total number",
+                        "schema": {
+                            "$ref": "#/definitions/models.Total"
+                        }
+                    },
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -347,7 +442,59 @@
                             }
                         }
                     },
-                    "403": {
+                    "400": {
+                        "description": "string error"
+                    }
+                }
+            }
+        },
+        "/aggreator/search/0": {
+            "get": {
+                "tags": [
+                    "aggreator"
+                ],
+                "description": "get all Aggreators",
+                "operationId": "AggreatorController.Geaggreatorgreators by tag string",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "tag_string",
+                        "description": "tag string",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "deep",
+                        "description": "search sub tag",
+                        "type": "boolean"
+                    },
+                    {
+                        "in": "query",
+                        "name": "limit",
+                        "description": "limit page number",
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    {
+                        "in": "query",
+                        "name": "offset",
+                        "description": "offset  number",
+                        "type": "integer",
+                        "format": "int64"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "aggreators info",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.GetAggreator"
+                            }
+                        }
+                    },
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -377,7 +524,7 @@
                             "$ref": "#/definitions/models.Aggreator"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -413,7 +560,7 @@
                             "$ref": "#/definitions/models.Aggreator"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -437,7 +584,7 @@
                     "200": {
                         "description": "{string} \"delete success!\""
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -601,7 +748,7 @@
                 "tags": [
                     "dashboard"
                 ],
-                "description": "create graph",
+                "description": "create graph, .endpoints and .counters is []string",
                 "operationId": "DashboardController.CreateGraph",
                 "parameters": [
                     {
@@ -621,7 +768,7 @@
                             "$ref": "#/definitions/models.Id"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -654,7 +801,7 @@
                             }
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -684,7 +831,7 @@
                             "$ref": "#/definitions/models.APIGraph"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -693,7 +840,7 @@
                 "tags": [
                     "dashboard"
                 ],
-                "description": "update graph",
+                "description": "update graph, .endpoints and .counters is []string",
                 "operationId": "DashboardController.update Graph",
                 "parameters": [
                     {
@@ -713,7 +860,7 @@
                             "$ref": "#/definitions/models.DashboardGraph"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -737,7 +884,38 @@
                     "200": {
                         "description": "{string} \"delete success!\""
                     },
-                    "403": {
+                    "400": {
+                        "description": "string error"
+                    }
+                }
+            }
+        },
+        "/dashboard/graphs": {
+            "put": {
+                "tags": [
+                    "dashboard"
+                ],
+                "description": "update graph, .endpoints and .counters is []string",
+                "operationId": "DashboardController.update Graphs",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for graph content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.APIGraph"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "DashboardGraph",
+                        "schema": {
+                            "$ref": "#/definitions/models.Stats"
+                        }
+                    },
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -768,7 +946,7 @@
                             "$ref": "#/definitions/models.Id"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -801,7 +979,7 @@
                             }
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -837,7 +1015,7 @@
                             "$ref": "#/definitions/models.DashboardScreen"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -849,6 +1027,13 @@
                 "description": "update Screen",
                 "operationId": "DashboardController.update Screen",
                 "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "description": "The id you want to modify",
+                        "required": true,
+                        "type": "string"
+                    },
                     {
                         "in": "body",
                         "name": "body",
@@ -866,7 +1051,7 @@
                             "$ref": "#/definitions/models.DashboardScreen"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -890,7 +1075,7 @@
                     "200": {
                         "description": "{string} \"delete success!\""
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -921,7 +1106,7 @@
                             "$ref": "#/definitions/models.Id"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -951,7 +1136,7 @@
                             "$ref": "#/definitions/models.APITmpGraph"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -971,7 +1156,7 @@
                         "description": "body for expression content",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.ExpressionAction"
+                            "$ref": "#/definitions/models.ExpressionActionApiPut"
                         }
                     }
                 ],
@@ -982,7 +1167,33 @@
                             "$ref": "#/definitions/models.Id"
                         }
                     },
-                    "403": {
+                    "400": {
+                        "description": "string error"
+                    }
+                }
+            }
+        },
+        "/expression/0": {
+            "delete": {
+                "tags": [
+                    "expression"
+                ],
+                "description": "delete the expression by expression",
+                "operationId": "ExpressionController.DeleteExpression by expression",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "expr",
+                        "description": "The expression you want to delete",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "{string} delete success!"
+                    },
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -1016,7 +1227,7 @@
                             "$ref": "#/definitions/models.Total"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -1027,8 +1238,8 @@
                 "tags": [
                     "expression"
                 ],
-                "description": "update the expression",
-                "operationId": "ExpressionController.UpdateExpression",
+                "description": "pause the expression",
+                "operationId": "ExpressionController.pause Expression",
                 "parameters": [
                     {
                         "in": "query",
@@ -1050,7 +1261,7 @@
                     "200": {
                         "description": "null success"
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -1097,11 +1308,11 @@
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.ExpressionUi"
+                                "$ref": "#/definitions/models.ExpressionApiGet"
                             }
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -1128,10 +1339,10 @@
                     "200": {
                         "description": "expression and action info",
                         "schema": {
-                            "$ref": "#/definitions/models.ExpressionAction"
+                            "$ref": "#/definitions/.ExpressionAction"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -1156,7 +1367,7 @@
                         "description": "body for expression content",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.ExpressionAction"
+                            "$ref": "#/definitions/models.ExpressionActionApiPut"
                         }
                     }
                 ],
@@ -1167,7 +1378,7 @@
                             "$ref": "#/definitions/models.Expression"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -1191,7 +1402,7 @@
                     "200": {
                         "description": "{string} delete success!"
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -1225,7 +1436,7 @@
                             }
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -1269,7 +1480,7 @@
                             }
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -1313,7 +1524,7 @@
                             }
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -1344,7 +1555,7 @@
                             "$ref": "#/definitions/models.Id"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -1372,7 +1583,7 @@
                             "$ref": "#/definitions/models.Total"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -1417,7 +1628,7 @@
                             }
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -1447,7 +1658,7 @@
                             "$ref": "#/definitions/models.Host"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -1483,7 +1694,7 @@
                             "$ref": "#/definitions/models.Host"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -1507,7 +1718,7 @@
                     "200": {
                         "description": "{string} \"delete success!\""
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -1535,7 +1746,7 @@
                     "200": {
                         "description": "string ok"
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -1565,7 +1776,7 @@
                             "type": "integer"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -1595,7 +1806,7 @@
                             "type": "integer"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -1642,7 +1853,7 @@
                             }
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -1689,7 +1900,7 @@
                             }
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -1717,7 +1928,7 @@
                         "description": "body for matter content",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.Matter"
+                            "$ref": "#/definitions/alarm.Matter"
                         }
                     }
                 ],
@@ -1728,7 +1939,7 @@
                             "$ref": "#/definitions/alarm.Matter"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -1756,7 +1967,7 @@
                             "$ref": "#/definitions/models.Total"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -1801,7 +2012,7 @@
                             }
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -1821,7 +2032,7 @@
                         "description": "body for mockcfg content",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.APICreateNoDataInputs"
+                            "$ref": "#/definitions/models.NoDataApiPut"
                         }
                     }
                 ],
@@ -1832,7 +2043,7 @@
                             "$ref": "#/definitions/models.Id"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -1866,7 +2077,7 @@
                             "$ref": "#/definitions/models.Total"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -1917,7 +2128,7 @@
                             }
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -1947,7 +2158,7 @@
                             "$ref": "#/definitions/models.Mockcfg"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -1972,7 +2183,7 @@
                         "description": "body for mockcfg content",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.Mockcfg"
+                            "$ref": "#/definitions/models.NoDataApiPut"
                         }
                     }
                 ],
@@ -1980,10 +2191,10 @@
                     "200": {
                         "description": "mockcfg info",
                         "schema": {
-                            "$ref": "#/definitions/models.APIUpdateNoDataInputs"
+                            "$ref": "#/definitions/models.NoDataApiPut"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -2007,7 +2218,7 @@
                     "200": {
                         "description": "{string} \"delete success!\""
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -2051,7 +2262,7 @@
                             "$ref": "#/definitions/.[3]map[string]string"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -2091,7 +2302,7 @@
                             "$ref": "#/definitions/models.Total"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -2148,7 +2359,7 @@
                             }
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -2177,6 +2388,109 @@
                 }
             }
         },
+        "/rel/node": {
+            "get": {
+                "tags": [
+                    "rel"
+                ],
+                "description": "get node's children",
+                "operationId": "RelController.Get node",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "id",
+                        "description": "tag id default root(1)",
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    {
+                        "in": "query",
+                        "name": "depth",
+                        "description": "depth levels default -1(no limit)",
+                        "type": "integer",
+                        "format": "int64"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "all nodes of the tree(read)",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.TreeNode"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "string error"
+                    }
+                }
+            }
+        },
+        "/rel/operate/tag": {
+            "get": {
+                "tags": [
+                    "rel"
+                ],
+                "description": "get has operate token tags",
+                "operationId": "RelController.Get tags(operate)",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "deep",
+                        "description": "include child tag(default:false)",
+                        "type": "boolean"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "all ids of the node that can be operated",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "format": "int64",
+                                "type": "integer"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "string error"
+                    }
+                }
+            }
+        },
+        "/rel/read/tag": {
+            "get": {
+                "tags": [
+                    "rel"
+                ],
+                "description": "get has read token tags",
+                "operationId": "RelController.Get tags(read)",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "deep",
+                        "description": "include child tag(default:false)",
+                        "type": "boolean"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "all ids of the node that can be read",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "format": "int64",
+                                "type": "integer"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "string error"
+                    }
+                }
+            }
+        },
         "/rel/tag/host": {
             "post": {
                 "tags": [
@@ -2201,7 +2515,7 @@
                             "$ref": "#/definitions/models.Id"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -2216,10 +2530,10 @@
                     {
                         "in": "body",
                         "name": "body",
-                        "description": "relation id",
+                        "description": "unbind tag_id host_id relation",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.Id"
+                            "$ref": "#/definitions/models.RelTagHostApiDel"
                         }
                     }
                 ],
@@ -2230,7 +2544,7 @@
                             "$ref": "#/definitions/models.Total"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -2270,7 +2584,7 @@
                             "$ref": "#/definitions/models.Total"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -2327,7 +2641,7 @@
                             }
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -2352,12 +2666,12 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Id",
+                        "description": "affected number",
                         "schema": {
-                            "$ref": "#/definitions/models.Id"
+                            "$ref": "#/definitions/models.Total"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -2372,10 +2686,10 @@
                     {
                         "in": "body",
                         "name": "body",
-                        "description": "unbind multiple tag-host relation",
+                        "description": "unbind tag_id host_id relation",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.Ids"
+                            "$ref": "#/definitions/models.RelTagHosts"
                         }
                     }
                 ],
@@ -2386,7 +2700,7 @@
                             "$ref": "#/definitions/models.Total"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -2416,7 +2730,43 @@
                             "$ref": "#/definitions/models.Id"
                         }
                     },
-                    "403": {
+                    "400": {
+                        "description": "string error"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "rel"
+                ],
+                "description": "delete the plugin",
+                "operationId": "RelController.Delete tag plugin",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "tag_id",
+                        "description": "tag id",
+                        "required": true,
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    {
+                        "in": "query",
+                        "name": "id",
+                        "description": "The id you want to delete",
+                        "required": true,
+                        "type": "integer",
+                        "format": "int64"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "total number",
+                        "schema": {
+                            "$ref": "#/definitions/models.Total"
+                        }
+                    },
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -2437,6 +2787,12 @@
                         "required": true,
                         "type": "integer",
                         "format": "int64"
+                    },
+                    {
+                        "in": "query",
+                        "name": "deep",
+                        "description": "include child tag(default:true)",
+                        "type": "boolean"
                     }
                 ],
                 "responses": {
@@ -2446,7 +2802,7 @@
                             "$ref": "#/definitions/models.Total"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -2458,7 +2814,7 @@
                     "rel"
                 ],
                 "description": "get all Template",
-                "operationId": "RelController.GetTemplate",
+                "operationId": "RelController.Get plugin dir",
                 "parameters": [
                     {
                         "in": "query",
@@ -2467,6 +2823,12 @@
                         "required": true,
                         "type": "integer",
                         "format": "int64"
+                    },
+                    {
+                        "in": "query",
+                        "name": "deep",
+                        "description": "include child tag(default:true)",
+                        "type": "boolean"
                     },
                     {
                         "in": "query",
@@ -2493,33 +2855,7 @@
                             }
                         }
                     },
-                    "403": {
-                        "description": "string error"
-                    }
-                }
-            }
-        },
-        "/rel/tag/plugindir/{id}": {
-            "delete": {
-                "tags": [
-                    "rel"
-                ],
-                "description": "delete the plugin",
-                "operationId": "RelController.Delete tag plugin",
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "id",
-                        "description": "The id you want to delete",
-                        "required": true,
-                        "type": "string"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "{string} delete success!"
-                    },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -2549,7 +2885,7 @@
                             "$ref": "#/definitions/models.Id"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -2577,7 +2913,7 @@
                             "$ref": "#/definitions/models.Id"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -2619,7 +2955,7 @@
                             "$ref": "#/definitions/models.Total"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -2678,7 +3014,7 @@
                             }
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -2708,7 +3044,7 @@
                             "$ref": "#/definitions/models.Id"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -2736,7 +3072,7 @@
                             "$ref": "#/definitions/models.Id"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -2778,7 +3114,7 @@
                             "$ref": "#/definitions/models.Total"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -2829,15 +3165,15 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "hosts info",
+                        "description": "tag role user info",
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.Host"
+                                "$ref": "#/definitions/models.TagRoleUser"
                             }
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -2867,7 +3203,7 @@
                             "$ref": "#/definitions/models.Id"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -2895,7 +3231,65 @@
                             "$ref": "#/definitions/models.Total"
                         }
                     },
-                    "403": {
+                    "400": {
+                        "description": "string error"
+                    }
+                }
+            }
+        },
+        "/rel/tag/template/0": {
+            "post": {
+                "tags": [
+                    "rel"
+                ],
+                "description": "create tag/templates relation by tag string \u0026 template name",
+                "operationId": "RelController.create tag template relation by tag string \u0026 template name",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "true",
+                        "schema": {
+                            "$ref": "#/definitions/models.RelTagTpl0"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Id",
+                        "schema": {
+                            "$ref": "#/definitions/models.Id"
+                        }
+                    },
+                    "400": {
+                        "description": "string error"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "rel"
+                ],
+                "description": "delete tag/template relation by tag string \u0026 template name",
+                "operationId": "RelController.delete tag template relation by tag string \u0026 template name",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "true",
+                        "schema": {
+                            "$ref": "#/definitions/models.RelTagTpl0"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "affected number",
+                        "schema": {
+                            "$ref": "#/definitions/models.Total"
+                        }
+                    },
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -2943,7 +3337,54 @@
                             "$ref": "#/definitions/models.Total"
                         }
                     },
-                    "403": {
+                    "400": {
+                        "description": "string error"
+                    }
+                }
+            }
+        },
+        "/rel/tag/template/cnt/0": {
+            "get": {
+                "tags": [
+                    "rel"
+                ],
+                "description": "get Tag-Template number",
+                "operationId": "RelController.GetTagTemplateCnt by tag string",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "query",
+                        "description": "template name",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "deep",
+                        "description": "search sub tag",
+                        "type": "boolean"
+                    },
+                    {
+                        "in": "query",
+                        "name": "mine",
+                        "description": "search mine template",
+                        "type": "boolean"
+                    },
+                    {
+                        "in": "query",
+                        "name": "tag_string",
+                        "description": "tag string",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "total number",
+                        "schema": {
+                            "$ref": "#/definitions/models.Total"
+                        }
+                    },
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -3008,7 +3449,71 @@
                             }
                         }
                     },
-                    "403": {
+                    "400": {
+                        "description": "string error"
+                    }
+                }
+            }
+        },
+        "/rel/tag/template/search/0": {
+            "get": {
+                "tags": [
+                    "rel"
+                ],
+                "description": "get all Template by tag string",
+                "operationId": "RelController.GetTemplate by tag string",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "tag_string",
+                        "description": "tag string",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "query",
+                        "description": "template name",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "deep",
+                        "description": "search sub tag",
+                        "type": "boolean"
+                    },
+                    {
+                        "in": "query",
+                        "name": "mine",
+                        "description": "search mine template",
+                        "type": "boolean"
+                    },
+                    {
+                        "in": "query",
+                        "name": "limit",
+                        "description": "per page number",
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    {
+                        "in": "query",
+                        "name": "offset",
+                        "description": "offset  number",
+                        "type": "integer",
+                        "format": "int64"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "templates info",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.TagTplGet"
+                            }
+                        }
+                    },
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -3038,7 +3543,7 @@
                             "$ref": "#/definitions/models.Id"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -3066,7 +3571,7 @@
                             "$ref": "#/definitions/models.Total"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -3077,8 +3582,30 @@
                 "tags": [
                     "rel"
                 ],
-                "description": "get tags for vue tree",
-                "operationId": "RelController.Get vue tag tree",
+                "description": "get whole tree",
+                "operationId": "RelController.Get tag tree",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "id",
+                        "description": "tag id default root(1)",
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    {
+                        "in": "query",
+                        "name": "real",
+                        "description": "ignore admin token",
+                        "type": "boolean"
+                    },
+                    {
+                        "in": "query",
+                        "name": "depth",
+                        "description": "depth levels default 0(no limit)",
+                        "type": "integer",
+                        "format": "int64"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "all nodes of the tree(read)",
@@ -3089,64 +3616,7 @@
                             }
                         }
                     },
-                    "403": {
-                        "description": "string error"
-                    }
-                }
-            }
-        },
-        "/rel/tree/opnode": {
-            "get": {
-                "tags": [
-                    "rel"
-                ],
-                "description": "get tags for vue tree",
-                "operationId": "RelController.Get vue tree node(operate)",
-                "responses": {
-                    "200": {
-                        "description": "all ids of the node that can be operated",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "format": "int64",
-                                "type": "integer"
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "string error"
-                    }
-                }
-            }
-        },
-        "/rel/treeNode": {
-            "get": {
-                "tags": [
-                    "rel"
-                ],
-                "description": "get tags for vue tree",
-                "operationId": "RelController.Get vue tag tree",
-                "parameters": [
-                    {
-                        "in": "body",
-                        "name": "id",
-                        "description": "tag id",
-                        "required": true,
-                        "type": "integer",
-                        "format": "int64"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "All nodes under the current node",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.TreeNode"
-                            }
-                        }
-                    },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -3177,7 +3647,7 @@
                             "$ref": "#/definitions/models.Id"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -3205,7 +3675,7 @@
                             "$ref": "#/definitions/models.Total"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -3250,7 +3720,7 @@
                             }
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -3280,7 +3750,7 @@
                             "$ref": "#/definitions/models.Role"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -3316,7 +3786,7 @@
                             "$ref": "#/definitions/models.Role"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -3340,7 +3810,7 @@
                     "200": {
                         "description": "{string} delete success!"
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -3369,7 +3839,7 @@
                             "$ref": "#/definitions/.[3]map[string]string"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -3403,7 +3873,7 @@
                             "$ref": "#/definitions/models.Total"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -3454,7 +3924,7 @@
                             }
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -3474,7 +3944,7 @@
                             "$ref": "#/definitions/models.User"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -3503,7 +3973,7 @@
                             "$ref": "#/definitions/models.User"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -3534,7 +4004,7 @@
                             "$ref": "#/definitions/models.Id"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -3569,7 +4039,7 @@
                             "$ref": "#/definitions/models.Total"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -3621,7 +4091,7 @@
                             }
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -3651,7 +4121,7 @@
                             "$ref": "#/definitions/models.Strategy"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -3687,7 +4157,7 @@
                             "$ref": "#/definitions/models.Strategy"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -3711,7 +4181,7 @@
                     "200": {
                         "description": "{string} delete success!"
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -3742,7 +4212,7 @@
                             "$ref": "#/definitions/models.Id"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -3770,7 +4240,7 @@
                             "$ref": "#/definitions/models.Total"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -3815,7 +4285,7 @@
                             }
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string\terror"
                     }
                 }
@@ -3845,7 +4315,7 @@
                             "$ref": "#/definitions/models.Tag"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -3869,7 +4339,7 @@
                     "200": {
                         "description": "{string} \"delete success!\""
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -3900,7 +4370,7 @@
                             "$ref": "#/definitions/models.Id"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -3919,6 +4389,12 @@
                         "name": "query",
                         "description": "team name",
                         "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "mine",
+                        "description": "only show mine team, default false",
+                        "type": "boolean"
                     }
                 ],
                 "responses": {
@@ -3928,7 +4404,7 @@
                             "$ref": "#/definitions/models.Total"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -3963,7 +4439,7 @@
                             "$ref": "#/definitions/models.TeamMembers"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -3985,8 +4461,8 @@
                     },
                     {
                         "in": "query",
-                        "name": "own",
-                        "description": "check if the creator is yourself",
+                        "name": "mine",
+                        "description": "only show mine team, default false",
                         "type": "boolean"
                     },
                     {
@@ -4010,11 +4486,11 @@
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.Team"
+                                "$ref": "#/definitions/models.TeamUi"
                             }
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -4044,7 +4520,7 @@
                             "$ref": "#/definitions/models.Team"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -4080,7 +4556,7 @@
                             "$ref": "#/definitions/models.Team"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -4104,7 +4580,7 @@
                     "200": {
                         "description": "{string} \"delete success!\""
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -4135,7 +4611,7 @@
                             "$ref": "#/definitions/models.TeamMemberIds"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -4166,7 +4642,7 @@
                             "$ref": "#/definitions/models.Id"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -4200,7 +4676,7 @@
                             "$ref": "#/definitions/models.Total"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -4251,7 +4727,7 @@
                             }
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -4287,7 +4763,7 @@
                             "$ref": "#/definitions/models.TemplateAction"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -4312,7 +4788,7 @@
                         "description": "body for template content",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.Template"
+                            "$ref": "#/definitions/models.TemplateAction"
                         }
                     }
                 ],
@@ -4323,7 +4799,7 @@
                             "$ref": "#/definitions/models.Template"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -4347,7 +4823,7 @@
                     "{code:200,": {
                         "description": "data:\"delete success!\"} delete success!"
                     },
-                    "{code:403,": {
+                    "{code:400,": {
                         "description": "msg:string}"
                     }
                 }
@@ -4378,7 +4854,7 @@
                             "$ref": "#/definitions/models.Id"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -4406,7 +4882,7 @@
                             "$ref": "#/definitions/models.Total"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -4451,7 +4927,7 @@
                             }
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -4481,7 +4957,7 @@
                             "$ref": "#/definitions/models.Token"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -4517,7 +4993,7 @@
                             "$ref": "#/definitions/models.Token"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -4541,7 +5017,7 @@
                     "{code:200,": {
                         "description": "data:\"delete success!\"} delete success!"
                     },
-                    "{code:403,": {
+                    "{code:400,": {
                         "description": "msg:string}"
                     }
                 }
@@ -4572,7 +5048,7 @@
                             "$ref": "#/definitions/models.Id"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -4600,7 +5076,7 @@
                             "$ref": "#/definitions/models.Total"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -4645,7 +5121,7 @@
                             }
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -4675,7 +5151,7 @@
                             "$ref": "#/definitions/models.User"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -4711,7 +5187,7 @@
                             "$ref": "#/definitions/models.User"
                         }
                     },
-                    "403": {
+                    "400": {
                         "description": "string error"
                     }
                 }
@@ -4732,7 +5208,7 @@
                     }
                 ],
                 "responses": {
-                    "403": {
+                    "400": {
                         "description": "string error"
                     },
                     "{code:200,": {
@@ -4743,6 +5219,9 @@
         }
     },
     "definitions": {
+        ".ExpressionAction": {
+            "type": "object"
+        },
         ".Time": {
             "type": "object"
         },
@@ -4838,32 +5317,57 @@
                 }
             }
         },
-        "models.APICreateNoDataInputs": {
-            "title": "APICreateNoDataInputs",
+        "models.APICreateAggregatorInput": {
+            "title": "APICreateAggregatorInput",
             "type": "object",
             "properties": {
-                "dstype": {
+                "denominator": {
+                    "type": "string"
+                },
+                "endpoint": {
                     "type": "string"
                 },
                 "metric": {
                     "type": "string"
                 },
-                "mock": {
-                    "type": "number",
-                    "format": "double"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "obj": {
-                    "type": "string"
-                },
-                "obj_type": {
+                "numerator": {
                     "type": "string"
                 },
                 "step": {
                     "type": "integer",
                     "format": "int64"
+                },
+                "tag_id": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "tags": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.APICreateAggregatorInput0": {
+            "title": "APICreateAggregatorInput0",
+            "type": "object",
+            "properties": {
+                "denominator": {
+                    "type": "string"
+                },
+                "endpoint": {
+                    "type": "string"
+                },
+                "metric": {
+                    "type": "string"
+                },
+                "numerator": {
+                    "type": "string"
+                },
+                "step": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "tag_string": {
+                    "type": "string"
                 },
                 "tags": {
                     "type": "string"
@@ -4878,6 +5382,10 @@
                 "endpoints": {},
                 "falcon_tags": {
                     "type": "string"
+                },
+                "graph_id": {
+                    "type": "integer",
+                    "format": "int64"
                 },
                 "graph_type": {
                     "type": "string"
@@ -4951,39 +5459,6 @@
                     "type": "string"
                 },
                 "numerator": {
-                    "type": "string"
-                },
-                "step": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "tags": {
-                    "type": "string"
-                }
-            }
-        },
-        "models.APIUpdateNoDataInputs": {
-            "title": "APIUpdateNoDataInputs",
-            "type": "object",
-            "properties": {
-                "dstype": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "metric": {
-                    "type": "string"
-                },
-                "mock": {
-                    "type": "number",
-                    "format": "double"
-                },
-                "obj": {
-                    "type": "string"
-                },
-                "obj_type": {
                     "type": "string"
                 },
                 "step": {
@@ -5168,6 +5643,36 @@
                 }
             }
         },
+        "models.DeleteAggreator0": {
+            "title": "DeleteAggreator0",
+            "type": "object",
+            "properties": {
+                "entries": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.DeleteAggreator0Entry"
+                    }
+                },
+                "tag_string": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.DeleteAggreator0Entry": {
+            "title": "DeleteAggreator0Entry",
+            "type": "object",
+            "properties": {
+                "endpoint": {
+                    "type": "string"
+                },
+                "metric": {
+                    "type": "string"
+                },
+                "tags": {
+                    "type": "string"
+                }
+            }
+        },
         "models.Endpoint": {
             "title": "Endpoint",
             "type": "object",
@@ -5283,20 +5788,20 @@
                 }
             }
         },
-        "models.ExpressionAction": {
-            "title": "ExpressionAction",
+        "models.ExpressionActionApiPut": {
+            "title": "ExpressionActionApiPut",
             "type": "object",
             "properties": {
                 "action": {
                     "$ref": "#/definitions/models.Action"
                 },
                 "expression": {
-                    "$ref": "#/definitions/models.Expression"
+                    "$ref": "#/definitions/models.ExpressionApiPut"
                 }
             }
         },
-        "models.ExpressionUi": {
-            "title": "ExpressionUi",
+        "models.ExpressionApiGet": {
+            "title": "ExpressionApiGet",
             "type": "object",
             "properties": {
                 "condition": {
@@ -5342,6 +5847,88 @@
                     "format": "int32"
                 },
                 "uic": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.ExpressionApiPut": {
+            "title": "ExpressionApiPut",
+            "type": "object",
+            "properties": {
+                "condition": {
+                    "type": "string"
+                },
+                "createUid": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "expression": {
+                    "type": "string"
+                },
+                "fun": {
+                    "type": "string"
+                },
+                "maxStep": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "msg": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "op": {
+                    "type": "string"
+                },
+                "pause": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "priority": {
+                    "type": "integer",
+                    "format": "int64"
+                }
+            }
+        },
+        "models.GetAggreator": {
+            "title": "GetAggreator",
+            "type": "object",
+            "properties": {
+                "creator": {
+                    "type": "string"
+                },
+                "denominator": {
+                    "type": "string"
+                },
+                "ds_type": {
+                    "type": "string"
+                },
+                "endpoint": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "metric": {
+                    "type": "string"
+                },
+                "numerator": {
+                    "type": "string"
+                },
+                "step": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "tag_id": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "tag_name": {
+                    "type": "string"
+                },
+                "tags": {
                     "type": "string"
                 }
             }
@@ -5424,13 +6011,6 @@
                 }
             }
         },
-        "models.Ids": {
-            "title": "Ids",
-            "type": "object",
-            "properties": {
-                "ids": {}
-            }
-        },
         "models.JsonFloat": {
             "type": "object"
         },
@@ -5466,34 +6046,6 @@
                 }
             }
         },
-        "models.Matter": {
-            "title": "Matter",
-            "type": "object",
-            "properties": {
-                "Aggregation": {
-                    "type": "string"
-                },
-                "Endtime": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "Id": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "Name": {
-                    "type": "string"
-                },
-                "Starttime": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "Status": {
-                    "type": "integer",
-                    "format": "int64"
-                }
-            }
-        },
         "models.Metric": {
             "title": "Metric",
             "type": "object",
@@ -5519,6 +6071,38 @@
                 "id": {
                     "type": "integer",
                     "format": "int64"
+                },
+                "metric": {
+                    "type": "string"
+                },
+                "mock": {
+                    "type": "number",
+                    "format": "double"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "obj": {
+                    "type": "string"
+                },
+                "obj_type": {
+                    "type": "string"
+                },
+                "step": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "tags": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.NoDataApiPut": {
+            "title": "NoDataApiPut",
+            "type": "object",
+            "properties": {
+                "dstype": {
+                    "type": "string"
                 },
                 "metric": {
                     "type": "string"
@@ -5576,6 +6160,13 @@
                 "id": {
                     "type": "integer",
                     "format": "int64"
+                },
+                "tag_id": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "tag_name": {
+                    "type": "string"
                 }
             }
         },
@@ -5641,6 +6232,20 @@
                 }
             }
         },
+        "models.RelTagHostApiDel": {
+            "title": "RelTagHostApiDel",
+            "type": "object",
+            "properties": {
+                "host_id": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "tag_id": {
+                    "type": "integer",
+                    "format": "int64"
+                }
+            }
+        },
         "models.RelTagHosts": {
             "title": "RelTagHosts",
             "type": "object",
@@ -5702,6 +6307,18 @@
                 }
             }
         },
+        "models.RelTagTpl0": {
+            "title": "RelTagTpl0",
+            "type": "object",
+            "properties": {
+                "tag_string": {
+                    "type": "string"
+                },
+                "tpl_name": {
+                    "type": "string"
+                }
+            }
+        },
         "models.RelTagTpls": {
             "title": "RelTagTpls",
             "type": "object",
@@ -5732,6 +6349,20 @@
                 },
                 "note": {
                     "type": "string"
+                }
+            }
+        },
+        "models.Stats": {
+            "title": "Stats",
+            "type": "object",
+            "properties": {
+                "failure": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "success": {
+                    "type": "integer",
+                    "format": "int64"
                 }
             }
         },
@@ -5805,6 +6436,33 @@
                 }
             }
         },
+        "models.TagRoleUser": {
+            "title": "TagRoleUser",
+            "type": "object",
+            "properties": {
+                "role_id": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "role_name": {
+                    "type": "string"
+                },
+                "tag_id": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "tag_name": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "user_name": {
+                    "type": "string"
+                }
+            }
+        },
         "models.TagTplGet": {
             "title": "TagTplGet",
             "type": "object",
@@ -5874,6 +6532,28 @@
                     "items": {
                         "$ref": "#/definitions/models.User"
                     }
+                }
+            }
+        },
+        "models.TeamUi": {
+            "title": "TeamUi",
+            "type": "object",
+            "properties": {
+                "creator": {
+                    "type": "string"
+                },
+                "ctime": {
+                    "$ref": "#/definitions/time.Time"
+                },
+                "id": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "note": {
+                    "type": "string"
                 }
             }
         },
@@ -5986,6 +6666,9 @@
                 },
                 "name": {
                     "type": "string"
+                },
+                "read": {
+                    "type": "boolean"
                 }
             }
         },
