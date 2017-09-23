@@ -6,33 +6,14 @@
 package ctrl
 
 import (
-	"fmt"
-	"net"
-	"net/http"
 	"os"
-	"reflect"
-	"runtime"
 
-	"github.com/astaxie/beego"
 	"github.com/golang/glog"
 	"github.com/yubo/falcon"
 	fconfig "github.com/yubo/falcon/config"
 	"github.com/yubo/falcon/ctrl/config"
 	"github.com/yubo/falcon/ctrl/parse"
 )
-
-type hookfunc func(conf *config.ConfCtrl) error
-
-type Ctrl struct {
-	Conf    *config.ConfCtrl
-	oldConf *config.ConfCtrl
-	// runtime
-	status       uint32
-	running      chan struct{}
-	rpcListener  *net.TCPListener
-	httpListener *net.TCPListener
-	httpMux      *http.ServeMux
-}
 
 const (
 	MODULE_NAME     = "\x1B[32m[CTRL]\x1B[0m "
@@ -76,13 +57,10 @@ const (
 )
 
 var (
-	prestartHooks = make([]hookfunc, 0)
-	reloadHooks   = make([]hookfunc, 0)
-	Configure     *config.ConfCtrl
-	EtcdCli       *falcon.EtcdCli
+	modules   []module
+	Configure *config.ConfCtrl
 
 	ConfDefault = map[string]string{
-		//C_RUN_MODE:                "pub",
 		C_MASTER_MODE:             "true",
 		C_MI_MODE:                 "false",
 		C_DEV_MODE:                "false",
@@ -98,7 +76,6 @@ var (
 	}
 
 	ConfDesc = map[string]string{
-		//ctrl.C_RUN_MODE:                "dev/prod",
 		//ctrl.C_ENABLE_DOCS:             "ture/false",
 		C_MASTER_MODE:             "bool",
 		C_MI_MODE:                 "bool",
@@ -122,20 +99,40 @@ var (
 	}
 )
 
-func RegisterPrestart(fn hookfunc) {
-	prestartHooks = append(prestartHooks, fn)
+// module {{{
+
+type module interface {
+	PreStart(*config.ConfCtrl) error        // alloc public data
+	Start(*config.ConfCtrl) error           // alloc private data, run private goroutine
+	Stop(*config.ConfCtrl) error            // free private data, private goroutine exit
+	Reload(old, new *config.ConfCtrl) error // try to keep the data, refresh configure
 }
 
-func RegisterReload(fn hookfunc) {
-	reloadHooks = append(reloadHooks, fn)
+func RegisterModule(m module) {
+	modules = append(modules, m)
+}
+
+// }}}
+
+// Ctrl {{{
+type Ctrl struct {
+	Conf    *config.ConfCtrl
+	oldConf *config.ConfCtrl
+	// runtime
+	status uint32
+	// rpcListener  *net.TCPListener
+	// httpListener *net.TCPListener
+	// httpMux      *http.ServeMux
 }
 
 func (p *Ctrl) New(conf interface{}) falcon.Module {
-	return &Ctrl{Conf: conf.(*config.ConfCtrl)}
+	return &Ctrl{
+		Conf: conf.(*config.ConfCtrl),
+	}
 }
 
 func (p *Ctrl) Name() string {
-	return fmt.Sprintf("%s", p.Conf.Name)
+	return p.Conf.Name
 }
 
 func (p *Ctrl) Parse(text []byte, filename string, lino int, debug bool) fconfig.ModuleConf {
@@ -151,67 +148,66 @@ func (p *Ctrl) String() string {
 
 // ugly hack
 // should called by main package
-func (p *Ctrl) Prestart() error {
-	glog.V(3).Infof(MODULE_NAME + "Prestart() entering")
-	Configure = p.Conf
+func (p *Ctrl) Prestart() (err error) {
+	glog.V(3).Infof(MODULE_NAME+"%s Prestart()", p.Conf.Name)
+	p.status = falcon.APP_STATUS_INIT
 
-	EtcdCli = falcon.NewEtcdCli(Configure.Ctrl)
-
-	EtcdCli.Prestart()
-	for _, fn := range prestartHooks {
-		glog.V(3).Infof(MODULE_NAME+"%s() called\n", runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name())
-		if err := fn(Configure); err != nil {
-			panic(err)
+	for i := 0; i < len(modules); i++ {
+		if e := modules[i].PreStart(p.Conf); e != nil {
+			err = e
+			glog.Error(err)
 		}
 	}
-	glog.V(3).Infof(MODULE_NAME + "Prestart() leaving")
-	return nil
+	return err
 }
 
-func (p *Ctrl) Start() error {
-	glog.V(3).Infof(MODULE_NAME + "Start() entering")
-
+func (p *Ctrl) Start() (err error) {
+	glog.V(3).Infof(MODULE_NAME+"%s Start()", p.Conf.Name)
 	p.status = falcon.APP_STATUS_PENDING
-	p.running = make(chan struct{}, 0)
 
-	EtcdCli.Start()
-	// p.rpcStart()
-	// p.httpStart()
-	p.statStart()
-	go beego.Run()
-	glog.V(3).Infof(MODULE_NAME + "Start() leaving")
-	return nil
+	for i := 0; i < len(modules); i++ {
+		if e := modules[i].Start(p.Conf); e != nil {
+			err = e
+			glog.Error(err)
+		}
+	}
+
+	p.status = falcon.APP_STATUS_RUNNING
+	return err
 }
 
-func (p *Ctrl) Stop() error {
+func (p *Ctrl) Stop() (err error) {
 	glog.V(3).Infof(MODULE_NAME+"%s Stop()", p.Conf.Name)
 	p.status = falcon.APP_STATUS_EXIT
-	close(p.running)
-	p.statStop()
-	EtcdCli.Stop()
-	// p.httpStop()
-	// p.rpcStop()
+
+	for i := len(modules) - 1; i >= 0; i-- {
+		if e := modules[i].Stop(p.Conf); e != nil {
+			err = e
+			glog.Error(err)
+		}
+	}
+
 	return nil
 }
 
 // TODO: reload is not yet implemented
-func (p *Ctrl) Reload(conf interface{}) error {
-	p.Conf = conf.(*config.ConfCtrl)
+func (p *Ctrl) Reload(c interface{}) (err error) {
 	glog.V(3).Infof(MODULE_NAME+"%s Reload()", p.Conf.Name)
+	p.oldConf = p.Conf
+	p.Conf = c.(*config.ConfCtrl)
 
-	Configure = p.Conf
-
-	EtcdCli.Reload(Configure.Ctrl)
-	for _, fn := range prestartHooks {
-		if err := fn(Configure); err != nil {
-			panic(err)
+	for i := 0; i < len(modules); i++ {
+		if e := modules[i].Reload(p.oldConf, p.Conf); e != nil {
+			err = e
+			glog.Error(err)
 		}
 	}
-
-	return nil
+	return err
 }
 
 func (p *Ctrl) Signal(sig os.Signal) error {
 	glog.V(3).Infof(MODULE_NAME+"%s signal %v", p.Conf.Name, sig)
 	return nil
 }
+
+// }}}

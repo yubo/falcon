@@ -21,8 +21,8 @@ import (
 
 	_ "github.com/yubo/falcon/agent/agent"
 	_ "github.com/yubo/falcon/backend/backend"
+	_ "github.com/yubo/falcon/ctrl/ctrl"
 	_ "github.com/yubo/falcon/transfer/transfer"
-	//_ "github.com/yubo/falcon/ctrl/ctrl"
 )
 
 var opts falcon.CmdOpts

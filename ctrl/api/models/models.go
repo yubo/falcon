@@ -166,7 +166,7 @@ var (
 	}
 )
 
-func initModels(conf *config.ConfCtrl) (err error) {
+func InitModels(conf *config.ConfCtrl) (err error) {
 	if err = initConfig(conf); err != nil {
 		panic(err)
 	}
@@ -268,12 +268,18 @@ func initConfig(conf *config.ConfCtrl) error {
 	glog.V(4).Infof(MODULE_NAME+"initConfig get config %s", cf.String())
 
 	// ctrl config
-	orm.RegisterDataBase("idx", "mysql", cf.Str(ctrl.C_IDX_DSN), dbMaxIdle, dbMaxConn)
+	if err = orm.RegisterDataBase("idx", "mysql", cf.Str(ctrl.C_IDX_DSN), dbMaxIdle, dbMaxConn); err != nil {
+		return err
+	}
 	Db.Idx = orm.NewOrm()
 	Db.Idx.Using("idx")
-	orm.RegisterDataBase("alarm", "mysql", cf.Str(ctrl.C_ALARM_DSN), dbMaxIdle, dbMaxConn)
+
+	if err = orm.RegisterDataBase("alarm", "mysql", cf.Str(ctrl.C_ALARM_DSN), dbMaxIdle, dbMaxConn); err != nil {
+		return err
+	}
 	Db.Alarm = orm.NewOrm()
 	Db.Alarm.Using("alarm")
+
 	sysTagSchema, err = NewTagSchema(cf.Str(ctrl.C_TAG_SCHEMA))
 	transferUrl = cf.Str(ctrl.C_TRANSFER_URL)
 
@@ -329,9 +335,4 @@ func initConfig(conf *config.ConfCtrl) error {
 	}
 
 	return err
-}
-
-func init() {
-	ctrl.RegisterPrestart(initModels)
-	ctrl.RegisterReload(initModels)
 }

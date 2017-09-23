@@ -58,7 +58,6 @@ type module interface {
 
 func RegisterModule(m module) {
 	modules = append(modules, m)
-
 }
 
 // }}}

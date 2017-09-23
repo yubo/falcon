@@ -204,7 +204,7 @@ func prepareEtcdConfig() error {
 		}
 
 		prefix := fmt.Sprintf("/open-falcon/%s/config/", module)
-		resp, err := ctrl.EtcdCli.GetPrefix(prefix)
+		resp, err := ctrl.EtcdGetPrefix(prefix)
 		if err != nil {
 			return err
 		}
@@ -219,7 +219,7 @@ func prepareEtcdConfig() error {
 			}
 		}
 	}
-	return ctrl.EtcdCli.Puts(put)
+	return ctrl.EtcdPuts(put)
 }
 
 func GetDbConfig(o orm.Ormer, module string) (ret map[string]string, err error) {
@@ -249,7 +249,7 @@ func (op *Operator) SetEtcdConfig(module string, conf map[string]string) error {
 			ekv[ek] = conf[k]
 		}
 	}
-	return ctrl.EtcdCli.Puts(ekv)
+	return ctrl.EtcdPuts(ekv)
 }
 
 func (op *Operator) SetDbConfig(module string, conf map[string]string) error {
@@ -350,7 +350,7 @@ func (op *Operator) OnlineGet(module string) ([]KeyValue, error) {
 	switch module {
 	case "ctrl", "agent", "lb", "backend", "graph", "transfer":
 		prefix := fmt.Sprintf("/open-falcon/%s/online/", module)
-		resp, err := ctrl.EtcdCli.GetPrefix(prefix)
+		resp, err := ctrl.EtcdGetPrefix(prefix)
 		if err != nil {
 			return nil, err
 		}
@@ -386,12 +386,12 @@ func (op *Operator) ExpansionGet(module string) (ret *ExpansionStatus, err error
 		return nil, falcon.ErrUnsupported
 	}
 
-	//if enable, err = ctrl.EtcdCli.Get(EtcdMap["graph"][ctrl.C_MIGRATE_ENABLE]); err == nil && enable == "true" {
+	//if enable, err = ctrl.EtcdGet(EtcdMap["graph"][ctrl.C_MIGRATE_ENABLE]); err == nil && enable == "true" {
 	//	ret.Migrating = true
 	//}
 
-	//ret.GraphCluster, _ = ctrl.EtcdCli.Get(EtcdMap["transfer"][transfer.C_GRAPH_CLUSTER])
-	//ret.NewEndpoint, _ = ctrl.EtcdCli.Get(EtcdMap["graph"][graph.C_MIGRATE_NEW_ENDPOINT])
+	//ret.GraphCluster, _ = ctrl.EtcdGet(EtcdMap["transfer"][transfer.C_GRAPH_CLUSTER])
+	//ret.NewEndpoint, _ = ctrl.EtcdGet(EtcdMap["graph"][graph.C_MIGRATE_NEW_ENDPOINT])
 
 	return ret, nil
 }
@@ -472,7 +472,7 @@ func (op *Operator) ExpansionBegin(module string, newEndpoint string) error {
 		ekv[EtcdMap["graph"][graph.C_MIGRATE_CLUSTER]] = _old_cluster
 		ekv[EtcdMap["transfer"][transfer.C_GRAPH_CLUSTER]] = _new_cluster
 
-		return ctrl.EtcdCli.Puts(ekv)
+		return ctrl.EtcdPuts(ekv)
 	*/
 	return nil
 
@@ -492,7 +492,7 @@ func (op *Operator) ExpansionFinish(module string) error {
 		ekv := make(map[string]string)
 		ekv[EtcdMap["graph"][graph.C_MIGRATE_ENABLE]] = "false"
 		ekv[EtcdMap["graph"][graph.C_MIGRATE_NEW_ENDPOINT]] = " "
-		return ctrl.EtcdCli.Puts(ekv)
+		return ctrl.EtcdPuts(ekv)
 	*/
 	return nil
 }

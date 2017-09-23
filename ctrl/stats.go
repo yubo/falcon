@@ -6,11 +6,13 @@
 package ctrl
 
 import (
+	"context"
 	"fmt"
 	"sync/atomic"
 	"time"
 
 	"github.com/golang/glog"
+	"github.com/yubo/falcon/ctrl/config"
 )
 
 const (
@@ -57,23 +59,41 @@ func statGet(idx int) uint64 {
 	return atomic.LoadUint64(&statCnt[idx])
 }
 
-func (p *Ctrl) statStart() {
-	if p.Conf.Debug > 0 {
+type StatsModule struct {
+	ctx    context.Context
+	cancel context.CancelFunc
+}
+
+func (p *StatsModule) PreStart(c *config.ConfCtrl) error {
+	return nil
+}
+
+func (p *StatsModule) Start(c *config.ConfCtrl) error {
+	p.ctx, p.cancel = context.WithCancel(context.Background())
+	if c.Debug > 0 {
 		ticker := time.NewTicker(time.Second * DEBUG_STAT_STEP).C
 		go func() {
 			for {
 				select {
+				case <-p.ctx.Done():
+					return
 				case <-ticker:
 					glog.V(3).Info(MODULE_NAME + statHandle())
-				case _, ok := <-p.running:
-					if !ok {
-						return
-					}
 				}
 			}
 		}()
 	}
+	return nil
 }
 
-func (p *Ctrl) statStop() {
+func (p *StatsModule) Stop(c *config.ConfCtrl) error {
+	p.cancel()
+	return nil
+}
+
+func (p *StatsModule) Reload(old, c *config.ConfCtrl) error {
+	p.Stop(c)
+	time.Sleep(time.Second)
+	p.PreStart(c)
+	return p.Start(c)
 }
