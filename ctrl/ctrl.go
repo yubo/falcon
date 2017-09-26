@@ -150,6 +150,7 @@ func (p *Ctrl) String() string {
 // should called by main package
 func (p *Ctrl) Prestart() (err error) {
 	glog.V(3).Infof(MODULE_NAME+"%s Prestart()", p.Conf.Name)
+	Configure = p.Conf
 	p.status = falcon.APP_STATUS_INIT
 
 	for i := 0; i < len(modules); i++ {
