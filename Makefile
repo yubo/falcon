@@ -67,7 +67,6 @@ parse: $(TARGETS)
 	./dist/bin/falcon -config ./etc/falcon.conf -logtostderr -v 4 parse 2>&1
 
 coverage: $(DEPENDS)
-	export GOPATH=${WORKDIR}/gopath:$$GOPATH &&\
 	./scripts/test_coverage.sh
 	curl -s https://codecov.io/bash | bash
 
