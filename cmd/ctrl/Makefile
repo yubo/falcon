@@ -4,7 +4,7 @@ all: api/swagger/swagger.json
 .PHONY: db dev doc web
 
 doc:     
-	cd ${GOPATH}/src/github.com/open-falcon/falcon/ctrl/api && \
+	cd ${GOPATH}/src/github.com/yubo/falcon/ctrl/api && \
 		echo `pwd` && \
 	bee generate docs
 
