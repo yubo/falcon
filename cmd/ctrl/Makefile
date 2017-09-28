@@ -9,4 +9,4 @@ doc:
 	bee generate docs
 
 dev:     
-	bee run -gendoc=true -downdoc=true
+	bee run 

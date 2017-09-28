@@ -1936,7 +1936,7 @@
                     "200": {
                         "description": "matter  info",
                         "schema": {
-                            "$ref": "#/definitions/alarm.Matter"
+                            "$ref": "#/definitions/models.Matter"
                         }
                     },
                     "400": {
@@ -6041,6 +6041,34 @@
                     "$ref": "#/definitions/time.Time"
                 },
                 "UserId": {
+                    "type": "integer",
+                    "format": "int64"
+                }
+            }
+        },
+        "models.Matter": {
+            "title": "Matter",
+            "type": "object",
+            "properties": {
+                "Aggregation": {
+                    "type": "string"
+                },
+                "Endtime": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "Id": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "Name": {
+                    "type": "string"
+                },
+                "Starttime": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "Status": {
                     "type": "integer",
                     "format": "int64"
                 }
