@@ -19,7 +19,7 @@ import (
 	"github.com/yubo/falcon/parse"
 	"github.com/yubo/gotool/flags"
 
-	_ "github.com/yubo/falcon/ctrl/ctrl"
+	_ "github.com/yubo/falcon/ctrl/modules"
 )
 
 var opts falcon.CmdOpts

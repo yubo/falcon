@@ -19,10 +19,10 @@ import (
 	"github.com/yubo/falcon/parse"
 	"github.com/yubo/gotool/flags"
 
-	_ "github.com/yubo/falcon/agent/agent"
-	_ "github.com/yubo/falcon/backend/backend"
-	_ "github.com/yubo/falcon/ctrl/ctrl"
-	_ "github.com/yubo/falcon/transfer/transfer"
+	_ "github.com/yubo/falcon/agent/modules"
+	_ "github.com/yubo/falcon/backend/modules"
+	_ "github.com/yubo/falcon/ctrl/modules"
+	_ "github.com/yubo/falcon/transfer/modules"
 )
 
 var opts falcon.CmdOpts
