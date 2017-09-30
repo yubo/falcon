@@ -23,7 +23,18 @@ const (
 	ACL = true
 )
 
-func init() {
+var (
+	initRouter bool
+)
+
+func PreStart() error {
+
+	if initRouter {
+		return nil
+	}
+
+	initRouter = true
+
 	beego.InsertFilter("/v1.0/*", beego.BeforeRouter, profileFilter)
 	beego.InsertFilter("/v1.0/*", beego.BeforeRouter, accessFilter)
 
@@ -50,6 +61,8 @@ func init() {
 		beego.NSNamespace("/pub", beego.NSInclude(&controllers.PubController{})),
 	)
 	beego.AddNamespace(ns)
+
+	return nil
 }
 
 func accessFilter(ctx *context.Context) {

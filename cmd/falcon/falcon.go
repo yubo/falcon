@@ -52,6 +52,9 @@ func init() {
 
 	flags.NewCommand("changelog", "show falcon changelog information",
 		changelog, flag.ExitOnError)
+
+	flags.NewCommand("modules", "show falcon modules information",
+		modules, flag.ExitOnError)
 }
 
 func helpHandle(arg interface{}) {
@@ -191,6 +194,12 @@ func git(arg interface{}) {
 
 func changelog(arg interface{}) {
 	fmt.Println(falcon.CHANGELOG)
+}
+
+func modules(arg interface{}) {
+	for m, _ := range falcon.Modules {
+		fmt.Printf("%s\n", m)
+	}
 }
 
 func main() {

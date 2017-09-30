@@ -166,7 +166,7 @@ var (
 	}
 )
 
-func InitModels(conf *config.ConfCtrl) (err error) {
+func PreStart(conf *config.ConfCtrl) (err error) {
 	if err = initConfig(conf); err != nil {
 		panic(err)
 	}

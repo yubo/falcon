@@ -34,4 +34,5 @@ type CmdOpts struct {
 
 var (
 	ModuleTpls map[string]Module
+	Modules    map[string]Module
 )

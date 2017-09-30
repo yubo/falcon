@@ -87,7 +87,7 @@ module: text '{' {
 			lino: yy.ctx.lino,
 			pos: yy.ctx.pos - 1,
 		}
-		if m, ok := falcon.ModuleTpls[$1]; ok {
+		if m, ok := falcon.Modules[$1]; ok {
 			yy_module_parse = m.Parse
 		} else {
 			yy.Error(fmt.Sprintf("module [%s] not exists", $1))

@@ -14,7 +14,7 @@ import (
 )
 
 func init() {
-	falcon.RegisterModule(&agent.Agent{}, falcon.GetType(config.ConfAgent{}), "agent")
+	falcon.RegisterModule(&agent.Agent{}, "agent", falcon.GetType(config.ConfAgent{}))
 	agent.RegisterModule(&agent.StatsModule{})
 	agent.RegisterModule(&agent.CollectModule{})
 	agent.RegisterModule(&agent.UpstreamModule{})

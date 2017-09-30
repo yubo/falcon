@@ -47,6 +47,7 @@ const (
 
 func init() {
 	ModuleTpls = make(map[string]Module)
+	Modules = make(map[string]Module)
 }
 
 func NewProcess(c *config.FalconConfig) *Process {
@@ -110,14 +111,17 @@ func (p *Process) Start() {
 	}
 }
 
-func RegisterModule(m Module, names ...string) error {
-	for _, name := range names {
-		if _, ok := ModuleTpls[name]; ok {
-			return ErrExist
-		} else {
-			ModuleTpls[name] = m
-		}
+func RegisterModule(m Module, name, tpl string) error {
+	if _, ok := Modules[name]; ok {
+		return ErrExist
 	}
+
+	if _, ok := ModuleTpls[tpl]; ok {
+		return ErrExist
+	}
+
+	Modules[name] = m
+	ModuleTpls[tpl] = m
 	return nil
 }
 

@@ -10,10 +10,10 @@ import (
 
 	"github.com/astaxie/beego"
 	"github.com/yubo/falcon/ctrl/api/models"
+	"github.com/yubo/falcon/ctrl/api/routers"
 	"github.com/yubo/falcon/ctrl/config"
 
 	_ "github.com/yubo/falcon/ctrl/api/models/auth"
-	_ "github.com/yubo/falcon/ctrl/api/routers"
 )
 
 type ApiModule struct {
@@ -21,7 +21,10 @@ type ApiModule struct {
 }
 
 func (p *ApiModule) PreStart(c *config.ConfCtrl) error {
-	if err := models.InitModels(c); err != nil {
+	if err := routers.PreStart(); err != nil {
+		return err
+	}
+	if err := models.PreStart(c); err != nil {
 		return err
 	}
 	return p.b.PreStart()

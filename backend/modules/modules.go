@@ -12,7 +12,8 @@ import (
 )
 
 func init() {
-	falcon.RegisterModule(&backend.Backend{}, falcon.GetType(config.ConfBackend{}), "backend")
+	falcon.RegisterModule(&backend.Backend{}, "backend",
+		falcon.GetType(config.ConfBackend{}))
 
 	// cache should early register(init cache data)
 	backend.RegisterModule(&backend.StorageModule{})

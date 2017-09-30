@@ -586,7 +586,7 @@ yydefault:
 				lino:  yy.ctx.lino,
 				pos:   yy.ctx.pos - 1,
 			}
-			if m, ok := falcon.ModuleTpls[yyDollar[1].text]; ok {
+			if m, ok := falcon.Modules[yyDollar[1].text]; ok {
 				yy_module_parse = m.Parse
 			} else {
 				yy.Error(fmt.Sprintf("module [%s] not exists", yyDollar[1].text))
