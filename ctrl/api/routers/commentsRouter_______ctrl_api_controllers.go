@@ -401,17 +401,17 @@ func init() {
 
 	beego.GlobalControllerRouter["github.com/yubo/falcon/cmd/vendor/github.com/yubo/falcon/ctrl/api/controllers:HostController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/cmd/vendor/github.com/yubo/falcon/ctrl/api/controllers:HostController"],
 		beego.ControllerComments{
-			Method: "GetHost",
-			Router: `/:id`,
-			AllowHTTPMethods: []string{"get"},
+			Method: "UpdateHost",
+			Router: `/`,
+			AllowHTTPMethods: []string{"put"},
 			MethodParams: param.Make(),
 			Params: nil})
 
 	beego.GlobalControllerRouter["github.com/yubo/falcon/cmd/vendor/github.com/yubo/falcon/ctrl/api/controllers:HostController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/cmd/vendor/github.com/yubo/falcon/ctrl/api/controllers:HostController"],
 		beego.ControllerComments{
-			Method: "UpdateHost",
+			Method: "GetHost",
 			Router: `/:id`,
-			AllowHTTPMethods: []string{"put"},
+			AllowHTTPMethods: []string{"get"},
 			MethodParams: param.Make(),
 			Params: nil})
 

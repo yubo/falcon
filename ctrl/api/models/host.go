@@ -63,18 +63,18 @@ func (op *Operator) GetHosts(query string, limit, offset int) (ret []*Host, err 
 	return
 }
 
-func (op *Operator) UpdateHost(id int64, h *Host) (ret *Host, err error) {
-	_, err = op.SqlExec("update host set uuid = ?, name = ?, type = ?, status = ?, loc = ?, idc = ?, pause = ?, maintain_begin = ?, maintain_end = ? where id = ?", h.Uuid, h.Name, h.Type, h.Status, h.Loc, h.Idc, h.Pause, h.MaintainBegin, h.MaintainEnd, id)
+func (op *Operator) UpdateHost(h *Host) (ret *Host, err error) {
+	_, err = op.SqlExec("update host set uuid = ?, name = ?, type = ?, status = ?, loc = ?, idc = ?, pause = ?, maintain_begin = ?, maintain_end = ? where id = ?", h.Uuid, h.Name, h.Type, h.Status, h.Loc, h.Idc, h.Pause, h.MaintainBegin, h.MaintainEnd, h.Id)
 	if err != nil {
 		return
 	}
 
-	moduleCache[CTL_M_HOST].del(id, h.Name)
-	if ret, err = op.GetHost(id); err != nil {
+	moduleCache[CTL_M_HOST].del(h.Id, h.Name)
+	if ret, err = op.GetHost(h.Id); err != nil {
 		return
 	}
 
-	DbLog(op.O, op.User.Id, CTL_M_HOST, id, CTL_A_SET, jsonStr(h))
+	DbLog(op.O, op.User.Id, CTL_M_HOST, h.Id, CTL_A_SET, jsonStr(h))
 	return ret, err
 }
 

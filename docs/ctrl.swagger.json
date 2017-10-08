@@ -1531,6 +1531,35 @@
             }
         },
         "/host/": {
+            "put": {
+                "tags": [
+                    "host"
+                ],
+                "description": "update the host",
+                "operationId": "HostController.UpdateHost",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for host content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.Host"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "host info",
+                        "schema": {
+                            "$ref": "#/definitions/models.Host"
+                        }
+                    },
+                    "400": {
+                        "description": "string error"
+                    }
+                }
+            },
             "post": {
                 "tags": [
                     "host"
@@ -1649,42 +1678,6 @@
                         "required": true,
                         "type": "integer",
                         "format": "int64"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "host info",
-                        "schema": {
-                            "$ref": "#/definitions/models.Host"
-                        }
-                    },
-                    "400": {
-                        "description": "string error"
-                    }
-                }
-            },
-            "put": {
-                "tags": [
-                    "host"
-                ],
-                "description": "update the host",
-                "operationId": "HostController.UpdateHost",
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "id",
-                        "description": "The id you want to update",
-                        "required": true,
-                        "type": "string"
-                    },
-                    {
-                        "in": "body",
-                        "name": "body",
-                        "description": "body for host content",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.Host"
-                        }
                     }
                 ],
                 "responses": {

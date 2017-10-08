@@ -9,4 +9,5 @@ doc:
 	bee generate docs
 
 dev:     
-	bee run 
+	cd ../.. && make doc && cd - && \
+	bee run

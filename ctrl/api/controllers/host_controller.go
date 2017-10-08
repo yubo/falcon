@@ -28,7 +28,6 @@ func (c *HostController) CreateHost() {
 
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	json.Unmarshal(c.Ctx.Input.RequestBody, &host)
-	host.Id = 0
 
 	if id, err := op.AddHost(&host); err != nil {
 		c.SendMsg(400, err.Error())
@@ -100,28 +99,29 @@ func (c *HostController) GetHost() {
 
 // @Title UpdateHost
 // @Description update the host
-// @Param	id		path 	string	true	"The id you want to update"
 // @Param	body		body 	models.Host	true	"body for host content"
 // @Success 200 {object} models.Host host info
 // @Failure 400 string error
-// @router /:id [put]
+// @router / [put]
 func (c *HostController) UpdateHost() {
-	var host *models.Host
+	host := &models.Host{}
 
-	id, err := c.GetInt64(":id")
+	err := json.Unmarshal(c.Ctx.Input.RequestBody, host)
 	if err != nil {
 		c.SendMsg(400, err.Error())
 		return
 	}
 
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
-	if host, err = op.GetHost(id); err != nil {
+	if host, err = op.GetHost(host.Id); err != nil {
 		c.SendMsg(400, err.Error())
 		return
 	}
+
+	// overlay entry
 	json.Unmarshal(c.Ctx.Input.RequestBody, host)
 
-	if host, err = op.UpdateHost(id, host); err != nil {
+	if host, err = op.UpdateHost(host); err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
 		c.SendMsg(200, host)
