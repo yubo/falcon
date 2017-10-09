@@ -9,8 +9,28 @@
 
 ![][lite_falcon_img]
 
-## 使用
+## build
+
+
 ```
+#install gcc make automak libtool golang ...
+
+# install protoc
+wget https://github.com/google/protobuf/archive/v3.4.1.tar.gz
+tar xzvf v3.4.1.tar.gz
+cd protobuf-3.4.1
+./autogen.sh
+./configure
+make
+sudo make install
+
+go get -u github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
+go get -u github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger
+go get -u github.com/golang/protobuf/protoc-gen-go
+
+# build falcon
+git clone https://github.com/yubo/falcon
+cd falcon
 make
 ```
 
