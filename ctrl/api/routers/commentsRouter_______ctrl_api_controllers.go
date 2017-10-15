@@ -409,6 +409,14 @@ func init() {
 
 	beego.GlobalControllerRouter["github.com/yubo/falcon/cmd/vendor/github.com/yubo/falcon/ctrl/api/controllers:HostController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/cmd/vendor/github.com/yubo/falcon/ctrl/api/controllers:HostController"],
 		beego.ControllerComments{
+			Method: "DeleteHosts",
+			Router: `/`,
+			AllowHTTPMethods: []string{"delete"},
+			MethodParams: param.Make(),
+			Params: nil})
+
+	beego.GlobalControllerRouter["github.com/yubo/falcon/cmd/vendor/github.com/yubo/falcon/ctrl/api/controllers:HostController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/cmd/vendor/github.com/yubo/falcon/ctrl/api/controllers:HostController"],
+		beego.ControllerComments{
 			Method: "GetHost",
 			Router: `/:id`,
 			AllowHTTPMethods: []string{"get"},
@@ -1193,17 +1201,17 @@ func init() {
 
 	beego.GlobalControllerRouter["github.com/yubo/falcon/cmd/vendor/github.com/yubo/falcon/ctrl/api/controllers:UserController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/cmd/vendor/github.com/yubo/falcon/ctrl/api/controllers:UserController"],
 		beego.ControllerComments{
-			Method: "GetUser",
-			Router: `/:id`,
-			AllowHTTPMethods: []string{"get"},
+			Method: "UpdateUser",
+			Router: `/`,
+			AllowHTTPMethods: []string{"put"},
 			MethodParams: param.Make(),
 			Params: nil})
 
 	beego.GlobalControllerRouter["github.com/yubo/falcon/cmd/vendor/github.com/yubo/falcon/ctrl/api/controllers:UserController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/cmd/vendor/github.com/yubo/falcon/ctrl/api/controllers:UserController"],
 		beego.ControllerComments{
-			Method: "UpdateUser",
+			Method: "GetUser",
 			Router: `/:id`,
-			AllowHTTPMethods: []string{"put"},
+			AllowHTTPMethods: []string{"get"},
 			MethodParams: param.Make(),
 			Params: nil})
 

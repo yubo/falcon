@@ -11,8 +11,16 @@ import (
 	"time"
 
 	"github.com/astaxie/beego/orm"
-	"github.com/yubo/falcon"
 )
+
+type UserProfileUpdate struct {
+	Cname string `json:"cname"`
+	Email string `json:"email"`
+	Phone string `json:"phone"`
+	Im    string `json:"im"`
+	Qq    string `json:"qq"`
+	Extra string `json:"extra"`
+}
 
 type User struct {
 	Id         int64     `json:"id"`
@@ -23,6 +31,7 @@ type User struct {
 	Phone      string    `json:"phone"`
 	Im         string    `json:"im"`
 	Qq         string    `json:"qq"`
+	Extra      string    `json:"extra"`
 	Disabled   int       `json:"disabled"`
 	CreateTime time.Time `json:"ctime"`
 }
@@ -132,7 +141,7 @@ func GetUser(id int64, o orm.Ormer) (ret *User, err error) {
 	}
 
 	ret = &User{}
-	err = o.Raw("select id, uuid, name, cname, email, phone, im, qq, disabled, create_time from user where id = ?", id).QueryRow(ret)
+	err = o.Raw("select id, uuid, name, cname, email, phone, im, qq, disabled, extra, create_time from user where id = ?", id).QueryRow(ret)
 	if err == nil {
 		moduleCache[CTL_M_USER].set(id, ret)
 	}
@@ -171,25 +180,25 @@ func (op *Operator) GetUsersCnt(query string) (cnt int64, err error) {
 
 func (op *Operator) GetUsers(query string, limit, offset int) (ret []*User, err error) {
 	sql, sql_args := sqlUser(query)
-	sql = sqlLimit("select id, uuid, name, cname, email, phone, im, qq, disabled, create_time from user "+sql+" ORDER BY name", limit, offset)
+	sql = sqlLimit("select id, uuid, name, cname, email, phone, im, qq, disabled, create_time, extra from user "+sql+" ORDER BY name", limit, offset)
 	_, err = op.O.Raw(sql, sql_args...).QueryRows(&ret)
 
 	return
 }
 
-func (op *Operator) UpdateUser(id int64, _u *User) (user *User, err error) {
-	_, err = op.SqlExec("update user set name = ?, cname = ?, email = ?, phone = ?, im = ?, qq = ?, disabled = ? where id = ?", user.Name, user.Cname, user.Email, user.Phone, user.Im, user.Qq, user.Disabled, user.Id)
+func (op *Operator) UpdateUser(user *User) (ret *User, err error) {
+	_, err = op.SqlExec("update user set name = ?, cname = ?, email = ?, phone = ?, im = ?, qq = ?, disabled = ?, extra = ? where id = ?", user.Name, user.Cname, user.Email, user.Phone, user.Im, user.Qq, user.Disabled, user.Extra, user.Id)
 	if err != nil {
 		return
 	}
 
-	moduleCache[CTL_M_USER].del(id)
-	if user, err = op.GetUser(id); err != nil {
-		return nil, falcon.ErrNoExits
+	moduleCache[CTL_M_USER].del(user.Id)
+	if ret, err = op.GetUser(user.Id); err != nil {
+		return
 	}
 
-	DbLog(op.O, op.User.Id, CTL_M_USER, id, CTL_A_SET, "")
-	return user, err
+	DbLog(op.O, op.User.Id, CTL_M_USER, user.Id, CTL_A_SET, "")
+	return
 }
 
 func (op *Operator) DeleteUser(id int64) error {

@@ -96,31 +96,32 @@ func (c *UserController) GetUser() {
 
 // @Title Update
 // @Description update the user
-// @Param	id		path 	string	true		"The id you want to update"
 // @Param	body		body 	models.User	true		"body for user content"
 // @Success 200 {object} models.User user info
 // @Failure 400 string error
-// @router /:id [put]
+// @router / [put]
 func (c *UserController) UpdateUser() {
-	var user *models.User
+	user := &models.User{}
 
-	id, err := c.GetInt64(":id")
+	err := json.Unmarshal(c.Ctx.Input.RequestBody, user)
 	if err != nil {
 		c.SendMsg(400, err.Error())
 		return
 	}
 
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
-	if user, err = op.GetUser(id); err != nil {
+	if user, err = op.GetUser(user.Id); err != nil {
 		c.SendMsg(400, err.Error())
 		return
 	}
+
+	o := *user
 	json.Unmarshal(c.Ctx.Input.RequestBody, user)
 
-	if u, err := op.UpdateUser(id, user); err != nil {
+	if user, err = op.UpdateUser(&o); err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
-		c.SendMsg(200, u)
+		c.SendMsg(200, user)
 	}
 }
 

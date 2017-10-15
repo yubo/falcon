@@ -87,12 +87,17 @@ func (c *DashboardController) UpdateGraphs() {
 	)
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	json.Unmarshal(c.Ctx.Input.RequestBody, &gs)
+	err := json.Unmarshal(c.Ctx.Input.RequestBody, &gs)
+	if err != nil {
+		c.SendMsg(400, err.Error())
+		return
+	}
+
 	for _, g := range gs {
-		if _, err := op.UpdateDashboardGraph(&g); err != nil {
-			success++
-		} else {
+		if _, err = op.UpdateDashboardGraph(&g); err != nil {
 			failure++
+		} else {
+			success++
 		}
 	}
 

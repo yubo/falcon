@@ -52,20 +52,34 @@ func (c *SetController) GetUser() {
 
 // @Title Profile update
 // @Description update profile
-// @Param	body		body 	models.User	true		"body for user content"
+// @Param	body		body 	models.UserProfileUpdate	true		"body for user content"
 // @Success 200 {object} models.User user info
 // @Failure 400 string error
 // @router /profile [put]
 func (c *SetController) UpdateUser() {
-	var user models.User
+	user := &models.UserProfileUpdate{}
 
-	json.Unmarshal(c.Ctx.Input.RequestBody, &user)
+	err := json.Unmarshal(c.Ctx.Input.RequestBody, user)
+	if err != nil {
+		c.SendMsg(400, err.Error())
+		return
+	}
 
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
-	if u, err := op.UpdateUser(op.User.Id, &user); err != nil {
+
+	o := *op.User
+	o.Cname = user.Cname
+	o.Email = user.Email
+	o.Phone = user.Phone
+	o.Im = user.Im
+	o.Qq = user.Qq
+	o.Extra = user.Extra
+
+	if ret, err := op.UpdateUser(&o); err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
-		c.SendMsg(200, u)
+		op.User = ret
+		c.SendMsg(200, user)
 	}
 }
 

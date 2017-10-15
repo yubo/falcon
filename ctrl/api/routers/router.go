@@ -11,6 +11,7 @@ package routers
 import (
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/context"
@@ -66,6 +67,8 @@ func PreStart() error {
 }
 
 func accessFilter(ctx *context.Context) {
+
+	time.Sleep(time.Millisecond * 100)
 
 	if models.ApiRl != nil {
 		ip := models.GetIPAdress(ctx.Request)

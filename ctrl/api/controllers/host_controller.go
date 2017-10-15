@@ -119,9 +119,10 @@ func (c *HostController) UpdateHost() {
 	}
 
 	// overlay entry
-	json.Unmarshal(c.Ctx.Input.RequestBody, host)
+	o := *host
+	json.Unmarshal(c.Ctx.Input.RequestBody, &o)
 
-	if host, err = op.UpdateHost(host); err != nil {
+	if host, err = op.UpdateHost(&o); err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
 		c.SendMsg(200, host)
@@ -148,4 +149,34 @@ func (c *HostController) DeleteHost() {
 		return
 	}
 	c.SendMsg(200, "delete success!")
+}
+
+// @Title DeleteHosts
+// @Description delete the hosts
+// @Param	body	[]int	true	"The []id you want to delete"
+// @Success 200 {string} "delete success!"
+// @Failure 400 string error
+// @router / [delete]
+func (c *HostController) DeleteHosts() {
+	var (
+		ids              []int64
+		success, failure int64
+	)
+
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
+
+	err := json.Unmarshal(c.Ctx.Input.RequestBody, &ids)
+	if err != nil {
+		c.SendMsg(400, err.Error())
+		return
+	}
+
+	for _, id := range ids {
+		if _ = op.DeleteHost(id); err != nil {
+			failure++
+		} else {
+			success++
+		}
+	}
+	c.SendMsg(200, statsObj(success, failure))
 }
