@@ -8,14 +8,14 @@ package modules
 import (
 	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/ctrl"
-	"github.com/yubo/falcon/ctrl/api"
+	"github.com/yubo/falcon/ctrl/api/module"
 	"github.com/yubo/falcon/ctrl/config"
 )
 
 func init() {
 	falcon.RegisterModule(&ctrl.Ctrl{}, "ctrl",
 		falcon.GetType(config.ConfCtrl{}))
-	ctrl.RegisterModule(&api.ApiModule{})
+	ctrl.RegisterModule(&module.ApiModule{})
 	ctrl.RegisterModule(&ctrl.EtcdCliModule{})
 	ctrl.RegisterModule(&ctrl.StatsModule{})
 }

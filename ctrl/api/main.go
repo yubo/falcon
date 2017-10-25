@@ -16,10 +16,11 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/ctrl"
+	"github.com/yubo/falcon/ctrl/api/module"
+	"github.com/yubo/falcon/ctrl/config"
 	"github.com/yubo/falcon/parse"
 	"github.com/yubo/gotool/flags"
-
-	_ "github.com/yubo/falcon/ctrl/modules"
 )
 
 var opts falcon.CmdOpts
@@ -29,8 +30,15 @@ const (
 )
 
 func init() {
+
+	falcon.RegisterModule(&ctrl.Ctrl{}, "ctrl",
+		falcon.GetType(config.ConfCtrl{}))
+	ctrl.RegisterModule(&module.DevModule{})
+	ctrl.RegisterModule(&ctrl.EtcdCliModule{})
+	ctrl.RegisterModule(&ctrl.StatsModule{})
+
 	flag.StringVar(&opts.ConfigFile, "config",
-		"./etc/falcon.conf", "falcon config file")
+		"./falcon.conf", "falcon config file")
 
 	flags.CommandLine.Usage = fmt.Sprintf("Usage: %s [OPTIONS] COMMAND "+
 		"start|stop|reload\n", os.Args[0])

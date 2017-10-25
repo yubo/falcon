@@ -3,7 +3,7 @@
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
-package api
+package module
 
 import (
 	"time"
@@ -40,6 +40,36 @@ func (p *ApiModule) Stop(c *config.ConfCtrl) error {
 }
 
 func (p *ApiModule) Reload(old, c *config.ConfCtrl) error {
+	p.Stop(c)
+	time.Sleep(time.Second)
+	p.PreStart(c)
+	return p.Start(c)
+}
+
+type DevModule struct {
+	b beego.BeegoModule
+}
+
+func (p *DevModule) PreStart(c *config.ConfCtrl) error {
+	if err := routers.PreStart(); err != nil {
+		return err
+	}
+	if err := models.PreStart(c); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (p *DevModule) Start(c *config.ConfCtrl) error {
+	beego.Run()
+	return nil
+}
+
+func (p *DevModule) Stop(c *config.ConfCtrl) error {
+	return nil
+}
+
+func (p *DevModule) Reload(old, c *config.ConfCtrl) error {
 	p.Stop(c)
 	time.Sleep(time.Second)
 	p.PreStart(c)
