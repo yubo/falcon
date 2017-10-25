@@ -60,6 +60,7 @@ func PreStart() error {
 		beego.NSNamespace("/aggreator", beego.NSInclude(&controllers.AggreatorController{})),
 		beego.NSNamespace("/graph", beego.NSInclude(&controllers.GraphController{})),
 		beego.NSNamespace("/pub", beego.NSInclude(&controllers.PubController{})),
+		beego.NSNamespace("/weapp", beego.NSInclude(&controllers.WeappController{})),
 	)
 	beego.AddNamespace(ns)
 
@@ -78,11 +79,9 @@ func accessFilter(ctx *context.Context) {
 		}
 	}
 
-	if strings.HasPrefix(ctx.Request.RequestURI, "/v1.0/auth") {
-		return
-	}
-
-	if strings.HasPrefix(ctx.Request.RequestURI, "/v1.0/pub") {
+	if strings.HasPrefix(ctx.Request.RequestURI, "/v1.0/auth") ||
+		strings.HasPrefix(ctx.Request.RequestURI, "/v1.0/pub") ||
+		strings.HasPrefix(ctx.Request.RequestURI, "/v1.0/weapp") {
 		return
 	}
 

@@ -84,7 +84,7 @@ func (tree *cacheTreeT) build() {
 func (tree *cacheTreeT) _build() {
 	var ns []TreeNode
 
-	glog.V(4).Infof(MODULE_NAME + "cacheTree build entering")
+	glog.V(10).Infof(MODULE_NAME + "cacheTree build entering")
 
 	_, err := Db.Ctrl.Raw("SELECT a.tag_id, a.sup_tag_id, b.name FROM tag_rel a JOIN tag b ON a.tag_id = b.id WHERE a.offset = 1 and b.type = 0 ORDER BY tag_id").QueryRows(&ns)
 	if err != nil {

@@ -1,10 +1,13 @@
 all: api/swagger/swagger.json  
-	WORKDIR=$(shell pwd)
+
+WORKDIR=${GOPATH}/src/github.com/yubo/falcon/ctrl/api
 
 .PHONY: db dev doc web
 
-doc:     
+doc:
+	cd ${WORKDIR} && \
 	bee generate docs
 
 dev:     
+	cd ${WORKDIR} && \
 	bee run
