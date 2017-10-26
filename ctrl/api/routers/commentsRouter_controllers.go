@@ -1241,6 +1241,22 @@ func init() {
 
 	beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/api/controllers:WeappController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/api/controllers:WeappController"],
 		beego.ControllerComments{
+			Method: "Bindack",
+			Router: `/bindack`,
+			AllowHTTPMethods: []string{"get"},
+			MethodParams: param.Make(),
+			Params: nil})
+
+	beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/api/controllers:WeappController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/api/controllers:WeappController"],
+		beego.ControllerComments{
+			Method: "Bindqr",
+			Router: `/bindqr`,
+			AllowHTTPMethods: []string{"get"},
+			MethodParams: param.Make(),
+			Params: nil})
+
+	beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/api/controllers:WeappController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/api/controllers:WeappController"],
+		beego.ControllerComments{
 			Method: "Login",
 			Router: `/login`,
 			AllowHTTPMethods: []string{"get"},

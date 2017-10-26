@@ -20,6 +20,12 @@ func (c *BaseController) SendMsg(code int, msg interface{}) {
 	c.ServeJSON()
 }
 
+func (c *BaseController) SendText(code int, msg []byte) {
+	c.Ctx.ResponseWriter.WriteHeader(code)
+	c.Ctx.Output.Header("Content-Type", "text/plain")
+	c.Ctx.Output.Body(msg)
+}
+
 func totalObj(n int64) models.Total {
 	return models.Total{Total: n}
 }

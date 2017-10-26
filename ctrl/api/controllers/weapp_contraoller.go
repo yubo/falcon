@@ -6,6 +6,8 @@
 package controllers
 
 import (
+	"fmt"
+
 	"github.com/golang/glog"
 	"github.com/yubo/falcon/ctrl/api/models"
 )
@@ -15,6 +17,8 @@ const (
 	WX_HEADER_ENCRYPTED_DATA = "X-WX-Encrypted-Data"
 	WX_HEADER_IV             = "X-WX-IV"
 	WX_SESSION_MAGIC_ID      = "F2C224D4-2BCE-4C64-AF9F-A6D872000D1A"
+	WX_HEADER_ID             = "X-WX-Id"
+	WX_HEADER_SKEY           = "X-WX-Skey"
 )
 
 // Operations about weixin app
@@ -22,7 +26,7 @@ type WeappController struct {
 	BaseController
 }
 
-// @Title login
+// @Title login (acl: pub)
 // @Description wexin app login api
 // @Success 200 string success
 // @Failure 400 string error
@@ -34,27 +38,26 @@ func (c *WeappController) Login() {
 
 	glog.V(4).Infof("code %s encrypt_data %s iv %s", code, encrypt_data, iv)
 
-	ret, err := models.WeappLogin(code, encrypt_data, iv)
+	sess, err := models.WeappLogin(code, encrypt_data, iv)
 	if err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
-		ret[WX_SESSION_MAGIC_ID] = "1"
-		c.SendMsg(200, ret)
+		c.SendMsg(200, map[string]interface{}{
+			WX_SESSION_MAGIC_ID: "1",
+			"session": map[string]interface{}{
+				"id":     sess.Wxopenid,
+				"openid": sess.Wxopenid,
+				"skey":   sess.Key,
+				"user":   sess.User,
+			},
+		})
 	}
 
 }
 
-// @Title testRequest
+// @Title openid (acl: pub)
 // @Description wexin app api
-// @Success 200 string success
-// @Failure 400 string error
-// @router /testRequest [get]
-func (c *WeappController) TestRequest() {
-	c.SendMsg(200, "")
-}
-
-// @Title openid
-// @Description wexin app api
+// @Param	code	query   string     true       "code from weapp wx.login()"
 // @Success 200 string success
 // @Failure 400 string error
 // @router /openid [get]
@@ -63,8 +66,65 @@ func (c *WeappController) Openid() {
 	if err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
+		c.SendMsg(200, map[string]string{"openid": ret})
+	}
+}
+
+// @Title create bind weapp to falcon user task(acl: falcon session login)
+// @Description bind weapp to cur user
+// @Success 200 {object} models.QrTask qr code image(encode by base64)
+// @Failure 400 string error
+// @router /bindqr [get]
+func (c *WeappController) Bindqr() {
+	op, ok := c.Ctx.Input.GetData("op").(*models.Operator)
+	if !ok || op.User == nil {
+		c.SendMsg(401, "Unauthorized")
+		return
+	}
+
+	if op.User.Muid != 0 {
+		c.SendMsg(400, fmt.Sprintf("%s already bind to uid(%d)",
+			op.User.Name, op.User.Muid))
+		return
+	}
+
+	ret, err := models.WeappBindQr(op.User.Id)
+	if err != nil {
+		c.SendMsg(400, err.Error())
+	} else {
 		c.SendMsg(200, ret)
 	}
+}
+
+// @Title ack bind weapp to falcon user request(acl: weapp login)
+// @Description bind weapp to cur user
+// @Param	key	query   string     true       "task key"
+// @Success 200 {object} models.User bind to falcon user
+// @Failure 400 string error
+// @router /bindack [get]
+func (c *WeappController) Bindack() {
+
+	sess, err := models.WeappGetSession(c.Ctx.Input.Header(WX_HEADER_SKEY))
+	if err != nil {
+		c.SendMsg(401, map[string]string{WX_SESSION_MAGIC_ID: "1"})
+		return
+	}
+
+	ret, err := models.WeappTaskAck(c.GetString("key"), sess)
+	if err != nil {
+		c.SendMsg(400, err.Error())
+	} else {
+		c.SendMsg(200, ret.(*models.User))
+	}
+}
+
+// @Title testRequest (acl: weapp skey)
+// @Description wexin app api
+// @Success 200 string success
+// @Failure 400 string error
+// @router /testRequest [get]
+func (c *WeappController) TestRequest() {
+	c.SendMsg(200, "")
 }
 
 // @Title tunnel

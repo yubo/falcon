@@ -5,7 +5,11 @@
  */
 package models
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/yubo/falcon"
+)
 
 func TestNewTagSchema(t *testing.T) {
 	cases := []struct {

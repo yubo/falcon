@@ -10,6 +10,7 @@ import (
 
 	"github.com/astaxie/beego/orm"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/yubo/falcon"
 )
 
 func testTokenInitDb(t *testing.T, o orm.Ormer) (err error) {
@@ -155,7 +156,7 @@ func testToken(t *testing.T) {
 	}{
 		{name: "case1", uid: user_idx["u1"], token_id: token_idx["token1"], want: []int64{tag_idx["a=1,b=2"], tag_idx["a=1,b=2,c=1"], tag_idx["a=1,b=2,c=2"]}, wante: nil},
 		{name: "case2", uid: user_idx["u1"], token_id: token_idx["token2"], want: []int64{tag_idx["a=1,b=2"], tag_idx["a=1,b=2,c=1"], tag_idx["a=1,b=2,c=2"]}, wante: nil},
-		{name: "case3", uid: user_idx["u1"], token_id: token_idx["token3"], want: []int64{}, wante: EACCES},
+		{name: "case3", uid: user_idx["u1"], token_id: token_idx["token3"], want: []int64{}, wante: falcon.EACCES},
 	}
 	for _, c := range c0 {
 		if tag_id, gote := userHasToken(op.O, c.uid, c.token_id); gote != c.wante {
@@ -181,26 +182,26 @@ func testToken(t *testing.T) {
 		wante    error
 	}{
 		//case1
-		{name: "case1-1", uid: user_idx["u1"], token_id: token_idx["token1"], tid: tag_idx["a=1"], want: 0, wante: EACCES},
+		{name: "case1-1", uid: user_idx["u1"], token_id: token_idx["token1"], tid: tag_idx["a=1"], want: 0, wante: falcon.EACCES},
 		{name: "case1-2", uid: user_idx["u1"], token_id: token_idx["token1"], tid: tag_idx["a=1,b=2"], want: tag_idx["a=1,b=2"], wante: nil},
 		{name: "case1-3", uid: user_idx["u1"], token_id: token_idx["token1"], tid: tag_idx["a=1,b=2,c=1"], want: tag_idx["a=1,b=2"], wante: nil},
 		{name: "case1-4", uid: user_idx["u1"], token_id: token_idx["token1"], tid: tag_idx["a=1,b=2,c=2"], want: tag_idx["a=1,b=2"], wante: nil},
 		//case2
-		{name: "case2-1", uid: user_idx["u1"], token_id: token_idx["token2"], tid: tag_idx["a=1"], want: 0, wante: EACCES},
+		{name: "case2-1", uid: user_idx["u1"], token_id: token_idx["token2"], tid: tag_idx["a=1"], want: 0, wante: falcon.EACCES},
 		{name: "case2-2", uid: user_idx["u1"], token_id: token_idx["token2"], tid: tag_idx["a=1,b=2"], want: tag_idx["a=1"], wante: nil},
 		{name: "case2-3", uid: user_idx["u1"], token_id: token_idx["token2"], tid: tag_idx["a=1,b=2,c=1"], want: tag_idx["a=1"], wante: nil},
 		{name: "case2-4", uid: user_idx["u1"], token_id: token_idx["token2"], tid: tag_idx["a=1,b=2,c=2"], want: tag_idx["a=1"], wante: nil},
 		//case3
-		{name: "case3-1", uid: user_idx["u1"], token_id: token_idx["token3"], tid: tag_idx["a=1"], want: 0, wante: EACCES},
-		{name: "case3-2", uid: user_idx["u1"], token_id: token_idx["token3"], tid: tag_idx["a=1,b=2"], want: 0, wante: EACCES},
-		{name: "case3-3", uid: user_idx["u1"], token_id: token_idx["token3"], tid: tag_idx["a=1,b=2,c=1"], want: 0, wante: EACCES},
-		{name: "case3-4", uid: user_idx["u1"], token_id: token_idx["token3"], tid: tag_idx["a=1,b=2,c=2"], want: 0, wante: EACCES},
+		{name: "case3-1", uid: user_idx["u1"], token_id: token_idx["token3"], tid: tag_idx["a=1"], want: 0, wante: falcon.EACCES},
+		{name: "case3-2", uid: user_idx["u1"], token_id: token_idx["token3"], tid: tag_idx["a=1,b=2"], want: 0, wante: falcon.EACCES},
+		{name: "case3-3", uid: user_idx["u1"], token_id: token_idx["token3"], tid: tag_idx["a=1,b=2,c=1"], want: 0, wante: falcon.EACCES},
+		{name: "case3-4", uid: user_idx["u1"], token_id: token_idx["token3"], tid: tag_idx["a=1,b=2,c=2"], want: 0, wante: falcon.EACCES},
 		//case4
-		{name: "case4-1", uid: user_idx["u1"], token_id: token_idx["token41"], tid: tag_idx["a=1"], want: 0, wante: EACCES},
+		{name: "case4-1", uid: user_idx["u1"], token_id: token_idx["token41"], tid: tag_idx["a=1"], want: 0, wante: falcon.EACCES},
 		{name: "case4-2", uid: user_idx["u1"], token_id: token_idx["token41"], tid: tag_idx["a=1,b=2"], want: tag_idx["a=1"], wante: nil},
 		{name: "case4-3", uid: user_idx["u1"], token_id: token_idx["token41"], tid: tag_idx["a=1,b=2,c=1"], want: tag_idx["a=1"], wante: nil},
 		{name: "case4-4", uid: user_idx["u1"], token_id: token_idx["token41"], tid: tag_idx["a=1,b=2,c=2"], want: tag_idx["a=1"], wante: nil},
-		{name: "case4-5", uid: user_idx["u1"], token_id: token_idx["token42"], tid: tag_idx["a=1"], want: 0, wante: EACCES},
+		{name: "case4-5", uid: user_idx["u1"], token_id: token_idx["token42"], tid: tag_idx["a=1"], want: 0, wante: falcon.EACCES},
 		{name: "case4-6", uid: user_idx["u1"], token_id: token_idx["token42"], tid: tag_idx["a=1,b=2"], want: tag_idx["a=1,b=2"], wante: nil},
 		{name: "case4-7", uid: user_idx["u1"], token_id: token_idx["token42"], tid: tag_idx["a=1,b=2,c=1"], want: tag_idx["a=1,b=2"], wante: nil},
 		{name: "case4-8", uid: user_idx["u1"], token_id: token_idx["token42"], tid: tag_idx["a=1,b=2,c=2"], want: tag_idx["a=1,b=2"], wante: nil},

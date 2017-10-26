@@ -7,6 +7,7 @@ package models
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -24,6 +25,7 @@ type UserProfileUpdate struct {
 
 type User struct {
 	Id         int64     `json:"id"`
+	Muid       int64     `json:"muid"` /* master uid */
 	Uuid       string    `json:"uuid"`
 	Name       string    `json:"name"`
 	Cname      string    `json:"cname"`
@@ -32,6 +34,7 @@ type User struct {
 	Im         string    `json:"im"`
 	Qq         string    `json:"qq"`
 	Extra      string    `json:"extra"`
+	AvatarUrl  string    `json:"avatarurl"`
 	Disabled   int       `json:"disabled"`
 	CreateTime time.Time `json:"ctime"`
 }
@@ -119,7 +122,6 @@ func (op *Operator) UserTokens() (token int) {
 }
 
 func (op *Operator) AddUser(user *User) (*User, error) {
-	user.Id = 0
 	user.CreateTime = time.Now()
 	id, err := op.SqlInsert("insert user (uuid, name, cname, email, phone, im, qq, disabled) values (?, ?, ?, ?, ?, ?, ?, ?)", user.Uuid, user.Name, user.Cname, user.Email, user.Phone, user.Im, user.Qq, user.Disabled)
 	if err != nil {
@@ -198,6 +200,16 @@ func (op *Operator) UpdateUser(user *User) (ret *User, err error) {
 	}
 
 	DbLog(op.O, op.User.Id, CTL_M_USER, user.Id, CTL_A_SET, "")
+	return
+}
+
+func (op *Operator) BindUser(src, dst int64) (err error) {
+	_, err = op.SqlExec("update user set muid = ? where id = ?", dst, src)
+	if err != nil {
+		return
+	}
+	moduleCache[CTL_M_USER].del(src)
+	DbLog(op.O, op.User.Id, CTL_M_USER, src, CTL_A_SET, fmt.Sprintf("bind %d to %d", src, dst))
 	return
 }
 
