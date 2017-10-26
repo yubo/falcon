@@ -7,8 +7,10 @@ package models
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"math/rand"
 	"net"
 	"net/http"
@@ -18,6 +20,7 @@ import (
 	"time"
 
 	"github.com/astaxie/beego/orm"
+	"github.com/golang/glog"
 	"github.com/yubo/falcon"
 )
 
@@ -33,11 +36,11 @@ type Log struct {
 
 var src = rand.NewSource(time.Now().UnixNano())
 
-const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 const (
 	letterIdxBits = 6                    // 6 bits to represent a letter index
 	letterIdxMask = 1<<letterIdxBits - 1 // All 1-bits, as many as letterIdxBits
 	letterIdxMax  = 63 / letterIdxBits   // # of letter indices fitting in 63 bits
+	letterBytes   = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 )
 
 func RandString(n int) string {
@@ -214,30 +217,6 @@ Done:
 	return ipAddress
 }
 
-func getJson(url string, resp interface{}, timeout time.Duration) error {
-	cli := &http.Client{Timeout: timeout}
-	r, err := cli.Get(url)
-	if err != nil {
-		return err
-	}
-	defer r.Body.Close()
-	return json.NewDecoder(r.Body).Decode(resp)
-}
-
-func postJson(url string, param interface{}, resp interface{}) error {
-	cli := &http.Client{Timeout: 60 * time.Second}
-	r, err := cli.Post(
-		url,
-		"application/json",
-		bytes.NewBuffer([]byte(jsonStr(param))),
-	)
-	if err != nil {
-		return err
-	}
-	defer r.Body.Close()
-	return json.NewDecoder(r.Body).Decode(resp)
-}
-
 // cap=xiaomi,owt=inf -> cap.xiaomi_owt.inf
 func TagToOld(t string) string {
 	ret := make([]byte, len(t))
@@ -353,4 +332,63 @@ func sqlName(query string) (where string, args []interface{}) {
 		args = sql3
 	}
 	return
+}
+
+// http client
+func getJson(url string, resp interface{}, timeout time.Duration) error {
+	var cli *http.Client
+
+	if strings.HasPrefix(url, "https://") {
+		cli = &http.Client{
+			Timeout:   timeout,
+			Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}},
+		}
+
+	} else {
+		cli = &http.Client{Timeout: timeout}
+	}
+
+	r, err := cli.Get(url)
+	if err != nil {
+		return err
+	}
+	defer r.Body.Close()
+
+	b, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil
+	}
+	glog.V(4).Infof("getJson %s \n-> %s", url, string(b))
+	return json.Unmarshal(b, resp)
+}
+
+func postJson(url string, param interface{}, resp interface{}) error {
+	cli := &http.Client{Timeout: 60 * time.Second}
+	r, err := cli.Post(
+		url,
+		"application/json",
+		bytes.NewBuffer([]byte(jsonStr(param))),
+	)
+	if err != nil {
+		return err
+	}
+	defer r.Body.Close()
+	return json.NewDecoder(r.Body).Decode(resp)
+}
+
+func getByteTls(url string, timeout time.Duration) ([]byte, error) {
+	cli := &http.Client{
+		Timeout: timeout,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		},
+	}
+	r, err := cli.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Body.Close()
+	return ioutil.ReadAll(r.Body)
 }

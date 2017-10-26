@@ -54,6 +54,8 @@ const (
 	C_ALARM_DSN               = "alarmdsn"
 	C_TAG_SCHEMA              = "tagschema"
 	C_TRANSFER_URL            = "transferurl"
+	C_WEIXIN_APP_ID           = "wxappid"
+	C_WEIXIN_APP_SECRET       = "wxappsecret"
 )
 
 var (

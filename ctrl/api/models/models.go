@@ -153,6 +153,10 @@ var (
 	ApiRl        *ratelimits.RateLimits
 	admin        map[string]bool
 
+	// weixin app
+	wxappid     string
+	wxappsecret string
+
 	moduleName = [CTL_M_SIZE]string{
 		"host", "role", "system", "tag", "user", "token",
 		"template", "rule", "trigger", "expression", "team",
@@ -333,6 +337,9 @@ func initConfig(conf *config.ConfCtrl) error {
 	} else if len(addr) == 1 {
 		beego.BConfig.Listen.HTTPPort, _ = strconv.Atoi(addr[0])
 	}
+
+	wxappid = cf.Str(ctrl.C_WEIXIN_APP_ID)
+	wxappsecret = cf.Str(ctrl.C_WEIXIN_APP_SECRET)
 
 	return err
 }
