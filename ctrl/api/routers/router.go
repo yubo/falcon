@@ -9,6 +9,7 @@
 package routers
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -16,6 +17,7 @@ import (
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/context"
 	"github.com/astaxie/beego/orm"
+	"github.com/golang/glog"
 	"github.com/yubo/falcon/ctrl/api/controllers"
 	"github.com/yubo/falcon/ctrl/api/models"
 )
@@ -128,6 +130,7 @@ func accessFilter(ctx *context.Context) {
 		}
 	default:
 		http.Error(ctx.ResponseWriter, "Method Not Allowed", 405)
+		return
 	}
 }
 
@@ -144,7 +147,17 @@ func profileFilter(ctx *context.Context) {
 
 		op.User = u
 		op.Token, _ = ctx.Input.Session("token").(int)
-	} else {
-		//beego.Debug("not login")
+	} else if skey := ctx.Input.Header(models.WX_HEADER_SKEY); skey != "" {
+		// if set skey, chk session available
+		sess, err := models.WeappGetSession(skey)
+		glog.V(4).Infof("get skey %s sess %#v", skey, sess)
+		if err != nil {
+			http.Error(ctx.ResponseWriter,
+				fmt.Sprintf(`{"%s":true}`, models.WX_SESSION_MAGIC_ID), 401)
+			return
+		}
+		// for weapp session
+		op.User = sess.User
+		op.Token = sess.Token
 	}
 }

@@ -74,9 +74,49 @@ func (c *UserController) GetUsers() {
 	}
 }
 
+// @Title unbind User
+// @Description unbind user
+// @Param   id     patch   int  true       "user id"
+// @Success 200 string success
+// @Failure 400 string error
+// @router /unbind/:id [get]
+func (c *UserController) UnBindUser() {
+	id, err := c.GetInt64(":id")
+	if err != nil {
+		c.SendMsg(400, err.Error())
+	} else {
+		op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
+		if err := op.UnBindUser(id); err != nil {
+			c.SendMsg(400, err.Error())
+		} else {
+			c.SendMsg(200, "success")
+		}
+	}
+}
+
+// @Title GetBindedUsers
+// @Description get all Users
+// @Param   id     patch   int  true       "user id"
+// @Success 200 {object} []models.User users info
+// @Failure 400 string error
+// @router /binded/:id [get]
+func (c *UserController) GetBindedUsers() {
+	id, err := c.GetInt64(":id")
+	if err != nil {
+		c.SendMsg(400, err.Error())
+	} else {
+		op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
+		if users, err := op.GetBindedUsers(id); err != nil {
+			c.SendMsg(400, err.Error())
+		} else {
+			c.SendMsg(200, users)
+		}
+	}
+}
+
 // @Title Get
 // @Description get user by id
-// @Param	id		path 	int	true		"The key for staticblock"
+// @Param	id		path 	int	true	"user id"
 // @Success 200 {object} models.User user info
 // @Failure 400 string error
 // @router /:id [get]

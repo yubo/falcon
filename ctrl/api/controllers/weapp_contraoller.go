@@ -12,15 +12,6 @@ import (
 	"github.com/yubo/falcon/ctrl/api/models"
 )
 
-const (
-	WX_HEADER_CODE           = "X-WX-Code"
-	WX_HEADER_ENCRYPTED_DATA = "X-WX-Encrypted-Data"
-	WX_HEADER_IV             = "X-WX-IV"
-	WX_SESSION_MAGIC_ID      = "F2C224D4-2BCE-4C64-AF9F-A6D872000D1A"
-	WX_HEADER_ID             = "X-WX-Id"
-	WX_HEADER_SKEY           = "X-WX-Skey"
-)
-
 // Operations about weixin app
 type WeappController struct {
 	BaseController
@@ -32,9 +23,9 @@ type WeappController struct {
 // @Failure 400 string error
 // @router /login [get]
 func (c *WeappController) Login() {
-	code := c.Ctx.Input.Header(WX_HEADER_CODE)
-	encrypt_data := c.Ctx.Input.Header(WX_HEADER_ENCRYPTED_DATA)
-	iv := c.Ctx.Input.Header(WX_HEADER_IV)
+	code := c.Ctx.Input.Header(models.WX_HEADER_CODE)
+	encrypt_data := c.Ctx.Input.Header(models.WX_HEADER_ENCRYPTED_DATA)
+	iv := c.Ctx.Input.Header(models.WX_HEADER_IV)
 
 	glog.V(4).Infof("code %s encrypt_data %s iv %s", code, encrypt_data, iv)
 
@@ -43,7 +34,7 @@ func (c *WeappController) Login() {
 		c.SendMsg(400, err.Error())
 	} else {
 		c.SendMsg(200, map[string]interface{}{
-			WX_SESSION_MAGIC_ID: "1",
+			models.WX_SESSION_MAGIC_ID: "1",
 			"session": map[string]interface{}{
 				"id":     sess.Wxopenid,
 				"openid": sess.Wxopenid,
@@ -67,6 +58,42 @@ func (c *WeappController) Openid() {
 		c.SendMsg(400, err.Error())
 	} else {
 		c.SendMsg(200, map[string]string{"openid": ret})
+	}
+}
+
+// @Title create get auth task qrcode
+// @Description get auth task qrcode
+// @Success 200 {object} models.QrTask qr code image(encode by base64)
+// @Failure 400 string error
+// @router /authqr [get]
+func (c *WeappController) Authqr() {
+	ret, err := models.WeappAuthQr()
+	if err != nil {
+		c.SendMsg(400, err.Error())
+	} else {
+		c.SendMsg(200, ret)
+	}
+}
+
+// @Title ack auth to falcon request(acl: weapp login && binded)
+// @Description bind weapp to cur user
+// @Param	key	query   string     true       "task key"
+// @Success 200 {object} models.User bind to falcon user
+// @Failure 400 string error
+// @router /taskack [get]
+func (c *WeappController) Taskack() {
+
+	sess, err := models.WeappGetSession(c.Ctx.Input.Header(models.WX_HEADER_SKEY))
+	if err != nil {
+		c.SendMsg(401, map[string]string{models.WX_SESSION_MAGIC_ID: "1"})
+		return
+	}
+
+	ret, err := models.WeappTaskAck(c.GetString("key"), sess)
+	if err != nil {
+		c.SendMsg(400, err.Error())
+	} else {
+		c.SendMsg(200, ret)
 	}
 }
 
@@ -96,25 +123,18 @@ func (c *WeappController) Bindqr() {
 	}
 }
 
-// @Title ack bind weapp to falcon user request(acl: weapp login)
-// @Description bind weapp to cur user
+// @Title get task states
+// @Description get task states
 // @Param	key	query   string     true       "task key"
-// @Success 200 {object} models.User bind to falcon user
+// @Success 200 {string} states
 // @Failure 400 string error
-// @router /bindack [get]
-func (c *WeappController) Bindack() {
-
-	sess, err := models.WeappGetSession(c.Ctx.Input.Header(WX_HEADER_SKEY))
-	if err != nil {
-		c.SendMsg(401, map[string]string{WX_SESSION_MAGIC_ID: "1"})
-		return
-	}
-
-	ret, err := models.WeappTaskAck(c.GetString("key"), sess)
+// @router /task [get]
+func (c *WeappController) Task() {
+	ret, err := models.GetTask(c.GetString("key"), c)
 	if err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
-		c.SendMsg(200, ret.(*models.User))
+		c.SendMsg(200, ret)
 	}
 }
 

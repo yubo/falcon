@@ -71,7 +71,6 @@ func (c *SetController) UpdateUser() {
 	o.Cname = user.Cname
 	o.Email = user.Email
 	o.Phone = user.Phone
-	o.Im = user.Im
 	o.Qq = user.Qq
 	o.Extra = user.Extra
 

@@ -1209,6 +1209,14 @@ func init() {
 
 	beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/api/controllers:UserController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/api/controllers:UserController"],
 		beego.ControllerComments{
+			Method: "DeleteUser",
+			Router: `/:id`,
+			AllowHTTPMethods: []string{"delete"},
+			MethodParams: param.Make(),
+			Params: nil})
+
+	beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/api/controllers:UserController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/api/controllers:UserController"],
+		beego.ControllerComments{
 			Method: "GetUser",
 			Router: `/:id`,
 			AllowHTTPMethods: []string{"get"},
@@ -1217,9 +1225,9 @@ func init() {
 
 	beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/api/controllers:UserController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/api/controllers:UserController"],
 		beego.ControllerComments{
-			Method: "DeleteUser",
-			Router: `/:id`,
-			AllowHTTPMethods: []string{"delete"},
+			Method: "GetBindedUsers",
+			Router: `/binded/:id`,
+			AllowHTTPMethods: []string{"get"},
 			MethodParams: param.Make(),
 			Params: nil})
 
@@ -1239,10 +1247,18 @@ func init() {
 			MethodParams: param.Make(),
 			Params: nil})
 
+	beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/api/controllers:UserController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/api/controllers:UserController"],
+		beego.ControllerComments{
+			Method: "UnBindUser",
+			Router: `/unbind/:id`,
+			AllowHTTPMethods: []string{"get"},
+			MethodParams: param.Make(),
+			Params: nil})
+
 	beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/api/controllers:WeappController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/api/controllers:WeappController"],
 		beego.ControllerComments{
-			Method: "Bindack",
-			Router: `/bindack`,
+			Method: "Authqr",
+			Router: `/authqr`,
 			AllowHTTPMethods: []string{"get"},
 			MethodParams: param.Make(),
 			Params: nil})
@@ -1267,6 +1283,22 @@ func init() {
 		beego.ControllerComments{
 			Method: "Openid",
 			Router: `/openid`,
+			AllowHTTPMethods: []string{"get"},
+			MethodParams: param.Make(),
+			Params: nil})
+
+	beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/api/controllers:WeappController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/api/controllers:WeappController"],
+		beego.ControllerComments{
+			Method: "Task",
+			Router: `/task`,
+			AllowHTTPMethods: []string{"get"},
+			MethodParams: param.Make(),
+			Params: nil})
+
+	beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/api/controllers:WeappController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/api/controllers:WeappController"],
+		beego.ControllerComments{
+			Method: "Taskack",
+			Router: `/taskack`,
 			AllowHTTPMethods: []string{"get"},
 			MethodParams: param.Make(),
 			Params: nil})

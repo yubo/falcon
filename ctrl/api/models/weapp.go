@@ -26,24 +26,34 @@ import (
 	"github.com/yubo/falcon"
 )
 
+const (
+	WX_HEADER_CODE           = "X-WX-Code"
+	WX_HEADER_ENCRYPTED_DATA = "X-WX-Encrypted-Data"
+	WX_HEADER_IV             = "X-WX-IV"
+	WX_SESSION_MAGIC_ID      = "F2C224D4-2BCE-4C64-AF9F-A6D872000D1A"
+	WX_HEADER_ID             = "X-WX-Id"
+	WX_HEADER_SKEY           = "X-WX-Skey"
+)
+
 type WxSession struct {
 	Session string `json:"session_key"`
 	Expires int64  `json:"expires_in"`
 	Openid  string `json:"openid"`
 }
 
-type weappTask struct {
-	key     string
-	action  int32
-	states  int32
-	expires int64
-	data    interface{}
+type WeappTask struct {
+	Key     string
+	Action  int32
+	States  int32
+	Expires int64
+	Data    interface{}
 }
 
 type WeappSession struct {
 	Key       string
 	Expires   int64
 	User      *User
+	Token     int
 	AppUser   *WeappUserInfo_t
 	Wxsession string
 	Wxexpires int64
@@ -53,17 +63,17 @@ type WeappSession struct {
 type weapp_t struct {
 	sync.RWMutex
 	sessions map[string]*WeappSession
-	tasks    map[string]*weappTask
+	tasks    map[string]*WeappTask
 }
 
 const (
 	WEAPP_TASK_BIND_USER = iota
-	WEAPP_TASK_UNBIND_USER
 	WEAPP_TASK_LOGIN
 )
 
 const (
-	WEAPP_TASK_PENDING = iota
+	WEAPP_TASK_PENDING   = iota
+	WEAPP_TASK_WAIT_DONE // waiting for request taskstate to done
 	WEAPP_TASK_DONE
 	WEAPP_TASK_FAIL
 )
@@ -74,19 +84,21 @@ var (
 	ErrInvalidPKCS7Padding = errors.New("invalid padding on input")
 	ErrInvalidAppid        = errors.New("invalid appid")
 	ErrInvalidTask         = errors.New("invalid Task")
+	ErrBindedAlready       = errors.New("user already binded ")
+	ErrBeBindedAlready     = errors.New("user has already be binded ")
 	weapp                  weapp_t
 )
 
 func init() {
 	weapp.sessions = make(map[string]*WeappSession)
-	weapp.tasks = make(map[string]*weappTask)
+	weapp.tasks = make(map[string]*WeappTask)
 	ticker := time.NewTicker(time.Second * 5).C
-	weapp.AddTask(&weappTask{
-		key:     "1234567890",
-		action:  WEAPP_TASK_BIND_USER,
-		states:  WEAPP_TASK_PENDING,
-		data:    int64(1000),
-		expires: time.Now().Unix() + 60000,
+	weapp.AddTask(&WeappTask{
+		Key:     "1234567890",
+		Action:  WEAPP_TASK_BIND_USER,
+		States:  WEAPP_TASK_PENDING,
+		Data:    int64(1000),
+		Expires: time.Now().Unix() + 60000,
 	})
 	go func() {
 		for {
@@ -98,7 +110,7 @@ func init() {
 				}
 			}
 			for skey, task := range weapp.tasks {
-				if task.expires < now {
+				if task.Expires < now {
 					delete(weapp.tasks, skey)
 				}
 			}
@@ -106,13 +118,13 @@ func init() {
 	}()
 }
 
-func (p *weapp_t) AddTask(t *weappTask) error {
+func (p *weapp_t) AddTask(t *WeappTask) error {
 	p.Lock()
 	defer p.Unlock()
-	p.tasks[t.key] = t
+	p.tasks[t.Key] = t
 	return nil
 }
-func (p *weapp_t) delTask(key string) (*weappTask, error) {
+func (p *weapp_t) delTask(key string) (*WeappTask, error) {
 	p.Lock()
 	defer p.Unlock()
 	if t, ok := p.tasks[key]; !ok {
@@ -122,7 +134,8 @@ func (p *weapp_t) delTask(key string) (*weappTask, error) {
 		return t, nil
 	}
 }
-func (p *weapp_t) getTask(key string) (*weappTask, error) {
+
+func (p *weapp_t) getTask(key string) (*WeappTask, error) {
 	p.RLock()
 	defer p.RUnlock()
 	if t, ok := p.tasks[key]; !ok {
@@ -130,6 +143,42 @@ func (p *weapp_t) getTask(key string) (*weappTask, error) {
 	} else {
 		return t, nil
 	}
+}
+
+type SetSession interface {
+	SetSession(name interface{}, value interface{})
+}
+
+func GetTask(key string, c SetSession) (string, error) {
+	t, err := weapp.getTask(key)
+	if err != nil {
+		return "", err
+	}
+
+	switch t.States {
+	case WEAPP_TASK_PENDING:
+		return "pending", nil
+	case WEAPP_TASK_WAIT_DONE:
+		if t.Action != WEAPP_TASK_LOGIN {
+			return "", falcon.EINVAL
+		}
+
+		sess, ok := t.Data.(*WeappSession)
+		if !ok {
+			return "", falcon.EINVAL
+		}
+		c.SetSession("uid", sess.User.Id)
+		c.SetSession("token", sess.Token)
+		t.States = WEAPP_TASK_DONE
+		return "done", nil
+	case WEAPP_TASK_DONE:
+		return "done", nil
+	case WEAPP_TASK_FAIL:
+		return "fail", nil
+	default:
+		return "", falcon.EINVAL
+	}
+
 }
 
 func (p *weapp_t) addSession(s *WeappSession) error {
@@ -266,9 +315,13 @@ func WeappLogin(code, encrypt_data, iv string) (*WeappSession, error) {
 		Wxopenid:  session.Openid,
 	}
 
+	glog.V(4).Infof("find %s@weapp", s.AppUser.OpenId)
 	if user, err := SysOp.GetUserByUuid(s.AppUser.OpenId + "@weapp"); err == nil {
+		glog.V(4).Infof("find uid %d", user.Muid)
 		if user, err = SysOp.GetUser(user.Muid); err == nil {
+			glog.V(4).Infof("find user %s", user.Name)
 			s.User = user
+			s.Token = UserTokens(user.Id, user.Name, SysOp.O)
 		}
 	}
 
@@ -302,49 +355,70 @@ type QrTask struct {
 	Img string `json:"img"`
 }
 
-func WeappBindQr(uid int64) (*QrTask, error) {
-	task := &weappTask{
-		key:     RandString(64),
-		action:  WEAPP_TASK_BIND_USER,
-		states:  WEAPP_TASK_PENDING,
-		data:    uid,
-		expires: time.Now().Unix() + 60,
+func WeappAuthQr() (*QrTask, error) {
+	task := &WeappTask{
+		Key:     RandString(64),
+		Action:  WEAPP_TASK_LOGIN,
+		States:  WEAPP_TASK_PENDING,
+		Expires: time.Now().Unix() + 60,
 	}
+	weapp.AddTask(task)
 
-	weapp.Lock()
-	defer weapp.Unlock()
-	weapp.tasks[task.key] = task
-
-	png, err := qrcode.Encode(task.key, qrcode.Medium, 256)
+	png, err := qrcode.Encode(task.Key, qrcode.Medium, 256)
 	if err != nil {
 		return nil, err
 	}
-	return &QrTask{Key: task.key, Img: base64.StdEncoding.EncodeToString(png)}, nil
+	return &QrTask{Key: task.Key, Img: base64.StdEncoding.EncodeToString(png)}, nil
+}
+
+func WeappBindQr(uid int64) (*QrTask, error) {
+	task := &WeappTask{
+		Key:     RandString(64),
+		Action:  WEAPP_TASK_BIND_USER,
+		States:  WEAPP_TASK_PENDING,
+		Data:    uid,
+		Expires: time.Now().Unix() + 60,
+	}
+	weapp.AddTask(task)
+
+	png, err := qrcode.Encode(task.Key, qrcode.Medium, 256)
+	if err != nil {
+		return nil, err
+	}
+	return &QrTask{Key: task.Key, Img: base64.StdEncoding.EncodeToString(png)}, nil
 }
 
 func WeappTaskAck(key string, sess *WeappSession) (interface{}, error) {
 	task, err := weapp.getTask(key)
 	if err != nil {
+		glog.V(4).Infof("%s", err)
 		return nil, err
 	}
 
-	if task.states != WEAPP_TASK_PENDING {
+	if task.States != WEAPP_TASK_PENDING {
+		glog.V(4).Infof("task states %d, want %d", task.States, WEAPP_TASK_PENDING)
 		return nil, ErrInvalidTask
 	}
 
-	switch task.action {
+	switch task.Action {
 	case WEAPP_TASK_BIND_USER:
-		if user, err := weappBind(task.data.(int64), sess); err != nil {
-			task.states = WEAPP_TASK_FAIL
-			task.expires = time.Now().Unix() + 5
+		if user, err := weappBind(task.Data.(int64), sess); err != nil {
+			glog.V(4).Infof("bind failed %#v %s", sess, err)
+			task.States = WEAPP_TASK_FAIL
+			task.Expires = time.Now().Unix() + 5
 			return nil, err
 		} else {
-			task.states = WEAPP_TASK_DONE
-			task.expires = time.Now().Unix() + 5
+			task.States = WEAPP_TASK_DONE
+			task.Expires = time.Now().Unix() + 5
 			return user, err
 		}
-	case WEAPP_TASK_UNBIND_USER:
 	case WEAPP_TASK_LOGIN:
+		if sess.User == nil {
+			return nil, errors.New("must binded to falcon user")
+		}
+		task.Expires = time.Now().Unix() + 5
+		task.States = WEAPP_TASK_WAIT_DONE
+		task.Data = sess
 	default:
 		return nil, falcon.EINVAL
 	}
@@ -352,24 +426,37 @@ func WeappTaskAck(key string, sess *WeappSession) (interface{}, error) {
 }
 
 func weappBind(uid int64, sess *WeappSession) (user *User, err error) {
+	var wuser *User
 
 	if user, err = GetUser(uid, SysOp.O); err != nil {
 		return
 	}
 
-	// create user from weapp userinfo
-	wuser := &User{
-		Uuid:      fmt.Sprintf("%s@weapp", sess.AppUser.OpenId),
-		Name:      sess.AppUser.OpenId,
-		Cname:     sess.AppUser.NickName,
-		AvatarUrl: sess.AppUser.AvatarUrl,
-	}
+	uuid := fmt.Sprintf("%s@weapp", sess.AppUser.OpenId)
 
-	wuser, err = SysOp.AddUser(wuser)
-	if err != nil {
-		return
+	if wuser, err = SysOp.GetUserByUuid(uuid); err != nil {
+		// create user from weapp userinfo
+		wuser = &User{
+			Uuid:      fmt.Sprintf("%s@weapp", sess.AppUser.OpenId),
+			Name:      sess.AppUser.OpenId,
+			Cname:     sess.AppUser.NickName,
+			Avatarurl: sess.AppUser.AvatarUrl,
+		}
+		wuser, err = SysOp.AddUser(wuser)
+		if err != nil {
+			return
+		}
+	} else {
+		// user exist
+		if wuser.Muid != 0 {
+			return nil, ErrBindedAlready
+		}
+		if users, err := SysOp.GetBindedUsers(wuser.Id); err == nil {
+			if len(users) > 0 {
+				return nil, ErrBeBindedAlready
+			}
+		}
 	}
-
 	err = SysOp.BindUser(wuser.Id, user.Id)
 	return
 }

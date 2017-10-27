@@ -18,7 +18,6 @@ type UserProfileUpdate struct {
 	Cname string `json:"cname"`
 	Email string `json:"email"`
 	Phone string `json:"phone"`
-	Im    string `json:"im"`
 	Qq    string `json:"qq"`
 	Extra string `json:"extra"`
 }
@@ -31,10 +30,9 @@ type User struct {
 	Cname      string    `json:"cname"`
 	Email      string    `json:"email"`
 	Phone      string    `json:"phone"`
-	Im         string    `json:"im"`
 	Qq         string    `json:"qq"`
 	Extra      string    `json:"extra"`
-	AvatarUrl  string    `json:"avatarurl"`
+	Avatarurl  string    `json:"avatarurl"`
 	Disabled   int       `json:"disabled"`
 	CreateTime time.Time `json:"ctime"`
 }
@@ -76,21 +74,17 @@ func (op *Operator) IsReader() bool {
 	return (op.Token & SYS_F_R_TOKEN) != 0
 }
 
-func (op *Operator) UserTokens() (token int) {
+func UserTokens(uid int64, username string, o orm.Ormer) (token int) {
 	var (
 		tids []int64
 	)
 
-	if op.User == nil {
-		return 0
-	}
-
-	if admin[op.User.Name] {
+	if admin[username] {
 		return SYS_F_A_TOKEN | SYS_F_O_TOKEN | SYS_F_R_TOKEN
 	}
 
-	_, err := op.O.Raw("SELECT b1.token_id FROM (SELECT a1.tag_id AS user_tag_id, a2.tag_id AS token_tag_id, a1.tpl_id AS role_id, a1.sub_id AS user_id, a2.sub_id AS token_id FROM tpl_rel a1 JOIN tpl_rel a2 ON a1.type_id = ? AND a1.sub_id = ? AND a2.type_id = ?  AND a2.sub_id in (?, ?, ?) AND a1.tpl_id = a2.tpl_id) b1 JOIN tag_rel b2 ON b1.user_tag_id = b2.tag_id AND b1.token_tag_id = b2.sup_tag_id GROUP BY b1.token_id",
-		TPL_REL_T_ACL_USER, op.User.Id, TPL_REL_T_ACL_TOKEN,
+	_, err := o.Raw("SELECT b1.token_id FROM (SELECT a1.tag_id AS user_tag_id, a2.tag_id AS token_tag_id, a1.tpl_id AS role_id, a1.sub_id AS user_id, a2.sub_id AS token_id FROM tpl_rel a1 JOIN tpl_rel a2 ON a1.type_id = ? AND a1.sub_id = ? AND a2.type_id = ?  AND a2.sub_id in (?, ?, ?) AND a1.tpl_id = a2.tpl_id) b1 JOIN tag_rel b2 ON b1.user_tag_id = b2.tag_id AND b1.token_tag_id = b2.sup_tag_id GROUP BY b1.token_id",
+		TPL_REL_T_ACL_USER, uid, TPL_REL_T_ACL_TOKEN,
 		SYS_IDX_R_TOKEN, SYS_IDX_O_TOKEN,
 		SYS_IDX_A_TOKEN).QueryRows(&tids)
 	if err != nil {
@@ -107,7 +101,7 @@ func (op *Operator) UserTokens() (token int) {
 		}
 	}
 
-	if op.User.Id < 3 {
+	if uid < 3 {
 		token |= SYS_F_A_TOKEN
 	}
 
@@ -117,13 +111,20 @@ func (op *Operator) UserTokens() (token int) {
 	if token&SYS_F_O_TOKEN != 0 {
 		token |= SYS_F_R_TOKEN
 	}
-
 	return token
+}
+
+func (op *Operator) UserTokens() (token int) {
+	if op.User == nil {
+		return 0
+	}
+
+	return UserTokens(op.User.Id, op.User.Name, op.O)
 }
 
 func (op *Operator) AddUser(user *User) (*User, error) {
 	user.CreateTime = time.Now()
-	id, err := op.SqlInsert("insert user (uuid, name, cname, email, phone, im, qq, disabled) values (?, ?, ?, ?, ?, ?, ?, ?)", user.Uuid, user.Name, user.Cname, user.Email, user.Phone, user.Im, user.Qq, user.Disabled)
+	id, err := op.SqlInsert("insert user (uuid, name, cname, email, phone, qq, disabled) values (?, ?, ?, ?, ?, ?, ?)", user.Uuid, user.Name, user.Cname, user.Email, user.Phone, user.Qq, user.Disabled)
 	if err != nil {
 		return nil, err
 	}
@@ -143,7 +144,7 @@ func GetUser(id int64, o orm.Ormer) (ret *User, err error) {
 	}
 
 	ret = &User{}
-	err = o.Raw("select id, uuid, name, cname, email, phone, im, qq, disabled, extra, create_time from user where id = ?", id).QueryRow(ret)
+	err = o.Raw("select id, muid, uuid, name, cname, email, phone, qq, disabled, extra, avatarurl, create_time from user where id = ?", id).QueryRow(ret)
 	if err == nil {
 		moduleCache[CTL_M_USER].set(id, ret)
 	}
@@ -156,7 +157,7 @@ func (op *Operator) GetUser(id int64) (*User, error) {
 
 func (op *Operator) GetUserByUuid(uuid string) (ret *User, err error) {
 	ret = &User{}
-	err = op.SqlRow(ret, "select id, uuid, name, cname, email, phone, im, qq, disabled, create_time from user where uuid = ?", uuid)
+	err = op.SqlRow(ret, "select id, muid, uuid, name, cname, email, phone, qq, disabled, extra, avatarurl, create_time from user where uuid = ?", uuid)
 	return ret, err
 }
 
@@ -182,14 +183,19 @@ func (op *Operator) GetUsersCnt(query string) (cnt int64, err error) {
 
 func (op *Operator) GetUsers(query string, limit, offset int) (ret []*User, err error) {
 	sql, sql_args := sqlUser(query)
-	sql = sqlLimit("select id, uuid, name, cname, email, phone, im, qq, disabled, create_time, extra from user "+sql+" ORDER BY name", limit, offset)
+	sql = sqlLimit("select id, muid, uuid, name, cname, email, phone, qq, disabled, extra, avatarurl, create_time, extra from user "+sql+" ORDER BY name", limit, offset)
 	_, err = op.O.Raw(sql, sql_args...).QueryRows(&ret)
 
 	return
 }
 
+func (op *Operator) GetBindedUsers(id int64) (ret []*User, err error) {
+	_, err = op.O.Raw("select id, muid, uuid, name, cname, email, phone, qq, disabled, extra, avatarurl, create_time, extra from user where muid = ?", id).QueryRows(&ret)
+	return
+}
+
 func (op *Operator) UpdateUser(user *User) (ret *User, err error) {
-	_, err = op.SqlExec("update user set name = ?, cname = ?, email = ?, phone = ?, im = ?, qq = ?, disabled = ?, extra = ? where id = ?", user.Name, user.Cname, user.Email, user.Phone, user.Im, user.Qq, user.Disabled, user.Extra, user.Id)
+	_, err = op.SqlExec("update user set name = ?, cname = ?, email = ?, phone = ?, qq = ?, disabled = ?, extra = ?, avatarurl = ? where id = ?", user.Name, user.Cname, user.Email, user.Phone, user.Qq, user.Disabled, user.Extra, user.Avatarurl, user.Id)
 	if err != nil {
 		return
 	}
@@ -200,6 +206,15 @@ func (op *Operator) UpdateUser(user *User) (ret *User, err error) {
 	}
 
 	DbLog(op.O, op.User.Id, CTL_M_USER, user.Id, CTL_A_SET, "")
+	return
+}
+
+func (op *Operator) UnBindUser(id int64) (err error) {
+	_, err = op.SqlExec("update user set muid = 0 where muid = ?", id)
+	if err != nil {
+		return
+	}
+	DbLog(op.O, op.User.Id, CTL_M_USER, id, CTL_A_SET, fmt.Sprintf("unbind %d ", id))
 	return
 }
 
