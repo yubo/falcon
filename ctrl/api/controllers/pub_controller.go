@@ -19,7 +19,7 @@ type PubController struct {
 
 // @Title Get config
 // @Description get ctrl modules config
-// @Success 200  [3]map[string]string [3]map[string]string {defualt{}, conf{}, configfile{}}
+// @Success 200  map[string]interface{} ctrl server config
 // @Failure 400 string error
 // @router /config/ctrl [get]
 func (c *PubController) GetConfig() {
@@ -38,6 +38,7 @@ func (c *PubController) GetConfig() {
 		ctrl.C_MASTER_MODE: conf.DefaultBool(ctrl.C_MASTER_MODE, false),
 		ctrl.C_DEV_MODE:    conf.DefaultBool(ctrl.C_DEV_MODE, false),
 		ctrl.C_MI_MODE:     conf.DefaultBool(ctrl.C_MI_MODE, false),
+		ctrl.C_TAG_SCHEMA:  conf.Str(ctrl.C_TAG_SCHEMA),
 	}
 
 	c.SendMsg(200, ret)

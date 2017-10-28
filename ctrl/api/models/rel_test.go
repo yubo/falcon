@@ -65,7 +65,7 @@ func testTagTree(t *testing.T) {
 		"a=1,b=2,c=2",
 	}
 	for _, item := range items {
-		if _, err = op.addTag(&Tag{Name: item}, schema); err != nil {
+		if _, err = op.createTag(&TagCreate{Name: item}, schema); err != nil {
 			t.Error(err)
 		}
 	}

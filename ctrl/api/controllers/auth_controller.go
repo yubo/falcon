@@ -165,6 +165,8 @@ func (c *AuthController) Logout() {
 }
 
 func (c *AuthController) access(uuid string) (op *models.Operator, err error) {
+	var id int64
+
 	op, _ = c.Ctx.Input.GetData("op").(*models.Operator)
 	op.User, err = op.GetUserByUuid(uuid)
 	if err != nil {
@@ -176,11 +178,13 @@ func (c *AuthController) access(uuid string) (op *models.Operator, err error) {
 			Token: models.SYS_F_A_TOKEN | models.SYS_F_O_TOKEN,
 		}
 		name := strings.TrimRight(uuid, "@misso")
-		op.User, err = sysOp.AddUser(&models.User{Uuid: uuid, Name: name})
+
+		id, err = sysOp.CreateUser(&models.UserCreate{Uuid: uuid, Name: name})
 		if err != nil {
 			beego.Debug("add user failed ", err.Error())
 			return
 		}
+		op.User, _ = sysOp.GetUser(id)
 	}
 	op.Token = op.UserTokens()
 

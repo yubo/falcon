@@ -19,7 +19,7 @@ func TestNewTagSchema(t *testing.T) {
 	}{
 		{name: "1", schema: "cop,owt", want: falcon.ErrParam},
 		{name: "2", schema: "", want: nil},
-		{name: "3", schema: "cop,owt,pdl,servicegroup;service,jobgroup;job,sbs;mod;srv;grp;cluster;loc;idc;status;", want: nil},
+		{name: "3", schema: XIAOMI_SCHEMA, want: nil},
 	}
 	for _, sc := range cases {
 		if _, got := NewTagSchema(sc.schema); got != sc.want {

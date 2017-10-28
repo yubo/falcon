@@ -76,7 +76,7 @@ func testToken(t *testing.T) {
 		"a=1,b=2,c=2",
 	}
 	for _, item := range items {
-		if tag_idx[item], err = op.addTag(&Tag{Name: item}, schema); err != nil {
+		if tag_idx[item], err = op.createTag(&TagCreate{Name: item}, schema); err != nil {
 			t.Error(err)
 		}
 	}
@@ -86,10 +86,10 @@ func testToken(t *testing.T) {
 		"u1",
 	}
 	for _, item := range items {
-		if u, err := op.AddUser(&User{Name: item}); err != nil {
+		if id, err := op.CreateUser(&UserCreate{Name: item}); err != nil {
 			t.Error(err)
 		} else {
-			user_idx[item] = u.Id
+			user_idx[item] = id
 		}
 	}
 
@@ -101,7 +101,7 @@ func testToken(t *testing.T) {
 		"r4",
 	}
 	for _, item := range items {
-		if role_idx[item], err = op.AddRole(&Role{Name: item}); err != nil {
+		if role_idx[item], err = op.CreateRole(&RoleCreate{Name: item}); err != nil {
 			t.Error(err)
 		}
 	}
@@ -115,7 +115,7 @@ func testToken(t *testing.T) {
 		"token42",
 	}
 	for _, item := range items {
-		if token_idx[item], err = op.AddToken(&Token{Name: item}); err != nil {
+		if token_idx[item], err = op.CreateToken(&TokenCreate{Name: item}); err != nil {
 			t.Error(err)
 		}
 	}

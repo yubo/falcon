@@ -24,6 +24,18 @@ type Host struct {
 	CreateTime    time.Time `json:"ctime"`
 }
 
+type HostCreate struct {
+	Uuid          string `json:"uuid"`
+	Name          string `json:"name"`
+	Type          string `json:"typ"`
+	Status        string `json:"status"`
+	Loc           string `json:"loc"`
+	Idc           string `json:"idc"`
+	Pause         int64  `json:"pause"`
+	MaintainBegin int64  `json:"maintain_begin"`
+	MaintainEnd   int64  `json:"maintain_end"`
+}
+
 type HostUpdate struct {
 	Id            int64  `json:"id"`
 	Uuid          string `json:"uuid"`
@@ -37,9 +49,9 @@ type HostUpdate struct {
 	MaintainEnd   int64  `json:"maintain_end"`
 }
 
-func (op *Operator) AddHost(h *Host) (id int64, err error) {
-
-	id, err = op.SqlInsert("insert host (uuid, name, type, status, loc, idc, pause, maintain_begin, maintain_end) values (?, ?, ?, ?, ?, ?, ?, ?, ?)", h.Uuid, h.Name, h.Type, h.Status, h.Loc, h.Idc, h.Pause, h.MaintainBegin, h.MaintainEnd)
+func (op *Operator) CreateHost(h *HostCreate) (id int64, err error) {
+	id, err = op.SqlInsert("insert host (uuid, name, type, status, loc, idc, pause, maintain_begin, maintain_end) values (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+		h.Uuid, h.Name, h.Type, h.Status, h.Loc, h.Idc, h.Pause, h.MaintainBegin, h.MaintainEnd)
 	if err != nil {
 		return
 	}

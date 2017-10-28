@@ -30,6 +30,17 @@ type User struct {
 	CreateTime time.Time `json:"ctime"`
 }
 
+type UserCreate struct {
+	Uuid      string `json:"uuid"`
+	Name      string `json:"name"`
+	Cname     string `json:"cname"`
+	Email     string `json:"email"`
+	Phone     string `json:"phone"`
+	Qq        string `json:"qq"`
+	Extra     string `json:"extra"`
+	Avatarurl string `json:"avatarurl"`
+}
+
 type UserUpdate struct {
 	Id        int64  `json:"id"`
 	Uuid      string `json:"uuid"`
@@ -136,17 +147,16 @@ func (op *Operator) UserTokens() (token int) {
 	return UserTokens(op.User.Id, op.User.Name, op.O)
 }
 
-func (op *Operator) AddUser(user *User) (*User, error) {
-	user.CreateTime = time.Now()
-	id, err := op.SqlInsert("insert user (uuid, name, cname, email, phone, qq, disabled) values (?, ?, ?, ?, ?, ?, ?)", user.Uuid, user.Name, user.Cname, user.Email, user.Phone, user.Qq, user.Disabled)
+func (op *Operator) CreateUser(user *UserCreate) (id int64, err error) {
+	id, err = op.SqlInsert("insert user (uuid, name, cname, email, phone, qq, disabled) values (?, ?, ?, ?, ?, ?, ?, ?)",
+		user.Uuid, user.Name, user.Cname, user.Email,
+		user.Phone, user.Qq, user.Extra, user.Avatarurl)
 	if err != nil {
-		return nil, err
+		return
 	}
-	user.Id = id
-	moduleCache[CTL_M_USER].set(id, user)
 
 	DbLog(op.O, op.User.Id, CTL_M_USER, id, CTL_A_ADD, jsonStr(user))
-	return user, nil
+	return
 }
 
 // just called from profileFilter()
@@ -209,7 +219,9 @@ func (op *Operator) GetBindedUsers(id int64) (ret []*User, err error) {
 }
 
 func (op *Operator) UpdateUser(user *User) (ret *User, err error) {
-	_, err = op.SqlExec("update user set name = ?, cname = ?, email = ?, phone = ?, qq = ?, disabled = ?, extra = ?, avatarurl = ? where id = ?", user.Name, user.Cname, user.Email, user.Phone, user.Qq, user.Disabled, user.Extra, user.Avatarurl, user.Id)
+	_, err = op.SqlExec("update user set name = ?, cname = ?, email = ?, phone = ?, qq = ?, disabled = ?, extra = ?, avatarurl = ? where id = ?",
+		user.Name, user.Cname, user.Email, user.Phone, user.Qq,
+		user.Disabled, user.Extra, user.Avatarurl, user.Id)
 	if err != nil {
 		return
 	}

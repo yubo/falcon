@@ -18,6 +18,12 @@ type Role struct {
 	CreateTime time.Time `json:"ctime"`
 }
 
+type RoleCreate struct {
+	Name  string `json:"name"`
+	Cname string `json:"cname"`
+	Note  string `json:"note"`
+}
+
 type RoleUpdate struct {
 	Id    int64  `json:"id"`
 	Name  string `json:"name"`
@@ -25,7 +31,7 @@ type RoleUpdate struct {
 	Note  string `json:"note"`
 }
 
-func (op *Operator) AddRole(r *Role) (id int64, err error) {
+func (op *Operator) CreateRole(r *RoleCreate) (id int64, err error) {
 	id, err = op.SqlInsert("insert role (name, cname, note) values (?, ?, ?)", r.Name, r.Cname, r.Note)
 	if err != nil {
 		return

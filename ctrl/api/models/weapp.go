@@ -425,26 +425,27 @@ func WeappTaskAck(key string, sess *WeappSession) (interface{}, error) {
 	return nil, nil
 }
 
-func weappBind(uid int64, sess *WeappSession) (user *User, err error) {
-	var wuser *User
+func weappBind(uid int64, sess *WeappSession) (*User, error) {
+	var weapp_uid int64
 
-	if user, err = GetUser(uid, SysOp.O); err != nil {
-		return
+	user, err := GetUser(uid, SysOp.O)
+	if err != nil {
+		return nil, err
 	}
 
-	uuid := fmt.Sprintf("%s@weapp", sess.AppUser.OpenId)
+	if wuser, err := SysOp.GetUserByUuid(
+		fmt.Sprintf("%s@weapp", sess.AppUser.OpenId)); err != nil {
 
-	if wuser, err = SysOp.GetUserByUuid(uuid); err != nil {
 		// create user from weapp userinfo
-		wuser = &User{
+		weapp_uid, err = SysOp.CreateUser(&UserCreate{
 			Uuid:      fmt.Sprintf("%s@weapp", sess.AppUser.OpenId),
 			Name:      sess.AppUser.OpenId,
 			Cname:     sess.AppUser.NickName,
 			Avatarurl: sess.AppUser.AvatarUrl,
-		}
-		wuser, err = SysOp.AddUser(wuser)
+		})
+
 		if err != nil {
-			return
+			return nil, err
 		}
 	} else {
 		// user exist
@@ -457,6 +458,6 @@ func weappBind(uid int64, sess *WeappSession) (user *User, err error) {
 			}
 		}
 	}
-	err = SysOp.BindUser(wuser.Id, user.Id)
-	return
+	err = SysOp.BindUser(weapp_uid, user.Id)
+	return user, nil
 }

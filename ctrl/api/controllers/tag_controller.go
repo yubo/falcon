@@ -19,14 +19,15 @@ type TagController struct {
 
 // @Title CreateTag
 // @Description create tags
-// @Param	body	body 	models.Tag	true	"body for tag content"
+// @Param	body	body 	models.TagCreate	true	"body for tag content"
 // @Success 200 {object} models.Id Id
 // @Failure 400 string error
 // @router / [post]
 func (c *TagController) CreateTag() {
-	var tag models.Tag
+	var tag models.TagCreate
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	json.Unmarshal(c.Ctx.Input.RequestBody, &tag)
+	tag.Type = 0
 
 	// TODO: check parent exist/acl
 	if _, err := op.AccessByStr(models.SYS_IDX_O_TOKEN, models.TagParent(tag.Name),
@@ -35,7 +36,7 @@ func (c *TagController) CreateTag() {
 		return
 	}
 
-	if id, err := op.AddTag(&tag); err != nil {
+	if id, err := op.CreateTag(&tag); err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
 		c.SendMsg(200, idObj(id))

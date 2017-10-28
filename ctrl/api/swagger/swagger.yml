@@ -1034,7 +1034,7 @@ paths:
         description: body for host content
         required: true
         schema:
-          $ref: '#/definitions/models.Host'
+          $ref: '#/definitions/models.HostCreate'
       responses:
         "200":
           description: id
@@ -1485,8 +1485,7 @@ paths:
       operationId: PubController.Get config
       responses:
         "200":
-          description: '[3]map[string]string [3]map[string]string {defualt{}, conf{},
-            configfile{}}'
+          description: map[string]interface{} ctrl server config
         "400":
           description: string error
   /pub/rel/tag/host/cnt:
@@ -2399,7 +2398,7 @@ paths:
         description: body for role content
         required: true
         schema:
-          $ref: '#/definitions/models.Role'
+          $ref: '#/definitions/models.RoleCreate'
       responses:
         "200":
           description: Id
@@ -2746,7 +2745,7 @@ paths:
         description: body for tag content
         required: true
         schema:
-          $ref: '#/definitions/models.Tag'
+          $ref: '#/definitions/models.TagCreate'
       responses:
         "200":
           description: Id
@@ -3188,7 +3187,7 @@ paths:
         description: body for token content
         required: true
         schema:
-          $ref: '#/definitions/models.Token'
+          $ref: '#/definitions/models.TokenCreate'
       responses:
         "200":
           description: Id
@@ -3311,7 +3310,7 @@ paths:
         description: body for user content
         required: true
         schema:
-          $ref: '#/definitions/models.User'
+          $ref: '#/definitions/models.UserCreate'
       responses:
         "200":
           description: Id
@@ -4092,6 +4091,31 @@ definitions:
         type: string
       uuid:
         type: string
+  models.HostCreate:
+    title: HostCreate
+    type: object
+    properties:
+      idc:
+        type: string
+      loc:
+        type: string
+      maintain_begin:
+        type: integer
+        format: int64
+      maintain_end:
+        type: integer
+        format: int64
+      name:
+        type: string
+      pause:
+        type: integer
+        format: int64
+      status:
+        type: string
+      typ:
+        type: string
+      uuid:
+        type: string
   models.HostUpdate:
     title: HostUpdate
     type: object
@@ -4407,6 +4431,16 @@ definitions:
         type: string
       note:
         type: string
+  models.RoleCreate:
+    title: RoleCreate
+    type: object
+    properties:
+      cname:
+        type: string
+      name:
+        type: string
+      note:
+        type: string
   models.RoleUpdate:
     title: RoleUpdate
     type: object
@@ -4480,6 +4514,12 @@ definitions:
       type:
         type: integer
         format: int64
+  models.TagCreate:
+    title: TagCreate
+    type: object
+    properties:
+      name:
+        type: string
   models.TagRoleUser:
     title: TagRoleUser
     type: object
@@ -4627,6 +4667,16 @@ definitions:
         type: string
       note:
         type: string
+  models.TokenCreate:
+    title: TokenCreate
+    type: object
+    properties:
+      cname:
+        type: string
+      name:
+        type: string
+      note:
+        type: string
   models.TokenUpdate:
     title: TokenUpdate
     type: object
@@ -4690,6 +4740,26 @@ definitions:
       muid:
         type: integer
         format: int64
+      name:
+        type: string
+      phone:
+        type: string
+      qq:
+        type: string
+      uuid:
+        type: string
+  models.UserCreate:
+    title: UserCreate
+    type: object
+    properties:
+      avatarurl:
+        type: string
+      cname:
+        type: string
+      email:
+        type: string
+      extra:
+        type: string
       name:
         type: string
       phone:

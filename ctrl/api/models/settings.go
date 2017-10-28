@@ -61,7 +61,6 @@ func (op *Operator) populate() (interface{}, error) {
 		ret       string
 		err       error
 		items     []string
-		user      *User
 		id        int64
 		tag_idx   = make(map[string]int64)
 		user_idx  = make(map[string]int64)
@@ -86,10 +85,10 @@ func (op *Operator) populate() (interface{}, error) {
 		"user6",
 	}
 	for _, item := range items {
-		if user, err = op.AddUser(&User{Name: item, Uuid: item}); err != nil {
+		if id, err = op.CreateUser(&UserCreate{Name: item, Uuid: item}); err != nil {
 			return nil, err
 		}
-		user_idx[item] = user.Id
+		user_idx[item] = id
 		ret = fmt.Sprintf("%sadd user(%s)\n", ret, item)
 	}
 
@@ -138,7 +137,7 @@ func (op *Operator) populate() (interface{}, error) {
 		"cop=xiaomi,owt=miliao,pdl=micloud",
 	}
 	for _, item := range items {
-		if tag_idx[item], err = op.AddTag(&Tag{Name: item}); err != nil {
+		if tag_idx[item], err = op.CreateTag(&TagCreate{Name: item}); err != nil {
 			return nil, err
 		}
 		ret = fmt.Sprintf("%sadd tag(%s)\n", ret, item)
@@ -163,7 +162,7 @@ func (op *Operator) populate() (interface{}, error) {
 		{"cop=xiaomi,owt=miliao,pdl=micloud", "miliao.cloud3.bj"},
 	}
 	for _, item2 := range items2 {
-		if host_idx[item2[1]], err = op.AddHost(&Host{Name: item2[1]}); err != nil {
+		if host_idx[item2[1]], err = op.CreateHost(&HostCreate{Name: item2[1]}); err != nil {
 			return nil, err
 		}
 
@@ -252,7 +251,7 @@ func (op *Operator) populate() (interface{}, error) {
 		"usr",
 	}
 	for _, item := range items {
-		if role_idx[item], err = op.AddRole(&Role{Name: item}); err != nil {
+		if role_idx[item], err = op.CreateRole(&RoleCreate{Name: item}); err != nil {
 			return nil, err
 		}
 		ret = fmt.Sprintf("%sadd role(%s)\n", ret, item)
@@ -265,7 +264,7 @@ func (op *Operator) populate() (interface{}, error) {
 		SYS_A_TOKEN,
 	}
 	for _, item := range items {
-		if token_idx[item], err = op.AddToken(&Token{Name: item}); err != nil {
+		if token_idx[item], err = op.CreateToken(&TokenCreate{Name: item}); err != nil {
 			return nil, err
 		}
 		ret = fmt.Sprintf("%sadd token(%s)\n", ret, item)
@@ -323,7 +322,7 @@ func (op *Operator) ResetDb(populate bool) (interface{}, error) {
 	}
 
 	// init admin
-	op.AddUser(&User{Name: "system"})
+	op.CreateUser(&UserCreate{Name: "system"})
 
 	// init root tree tag
 	op.SqlExec("insert tag (name) values ('')")

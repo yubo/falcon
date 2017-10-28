@@ -21,17 +21,16 @@ type RoleController struct {
 
 // @Title CreateRole
 // @Description create roles
-// @Param	body	body 	models.Role	true	"body for role content"
+// @Param	body	body 	models.RoleCreate	true	"body for role content"
 // @Success 200 {object} models.Id Id
 // @Failure 400 string error
 // @router / [post]
 func (c *RoleController) CreateRole() {
-	var role models.Role
+	var role models.RoleCreate
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	json.Unmarshal(c.Ctx.Input.RequestBody, &role)
-	role.Id = 0
 
-	if id, err := op.AddRole(&role); err != nil {
+	if id, err := op.CreateRole(&role); err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
 		c.SendMsg(200, idObj(id))

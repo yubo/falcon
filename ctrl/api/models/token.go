@@ -18,6 +18,12 @@ type Token struct {
 	CreateTime time.Time `json:"ctime"`
 }
 
+type TokenCreate struct {
+	Name  string `json:"name"`
+	Cname string `json:"cname"`
+	Note  string `json:"note"`
+}
+
 type TokenUpdate struct {
 	Id    int64  `json:"id"`
 	Name  string `json:"name"`
@@ -25,7 +31,7 @@ type TokenUpdate struct {
 	Note  string `json:"note"`
 }
 
-func (op *Operator) AddToken(o *Token) (id int64, err error) {
+func (op *Operator) CreateToken(o *TokenCreate) (id int64, err error) {
 	id, err = op.SqlInsert("insert token (name, cname, note) values (?, ?, ?)", o.Name, o.Cname, o.Note)
 	if err != nil {
 		return

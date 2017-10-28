@@ -20,17 +20,17 @@ type HostController struct {
 
 // @Title CreateHost
 // @Description create hosts
-// @Param	body	body 	models.Host	true	"body for host content"
+// @Param	body	body 	models.HostCreate	true	"body for host content"
 // @Success 200 {object} models.Id id
 // @Failure 400 string error
 // @router / [post]
 func (c *HostController) CreateHost() {
-	var host models.Host
+	var host models.HostCreate
 
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	json.Unmarshal(c.Ctx.Input.RequestBody, &host)
 
-	if id, err := op.AddHost(&host); err != nil {
+	if id, err := op.CreateHost(&host); err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
 		c.SendMsg(200, idObj(id))

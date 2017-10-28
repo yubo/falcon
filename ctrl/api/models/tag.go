@@ -15,6 +15,11 @@ import (
 	"github.com/yubo/falcon"
 )
 
+type TagCreate struct {
+	Name string `json:"name"`
+	Type int64  `json:"-"`
+}
+
 type Tag struct {
 	Id         int64     `json:"id"`
 	Name       string    `json:"name"`
@@ -38,6 +43,10 @@ type TagSchema struct {
 	data  string
 	nodes []TagNode
 }
+
+const (
+	XIAOMI_SCHEMA = "cop,owt,pdl,servicegroup;service,jobgroup;job,sbs;mod;srv;grp;cluster;loc;idc;status;"
+)
 
 //cop,owt,pdl,servicegroup;service,jobgroup;job,sbs;mod;srv;grp;cluster;loc;idc;status;
 // ',' : must
@@ -197,7 +206,7 @@ func TagLast(t string) string {
 	return t[strings.LastIndexAny(t, ",")+1:]
 }
 
-func (op *Operator) addTag(t *Tag, schema *TagSchema) (id int64, err error) {
+func (op *Operator) createTag(t *TagCreate, schema *TagSchema) (id int64, err error) {
 	if schema != nil {
 		t.Name, err = schema.Fmt(t.Name, false)
 		if err != nil {
@@ -245,15 +254,15 @@ func (op *Operator) addTag(t *Tag, schema *TagSchema) (id int64, err error) {
 		}
 	}
 
-	t.Id = id
-	moduleCache[CTL_M_TAG].set(id, t, t.Name)
+	moduleCache[CTL_M_TAG].set(id,
+		&Tag{Id: id, Name: t.Name, Type: t.Type}, t.Name)
 	DbLog(op.O, op.User.Id, CTL_M_TAG, id, CTL_A_ADD, "")
 
 	return id, err
 }
 
-func (op *Operator) AddTag(t *Tag) (id int64, err error) {
-	if id, err = op.addTag(t, sysTagSchema); err != nil {
+func (op *Operator) CreateTag(t *TagCreate) (id int64, err error) {
+	if id, err = op.createTag(t, sysTagSchema); err != nil {
 		return
 	}
 	cacheTree.build()

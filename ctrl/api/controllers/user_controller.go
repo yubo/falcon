@@ -20,20 +20,19 @@ type UserController struct {
 
 // @Title CreateUser
 // @Description create users
-// @Param	body		body 	models.User	true		"body for user content"
+// @Param	body		body 	models.UserCreate	true		"body for user content"
 // @Success 200 {object} models.Id Id
 // @Failure 400 string error
 // @router / [post]
 func (c *UserController) CreateUser() {
-	var user models.User
+	var user models.UserCreate
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	json.Unmarshal(c.Ctx.Input.RequestBody, &user)
-	user.Id = 0
 
-	if u, err := op.AddUser(&user); err != nil {
+	if id, err := op.CreateUser(&user); err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
-		c.SendMsg(200, models.Id{Id: u.Id})
+		c.SendMsg(200, models.Id{Id: id})
 	}
 }
 

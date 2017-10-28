@@ -21,17 +21,16 @@ type TokenController struct {
 
 // @Title CreateToken
 // @Description create tokens
-// @Param	body	body 	models.Token	true	"body for token content"
+// @Param	body	body 	models.TokenCreate	true	"body for token content"
 // @Success 200 {object} models.Id Id
 // @Failure 400 string error
 // @router / [post]
 func (c *TokenController) CreateToken() {
-	var token models.Token
+	var token models.TokenCreate
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	json.Unmarshal(c.Ctx.Input.RequestBody, &token)
-	token.Id = 0
 
-	id, err := op.AddToken(&token)
+	id, err := op.CreateToken(&token)
 	if err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
