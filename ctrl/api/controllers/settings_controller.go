@@ -16,10 +16,12 @@ type SetController struct {
 	BaseController
 }
 
+type Mss map[string]string
+
 // @Title Get config
 // @Description get modules config
 // @Param	module	path	string	true	"module name"
-// @Success 200 {object} [3]map[string]string {defualt{}, conf{}, configfile{}}
+// @Success 200 map[string]string {defualt{}, conf{}, configfile{}}
 // @Failure 400 string error
 // @router /config/:module [get]
 func (c *SetController) GetConfig() {

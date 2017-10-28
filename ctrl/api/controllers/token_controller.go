@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/astaxie/beego"
+	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/ctrl/api/models"
 )
 
@@ -102,27 +103,32 @@ func (c *TokenController) GetToken() {
 
 // @Title UpdateToken
 // @Description update the token
-// @Param	id		path 	string	true		"The id you want to update"
-// @Param	body		body 	models.Token	true		"body for token content"
+// @Param	body	body 	models.TokenUpdate	true	"body for token content"
 // @Success 200 {object} models.Token token info
 // @Failure 400 string error
-// @router /:id [put]
+// @router / [put]
 func (c *TokenController) UpdateToken() {
-	var token models.Token
-
-	id, err := c.GetInt64(":id")
+	input := models.TokenUpdate{}
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
+	err := json.Unmarshal(c.Ctx.Input.RequestBody, &input)
 	if err != nil {
 		c.SendMsg(400, err.Error())
 		return
 	}
 
-	json.Unmarshal(c.Ctx.Input.RequestBody, &token)
+	p, err := op.GetToken(input.Id)
+	if err != nil {
+		c.SendMsg(400, err.Error())
+		return
+	}
 
-	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
-	if u, err := op.UpdateToken(id, &token); err != nil {
+	token := *p
+	falcon.Override(&token, &input)
+
+	if ret, err := op.UpdateToken(&token); err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
-		c.SendMsg(200, u)
+		c.SendMsg(200, ret)
 	}
 }
 

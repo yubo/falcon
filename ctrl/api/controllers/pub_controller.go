@@ -17,26 +17,9 @@ type PubController struct {
 	BaseController
 }
 
-// backword  api
-type BackwardUser struct {
-	Name  string `json:"name"`
-	Email string `json:"email"`
-	Phone string `json:"phone"`
-}
-
-type BackwardUsersWrap struct {
-	Msg   string          `json:"msg"`
-	Users []*BackwardUser `json:"users"`
-}
-
-type BackwardActionWrap struct {
-	Msg  string         `json:"msg"`
-	Data *models.Action `json:"data"`
-}
-
 // @Title Get config
 // @Description get ctrl modules config
-// @Success 200 {object} [3]map[string]string {defualt{}, conf{}, configfile{}}
+// @Success 200  [3]map[string]string [3]map[string]string {defualt{}, conf{}, configfile{}}
 // @Failure 400 string error
 // @router /config/ctrl [get]
 func (c *PubController) GetConfig() {
@@ -111,49 +94,5 @@ func (c *PubController) GetTagHost() {
 		c.SendMsg(400, err.Error())
 	} else {
 		c.SendMsg(200, ret)
-	}
-}
-
-// @Title get action
-// @Description get action by action id
-// @Param	id	path 	int	true	"the action id for search"
-// @Success 200 {object} BackwardActionWrap "action info"
-// @Failure 200 {object} BackwardActionWrap error in msg
-// @router /api/action/:id [get]
-func (c *PubController) GetAction() {
-	id, err := c.GetInt64(":id")
-	if err != nil {
-		c.SendMsg(200, &BackwardActionWrap{Msg: err.Error()})
-		return
-	}
-
-	act, err := models.SysOp.GetAction(id)
-	if err != nil {
-		c.SendMsg(200, &BackwardActionWrap{Msg: err.Error()})
-	} else {
-		c.SendMsg(200, &BackwardActionWrap{Data: act})
-	}
-}
-
-// @Title get team user
-// @Description get team user
-// @Param	uic	query 	string	true	"the team name for search"
-// @Success 200 {object} BackwardUsersWrap "users list"
-// @Failure 200 {object} BackwardUsersWrap error in msg
-// @router /team/users [get]
-func (c *PubController) GetTeamUser() {
-	team := c.GetString("uic")
-	if mem, err := models.SysOp.GetMember(0, team); err != nil {
-		c.SendMsg(200, &BackwardUsersWrap{Msg: err.Error()})
-	} else {
-		users := make([]*BackwardUser, len(mem.Users))
-		for k, v := range mem.Users {
-			users[k] = &BackwardUser{
-				Name:  v.Name,
-				Email: v.Email,
-				Phone: v.Phone,
-			}
-		}
-		c.SendMsg(200, &BackwardUsersWrap{Users: users})
 	}
 }

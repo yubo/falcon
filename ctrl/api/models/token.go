@@ -18,6 +18,13 @@ type Token struct {
 	CreateTime time.Time `json:"ctime"`
 }
 
+type TokenUpdate struct {
+	Id    int64  `json:"id"`
+	Name  string `json:"name"`
+	Cname string `json:"cname"`
+	Note  string `json:"note"`
+}
+
 func (op *Operator) AddToken(o *Token) (id int64, err error) {
 	id, err = op.SqlInsert("insert token (name, cname, note) values (?, ?, ?)", o.Name, o.Cname, o.Note)
 	if err != nil {
@@ -70,18 +77,18 @@ func (op *Operator) GetTokens(query string, limit, offset int) (ret []*Token, er
 	return
 }
 
-func (op *Operator) UpdateToken(id int64, t *Token) (ret *Token, err error) {
-	_, err = op.SqlExec("update token set name = ?, cname = ?, note = ? where id = ?", t.Name, t.Cname, t.Note, id)
+func (op *Operator) UpdateToken(t *Token) (ret *Token, err error) {
+	_, err = op.SqlExec("update token set name = ?, cname = ?, note = ? where id = ?", t.Name, t.Cname, t.Note, t.Id)
 	if err != nil {
 		return
 	}
 
-	moduleCache[CTL_M_TOKEN].del(id)
-	if ret, err = op.GetToken(id); err != nil {
+	moduleCache[CTL_M_TOKEN].del(t.Id)
+	if ret, err = op.GetToken(t.Id); err != nil {
 		return
 	}
 
-	DbLog(op.O, op.User.Id, CTL_M_TOKEN, id, CTL_A_SET, jsonStr(t))
+	DbLog(op.O, op.User.Id, CTL_M_TOKEN, t.Id, CTL_A_SET, jsonStr(t))
 	return ret, err
 }
 

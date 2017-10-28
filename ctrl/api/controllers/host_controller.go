@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"strings"
 
+	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/ctrl/api/models"
 )
 
@@ -99,33 +100,32 @@ func (c *HostController) GetHost() {
 
 // @Title UpdateHost
 // @Description update the host
-// @Param	body		body 	models.Host	true	"body for host content"
+// @Param	body	body 	models.HostUpdate	true	"body for host content"
 // @Success 200 {object} models.Host host info
 // @Failure 400 string error
 // @router / [put]
 func (c *HostController) UpdateHost() {
-	host := &models.Host{}
-
-	err := json.Unmarshal(c.Ctx.Input.RequestBody, host)
+	input := models.HostUpdate{}
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
+	err := json.Unmarshal(c.Ctx.Input.RequestBody, &input)
 	if err != nil {
 		c.SendMsg(400, err.Error())
 		return
 	}
 
-	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
-	if host, err = op.GetHost(host.Id); err != nil {
+	p, err := op.GetHost(input.Id)
+	if err != nil {
 		c.SendMsg(400, err.Error())
 		return
 	}
 
-	// overlay entry
-	o := *host
-	json.Unmarshal(c.Ctx.Input.RequestBody, &o)
+	host := *p
+	falcon.Override(&host, &input)
 
-	if host, err = op.UpdateHost(&o); err != nil {
+	if ret, err := op.UpdateHost(&host); err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
-		c.SendMsg(200, host)
+		c.SendMsg(200, ret)
 	}
 }
 
@@ -153,7 +153,7 @@ func (c *HostController) DeleteHost() {
 
 // @Title DeleteHosts
 // @Description delete the hosts
-// @Param	body	[]int	true	"The []id you want to delete"
+// @Param body	body	[]int	true	"The []id you want to delete"
 // @Success 200 {string} "delete success!"
 // @Failure 400 string error
 // @router / [delete]

@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"strings"
 
+	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/ctrl/api/models"
 )
 
@@ -55,9 +56,9 @@ func (c *UserController) GetUsersCnt() {
 
 // @Title GetUsers
 // @Description get all Users
-// @Param   query     query   string  false       "user name/email"
+// @Param   query	query   string  false       "user name/email"
 // @Param   limit	query   int     false       "limit page number"
-// @Param   offset    query   int     false       "offset  number"
+// @Param   offset	query   int     false       "offset  number"
 // @Success 200 {object} []models.User users info
 // @Failure 400 string error
 // @router /search [get]
@@ -76,7 +77,7 @@ func (c *UserController) GetUsers() {
 
 // @Title unbind User
 // @Description unbind user
-// @Param   id     patch   int  true       "user id"
+// @Param id	path	int	true	"user id"
 // @Success 200 string success
 // @Failure 400 string error
 // @router /unbind/:id [get]
@@ -96,7 +97,7 @@ func (c *UserController) UnBindUser() {
 
 // @Title GetBindedUsers
 // @Description get all Users
-// @Param   id     patch   int  true       "user id"
+// @Param   id     path   int  true       "user id"
 // @Success 200 {object} []models.User users info
 // @Failure 400 string error
 // @router /binded/:id [get]
@@ -116,7 +117,7 @@ func (c *UserController) GetBindedUsers() {
 
 // @Title Get
 // @Description get user by id
-// @Param	id		path 	int	true	"user id"
+// @Param	id	path	int	true	"user id"
 // @Success 200 {object} models.User user info
 // @Failure 400 string error
 // @router /:id [get]
@@ -135,33 +136,33 @@ func (c *UserController) GetUser() {
 }
 
 // @Title Update
-// @Description update the user
-// @Param	body		body 	models.User	true		"body for user content"
+// @Description update user information
+// @Param	body	body	models.UserUpdate	true	"body for user content"
 // @Success 200 {object} models.User user info
 // @Failure 400 string error
 // @router / [put]
 func (c *UserController) UpdateUser() {
-	user := &models.User{}
-
-	err := json.Unmarshal(c.Ctx.Input.RequestBody, user)
+	input := models.UserUpdate{}
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
+	err := json.Unmarshal(c.Ctx.Input.RequestBody, &input)
 	if err != nil {
 		c.SendMsg(400, err.Error())
 		return
 	}
 
-	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
-	if user, err = op.GetUser(user.Id); err != nil {
+	p, err := op.GetUser(input.Id)
+	if err != nil {
 		c.SendMsg(400, err.Error())
 		return
 	}
 
-	o := *user
-	json.Unmarshal(c.Ctx.Input.RequestBody, user)
+	user := *p
+	falcon.Override(&user, &input)
 
-	if user, err = op.UpdateUser(&o); err != nil {
+	if ret, err := op.UpdateUser(&user); err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
-		c.SendMsg(200, user)
+		c.SendMsg(200, ret)
 	}
 }
 

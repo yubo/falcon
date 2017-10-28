@@ -1,4 +1,4 @@
--- USE falcon;
+USE falcon;
 SET NAMES utf8;
 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0;
 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0;
@@ -487,8 +487,8 @@ SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
 
 INSERT INTO `tag` (`id`, `name`) VALUES (1, '');
 INSERT INTO `tag_rel` (`tag_id`, `sup_tag_id`) VALUES (1, 1);
-INSERT INTO `user` (`id`, `uuid`, `name`, `cname`, `email`, `phone`, `im`, `qq`)
-VALUES (1, 'root@localhost', 'system', 'system', 'root@localhost', '', '', '');
+INSERT INTO `user` (`id`, `uuid`, `name`, `cname`, `email`, `phone`, `qq`)
+VALUES (1, 'root@localhost', 'system', 'system', 'root@localhost', '', '');
 
 INSERT INTO `token` (`id`, `name`, `cname`, `note`) VALUES
     (1, 'falcon_read', 'read', 'read'),

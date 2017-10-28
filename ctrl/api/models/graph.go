@@ -17,8 +17,8 @@ import (
 type JsonFloat float64
 
 type RRDData struct {
-	Timestamp int64     `json:"timestamp"`
-	Value     JsonFloat `json:"value"`
+	Timestamp int64   `json:"timestamp"`
+	Value     float64 `json:"value"`
 }
 
 type GraphQueryResponse struct {

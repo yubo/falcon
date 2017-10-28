@@ -18,6 +18,13 @@ type Role struct {
 	CreateTime time.Time `json:"ctime"`
 }
 
+type RoleUpdate struct {
+	Id    int64  `json:"id"`
+	Name  string `json:"name"`
+	Cname string `json:"cname"`
+	Note  string `json:"note"`
+}
+
 func (op *Operator) AddRole(r *Role) (id int64, err error) {
 	id, err = op.SqlInsert("insert role (name, cname, note) values (?, ?, ?)", r.Name, r.Cname, r.Note)
 	if err != nil {
@@ -55,18 +62,18 @@ func (op *Operator) GetRoles(query string, limit, offset int) (ret []*Role, err 
 	return
 }
 
-func (op *Operator) UpdateRole(id int64, role *Role) (ret *Role, err error) {
-	_, err = op.SqlExec("update role set name = ?, cname = ?, note = ? where id = ?", role.Name, role.Cname, role.Note, id)
+func (op *Operator) UpdateRole(role *Role) (ret *Role, err error) {
+	_, err = op.SqlExec("update role set name = ?, cname = ?, note = ? where id = ?", role.Name, role.Cname, role.Note, role.Id)
 	if err != nil {
 		return
 	}
 
-	moduleCache[CTL_M_ROLE].del(id)
-	if ret, err = op.GetRole(id); err != nil {
+	moduleCache[CTL_M_ROLE].del(role.Id)
+	if ret, err = op.GetRole(role.Id); err != nil {
 		return
 	}
 
-	DbLog(op.O, op.User.Id, CTL_M_ROLE, id, CTL_A_SET, "")
+	DbLog(op.O, op.User.Id, CTL_M_ROLE, role.Id, CTL_A_SET, "")
 	return ret, err
 }
 

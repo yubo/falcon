@@ -21,7 +21,7 @@ type AdminController struct {
 
 // @Title Get config
 // @Description list etcd Description
-// @Success 200 {object} map[string]string etcd map string
+// @Success 200 map[string]string map[string]string etcd map string
 // @Failure 400 string error
 // @router /config/list/etcd [get]
 func (c *AdminController) GetEtcdMap() {
@@ -30,7 +30,7 @@ func (c *AdminController) GetEtcdMap() {
 
 // @Title Get config
 // @Description list module config api Description
-// @Success 200 {object} map[string]string etcd map string
+// @Success 200 map[string]string map[string]string etcd map string
 // @Failure 400 string error
 // @router /config/list/module [get]
 func (c *AdminController) GetModuleMap() {
@@ -40,7 +40,7 @@ func (c *AdminController) GetModuleMap() {
 // @Title Get online endpoint
 // @Description get online endpoint
 // @Param	module	path	string	true	"module name"
-// @Success 200 {object} map[string]string online endpoint list
+// @Success 200 map[string]string map[string]string online endpoint list
 // @Failure 400 string error
 // @router /online/:module [get]
 func (c *AdminController) GetOnline() {
@@ -60,7 +60,7 @@ func (c *AdminController) GetOnline() {
 // @Title Get config
 // @Description get module config
 // @Param	module	path	string	true	"module name"
-// @Success 200 {object} []map[string]string {defualt{}, conf{}, configfile{}}
+// @Success 200 [3]map[string]string {defualt{}, conf{}, configfile{}}
 // @Failure 400 string error
 // @router /config/:module [get]
 func (c *AdminController) GetConfig() {
@@ -80,7 +80,7 @@ func (c *AdminController) GetConfig() {
 // @Title update config
 // @Description get tag role user
 // @Param	module	path	string	true	"module"
-// @Param	body	body	map[string]string true	""
+// @Param	body	body	models.Obj true	"map[string]string"
 // @Success 200 {string} success
 // @Failure 400 string error
 // @router /config/:module [put]

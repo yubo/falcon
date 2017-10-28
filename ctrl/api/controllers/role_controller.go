@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/astaxie/beego"
+	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/ctrl/api/models"
 )
 
@@ -101,31 +102,32 @@ func (c *RoleController) GetRole() {
 
 // @Title UpdateRole
 // @Description update the role
-// @Param	id	path 	string	true	"The id you want to update"
-// @Param	body	body 	models.Role	true	"body for role content"
+// @Param	body	body 	models.RoleUpdate	true	"body for role content"
 // @Success 200 {object} models.Role role info
 // @Failure 400 string error
-// @router /:id [put]
+// @router / [put]
 func (c *RoleController) UpdateRole() {
-	role := &models.Role{}
+	input := models.RoleUpdate{}
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
-
-	id, err := c.GetInt64(":id")
+	err := json.Unmarshal(c.Ctx.Input.RequestBody, &input)
 	if err != nil {
 		c.SendMsg(400, err.Error())
 		return
 	}
 
-	if role, err = op.GetRole(id); err != nil {
+	p, err := op.GetRole(input.Id)
+	if err != nil {
 		c.SendMsg(400, err.Error())
 		return
 	}
-	json.Unmarshal(c.Ctx.Input.RequestBody, &role)
 
-	if role, err = op.UpdateRole(id, role); err != nil {
+	role := *p
+	falcon.Override(&role, &input)
+
+	if ret, err := op.UpdateRole(&role); err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
-		c.SendMsg(200, role)
+		c.SendMsg(200, ret)
 	}
 }
 

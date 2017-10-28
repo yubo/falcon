@@ -76,7 +76,7 @@ func (c *DashboardController) CreateGraph() {
 
 // @Title update Graphs
 // @Description update graph, .endpoints and .counters is []string
-// @Param	body	body 	[]models.APIGraph	true	"body for graph content"
+// @Param	body	body 	models.APIGraphs	true	"body for graph content"
 // @Success 200 {object}  models.Stats DashboardGraph
 // @Failure 400 string error
 // @router /graphs [put]

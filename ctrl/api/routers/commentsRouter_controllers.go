@@ -561,14 +561,6 @@ func init() {
 
 	beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/api/controllers:PubController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/api/controllers:PubController"],
 		beego.ControllerComments{
-			Method: "GetAction",
-			Router: `/api/action/:id`,
-			AllowHTTPMethods: []string{"get"},
-			MethodParams: param.Make(),
-			Params: nil})
-
-	beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/api/controllers:PubController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/api/controllers:PubController"],
-		beego.ControllerComments{
 			Method: "GetConfig",
 			Router: `/config/ctrl`,
 			AllowHTTPMethods: []string{"get"},
@@ -587,14 +579,6 @@ func init() {
 		beego.ControllerComments{
 			Method: "GetTagHost",
 			Router: `/rel/tag/host/search`,
-			AllowHTTPMethods: []string{"get"},
-			MethodParams: param.Make(),
-			Params: nil})
-
-	beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/api/controllers:PubController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/api/controllers:PubController"],
-		beego.ControllerComments{
-			Method: "GetTeamUser",
-			Router: `/team/users`,
 			AllowHTTPMethods: []string{"get"},
 			MethodParams: param.Make(),
 			Params: nil})
@@ -865,17 +849,17 @@ func init() {
 
 	beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/api/controllers:RoleController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/api/controllers:RoleController"],
 		beego.ControllerComments{
-			Method: "GetRole",
-			Router: `/:id`,
-			AllowHTTPMethods: []string{"get"},
+			Method: "UpdateRole",
+			Router: `/`,
+			AllowHTTPMethods: []string{"put"},
 			MethodParams: param.Make(),
 			Params: nil})
 
 	beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/api/controllers:RoleController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/api/controllers:RoleController"],
 		beego.ControllerComments{
-			Method: "UpdateRole",
+			Method: "GetRole",
 			Router: `/:id`,
-			AllowHTTPMethods: []string{"put"},
+			AllowHTTPMethods: []string{"get"},
 			MethodParams: param.Make(),
 			Params: nil})
 
@@ -1153,17 +1137,17 @@ func init() {
 
 	beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/api/controllers:TokenController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/api/controllers:TokenController"],
 		beego.ControllerComments{
-			Method: "GetToken",
-			Router: `/:id`,
-			AllowHTTPMethods: []string{"get"},
+			Method: "UpdateToken",
+			Router: `/`,
+			AllowHTTPMethods: []string{"put"},
 			MethodParams: param.Make(),
 			Params: nil})
 
 	beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/api/controllers:TokenController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/api/controllers:TokenController"],
 		beego.ControllerComments{
-			Method: "UpdateToken",
+			Method: "GetToken",
 			Router: `/:id`,
-			AllowHTTPMethods: []string{"put"},
+			AllowHTTPMethods: []string{"get"},
 			MethodParams: param.Make(),
 			Params: nil})
 

@@ -14,20 +14,13 @@ import (
 	"github.com/astaxie/beego/orm"
 )
 
-type UserProfileUpdate struct {
-	Cname string `json:"cname"`
-	Email string `json:"email"`
-	Phone string `json:"phone"`
-	Qq    string `json:"qq"`
-	Extra string `json:"extra"`
-}
-
 type User struct {
 	Id         int64     `json:"id"`
 	Muid       int64     `json:"muid"` /* master uid */
 	Uuid       string    `json:"uuid"`
 	Name       string    `json:"name"`
 	Cname      string    `json:"cname"`
+	Mname      string    `json:"mname"` /* master user name */
 	Email      string    `json:"email"`
 	Phone      string    `json:"phone"`
 	Qq         string    `json:"qq"`
@@ -35,6 +28,27 @@ type User struct {
 	Avatarurl  string    `json:"avatarurl"`
 	Disabled   int       `json:"disabled"`
 	CreateTime time.Time `json:"ctime"`
+}
+
+type UserUpdate struct {
+	Id        int64  `json:"id"`
+	Uuid      string `json:"uuid"`
+	Name      string `json:"name"`
+	Cname     string `json:"cname"`
+	Email     string `json:"email"`
+	Phone     string `json:"phone"`
+	Qq        string `json:"qq"`
+	Extra     string `json:"extra"`
+	Avatarurl string `json:"avatarurl"`
+	Disabled  int    `json:"disabled"`
+}
+
+type UserProfileUpdate struct {
+	Cname string `json:"cname"`
+	Email string `json:"email"`
+	Phone string `json:"phone"`
+	Qq    string `json:"qq"`
+	Extra string `json:"extra"`
 }
 
 type Operator struct {
@@ -144,7 +158,7 @@ func GetUser(id int64, o orm.Ormer) (ret *User, err error) {
 	}
 
 	ret = &User{}
-	err = o.Raw("select id, muid, uuid, name, cname, email, phone, qq, disabled, extra, avatarurl, create_time from user where id = ?", id).QueryRow(ret)
+	err = o.Raw("select a.id, a.muid, a.uuid, a.name, a.cname, a.email, a.phone, a.qq, a.disabled, a.extra, a.avatarurl, a.create_time, b.name as mname from user a left join user b on a.muid = b.id where a.id = ?", id).QueryRow(ret)
 	if err == nil {
 		moduleCache[CTL_M_USER].set(id, ret)
 	}
@@ -157,7 +171,7 @@ func (op *Operator) GetUser(id int64) (*User, error) {
 
 func (op *Operator) GetUserByUuid(uuid string) (ret *User, err error) {
 	ret = &User{}
-	err = op.SqlRow(ret, "select id, muid, uuid, name, cname, email, phone, qq, disabled, extra, avatarurl, create_time from user where uuid = ?", uuid)
+	err = op.SqlRow(ret, "select a.id, a.muid, a.uuid, a.name, a.cname, a.email, a.phone, a.qq, a.disabled, a.extra, a.avatarurl, a.create_time, b.name as mname from user a left join user b on a.muid = b.id where a.uuid = ?", uuid)
 	return ret, err
 }
 
@@ -165,7 +179,7 @@ func sqlUser(query string) (where string, args []interface{}) {
 	sql2 := []string{}
 	sql3 := []interface{}{}
 	if query != "" {
-		sql2 = append(sql2, "name like ? or email like ?")
+		sql2 = append(sql2, "user.name like ? or user.email like ?")
 		sql3 = append(sql3, "%"+query+"%", "%"+query+"%")
 	}
 	if len(sql2) != 0 {
@@ -183,7 +197,7 @@ func (op *Operator) GetUsersCnt(query string) (cnt int64, err error) {
 
 func (op *Operator) GetUsers(query string, limit, offset int) (ret []*User, err error) {
 	sql, sql_args := sqlUser(query)
-	sql = sqlLimit("select id, muid, uuid, name, cname, email, phone, qq, disabled, extra, avatarurl, create_time, extra from user "+sql+" ORDER BY name", limit, offset)
+	sql = sqlLimit("select user.id, user.muid, user.uuid, user.name, user.cname, user.email, user.phone, user.qq, user.disabled, user.extra, user.avatarurl, user.create_time, user.extra, b.name as mname from user left join user b on user.muid = b.id "+sql+" ORDER BY name", limit, offset)
 	_, err = op.O.Raw(sql, sql_args...).QueryRows(&ret)
 
 	return

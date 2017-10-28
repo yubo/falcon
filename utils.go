@@ -7,6 +7,7 @@ package falcon
 
 import (
 	"crypto/md5"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -97,4 +98,44 @@ func sortTags(s []byte) []byte {
 	tags := strings.Split(str, ",")
 	sort.Strings(tags)
 	return []byte(strings.Join(tags, ","))
+}
+
+func Override(dst, src interface{}) error {
+	srv := reflect.ValueOf(src).Elem()
+	srt := srv.Type()
+
+	drv := reflect.ValueOf(dst).Elem()
+	drt := drv.Type()
+
+	if !drv.CanSet() {
+		return errors.New("dst can't set")
+	}
+
+	for i := 0; i < srv.NumField(); i++ {
+		fname := srt.Field(i).Name
+
+		if _, ok := drt.FieldByName(fname); !ok {
+			continue
+		}
+
+		sf := srv.Field(i)
+		df := drv.FieldByName(fname)
+
+		if !df.CanSet() {
+			continue
+		}
+
+		if sf.Type().Kind() != df.Type().Kind() {
+			continue
+		}
+
+		switch df.Type().Kind() {
+		case reflect.Struct, reflect.Map:
+			// skip
+		default:
+			df.Set(sf)
+		}
+
+	}
+	return nil
 }

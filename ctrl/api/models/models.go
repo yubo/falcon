@@ -116,6 +116,9 @@ const (
 	CTL_RUNMODE_MI
 )
 
+type Obj struct {
+}
+
 type Ids struct {
 	Ids []int64 `json:"ids"`
 }

@@ -69,6 +69,10 @@ func (op *Operator) GetDashboardTmpGraph(id int64) (*APITmpGraph, error) {
 
 ////////////////// graph
 
+type APIGraphs struct {
+	Gs []APIGraph
+}
+
 type APIGraph struct {
 	ScreenId   int64    `json:"screen_id"`
 	GraphId    int64    `json:"graph_id"`

@@ -101,7 +101,7 @@ func (c *ExpressionController) GetExpressions() {
 // @Title Get
 // @Description get expression by id
 // @Param	id	path 	int	true	"The key for staticblock"
-// @Success 200 {object} models.ExpressionAction expression and action info
+// @Success 200 {object} models.ExpressionActionApiGet expression and action info
 // @Failure 400 string error
 // @router /:id [get]
 func (c *ExpressionController) GetExpressionAction() {

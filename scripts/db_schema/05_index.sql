@@ -1,4 +1,4 @@
--- USE idx;
+USE idx;
 SET NAMES utf8;
 
 DROP TABLE if exists `idx`.`endpoint`;
