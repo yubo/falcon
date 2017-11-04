@@ -317,12 +317,15 @@ func WeappLogin(code, encrypt_data, iv string) (*WeappSession, error) {
 
 	glog.V(4).Infof("find %s@weapp", s.AppUser.OpenId)
 	if user, err := SysOp.GetUserByUuid(s.AppUser.OpenId + "@weapp"); err == nil {
-		glog.V(4).Infof("find uid %d", user.Muid)
-		if user, err = SysOp.GetUser(user.Muid); err == nil {
-			glog.V(4).Infof("find user %s", user.Name)
-			s.User = user
-			s.Token = UserTokens(user.Id, user.Name, SysOp.O)
+		glog.V(4).Infof("find %s(%d)", user.Name, user.Id)
+		if user.Muid > 0 {
+			if master, err := SysOp.GetUser(user.Muid); err == nil {
+				user = master
+			}
 		}
+		glog.V(4).Infof("login as %s(%d)", user.Name, user.Id)
+		s.User = user
+		s.Token = UserTokens(user.Id, user.Name, SysOp.O)
 	}
 
 	weapp.addSession(s)
@@ -429,12 +432,14 @@ func weappBind(uid int64, sess *WeappSession) (*User, error) {
 	var weapp_uid int64
 
 	user, err := GetUser(uid, SysOp.O)
+	glog.V(4).Infof("weapp bind get user %d -> user %#v error %s", uid, user, err)
 	if err != nil {
 		return nil, err
 	}
 
 	if wuser, err := SysOp.GetUserByUuid(
 		fmt.Sprintf("%s@weapp", sess.AppUser.OpenId)); err != nil {
+		// if user not exist
 
 		// create user from weapp userinfo
 		weapp_uid, err = SysOp.CreateUser(&UserCreate{
@@ -457,6 +462,7 @@ func weappBind(uid int64, sess *WeappSession) (*User, error) {
 				return nil, ErrBeBindedAlready
 			}
 		}
+		weapp_uid = wuser.Id
 	}
 	err = SysOp.BindUser(weapp_uid, user.Id)
 	return user, nil

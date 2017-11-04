@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	"github.com/astaxie/beego/orm"
-	"github.com/golang/glog"
 	"github.com/yubo/falcon"
 )
 
@@ -519,48 +518,7 @@ func (op *Operator) GetTagTags(tag_id int64) (nodes []zTreeNode, err error) {
 	return
 }
 
-/*
-func (op *Operator) GetTreeNodes(id int64) (nodes []TreeNode, err error) {
-	if id == 0 {
-		return []TreeNode{{TagId: 1, Name: "/"}}, nil
-	}
-	_, err = op.O.Raw("SELECT tag_id, b.name FROM tag_rel a LEFT JOIN tag b ON a.tag_id = b.id WHERE a.sup_tag_id = ? AND a.offset = 1 and b.type = 0", id).QueryRows(&nodes)
-	if err != nil {
-		return nil, err
-	}
-	for k, _ := range nodes {
-		nodes[k].Label = nodes[k].Name[strings.LastIndexAny(nodes[k].Name, ",")+1:]
-	}
-	return
-}
-*/
-
-func cutTagTree(tree *TreeNode) *TreeNode {
-	var child []*TreeNode
-
-	if len(tree.Child) == 0 {
-		goto out
-	}
-
-	for _, v := range tree.Child {
-		if v = cutTagTree(v); v != nil {
-			child = append(child, v)
-		}
-	}
-	if len(child) > 0 {
-		tree.Child = child
-		return tree
-	}
-
-out:
-	if tree.Read {
-		return tree
-	} else {
-		return nil
-	}
-}
-
-func cloneTree(t *TreeNode, depth int) (out *TreeNode) {
+func cloneTreeNode(t *TreeNode, depth int) (out *TreeNode) {
 
 	if t == nil {
 		return
@@ -581,7 +539,7 @@ func cloneTree(t *TreeNode, depth int) (out *TreeNode) {
 	out.Child = make([]*TreeNode, len(t.Child))
 
 	for i, _ := range t.Child {
-		out.Child[i] = cloneTree(t.Child[i], depth-1)
+		out.Child[i] = cloneTreeNode(t.Child[i], depth-1)
 	}
 
 	return
@@ -598,30 +556,30 @@ func pruneTagTree(nodes map[int64]*TreeNode, idx int64) (tree *TreeNode) {
 	return tree
 }
 
-func (op *Operator) GetOpTag(deep bool) ([]int64, error) {
-	if deep {
+func (op *Operator) GetOpTag(expand bool) ([]int64, error) {
+	if expand {
+		return userHasTokenTagExpend(op.O, op.User.Id, SYS_IDX_O_TOKEN)
+	} else {
 		return userHasTokenTag(op.O, op.User.Id, SYS_IDX_O_TOKEN)
-	} else {
-		return userHasTokenTag0(op.O, op.User.Id, SYS_IDX_O_TOKEN)
 	}
 }
 
-func (op *Operator) GetReadTag(deep bool) ([]int64, error) {
-	if deep {
+func (op *Operator) GetReadTag(expand bool) ([]int64, error) {
+	if expand {
+		return userHasTokenTagExpend(op.O, op.User.Id, SYS_IDX_R_TOKEN)
+	} else {
 		return userHasTokenTag(op.O, op.User.Id, SYS_IDX_R_TOKEN)
-	} else {
-		return userHasTokenTag0(op.O, op.User.Id, SYS_IDX_R_TOKEN)
 	}
 }
 
-func (op *Operator) GetTree0(tag_id int64, depth int, direct bool) (tree *TreeNode) {
+func (op *Operator) GetTreeNode(tag_id int64, depth int, direct bool) (tree *TreeNode) {
 	var (
 		ids, names []string
 		isChild    []bool
 	)
 
 	if direct {
-		return cloneTree(cacheTree.get(tag_id), depth)
+		return cloneTreeNode(cacheTree.get(tag_id), depth)
 	}
 
 	_, err := op.O.Raw("SELECT group_concat(d1.sup_tag_id order by d1.`offset` desc) as ids, group_concat(d3.name order by d1.`offset` desc SEPARATOR ',,') as tags from tag_rel d1 join (SELECT c1.tag_id, c1.sup_tag_id, c1.offset from tag_rel c1 join (SELECT distinct b1.user_tag_id FROM (SELECT a1.tag_id AS user_tag_id, a2.tag_id AS token_tag_id, a1.tpl_id AS role_id, a1.sub_id AS user_id, a2.sub_id AS token_id FROM tpl_rel a1 JOIN tpl_rel a2 ON a1.type_id = ? AND a1.sub_id = ? AND a2.type_id = ?  AND a2.sub_id = ? AND a1.tpl_id = a2.tpl_id) b1 JOIN tag_rel b2 ON b1.user_tag_id = b2.tag_id AND b1.token_tag_id = b2.sup_tag_id ) c2 on c1.tag_id = c2.user_tag_id WHERE c1.sup_tag_id = ?) d2 left join tag d3 on d1.sup_tag_id = d3.id WHERE d1.tag_id = d2.tag_id AND d1.offset <= d2.offset GROUP BY d1.tag_id ", TPL_REL_T_ACL_USER, op.User.Id, TPL_REL_T_ACL_TOKEN, SYS_IDX_R_TOKEN, tag_id).QueryRows(&ids, &names)
@@ -670,7 +628,7 @@ func (op *Operator) GetTree0(tag_id int64, depth int, direct bool) (tree *TreeNo
 
 			if j == len(id)-1 {
 				if m := depth - len(id); m > 0 {
-					n = cloneTree(cacheTree.get(id[len(id)-1]), m)
+					n = cloneTreeNode(cacheTree.get(id[len(id)-1]), m)
 				} else {
 					n.Read = true
 				}
@@ -684,67 +642,6 @@ func (op *Operator) GetTree0(tag_id int64, depth int, direct bool) (tree *TreeNo
 
 	}
 	return nmap[tag_id]
-}
-
-// will be removed
-func (op *Operator) GetTree(id int64, depth int, real bool) (tree *TreeNode) {
-	var ns []TreeNode
-
-	tree = &TreeNode{
-		TagId: 1,
-	}
-	nmap := make(map[int64]*TreeNode)
-	nmap[1] = tree
-
-	_, err := op.O.Raw("SELECT a.tag_id, a.sup_tag_id, b.name FROM tag_rel a JOIN tag b ON a.tag_id = b.id WHERE a.offset = 1 and b.type = 0 ORDER BY tag_id").QueryRows(&ns)
-	if err != nil {
-		return nil
-	}
-
-	for idx, _ := range ns {
-		n := &ns[idx]
-		n.Label = n.Name[strings.LastIndexAny(n.Name, ",")+1:]
-		nmap[n.TagId] = n
-		if _, ok := nmap[n.SupTagId]; ok {
-			nmap[n.SupTagId].Child = append(nmap[n.SupTagId].Child, n)
-		} else {
-			glog.Errorf(MODULE_NAME+"miss suptagid %d", n.SupTagId)
-		}
-	}
-
-	if op.IsAdmin() && !real {
-		for i, _ := range nmap {
-			nmap[i].Read = true
-			//nmap[i].Operate = true
-		}
-		return tree
-	}
-
-	if op.IsReader() {
-		ids, err := userHasTokenTag(op.O, op.User.Id, SYS_IDX_R_TOKEN)
-		if err == nil {
-			for _, i := range ids {
-				if _, ok := nmap[i]; ok {
-					nmap[i].Read = true
-				}
-			}
-		}
-	}
-
-	/*
-		if op.IsOperator() {
-			ids, err := userHasTokenTag(op.O, op.User.Id, SYS_IDX_O_TOKEN)
-			if err == nil {
-				for _, i := range ids {
-					if _, ok := nmap[i]; ok {
-						nmap[i].Operate = true
-					}
-				}
-			}
-		}
-	*/
-
-	return cutTagTree(tree)
 }
 
 // Access
@@ -774,7 +671,7 @@ func (op *Operator) Access(token_id, tag_id int64) (err error) {
 }
 
 // all tags that the user has token
-func userHasTokenTag0(o orm.Ormer, user_id, token_id int64) (tag_ids []int64, err error) {
+func userHasTokenTag(o orm.Ormer, user_id, token_id int64) (tag_ids []int64, err error) {
 	var n int64
 
 	n, err = o.Raw("SELECT distinct b1.user_tag_id FROM (SELECT a1.tag_id AS user_tag_id, a2.tag_id AS token_tag_id, a1.tpl_id AS role_id, a1.sub_id AS user_id, a2.sub_id AS token_id FROM tpl_rel a1 JOIN tpl_rel a2 ON a1.type_id = ? AND a1.sub_id = ? AND a2.type_id = ?  AND a2.sub_id = ? AND a1.tpl_id = a2.tpl_id) b1 JOIN tag_rel b2 ON b1.user_tag_id = b2.tag_id AND b1.token_tag_id = b2.sup_tag_id",
@@ -786,7 +683,7 @@ func userHasTokenTag0(o orm.Ormer, user_id, token_id int64) (tag_ids []int64, er
 }
 
 // all tags that the user has token(include child tag)
-func userHasTokenTag(o orm.Ormer, user_id, token_id int64) (tag_ids []int64, err error) {
+func userHasTokenTagExpend(o orm.Ormer, user_id, token_id int64) (tag_ids []int64, err error) {
 	var n int64
 
 	n, err = o.Raw("SELECT distinct c1.tag_id FROM tag_rel c1 JOIN ( SELECT distinct b1.user_tag_id FROM (SELECT a1.tag_id AS user_tag_id, a2.tag_id AS token_tag_id, a1.tpl_id AS role_id, a1.sub_id AS user_id, a2.sub_id AS token_id FROM tpl_rel a1 JOIN tpl_rel a2 ON a1.type_id = ? AND a1.sub_id = ? AND a2.type_id = ?  AND a2.sub_id = ? AND a1.tpl_id = a2.tpl_id) b1 JOIN tag_rel b2 ON b1.user_tag_id = b2.tag_id AND b1.token_tag_id = b2.sup_tag_id) c2 on c1.sup_tag_id = c2.user_tag_id",

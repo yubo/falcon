@@ -37,12 +37,12 @@ func testTagInitDb(t *testing.T, o orm.Ormer) (err error) {
 	return nil
 }
 
-func testTagTree(t *testing.T) {
+func testTagNode(t *testing.T) {
 	if !test_db_init {
-		t.Logf("token orm not inited, skip test tag tree\n")
+		t.Logf("token orm not inited, skip test tag node\n")
 		return
 	}
-	t.Logf("token orm inited,  test tag tree\n")
+	t.Logf("token orm inited,  test tag node\n")
 	o := orm.NewOrm()
 	err := testTagInitDb(t, o)
 	if err != nil {
@@ -70,10 +70,10 @@ func testTagTree(t *testing.T) {
 		}
 	}
 
-	tree := op.GetTree(0, 100, true)
-	if tree == nil {
-		t.Error(errors.New("tree empty"))
+	node := op.GetTreeNode(0, 100, true)
+	if node == nil {
+		t.Error(errors.New("node empty"))
 	} else {
-		json.Marshal(tree)
+		json.Marshal(node)
 	}
 }

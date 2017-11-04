@@ -18,34 +18,14 @@ type RelController struct {
 	BaseController
 }
 
-/*
-// @Title Get node's children
-// @Description get a node's children
-// @Param	id	path 	int64	false	"tag id"
-// @Success 200 {object} []models.TreeNode All nodes under the current node, read/operate not include
-// @ Failure 400 string error
-// @ router /treeNode/:id [get]
-func (c *RelController) GetTreeNodes() {
-	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
-	tag_id, _ := c.GetInt64(":id", 0)
-
-	nodes, err := op.GetTreeNodes(tag_id)
-	if err != nil {
-		c.SendMsg(400, err.Error())
-	} else {
-		c.SendMsg(200, nodes)
-	}
-}
-*/
-
-// @Title Get node
-// @Description get node's children
+// @Title Get tree's node
+// @Description get node and it's children
 // @Param	id	query 	int64	false	"tag id default root(1)"
 // @Param	depth	query   int	false	"depth levels default -1(no limit)"
-// @Success 200 {object} []models.TreeNode all nodes of the tree(read)
+// @Success 200 {object} models.TreeNode all nodes of the tree(read)
 // @Failure 400 string error
 // @router /node [get]
-func (c *RelController) GetNode() {
+func (c *RelController) GetTreeNode() {
 	var ret *models.TreeNode
 
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
@@ -61,60 +41,37 @@ func (c *RelController) GetNode() {
 		direct = true
 	}
 
-	ret = op.GetTree0(id, depth, direct)
+	ret = op.GetTreeNode(id, depth, direct)
 	if ret == nil {
 		c.SendMsg(400, "tree empty or Permission denied")
 	} else {
-		c.SendMsg(200, []*models.TreeNode{ret})
-	}
-}
-
-// @Title Get tag tree
-// @Description get whole tree
-// @Param	id	query 	int64	false	"tag id default root(1)"
-// @Param	real	query   bool	false	"ignore admin token"
-// @Param	depth	query   int	false	"depth levels default 0(no limit)"
-// @Success 200 {object} []models.TreeNode all nodes of the tree(read)
-// @Failure 400 string error
-// @router /tree [get]
-func (c *RelController) GetTree() {
-	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
-
-	id, _ := c.GetInt64("id", 1)
-	depth, _ := c.GetInt("depth", 0)
-	real, _ := c.GetBool("real", false)
-
-	tree := op.GetTree(id, depth, real)
-	if tree == nil {
-		c.SendMsg(400, "tree empty")
-	} else {
-		c.SendMsg(200, []models.TreeNode{*tree})
+		c.SendMsg(200, ret)
 	}
 }
 
 // @Title Get tags(operate)
 // @Description get has operate token tags
-// @Param	deep	query   bool	false	"include child tag(default:false)"
+// @Param	expand	query   bool	false	"include child tag(default:false)"
 // @Success 200 {object} []int64 all ids of the node that can be operated
 // @Failure 400 string error
 // @router /operate/tag [get]
 func (c *RelController) GetOpTag() {
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
-	deep, _ := c.GetBool("deep", false)
-	ret, _ := op.GetOpTag(deep)
+	expand, _ := c.GetBool("expand", false)
+	ret, _ := op.GetOpTag(expand)
 	c.SendMsg(200, ret)
 }
 
 // @Title Get tags(read)
 // @Description get has read token tags
-// @Param	deep	query   bool	false	"include child tag(default:false)"
+// @Param	expand	query   bool	false	"include child tag(default:false)"
 // @Success 200 {object} []int64 all ids of the node that can be read
 // @Failure 400 string error
 // @router /read/tag [get]
 func (c *RelController) GetReadTag() {
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
-	deep, _ := c.GetBool("deep", false)
-	ret, _ := op.GetReadTag(deep)
+	expand, _ := c.GetBool("expand", false)
+	ret, _ := op.GetReadTag(expand)
 	c.SendMsg(200, ret)
 }
 

@@ -164,7 +164,7 @@ func testToken(t *testing.T) {
 				c.name, c.uid, c.token_id,
 				tag_id, gote, c.wante)
 		}
-		if tag_ids, gote := userHasTokenTag(op.O, c.uid, c.token_id); intscmp64(tag_ids, c.want) != 0 || gote != c.wante {
+		if tag_ids, gote := userHasTokenTagExpend(op.O, c.uid, c.token_id); intscmp64(tag_ids, c.want) != 0 || gote != c.wante {
 			t.Errorf("%s userHasTokenTag(%d,%d) = (%v, %v); want (%v, %v)",
 				c.name, c.uid, c.token_id,
 				tag_ids, gote, c.want, c.wante)

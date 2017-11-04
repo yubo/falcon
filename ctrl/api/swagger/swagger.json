@@ -2353,8 +2353,8 @@
                 "tags": [
                     "rel"
                 ],
-                "description": "get node's children",
-                "operationId": "RelController.Get node",
+                "description": "get node and it's children",
+                "operationId": "RelController.Get tree's node",
                 "parameters": [
                     {
                         "in": "query",
@@ -2375,10 +2375,7 @@
                     "200": {
                         "description": "all nodes of the tree(read)",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.TreeNode"
-                            }
+                            "$ref": "#/definitions/models.TreeNode"
                         }
                     },
                     "400": {
@@ -2397,7 +2394,7 @@
                 "parameters": [
                     {
                         "in": "query",
-                        "name": "deep",
+                        "name": "expand",
                         "description": "include child tag(default:false)",
                         "type": "boolean"
                     }
@@ -2429,7 +2426,7 @@
                 "parameters": [
                     {
                         "in": "query",
-                        "name": "deep",
+                        "name": "expand",
                         "description": "include child tag(default:false)",
                         "type": "boolean"
                     }
@@ -3529,51 +3526,6 @@
                         "description": "affected number",
                         "schema": {
                             "$ref": "#/definitions/models.Total"
-                        }
-                    },
-                    "400": {
-                        "description": "string error"
-                    }
-                }
-            }
-        },
-        "/rel/tree": {
-            "get": {
-                "tags": [
-                    "rel"
-                ],
-                "description": "get whole tree",
-                "operationId": "RelController.Get tag tree",
-                "parameters": [
-                    {
-                        "in": "query",
-                        "name": "id",
-                        "description": "tag id default root(1)",
-                        "type": "integer",
-                        "format": "int64"
-                    },
-                    {
-                        "in": "query",
-                        "name": "real",
-                        "description": "ignore admin token",
-                        "type": "boolean"
-                    },
-                    {
-                        "in": "query",
-                        "name": "depth",
-                        "description": "depth levels default 0(no limit)",
-                        "type": "integer",
-                        "format": "int64"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "all nodes of the tree(read)",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.TreeNode"
-                            }
                         }
                     },
                     "400": {
