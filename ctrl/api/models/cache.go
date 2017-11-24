@@ -123,7 +123,7 @@ func (tree *cacheTreeT) _build() {
 func initCache(c *config.ConfCtrl) error {
 	for _, module := range strings.Split(
 		c.Ctrl.Str(ctrl.C_CACHE_MODULE), ",") {
-		for k, v := range moduleName {
+		for k, v := range ModuleName {
 			if v == module {
 				moduleCache[k] = cache{
 					enable: true,

@@ -2461,15 +2461,15 @@
                         "name": "body",
                         "description": "true",
                         "schema": {
-                            "$ref": "#/definitions/models.RelTagHost"
+                            "$ref": "#/definitions/models.RelTagHostApiAdd"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Id",
+                        "description": "affected number",
                         "schema": {
-                            "$ref": "#/definitions/models.Id"
+                            "$ref": "#/definitions/models.Total"
                         }
                     },
                     "400": {
@@ -2517,9 +2517,10 @@
                 "parameters": [
                     {
                         "in": "query",
-                        "name": "tag",
-                        "description": "tag string(cop.xiaomi_pdl.inf or cop=xiaomi,pdl=inf)",
-                        "type": "string"
+                        "name": "tag_id",
+                        "description": "tag id",
+                        "type": "integer",
+                        "format": "int64"
                     },
                     {
                         "in": "query",
@@ -2557,9 +2558,10 @@
                 "parameters": [
                     {
                         "in": "query",
-                        "name": "tag",
-                        "description": "tag string(cop.xiaomi_pdl.inf or cop=xiaomi,pdl=inf)",
-                        "type": "string"
+                        "name": "tag_id",
+                        "description": "tag id",
+                        "type": "integer",
+                        "format": "int64"
                     },
                     {
                         "in": "query",
@@ -2617,7 +2619,7 @@
                         "name": "body",
                         "description": "true",
                         "schema": {
-                            "$ref": "#/definitions/models.RelTagHosts"
+                            "$ref": "#/definitions/.RelTagHostsAdd"
                         }
                     }
                 ],
@@ -2646,7 +2648,7 @@
                         "description": "unbind tag_id host_id relation",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.RelTagHosts"
+                            "$ref": "#/definitions/models.RelTagHostsApiDel"
                         }
                     }
                 ],
@@ -2831,7 +2833,7 @@
                         "name": "body",
                         "description": "true",
                         "schema": {
-                            "$ref": "#/definitions/models.RelTagRoleToken"
+                            "$ref": "#/definitions/models.TagRoleTokenApi"
                         }
                     }
                 ],
@@ -2859,7 +2861,7 @@
                         "name": "body",
                         "description": "true",
                         "schema": {
-                            "$ref": "#/definitions/models.RelTagRoleToken"
+                            "$ref": "#/definitions/models.TagRoleTokenApi"
                         }
                     }
                 ],
@@ -2892,17 +2894,17 @@
                     },
                     {
                         "in": "query",
-                        "name": "global",
-                        "description": "ignore tag id(default false)",
-                        "type": "boolean"
-                    },
-                    {
-                        "in": "query",
                         "name": "tag_id",
                         "description": "tag id",
                         "required": true,
                         "type": "integer",
                         "format": "int64"
+                    },
+                    {
+                        "in": "query",
+                        "name": "deep",
+                        "description": "search sub tag",
+                        "type": "boolean"
                     }
                 ],
                 "responses": {
@@ -2942,8 +2944,8 @@
                     },
                     {
                         "in": "query",
-                        "name": "global",
-                        "description": "ignore tag id(default false)",
+                        "name": "deep",
+                        "description": "search sub tag",
                         "type": "boolean"
                     },
                     {
@@ -2990,7 +2992,7 @@
                         "name": "body",
                         "description": "true",
                         "schema": {
-                            "$ref": "#/definitions/models.RelTagRoleUser"
+                            "$ref": "#/definitions/models.TagRoleUserApi"
                         }
                     }
                 ],
@@ -3018,7 +3020,7 @@
                         "name": "body",
                         "description": "true",
                         "schema": {
-                            "$ref": "#/definitions/models.RelTagRoleUser"
+                            "$ref": "#/definitions/models.TagRoleUserApi"
                         }
                     }
                 ],
@@ -3051,17 +3053,17 @@
                     },
                     {
                         "in": "query",
-                        "name": "global",
-                        "description": "ignore tag id(default false)",
-                        "type": "boolean"
-                    },
-                    {
-                        "in": "query",
                         "name": "tag_id",
                         "description": "tag id",
                         "required": true,
                         "type": "integer",
                         "format": "int64"
+                    },
+                    {
+                        "in": "query",
+                        "name": "deep",
+                        "description": "search sub tag",
+                        "type": "boolean"
                     }
                 ],
                 "responses": {
@@ -3101,8 +3103,8 @@
                     },
                     {
                         "in": "query",
-                        "name": "global",
-                        "description": "ignore tag id(default false)",
+                        "name": "deep",
+                        "description": "search sub tag",
                         "type": "boolean"
                     },
                     {
@@ -3126,7 +3128,7 @@
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.TagRoleUser"
+                                "$ref": "#/definitions/models.TagRoleUserApiGet"
                             }
                         }
                     },
@@ -3822,7 +3824,7 @@
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.Log"
+                                "$ref": "#/definitions/models.LogApiGet"
                             }
                         }
                     },
@@ -5373,6 +5375,9 @@
         }
     },
     "definitions": {
+        ".RelTagHostsAdd": {
+            "type": "object"
+        },
         "models.APICreateAggregatorInput": {
             "title": "APICreateAggregatorInput",
             "type": "object",
@@ -6198,36 +6203,33 @@
                 }
             }
         },
-        "models.Log": {
-            "title": "Log",
+        "models.LogApiGet": {
+            "title": "LogApiGet",
             "type": "object",
             "properties": {
-                "Action": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "Data": {
+                "action": {
                     "type": "string"
                 },
-                "Id": {
+                "data": {
+                    "type": "string"
+                },
+                "id": {
                     "type": "integer",
                     "format": "int64"
                 },
-                "Module": {
+                "module": {
+                    "type": "string"
+                },
+                "tid": {
                     "type": "integer",
                     "format": "int64"
                 },
-                "ModuleId": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "Time": {
+                "time": {
                     "type": "string",
                     "format": "string"
                 },
-                "UserId": {
-                    "type": "integer",
-                    "format": "int64"
+                "user": {
+                    "type": "string"
                 }
             }
         },
@@ -6463,6 +6465,24 @@
                 }
             }
         },
+        "models.RelTagHostApiAdd": {
+            "title": "RelTagHostApiAdd",
+            "type": "object",
+            "properties": {
+                "host_id": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "src_tag_id": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "tag_id": {
+                    "type": "integer",
+                    "format": "int64"
+                }
+            }
+        },
         "models.RelTagHostApiDel": {
             "title": "RelTagHostApiDel",
             "type": "object",
@@ -6477,8 +6497,8 @@
                 }
             }
         },
-        "models.RelTagHosts": {
-            "title": "RelTagHosts",
+        "models.RelTagHostsApiDel": {
+            "title": "RelTagHostsApiDel",
             "type": "object",
             "properties": {
                 "host_ids": {
@@ -6489,42 +6509,6 @@
                     }
                 },
                 "tag_id": {
-                    "type": "integer",
-                    "format": "int64"
-                }
-            }
-        },
-        "models.RelTagRoleToken": {
-            "title": "RelTagRoleToken",
-            "type": "object",
-            "properties": {
-                "role_id": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "tag_id": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "token_id": {
-                    "type": "integer",
-                    "format": "int64"
-                }
-            }
-        },
-        "models.RelTagRoleUser": {
-            "title": "RelTagRoleUser",
-            "type": "object",
-            "properties": {
-                "role_id": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "tag_id": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "user_id": {
                     "type": "integer",
                     "format": "int64"
                 }
@@ -6724,8 +6708,44 @@
                 }
             }
         },
-        "models.TagRoleUser": {
-            "title": "TagRoleUser",
+        "models.TagRoleTokenApi": {
+            "title": "TagRoleTokenApi",
+            "type": "object",
+            "properties": {
+                "role_id": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "tag_id": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "token_id": {
+                    "type": "integer",
+                    "format": "int64"
+                }
+            }
+        },
+        "models.TagRoleUserApi": {
+            "title": "TagRoleUserApi",
+            "type": "object",
+            "properties": {
+                "role_id": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "tag_id": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "user_id": {
+                    "type": "integer",
+                    "format": "int64"
+                }
+            }
+        },
+        "models.TagRoleUserApiGet": {
+            "title": "TagRoleUserApiGet",
             "type": "object",
             "properties": {
                 "role_id": {

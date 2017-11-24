@@ -61,7 +61,14 @@ func (c *PubController) GetTagHostCnt() {
 	if tag == "/" {
 		tag = ""
 	}
-	n, err := op.GetTagHostCnt(tag, query, deep)
+
+	tag_id, err := op.GetTagIdByName(tag)
+	if err != nil {
+		c.SendMsg(400, err.Error())
+		return
+	}
+
+	n, err := op.GetTagHostCnt(tag_id, query, deep)
 	if err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
@@ -90,7 +97,14 @@ func (c *PubController) GetTagHost() {
 	if tag == "/" {
 		tag = ""
 	}
-	ret, err := op.GetTagHost(tag, query, deep, limit, offset)
+
+	tag_id, err := op.GetTagIdByName(tag)
+	if err != nil {
+		c.SendMsg(400, err.Error())
+		return
+	}
+
+	ret, err := op.GetTagHost(tag_id, query, deep, limit, offset)
 	if err != nil {
 		c.SendMsg(400, err.Error())
 	} else {

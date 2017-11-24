@@ -160,7 +160,7 @@ var (
 	wxappid     string
 	wxappsecret string
 
-	moduleName = [CTL_M_SIZE]string{
+	ModuleName = [CTL_M_SIZE]string{
 		"host", "role", "system", "tag", "user", "token",
 		"template", "rule", "trigger", "expression", "team",
 		"tag_host", "tag_template", "tmp_graph",
@@ -168,7 +168,7 @@ var (
 		"mockcfg", "aggreator",
 	}
 
-	actionName = [CTL_A_SIZE]string{
+	ActionName = [CTL_A_SIZE]string{
 		"add", "del", "set", "get",
 	}
 )

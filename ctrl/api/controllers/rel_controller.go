@@ -77,24 +77,24 @@ func (c *RelController) GetReadTag() {
 
 // @Title GetTagHostCnt
 // @Description get Tag-Host number
-// @Param	tag	query   string	false	"tag string(cop.xiaomi_pdl.inf or cop=xiaomi,pdl=inf)"
+// @Param	tag_id	query   int	false	"tag id"
 // @Param	query	query   string  false	"host name"
 // @Param	deep	query   bool	false	"search sub tag"
 // @Success 200 {object} models.Total total number
 // @Failure 400 string error
 // @router /tag/host/cnt [get]
 func (c *RelController) GetTagHostCnt() {
-	tag := models.TagToNew(c.GetString("tag"))
+	tagId, _ := c.GetInt64("tag_id", 1)
 	query := strings.TrimSpace(c.GetString("query"))
 	deep, _ := c.GetBool("deep", true)
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	if _, err := op.AccessByStr(models.SYS_IDX_R_TOKEN, tag, false); err != nil {
+	if err := op.Access(models.SYS_IDX_R_TOKEN, tagId); err != nil {
 		c.SendMsg(403, err.Error())
 		return
 	}
 
-	n, err := op.GetTagHostCnt(tag, query, deep)
+	n, err := op.GetTagHostCnt(tagId, query, deep)
 	if err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
@@ -104,7 +104,7 @@ func (c *RelController) GetTagHostCnt() {
 
 // @Title GetHost
 // @Description get all Host
-// @Param	tag	query   string	false	"tag string(cop.xiaomi_pdl.inf or cop=xiaomi,pdl=inf)"
+// @Param	tag_id	query   int	false	"tag id"
 // @Param	query	query	string	false	"host name"
 // @Param	deep	query   bool	false	"search sub tag"
 // @Param	limit	query	int	false	"limit page number"
@@ -113,19 +113,19 @@ func (c *RelController) GetTagHostCnt() {
 // @Failure 400 string error
 // @router /tag/host/search [get]
 func (c *RelController) GetTagHost() {
-	tag := models.TagToNew(c.GetString("tag"))
+	tagId, _ := c.GetInt64("tag_id", 1)
 	query := c.GetString("query")
 	deep, _ := c.GetBool("deep", true)
 	limit, _ := c.GetInt("limit", models.PAGE_LIMIT)
 	offset, _ := c.GetInt("offset", 0)
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	if _, err := op.AccessByStr(models.SYS_IDX_R_TOKEN, tag, false); err != nil {
+	if err := op.Access(models.SYS_IDX_R_TOKEN, tagId); err != nil {
 		c.SendMsg(403, err.Error())
 		return
 	}
 
-	ret, err := op.GetTagHost(tag, query, deep, limit, offset)
+	ret, err := op.GetTagHost(tagId, query, deep, limit, offset)
 	if err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
@@ -135,44 +135,76 @@ func (c *RelController) GetTagHost() {
 
 // @Title create tag host relation
 // @Description create tag/host relation
-// @Param	body	body	models.RelTagHost	true	""
-// @Success 200 {object} models.Id Id
+// @Param	body	body	models.RelTagHostApiAdd	true	""
+// @Success 200 {object} models.Total affected number
 // @Failure 400 string error
 // @router /tag/host [post]
 func (c *RelController) CreateTagHost() {
-	var rel models.RelTagHost
+	var rel models.RelTagHostApiAdd
 
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	json.Unmarshal(c.Ctx.Input.RequestBody, &rel)
 
-	if err := op.Access(models.SYS_IDX_O_TOKEN, rel.TagId); err != nil {
-		c.SendMsg(403, err.Error())
-		return
+	if !op.IsAdmin() {
+		if err := op.Access(models.SYS_IDX_O_TOKEN,
+			rel.TagId); err != nil {
+			c.SendMsg(403, err.Error())
+			return
+		}
+
+		if err := op.Access(models.SYS_IDX_O_TOKEN,
+			rel.SrcTagId); err != nil {
+			c.SendMsg(403, err.Error())
+			return
+		}
+
+		if cnt, err := op.ChkTagHostCnt(rel.SrcTagId,
+			[]int64{rel.HostId}); err != nil || cnt != 1 {
+			c.SendMsg(403, falcon.EPERM)
+			return
+		}
 	}
 
-	if id, err := op.CreateTagHost(&rel); err != nil {
+	if _, err := op.CreateTagHost(&rel); err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
-		c.SendMsg(200, idObj(id))
+		c.SendMsg(200, totalObj(1))
 	}
 }
 
 // @Title create tag host relation
 // @Description create tag/hosts relation
-// @Param	body	body	models.RelTagHosts	true	""
+// @Param	body	body	models.RelTagHostsAdd	true	""
 // @Success 200 {object} models.Total affected number
 // @Failure 400 string error
 // @router /tag/hosts [post]
 func (c *RelController) CreateTagHosts() {
-	var rel models.RelTagHosts
+	var rel models.RelTagHostsApiAdd
 
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	json.Unmarshal(c.Ctx.Input.RequestBody, &rel)
 
-	if err := op.Access(models.SYS_IDX_O_TOKEN, rel.TagId); err != nil {
-		c.SendMsg(403, err.Error())
-		return
+	if !op.IsAdmin() {
+		if err := op.Access(models.SYS_IDX_O_TOKEN,
+			rel.TagId); err != nil {
+			c.SendMsg(403, err.Error())
+			return
+		}
+
+		if err := op.Access(models.SYS_IDX_O_TOKEN,
+			rel.SrcTagId); err != nil {
+			c.SendMsg(403, err.Error())
+			return
+		}
+
+		if cnt, err := op.ChkTagHostCnt(rel.SrcTagId,
+			rel.HostIds); err != nil || cnt != int64(len(rel.HostIds)) {
+			c.SendMsg(403, falcon.EPERM)
+			return
+		}
+
 	}
+
 	if n, err := op.CreateTagHosts(&rel); err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
@@ -207,12 +239,12 @@ func (c *RelController) DelTagHost() {
 
 // @Title delete tag host relation
 // @Description delete tag/hosts relation
-// @Param	body	body	models.RelTagHosts	true	"unbind tag_id host_id relation"
+// @Param	body	body	models.RelTagHostsApiDel	true	"unbind tag_id host_id relation"
 // @Success 200 {object} models.Total affected number
 // @Failure 400 string error
 // @router /tag/hosts [delete]
 func (c *RelController) DelTagHosts() {
-	var rel models.RelTagHosts
+	var rel models.RelTagHostsApiDel
 
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	json.Unmarshal(c.Ctx.Input.RequestBody, &rel)
@@ -244,14 +276,14 @@ func (c *RelController) GetTagTplCnt0() {
 	deep, _ := c.GetBool("deep", true)
 	mine, _ := c.GetBool("mine", true)
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
-	tag_id, _ := op.GetTagIdByName(c.GetString("tag_string"))
+	tagId, _ := op.GetTagIdByName(c.GetString("tag_string"))
 
-	if err := op.Access(models.SYS_IDX_R_TOKEN, tag_id); err != nil {
+	if err := op.Access(models.SYS_IDX_R_TOKEN, tagId); err != nil {
 		c.SendMsg(403, err.Error())
 		return
 	}
 
-	n, err := op.GetTagTplCnt(tag_id, query, deep, mine)
+	n, err := op.GetTagTplCnt(tagId, query, deep, mine)
 	if err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
@@ -277,14 +309,14 @@ func (c *RelController) GetTagTpl0() {
 	limit, _ := c.GetInt("limit", models.PAGE_LIMIT)
 	offset, _ := c.GetInt("offset", 0)
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
-	tag_id, _ := op.GetTagIdByName(c.GetString("tag_string"))
+	tagId, _ := op.GetTagIdByName(c.GetString("tag_string"))
 
-	if err := op.Access(models.SYS_IDX_R_TOKEN, tag_id); err != nil {
+	if err := op.Access(models.SYS_IDX_R_TOKEN, tagId); err != nil {
 		c.SendMsg(403, err.Error())
 		return
 	}
 
-	ret, err := op.GetTagTpl(tag_id, query, deep, mine, limit, offset)
+	ret, err := op.GetTagTpl(tagId, query, deep, mine, limit, offset)
 	if err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
@@ -302,18 +334,18 @@ func (c *RelController) GetTagTpl0() {
 // @Failure 400 string error
 // @router /tag/template/cnt [get]
 func (c *RelController) GetTagTplCnt() {
-	tag_id, _ := c.GetInt64("tag_id", 0)
+	tagId, _ := c.GetInt64("tag_id", 1)
 	query := strings.TrimSpace(c.GetString("query"))
 	deep, _ := c.GetBool("deep", true)
 	mine, _ := c.GetBool("mine", true)
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	if err := op.Access(models.SYS_IDX_R_TOKEN, tag_id); err != nil {
+	if err := op.Access(models.SYS_IDX_R_TOKEN, tagId); err != nil {
 		c.SendMsg(403, err.Error())
 		return
 	}
 
-	n, err := op.GetTagTplCnt(tag_id, query, deep, mine)
+	n, err := op.GetTagTplCnt(tagId, query, deep, mine)
 	if err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
@@ -333,7 +365,7 @@ func (c *RelController) GetTagTplCnt() {
 // @Failure 400 string error
 // @router /tag/template/search [get]
 func (c *RelController) GetTagTpl() {
-	tag_id, _ := c.GetInt64("tag_id", 0)
+	tagId, _ := c.GetInt64("tag_id", 1)
 	query := strings.TrimSpace(c.GetString("query"))
 	deep, _ := c.GetBool("deep", true)
 	mine, _ := c.GetBool("mine", true)
@@ -341,12 +373,12 @@ func (c *RelController) GetTagTpl() {
 	offset, _ := c.GetInt("offset", 0)
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	if err := op.Access(models.SYS_IDX_R_TOKEN, tag_id); err != nil {
+	if err := op.Access(models.SYS_IDX_R_TOKEN, tagId); err != nil {
 		c.SendMsg(403, err.Error())
 		return
 	}
 
-	ret, err := op.GetTagTpl(tag_id, query, deep, mine, limit, offset)
+	ret, err := op.GetTagTpl(tagId, query, deep, mine, limit, offset)
 	if err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
@@ -508,23 +540,23 @@ func (c *RelController) DelTagTpls() {
 // @Title GetTagRoleUserCnt
 // @Description get tag role user number
 // @Param	query	query   string  false	"user name"
-// @Param	global	query   bool	false	"ignore tag id(default false)"
 // @Param	tag_id	query   int	true	"tag id"
+// @Param	deep	query   bool	false	"search sub tag"
 // @Success 200 {object} models.Total user total number
 // @Failure 400 string error
 // @router /tag/role/user/cnt [get]
 func (c *RelController) GetTagRoleUserCnt() {
-	global, _ := c.GetBool("global", false)
-	tag_id, _ := c.GetInt64("tag_id", 0)
+	tagId, _ := c.GetInt64("tag_id", 1)
 	query := strings.TrimSpace(c.GetString("query"))
+	deep, _ := c.GetBool("deep", true)
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	if err := op.Access(models.SYS_IDX_R_TOKEN, tag_id); err != nil {
+	if err := op.Access(models.SYS_IDX_R_TOKEN, tagId); err != nil {
 		c.SendMsg(403, err.Error())
 		return
 	}
 
-	n, err := op.GetTagRoleUserCnt(global, tag_id, query)
+	n, err := op.GetTagRoleUserCnt(tagId, query, deep)
 	if err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
@@ -536,26 +568,26 @@ func (c *RelController) GetTagRoleUserCnt() {
 // @Description get tag role user
 // @Param	tag_id	query	int	true	"tag id"
 // @Param	query	query	string	false	"user name"
-// @Param	global	query   bool	false	"ignore tag id(default false)"
+// @Param	deep	query   bool	false	"search sub tag"
 // @Param	limit	query	int	false	"limit page number"
 // @Param	offset	query	int	false	"offset  number"
-// @Success 200 {object} []models.TagRoleUser tag role user info
+// @Success 200 {object} []models.TagRoleUserApiGet tag role user info
 // @Failure 400 string error
 // @router /tag/role/user/search [get]
 func (c *RelController) GetTagRoleUser() {
-	global, _ := c.GetBool("global", false)
-	tag_id, _ := c.GetInt64("tag_id", 0)
+	tagId, _ := c.GetInt64("tag_id", 1)
 	query := strings.TrimSpace(c.GetString("query"))
+	deep, _ := c.GetBool("deep", true)
 	limit, _ := c.GetInt("limit", models.PAGE_LIMIT)
 	offset, _ := c.GetInt("offset", 0)
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	if err := op.Access(models.SYS_IDX_R_TOKEN, tag_id); err != nil {
+	if err := op.Access(models.SYS_IDX_R_TOKEN, tagId); err != nil {
 		c.SendMsg(403, err.Error())
 		return
 	}
 
-	ret, err := op.GetTagRoleUser(global, tag_id, query, limit, offset)
+	ret, err := op.GetTagRoleUser(tagId, query, deep, limit, offset)
 	if err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
@@ -565,12 +597,12 @@ func (c *RelController) GetTagRoleUser() {
 
 // @Title create tag role users relation
 // @Description create tag/role/users relation
-// @Param	body	body 	models.RelTagRoleUser	true	""
+// @Param	body	body 	models.TagRoleUserApi	true	""
 // @Success 200 {object} models.Id Id
 // @Failure 400 string error
 // @router /tag/role/user [post]
 func (c *RelController) CreateTagRoleUser() {
-	var rel models.RelTagRoleUser
+	var rel models.TagRoleUserApi
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	json.Unmarshal(c.Ctx.Input.RequestBody, &rel)
 
@@ -594,12 +626,12 @@ func (c *RelController) CreateTagRoleUser() {
 
 // @Title delete tag role user relation
 // @Description delete tag/role/user relation
-// @Param	body		body 	models.RelTagRoleUser	true	""
+// @Param	body		body 	models.TagRoleUserApi	true	""
 // @Success 200 {object} models.Id affected id
 // @Failure 400 string error
 // @router /tag/role/user [delete]
 func (c *RelController) DelTagRoleUser() {
-	var rel models.RelTagRoleUser
+	var rel models.TagRoleUserApi
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	json.Unmarshal(c.Ctx.Input.RequestBody, &rel)
 
@@ -619,23 +651,23 @@ func (c *RelController) DelTagRoleUser() {
 // @Title GetTagRoleTokenCnt
 // @Description get tag role token number
 // @Param	query	query   string  false	"token name"
-// @Param	global	query   bool	false	"ignore tag id(default false)"
 // @Param	tag_id	query   int	true	"tag id"
+// @Param	deep	query   bool	false	"search sub tag"
 // @Success 200 {object} models.Total affected number
 // @Failure 400 string error
 // @router /tag/role/token/cnt [get]
 func (c *RelController) GetTagRoleTokenCnt() {
-	global, _ := c.GetBool("global", false)
-	tag_id, _ := c.GetInt64("tag_id", 0)
+	tagId, _ := c.GetInt64("tag_id", 1)
 	query := strings.TrimSpace(c.GetString("query"))
+	deep, _ := c.GetBool("deep", true)
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	if err := op.Access(models.SYS_IDX_R_TOKEN, tag_id); err != nil {
+	if err := op.Access(models.SYS_IDX_R_TOKEN, tagId); err != nil {
 		c.SendMsg(403, err.Error())
 		return
 	}
 
-	n, err := op.GetTagRoleTokenCnt(global, tag_id, query)
+	n, err := op.GetTagRoleTokenCnt(tagId, query, deep)
 	if err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
@@ -647,26 +679,26 @@ func (c *RelController) GetTagRoleTokenCnt() {
 // @Description get tag role token
 // @Param	tag_id	query	int	true	"tag id"
 // @Param	query	query	string	false	"token name"
-// @Param	global	query   bool	false	"ignore tag id(default false)"
+// @Param	deep	query   bool	false	"search sub tag"
 // @Param	limit	query	int	false	"limit page number"
 // @Param	offset	query	int	false	"offset  number"
 // @Success 200 {object} []models.Host hosts info
 // @Failure 400 string error
 // @router /tag/role/token/search [get]
 func (c *RelController) GetTagRoleToken() {
-	global, _ := c.GetBool("global", false)
-	tag_id, _ := c.GetInt64("tag_id", 0)
+	tagId, _ := c.GetInt64("tag_id", 1)
 	query := strings.TrimSpace(c.GetString("query"))
+	deep, _ := c.GetBool("deep", true)
 	limit, _ := c.GetInt("limit", models.PAGE_LIMIT)
 	offset, _ := c.GetInt("offset", 0)
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	if err := op.Access(models.SYS_IDX_R_TOKEN, tag_id); err != nil {
+	if err := op.Access(models.SYS_IDX_R_TOKEN, tagId); err != nil {
 		c.SendMsg(403, err.Error())
 		return
 	}
 
-	ret, err := op.GetTagRoleToken(global, tag_id, query, limit, offset)
+	ret, err := op.GetTagRoleToken(tagId, query, deep, limit, offset)
 	if err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
@@ -676,12 +708,12 @@ func (c *RelController) GetTagRoleToken() {
 
 // @Title create tag role tokens relation
 // @Description create tag/role/tokens relation
-// @Param	body	body 	models.RelTagRoleToken	true	""
+// @Param	body	body 	models.TagRoleTokenApi	true	""
 // @Success 200 {object} models.Id affected id
 // @Failure 400 string error
 // @router /tag/role/token [post]
 func (c *RelController) CreateTagRoleToken() {
-	var rel models.RelTagRoleToken
+	var rel models.TagRoleTokenApi
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	json.Unmarshal(c.Ctx.Input.RequestBody, &rel)
 
@@ -705,12 +737,12 @@ func (c *RelController) CreateTagRoleToken() {
 
 // @Title delete tag role token relation
 // @Description delete tag/role/token relation
-// @Param	body		body 	models.RelTagRoleToken	true	""
+// @Param	body		body 	models.TagRoleTokenApi	true	""
 // @Success 200 {object} models.Id affected id
 // @Failure 400 string error
 // @router /tag/role/token [delete]
 func (c *RelController) DelTagRoleToken() {
-	var rel models.RelTagRoleToken
+	var rel models.TagRoleTokenApi
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	json.Unmarshal(c.Ctx.Input.RequestBody, &rel)
 
@@ -735,16 +767,16 @@ func (c *RelController) DelTagRoleToken() {
 // @Failure 400 string error
 // @router /tag/plugindir/cnt [get]
 func (c *RelController) GetTagPluginCnt() {
-	tag_id, _ := c.GetInt64("tag_id", 0)
+	tagId, _ := c.GetInt64("tag_id", 1)
 	deep, _ := c.GetBool("deep", true)
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	if err := op.Access(models.SYS_IDX_R_TOKEN, tag_id); err != nil {
+	if err := op.Access(models.SYS_IDX_R_TOKEN, tagId); err != nil {
 		c.SendMsg(403, err.Error())
 		return
 	}
 
-	n, err := op.GetPluginDirCnt(tag_id, deep)
+	n, err := op.GetPluginDirCnt(tagId, deep)
 	if err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
@@ -762,18 +794,18 @@ func (c *RelController) GetTagPluginCnt() {
 // @Failure 400 string error
 // @router /tag/plugindir/search [get]
 func (c *RelController) GetPluginDir() {
-	tag_id, _ := c.GetInt64("tag_id", 0)
+	tagId, _ := c.GetInt64("tag_id", 1)
 	deep, _ := c.GetBool("deep", true)
 	limit, _ := c.GetInt("limit", models.PAGE_LIMIT)
 	offset, _ := c.GetInt("offset", 0)
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	if err := op.Access(models.SYS_IDX_R_TOKEN, tag_id); err != nil {
+	if err := op.Access(models.SYS_IDX_R_TOKEN, tagId); err != nil {
 		c.SendMsg(403, err.Error())
 		return
 	}
 
-	ret, err := op.GetPluginDir(tag_id, deep, limit, offset)
+	ret, err := op.GetPluginDir(tagId, deep, limit, offset)
 	if err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
@@ -814,7 +846,7 @@ func (c *RelController) CreatePluginDir() {
 // @router /tag/plugindir [delete]
 func (c *RelController) DeletePluginDir() {
 	id, _ := c.GetInt64("id")
-	tagId, _ := c.GetInt64("tag_id")
+	tagId, _ := c.GetInt64("tag_id", 1)
 
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 

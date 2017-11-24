@@ -13,14 +13,24 @@ import (
 	"github.com/yubo/falcon/ctrl"
 )
 
-type LogUi struct {
-	LogId    int64     `json:"log_id"`
-	Module   int64     `json:"module"`
-	Id       int64     `json:"id"`
-	User     string    `json:"user"`
-	ActionId int64     `json:"action_id"`
-	Data     string    `json:"data"`
-	Time     time.Time `json:"time"`
+type LogApi struct {
+	LogId  int64
+	Module int64
+	Id     int64
+	User   string
+	Action int64
+	Data   string
+	Time   time.Time
+}
+
+type LogApiGet struct {
+	LogId  int64     `json:"id"`
+	Module string    `json:"module"`
+	Id     int64     `json:"tid"`
+	User   string    `json:"user"`
+	Action string    `json:"action"`
+	Data   string    `json:"data"`
+	Time   time.Time `json:"time"`
 }
 
 func logSql(begin, end string) (where string, args []interface{}) {
@@ -47,7 +57,7 @@ func (op *Operator) GetLogsCnt(begin, end string) (cnt int64, err error) {
 	return
 }
 
-func (op *Operator) GetLogs(begin, end string, limit, offset int) (ret []*LogUi, err error) {
+func (op *Operator) GetLogs(begin, end string, limit, offset int) (ret []*LogApi, err error) {
 	sql, sql_args := logSql(begin, end)
 	sql = "select a.id as log_id, a.module, a.module_id as id, b.name as user, a.action, a.data, a.time from log a left join user b on a.user_id = b.id " + sql + " ORDER BY a.id DESC LIMIT ? OFFSET ?"
 	sql_args = append(sql_args, limit, offset)
@@ -166,7 +176,7 @@ func (op *Operator) populate() (interface{}, error) {
 			return nil, err
 		}
 
-		if _, err = op.CreateTagHost(&RelTagHost{TagId: tag_idx[item2[0]],
+		if _, err = op.CreateTagHost(&RelTagHostApiAdd{TagId: tag_idx[item2[0]],
 			HostId: host_idx[item2[1]]}); err != nil {
 			return nil, err
 		}

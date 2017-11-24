@@ -110,7 +110,7 @@ func (c *SetController) GetLogsCnt() {
 // @Param   end        query  string  false  "begin time(YYYY-MM-DD HH:mm:ss)"
 // @Param   limit       query   int     false  "limit page number"
 // @Param   offset    query   int     false  "offset  number"
-// @Success 200 {object} []models.Log logs info
+// @Success 200 {object} []models.LogApiGet logs info
 // @Failure 400 string error
 // @router /log/search [get]
 func (c *SetController) GetLogs() {
@@ -120,10 +120,24 @@ func (c *SetController) GetLogs() {
 	offset, _ := c.GetInt("offset", 0)
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	metrics, err := op.GetLogs(begin, end, limit, offset)
+	logs, err := op.GetLogs(begin, end, limit, offset)
 	if err != nil {
 		c.SendMsg(400, err.Error())
-	} else {
-		c.SendMsg(200, metrics)
 	}
+
+	ret := make([]*models.LogApiGet, len(logs))
+	for i := 0; i < len(logs); i++ {
+		l := logs[i]
+		ret[i] = &models.LogApiGet{
+			LogId:  l.LogId,
+			Module: models.ModuleName[l.Module],
+			Id:     l.Id,
+			User:   l.User,
+			Action: models.ActionName[l.Action],
+			Data:   l.Data,
+			Time:   l.Time,
+		}
+	}
+
+	c.SendMsg(200, ret)
 }

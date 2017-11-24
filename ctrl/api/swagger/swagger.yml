@@ -1629,12 +1629,12 @@ paths:
         name: body
         description: "true"
         schema:
-          $ref: '#/definitions/models.RelTagHost'
+          $ref: '#/definitions/models.RelTagHostApiAdd'
       responses:
         "200":
-          description: Id
+          description: affected number
           schema:
-            $ref: '#/definitions/models.Id'
+            $ref: '#/definitions/models.Total'
         "400":
           description: string error
     delete:
@@ -1664,9 +1664,10 @@ paths:
       operationId: RelController.GetTagHostCnt
       parameters:
       - in: query
-        name: tag
-        description: tag string(cop.xiaomi_pdl.inf or cop=xiaomi,pdl=inf)
-        type: string
+        name: tag_id
+        description: tag id
+        type: integer
+        format: int64
       - in: query
         name: query
         description: host name
@@ -1690,9 +1691,10 @@ paths:
       operationId: RelController.GetHost
       parameters:
       - in: query
-        name: tag
-        description: tag string(cop.xiaomi_pdl.inf or cop=xiaomi,pdl=inf)
-        type: string
+        name: tag_id
+        description: tag id
+        type: integer
+        format: int64
       - in: query
         name: query
         description: host name
@@ -1731,7 +1733,7 @@ paths:
         name: body
         description: "true"
         schema:
-          $ref: '#/definitions/models.RelTagHosts'
+          $ref: '#/definitions/.RelTagHostsAdd'
       responses:
         "200":
           description: affected number
@@ -1750,7 +1752,7 @@ paths:
         description: unbind tag_id host_id relation
         required: true
         schema:
-          $ref: '#/definitions/models.RelTagHosts'
+          $ref: '#/definitions/models.RelTagHostsApiDel'
       responses:
         "200":
           description: affected number
@@ -1873,7 +1875,7 @@ paths:
         name: body
         description: "true"
         schema:
-          $ref: '#/definitions/models.RelTagRoleToken'
+          $ref: '#/definitions/models.TagRoleTokenApi'
       responses:
         "200":
           description: affected id
@@ -1891,7 +1893,7 @@ paths:
         name: body
         description: "true"
         schema:
-          $ref: '#/definitions/models.RelTagRoleToken'
+          $ref: '#/definitions/models.TagRoleTokenApi'
       responses:
         "200":
           description: affected id
@@ -1911,15 +1913,15 @@ paths:
         description: token name
         type: string
       - in: query
-        name: global
-        description: ignore tag id(default false)
-        type: boolean
-      - in: query
         name: tag_id
         description: tag id
         required: true
         type: integer
         format: int64
+      - in: query
+        name: deep
+        description: search sub tag
+        type: boolean
       responses:
         "200":
           description: affected number
@@ -1945,8 +1947,8 @@ paths:
         description: token name
         type: string
       - in: query
-        name: global
-        description: ignore tag id(default false)
+        name: deep
+        description: search sub tag
         type: boolean
       - in: query
         name: limit
@@ -1978,7 +1980,7 @@ paths:
         name: body
         description: "true"
         schema:
-          $ref: '#/definitions/models.RelTagRoleUser'
+          $ref: '#/definitions/models.TagRoleUserApi'
       responses:
         "200":
           description: Id
@@ -1996,7 +1998,7 @@ paths:
         name: body
         description: "true"
         schema:
-          $ref: '#/definitions/models.RelTagRoleUser'
+          $ref: '#/definitions/models.TagRoleUserApi'
       responses:
         "200":
           description: affected id
@@ -2016,15 +2018,15 @@ paths:
         description: user name
         type: string
       - in: query
-        name: global
-        description: ignore tag id(default false)
-        type: boolean
-      - in: query
         name: tag_id
         description: tag id
         required: true
         type: integer
         format: int64
+      - in: query
+        name: deep
+        description: search sub tag
+        type: boolean
       responses:
         "200":
           description: user total number
@@ -2050,8 +2052,8 @@ paths:
         description: user name
         type: string
       - in: query
-        name: global
-        description: ignore tag id(default false)
+        name: deep
+        description: search sub tag
         type: boolean
       - in: query
         name: limit
@@ -2069,7 +2071,7 @@ paths:
           schema:
             type: array
             items:
-              $ref: '#/definitions/models.TagRoleUser'
+              $ref: '#/definitions/models.TagRoleUserApiGet'
         "400":
           description: string error
   /rel/tag/template:
@@ -2528,7 +2530,7 @@ paths:
           schema:
             type: array
             items:
-              $ref: '#/definitions/models.Log'
+              $ref: '#/definitions/models.LogApiGet'
         "400":
           description: string error
   /settings/profile:
@@ -3547,6 +3549,8 @@ paths:
         "400":
           description: string error
 definitions:
+  .RelTagHostsAdd:
+    type: object
   models.APICreateAggregatorInput:
     title: APICreateAggregatorInput
     type: object
@@ -4119,30 +4123,27 @@ definitions:
       id:
         type: integer
         format: int64
-  models.Log:
-    title: Log
+  models.LogApiGet:
+    title: LogApiGet
     type: object
     properties:
-      Action:
-        type: integer
-        format: int64
-      Data:
+      action:
         type: string
-      Id:
+      data:
+        type: string
+      id:
         type: integer
         format: int64
-      Module:
+      module:
+        type: string
+      tid:
         type: integer
         format: int64
-      ModuleId:
-        type: integer
-        format: int64
-      Time:
+      time:
         type: string
         format: string
-      UserId:
-        type: integer
-        format: int64
+      user:
+        type: string
   models.Matter:
     title: Matter
     type: object
@@ -4305,6 +4306,19 @@ definitions:
         format: int64
       tag_name:
         type: string
+  models.RelTagHostApiAdd:
+    title: RelTagHostApiAdd
+    type: object
+    properties:
+      host_id:
+        type: integer
+        format: int64
+      src_tag_id:
+        type: integer
+        format: int64
+      tag_id:
+        type: integer
+        format: int64
   models.RelTagHostApiDel:
     title: RelTagHostApiDel
     type: object
@@ -4315,8 +4329,8 @@ definitions:
       tag_id:
         type: integer
         format: int64
-  models.RelTagHosts:
-    title: RelTagHosts
+  models.RelTagHostsApiDel:
+    title: RelTagHostsApiDel
     type: object
     properties:
       host_ids:
@@ -4325,32 +4339,6 @@ definitions:
           type: integer
           format: int64
       tag_id:
-        type: integer
-        format: int64
-  models.RelTagRoleToken:
-    title: RelTagRoleToken
-    type: object
-    properties:
-      role_id:
-        type: integer
-        format: int64
-      tag_id:
-        type: integer
-        format: int64
-      token_id:
-        type: integer
-        format: int64
-  models.RelTagRoleUser:
-    title: RelTagRoleUser
-    type: object
-    properties:
-      role_id:
-        type: integer
-        format: int64
-      tag_id:
-        type: integer
-        format: int64
-      user_id:
         type: integer
         format: int64
   models.RelTagTpl:
@@ -4488,8 +4476,34 @@ definitions:
     properties:
       name:
         type: string
-  models.TagRoleUser:
-    title: TagRoleUser
+  models.TagRoleTokenApi:
+    title: TagRoleTokenApi
+    type: object
+    properties:
+      role_id:
+        type: integer
+        format: int64
+      tag_id:
+        type: integer
+        format: int64
+      token_id:
+        type: integer
+        format: int64
+  models.TagRoleUserApi:
+    title: TagRoleUserApi
+    type: object
+    properties:
+      role_id:
+        type: integer
+        format: int64
+      tag_id:
+        type: integer
+        format: int64
+      user_id:
+        type: integer
+        format: int64
+  models.TagRoleUserApiGet:
+    title: TagRoleUserApiGet
     type: object
     properties:
       role_id:
