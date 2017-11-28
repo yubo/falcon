@@ -4934,7 +4934,7 @@
                         "description": "body for user content",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.UserUpdate"
+                            "$ref": "#/definitions/models.UserApiUpdate"
                         }
                     }
                 ],
@@ -4963,7 +4963,7 @@
                         "description": "body for user content",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.UserCreate"
+                            "$ref": "#/definitions/models.UserApiAdd"
                         }
                     }
                 ],
@@ -7073,8 +7073,8 @@
                 }
             }
         },
-        "models.UserCreate": {
-            "title": "UserCreate",
+        "models.UserApiAdd": {
+            "title": "UserApiAdd",
             "type": "object",
             "properties": {
                 "avatarurl": {
@@ -7103,29 +7103,8 @@
                 }
             }
         },
-        "models.UserProfileUpdate": {
-            "title": "UserProfileUpdate",
-            "type": "object",
-            "properties": {
-                "cname": {
-                    "type": "string"
-                },
-                "email": {
-                    "type": "string"
-                },
-                "extra": {
-                    "type": "string"
-                },
-                "phone": {
-                    "type": "string"
-                },
-                "qq": {
-                    "type": "string"
-                }
-            }
-        },
-        "models.UserUpdate": {
-            "title": "UserUpdate",
+        "models.UserApiUpdate": {
+            "title": "UserApiUpdate",
             "type": "object",
             "properties": {
                 "avatarurl": {
@@ -7158,6 +7137,27 @@
                     "type": "string"
                 },
                 "uuid": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.UserProfileUpdate": {
+            "title": "UserProfileUpdate",
+            "type": "object",
+            "properties": {
+                "cname": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "extra": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "qq": {
                     "type": "string"
                 }
             }

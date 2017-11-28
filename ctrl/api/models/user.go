@@ -30,7 +30,7 @@ type User struct {
 	CreateTime time.Time `json:"ctime"`
 }
 
-type UserCreate struct {
+type UserApiAdd struct {
 	Uuid      string `json:"uuid"`
 	Name      string `json:"name"`
 	Cname     string `json:"cname"`
@@ -41,7 +41,7 @@ type UserCreate struct {
 	Avatarurl string `json:"avatarurl"`
 }
 
-type UserUpdate struct {
+type UserApiUpdate struct {
 	Id        int64  `json:"id"`
 	Uuid      string `json:"uuid"`
 	Name      string `json:"name"`
@@ -147,8 +147,8 @@ func (op *Operator) UserTokens() (token int) {
 	return UserTokens(op.User.Id, op.User.Name, op.O)
 }
 
-func (op *Operator) CreateUser(user *UserCreate) (id int64, err error) {
-	id, err = op.SqlInsert("insert user (uuid, name, cname, email, phone, qq, disabled) values (?, ?, ?, ?, ?, ?, ?, ?)",
+func (op *Operator) CreateUser(user *UserApiAdd) (id int64, err error) {
+	id, err = op.SqlInsert("insert user (uuid, name, cname, email, phone, qq, extra, avatarurl) values (?, ?, ?, ?, ?, ?, ?, ?)",
 		user.Uuid, user.Name, user.Cname, user.Email,
 		user.Phone, user.Qq, user.Extra, user.Avatarurl)
 	if err != nil {

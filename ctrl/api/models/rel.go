@@ -342,10 +342,8 @@ func (op *Operator) CreateTagTpl0(input *RelTagTpl0) (int64, error) {
 func (op *Operator) CreateTagTpl(rel *RelTagTpl) (int64, error) {
 	var id int64
 
-	val := fmt.Sprintf("(%d, %d, %d)", rel.TagId, rel.TplId, op.User.Id)
-
-	res, err := op.O.Raw("INSERT `tag_tpl` (`tag_id`, " +
-		"`tpl_id`, `creator`) VALUES " + val).Exec()
+	res, err := op.O.Raw("INSERT `tag_tpl` (`tag_id`, "+
+		"`tpl_id`, `creator`) VALUES (?, ?, ?)", rel.TagId, rel.TplId, op.User.Id).Exec()
 	if err != nil {
 		return 0, err
 	}

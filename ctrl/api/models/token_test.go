@@ -86,7 +86,7 @@ func testToken(t *testing.T) {
 		"u1",
 	}
 	for _, item := range items {
-		if id, err := op.CreateUser(&UserCreate{Name: item}); err != nil {
+		if id, err := op.CreateUser(&UserApiAdd{Name: item}); err != nil {
 			t.Error(err)
 		} else {
 			user_idx[item] = id

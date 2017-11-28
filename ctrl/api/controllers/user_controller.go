@@ -20,12 +20,12 @@ type UserController struct {
 
 // @Title CreateUser
 // @Description create users
-// @Param	body		body 	models.UserCreate	true		"body for user content"
+// @Param	body	body	models.UserApiAdd	true	"body for user content"
 // @Success 200 {object} models.Id Id
 // @Failure 400 string error
 // @router / [post]
 func (c *UserController) CreateUser() {
-	var user models.UserCreate
+	var user models.UserApiAdd
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	json.Unmarshal(c.Ctx.Input.RequestBody, &user)
 
@@ -136,12 +136,12 @@ func (c *UserController) GetUser() {
 
 // @Title Update
 // @Description update user information
-// @Param	body	body	models.UserUpdate	true	"body for user content"
+// @Param	body	body	models.UserApiUpdate	true	"body for user content"
 // @Success 200 {object} models.User user info
 // @Failure 400 string error
 // @router / [put]
 func (c *UserController) UpdateUser() {
-	input := models.UserUpdate{}
+	input := models.UserApiUpdate{}
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	err := json.Unmarshal(c.Ctx.Input.RequestBody, &input)
 	if err != nil {

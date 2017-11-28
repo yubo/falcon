@@ -41,6 +41,7 @@ const (
 	C_GOOGLE_REDIRECT_URL     = "googleredirecturl"
 	C_MI_NORNS_INTERVAL       = "minornsinterval"
 	C_HTTP_ADDR               = "httpaddr"
+	C_DB_SCHEMA               = "dbschema"
 	C_DB_MAX_CONN             = "dbmaxconn"
 	C_DB_MAX_IDLE             = "dbmaxidle"
 	C_MI_NORNS_URL            = "minornsurl"

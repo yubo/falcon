@@ -42,6 +42,7 @@ const (
 	SYS_IDX_R_TOKEN
 	SYS_IDX_O_TOKEN
 	SYS_IDX_A_TOKEN
+	SYS_IDX_TOKEN_SIZE
 )
 
 var (
@@ -73,6 +74,12 @@ var (
 		"action",
 		"strategy",
 		"template",
+	}
+	tokenName = [SYS_IDX_TOKEN_SIZE]string{
+		"",
+		SYS_R_TOKEN,
+		SYS_O_TOKEN,
+		SYS_A_TOKEN,
 	}
 )
 

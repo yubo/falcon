@@ -3261,7 +3261,7 @@ paths:
         description: body for user content
         required: true
         schema:
-          $ref: '#/definitions/models.UserUpdate'
+          $ref: '#/definitions/models.UserApiUpdate'
       responses:
         "200":
           description: user info
@@ -3280,7 +3280,7 @@ paths:
         description: body for user content
         required: true
         schema:
-          $ref: '#/definitions/models.UserCreate'
+          $ref: '#/definitions/models.UserApiAdd'
       responses:
         "200":
           description: Id
@@ -4730,8 +4730,8 @@ definitions:
         type: string
       uuid:
         type: string
-  models.UserCreate:
-    title: UserCreate
+  models.UserApiAdd:
+    title: UserApiAdd
     type: object
     properties:
       avatarurl:
@@ -4750,22 +4750,8 @@ definitions:
         type: string
       uuid:
         type: string
-  models.UserProfileUpdate:
-    title: UserProfileUpdate
-    type: object
-    properties:
-      cname:
-        type: string
-      email:
-        type: string
-      extra:
-        type: string
-      phone:
-        type: string
-      qq:
-        type: string
-  models.UserUpdate:
-    title: UserUpdate
+  models.UserApiUpdate:
+    title: UserApiUpdate
     type: object
     properties:
       avatarurl:
@@ -4789,6 +4775,20 @@ definitions:
       qq:
         type: string
       uuid:
+        type: string
+  models.UserProfileUpdate:
+    title: UserProfileUpdate
+    type: object
+    properties:
+      cname:
+        type: string
+      email:
+        type: string
+      extra:
+        type: string
+      phone:
+        type: string
+      qq:
         type: string
 tags:
 - name: auth

@@ -7,9 +7,11 @@ package models
 
 import (
 	"fmt"
+	"io/ioutil"
 	"strings"
 	"time"
 
+	"github.com/golang/glog"
 	"github.com/yubo/falcon/ctrl"
 )
 
@@ -68,7 +70,6 @@ func (op *Operator) GetLogs(begin, end string, limit, offset int) (ret []*LogApi
 /* for demo */
 func (op *Operator) populate() (interface{}, error) {
 	var (
-		ret       string
 		err       error
 		items     []string
 		id        int64
@@ -95,11 +96,11 @@ func (op *Operator) populate() (interface{}, error) {
 		"user6",
 	}
 	for _, item := range items {
-		if id, err = op.CreateUser(&UserCreate{Name: item, Uuid: item}); err != nil {
+		if id, err = op.CreateUser(&UserApiAdd{Name: item, Uuid: item}); err != nil {
 			return nil, err
 		}
 		user_idx[item] = id
-		ret = fmt.Sprintf("%sadd user(%s)\n", ret, item)
+		glog.Infof("add user(%s)\n", item)
 	}
 
 	// team
@@ -110,12 +111,12 @@ func (op *Operator) populate() (interface{}, error) {
 		"team4",
 	}
 	for _, item := range items {
+		glog.Infof("add team(%s)\n", item)
 		if id, err = op.AddTeam(&Team{Name: item, Creator: op.User.Id}); err != nil {
-			fmt.Printf("add team(%s)\n", item)
+			glog.Error(err.Error())
 			return nil, err
 		}
 		team_idx[item] = id
-		ret = fmt.Sprintf("%sadd team(%s)\n", ret, item)
 	}
 	teamMembers := []struct {
 		team  string
@@ -131,11 +132,13 @@ func (op *Operator) populate() (interface{}, error) {
 		for i := 0; i < len(uids); i++ {
 			uids[i] = user_idx[item.users[i]]
 		}
+
+		glog.Infof("add teamMembers(%v)\n", item)
 		if _, err = op.UpdateMember(team_idx[item.team],
 			&TeamMemberIds{Uids: uids}); err != nil {
+			glog.Error(err.Error())
 			return nil, err
 		}
-		ret = fmt.Sprintf("%sadd teamMembers(%v)\n", ret, item)
 	}
 
 	// tag
@@ -147,10 +150,11 @@ func (op *Operator) populate() (interface{}, error) {
 		"cop=xiaomi,owt=miliao,pdl=micloud",
 	}
 	for _, item := range items {
+		glog.Infof("add tag(%s)\n", item)
 		if tag_idx[item], err = op.CreateTag(&TagCreate{Name: item}); err != nil {
+			glog.Error(err.Error())
 			return nil, err
 		}
-		ret = fmt.Sprintf("%sadd tag(%s)\n", ret, item)
 	}
 
 	// tag host
@@ -172,15 +176,17 @@ func (op *Operator) populate() (interface{}, error) {
 		{"cop=xiaomi,owt=miliao,pdl=micloud", "miliao.cloud3.bj"},
 	}
 	for _, item2 := range items2 {
+		glog.Infof("add host(%s, %s)\n", item2[1], item2[0])
 		if host_idx[item2[1]], err = op.CreateHost(&HostCreate{Name: item2[1]}); err != nil {
+			glog.Error(err.Error())
 			return nil, err
 		}
 
 		if _, err = op.CreateTagHost(&RelTagHostApiAdd{TagId: tag_idx[item2[0]],
 			HostId: host_idx[item2[1]]}); err != nil {
+			glog.Error(err.Error())
 			return nil, err
 		}
-		ret = fmt.Sprintf("%sadd host(%s, %s)\n", ret, item2[1], item2[0])
 	}
 
 	// template
@@ -190,14 +196,16 @@ func (op *Operator) populate() (interface{}, error) {
 		"tpl3",
 	}
 	for _, item := range items {
+		glog.Infof("add tag(%s)\n", item)
 		if id, err = op.AddAction(&Action{}); err != nil {
+			glog.Error(err.Error())
 			return nil, err
 		}
 		if tpl_idx[item], err = op.AddTemplate(&Template{Name: item,
 			ActionId: id}); err != nil {
+			glog.Error(err.Error())
 			return nil, err
 		}
-		ret = fmt.Sprintf("%sadd tag(%s)\n", ret, item)
 	}
 	// template strategy
 	items2 = [][2]string{
@@ -212,12 +220,12 @@ func (op *Operator) populate() (interface{}, error) {
 		{"tpl3", "cpu.idle"},
 	}
 	for _, item2 := range items2 {
+		glog.Infof("add strategy(%s, %s)\n", item2[0], item2[1])
 		if _, err = op.AddStrategy(&Strategy{Metric: item2[1],
 			TplId: tpl_idx[item2[0]]}); err != nil {
+			glog.Error(err.Error())
 			return nil, err
 		}
-		ret = fmt.Sprintf("%sadd strategy(%s, %s)\n",
-			ret, item2[0], item2[1])
 	}
 
 	// clone template
@@ -227,10 +235,11 @@ func (op *Operator) populate() (interface{}, error) {
 		"tpl3",
 	}
 	for _, item := range items {
+		glog.Infof("clone template(%s)\n", item)
 		if _, err = op.CloneTemplate(tpl_idx[item]); err != nil {
+			glog.Error(err.Error())
 			return nil, err
 		}
-		ret = fmt.Sprintf("%s clone template(%s)\n", ret, item)
 	}
 
 	// bind tag template
@@ -246,11 +255,12 @@ func (op *Operator) populate() (interface{}, error) {
 		{"cop=xiaomi,owt=miliao,pdl=op", "tpl3"},
 	}
 	for _, item2 := range items2 {
+		glog.Infof("add tag tpl(%s, %s)\n", item2[0], item2[1])
 		if _, err = op.CreateTagTpl(&RelTagTpl{TagId: tag_idx[item2[0]],
 			TplId: tpl_idx[item2[1]]}); err != nil {
+			glog.Error(err.Error())
 			return nil, err
 		}
-		ret = fmt.Sprintf("%sadd tag tpl(%s, %s)\n", ret, item2[0], item2[1])
 	}
 
 	// role
@@ -261,24 +271,30 @@ func (op *Operator) populate() (interface{}, error) {
 		"usr",
 	}
 	for _, item := range items {
+		glog.Infof("add role(%s)\n", item)
 		if role_idx[item], err = op.CreateRole(&RoleCreate{Name: item}); err != nil {
+			glog.Error(err.Error())
 			return nil, err
 		}
-		ret = fmt.Sprintf("%sadd role(%s)\n", ret, item)
 	}
 
 	// token
-	items = []string{
-		SYS_R_TOKEN,
-		SYS_O_TOKEN,
-		SYS_A_TOKEN,
+	for i := SYS_IDX_R_TOKEN; i < SYS_IDX_TOKEN_SIZE; i++ {
+		token_idx[tokenName[i]] = int64(i)
 	}
-	for _, item := range items {
-		if token_idx[item], err = op.CreateToken(&TokenCreate{Name: item}); err != nil {
-			return nil, err
+	/*
+		items = []string{
+			SYS_R_TOKEN,
+			SYS_O_TOKEN,
+			SYS_A_TOKEN,
 		}
-		ret = fmt.Sprintf("%sadd token(%s)\n", ret, item)
-	}
+		for _, item := range items {
+			if token_idx[item], err = op.CreateToken(&TokenCreate{Name: item}); err != nil {
+				return nil, err
+			}
+			glog.Infof("add token(%s)\n", item)
+		}
+	*/
 
 	// bind user
 	binds := [][3]string{
@@ -288,12 +304,12 @@ func (op *Operator) populate() (interface{}, error) {
 		{"cop=xiaomi,owt=miliao", test_user, "usr"},
 	}
 	for _, s := range binds {
+		glog.Infof("bind tag(%s) user(%s) role(%s)\n", s[0], s[1], s[2])
 		if _, err := addTplRel(op.O, op.User.Id, tag_idx[s[0]], role_idx[s[2]],
 			user_idx[s[1]], TPL_REL_T_ACL_USER); err != nil {
+			glog.Error(err.Error())
 			return nil, err
 		}
-		ret = fmt.Sprintf("%sbind tag(%s) user(%s) role(%s)\n",
-			ret, s[0], s[1], s[2])
 	}
 
 	// bind token
@@ -311,32 +327,92 @@ func (op *Operator) populate() (interface{}, error) {
 		{SYS_A_TOKEN, "usr", "cop=xiaomi,owt=miliao"},
 	}
 	for _, s := range binds {
+		glog.Infof("bind tag(%s) token(%s) role(%s)\n", s[2], s[0], s[1])
 		if _, err := addTplRel(op.O, op.User.Id, tag_idx[s[2]], role_idx[s[1]],
 			token_idx[s[0]], TPL_REL_T_ACL_TOKEN); err != nil {
+			glog.Error(err.Error())
 			return nil, err
 		}
-		ret = fmt.Sprintf("%sbind tag(%s) token(%s) role(%s)\n",
-			ret, s[1], s[2], s[0])
 	}
 
-	return ret, nil
+	return "populate db done", nil
 }
 
 func (op *Operator) ResetDb(populate bool) (interface{}, error) {
 	var err error
+	var cmds []string
 
-	for _, table := range dbTables {
-		if _, err = op.O.Raw("TRUNCATE TABLE `" + table + "`").Exec(); err != nil {
-			return nil, err
+	file := ctrl.Configure.Ctrl.Str(ctrl.C_DB_SCHEMA)
+	if file == "" {
+		return "", fmt.Errorf("please config ctrl:dbSchema  file path")
+	}
+
+	buf, err := ioutil.ReadFile(file)
+	if err != nil {
+		return "", err
+	}
+
+	lines := strings.Split(string(buf), "\n")
+	for cmd, in, i := "", false, 0; i < len(lines); i++ {
+		line := lines[i]
+		if len(line) == 0 {
+			continue
+		}
+
+		if in {
+			cmd += " " + strings.TrimSpace(line)
+			if line[len(line)-1] == ';' {
+				cmds = append(cmds, cmd)
+				in = false
+			}
+		} else {
+			n := strings.Index(line, " ")
+			if n <= 0 {
+				continue
+			}
+
+			switch line[:n] {
+			case "SET", "CREATE", "INSERT", "DROP":
+				cmd = line
+				if line[len(line)-1] == ';' {
+					cmds = append(cmds, cmd)
+				} else {
+					in = true
+				}
+			}
 		}
 	}
 
-	// init admin
-	op.CreateUser(&UserCreate{Name: "system"})
+	for i := 0; i < len(cmds); i++ {
+		_, err := op.O.Raw(cmds[i]).Exec()
+		if err != nil {
+			glog.Error(MODULE_NAME+" sql %s ret %s", cmds[i], err.Error())
+		}
+	}
 
-	// init root tree tag
-	op.SqlExec("insert tag (name) values ('')")
-	op.SqlExec("insert tag_rel (tag_id, sup_tag_id, offset) values (1, 1, 0)")
+	/*
+		for _, table := range dbTables {
+			if _, err = op.O.Raw("TRUNCATE TABLE `" + table + "`").Exec(); err != nil {
+				return nil, err
+			}
+		}
+
+		// init root tree tag
+		op.SqlExec("insert tag (id, name) values (1, '')")
+		op.SqlExec("insert tag_rel (tag_id, sup_tag_id) values (1, 1)")
+		op.SqlExec("insert user (id, uuid, name, cname, email) values (1, 'root@localhost', 'system', 'system', 'root@localhost')")
+		op.SqlExec("insert token (id, name, cname, note) values " +
+			"(1, 'falcon_read', 'read', 'read') " +
+			"(2, 'falcon_operate', 'operate', 'operate') " +
+			"(3, 'falcon_admin', 'admin', 'admin')")
+
+		op.SqlExec("alter table host auto_increment=1000")
+		op.SqlExec("alter table token auto_increment=1000")
+		op.SqlExec("alter table role auto_increment=1000")
+		op.SqlExec("alter table tag auto_increment=1000")
+		op.SqlExec("alter table user auto_increment=1000")
+		op.SqlExec("alter table team auto_increment=1000")
+	*/
 
 	// reset cache
 	// ugly hack

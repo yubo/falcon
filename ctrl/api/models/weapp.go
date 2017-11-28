@@ -442,7 +442,7 @@ func weappBind(uid int64, sess *WeappSession) (*User, error) {
 		// if user not exist
 
 		// create user from weapp userinfo
-		weapp_uid, err = SysOp.CreateUser(&UserCreate{
+		weapp_uid, err = SysOp.CreateUser(&UserApiAdd{
 			Uuid:      fmt.Sprintf("%s@weapp", sess.AppUser.OpenId),
 			Name:      sess.AppUser.OpenId,
 			Cname:     sess.AppUser.NickName,

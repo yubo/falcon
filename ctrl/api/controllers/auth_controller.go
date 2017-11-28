@@ -179,7 +179,7 @@ func (c *AuthController) access(uuid string) (op *models.Operator, err error) {
 		}
 		name := strings.TrimRight(uuid, "@misso")
 
-		id, err = sysOp.CreateUser(&models.UserCreate{Uuid: uuid, Name: name})
+		id, err = sysOp.CreateUser(&models.UserApiAdd{Uuid: uuid, Name: name})
 		if err != nil {
 			beego.Debug("add user failed ", err.Error())
 			return
