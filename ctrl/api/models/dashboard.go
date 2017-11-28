@@ -23,11 +23,10 @@ type APITmpGraph struct {
 }
 
 type TmpGraph struct {
-	Id         int64     `json:"id"`
-	Endpoints  string    `json:"endpoints"`
-	Counters   string    `json:"counters"`
-	Ck         string    `json:"ck"`
-	CreateTime time.Time `json:"ctime"`
+	Id        int64  `json:"id"`
+	Endpoints string `json:"endpoints"`
+	Counters  string `json:"counters"`
+	Ck        string `json:"ck"`
 }
 
 func (op *Operator) AddDashboardTmpGraph(inputs *APITmpGraph) (id int64, err error) {

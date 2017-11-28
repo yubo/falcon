@@ -7,15 +7,13 @@ package models
 
 import (
 	"errors"
-	"time"
 )
 
 type Token struct {
-	Id         int64     `json:"id"`
-	Name       string    `json:"name"`
-	Cname      string    `json:"cname"`
-	Note       string    `json:"note"`
-	CreateTime time.Time `json:"ctime"`
+	Id    int64  `json:"id"`
+	Name  string `json:"name"`
+	Cname string `json:"cname"`
+	Note  string `json:"note"`
 }
 
 type TokenCreate struct {
@@ -48,7 +46,7 @@ func (op *Operator) GetToken(id int64) (ret *Token, err error) {
 	}
 
 	ret = &Token{}
-	err = op.SqlRow(ret, "select id, name, cname, note, create_time from token where id = ?", id)
+	err = op.SqlRow(ret, "select id, name, cname, note from token where id = ?", id)
 	if err == nil {
 		moduleCache[CTL_M_TOKEN].set(id, ret, ret.Name)
 	}
@@ -63,7 +61,7 @@ func (op *Operator) GetTokenByName(token string) (ret *Token, err error) {
 	}
 
 	ret = &Token{}
-	err = op.SqlRow(ret, "select id, name, cname, note, create_time from token where name = ?", token)
+	err = op.SqlRow(ret, "select id, name, cname, note from token where name = ?", token)
 	if err == nil {
 		moduleCache[CTL_M_TOKEN].set(ret.Id, ret, ret.Name)
 	}
@@ -78,7 +76,7 @@ func (op *Operator) GetTokensCnt(query string) (cnt int64, err error) {
 
 func (op *Operator) GetTokens(query string, limit, offset int) (ret []*Token, err error) {
 	sql, sql_args := sqlName(query)
-	sql = sqlLimit("select id, name, cname, note, create_time from token "+sql+" ORDER BY id", limit, offset)
+	sql = sqlLimit("select id, name, cname, note from token "+sql+" ORDER BY id", limit, offset)
 	_, err = op.O.Raw(sql, sql_args...).QueryRows(&ret)
 	return
 }

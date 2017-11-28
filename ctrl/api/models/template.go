@@ -32,12 +32,11 @@ type TemplateUi struct {
 
 // for db
 type Template struct {
-	Id           int64     `json:"id"`
-	Name         string    `json:"name"`
-	ParentId     int64     `json:"pid"`
-	ActionId     int64     `json:"-"`
-	CreateUserId int64     `json:"-"`
-	CreateTime   time.Time `json:"ctime"`
+	Id           int64  `json:"id"`
+	Name         string `json:"name"`
+	ParentId     int64  `json:"pid"`
+	ActionId     int64  `json:"-"`
+	CreateUserId int64  `json:"-"`
 }
 
 // for db
@@ -138,7 +137,7 @@ func (op *Operator) GetTemplate(id int64) (*TemplateAction, error) {
 
 func (op *Operator) getTemplate(id int64) (t *Template, err error) {
 	t = &Template{}
-	err = op.SqlRow(t, "select id, name, parent_id, action_id, create_user_id, create_time from template where id = ?", id)
+	err = op.SqlRow(t, "select id, name, parent_id, action_id, create_user_id from template where id = ?", id)
 	return
 }
 

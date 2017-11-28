@@ -75,7 +75,6 @@ func (op *Operator) populate() (interface{}, error) {
 		id        int64
 		tag_idx   = make(map[string]int64)
 		user_idx  = make(map[string]int64)
-		team_idx  = make(map[string]int64)
 		role_idx  = make(map[string]int64)
 		token_idx = make(map[string]int64)
 		host_idx  = make(map[string]int64)
@@ -101,44 +100,6 @@ func (op *Operator) populate() (interface{}, error) {
 		}
 		user_idx[item] = id
 		glog.Infof("add user(%s)\n", item)
-	}
-
-	// team
-	items = []string{
-		"team1",
-		"team2",
-		"team3",
-		"team4",
-	}
-	for _, item := range items {
-		glog.Infof("add team(%s)\n", item)
-		if id, err = op.AddTeam(&Team{Name: item, Creator: op.User.Id}); err != nil {
-			glog.Error(err.Error())
-			return nil, err
-		}
-		team_idx[item] = id
-	}
-	teamMembers := []struct {
-		team  string
-		users []string
-	}{
-		{"team1", []string{"user0", "user1"}},
-		{"team2", []string{"user2", "user3"}},
-		{"team3", []string{"user4", "user5"}},
-		{"team4", []string{"user0", "user1", "user2", "user3", "user4", "user5"}},
-	}
-	for _, item := range teamMembers {
-		uids := make([]int64, len(item.users))
-		for i := 0; i < len(uids); i++ {
-			uids[i] = user_idx[item.users[i]]
-		}
-
-		glog.Infof("add teamMembers(%v)\n", item)
-		if _, err = op.UpdateMember(team_idx[item.team],
-			&TeamMemberIds{Uids: uids}); err != nil {
-			glog.Error(err.Error())
-			return nil, err
-		}
 	}
 
 	// tag
@@ -411,7 +372,6 @@ func (op *Operator) ResetDb(populate bool) (interface{}, error) {
 		op.SqlExec("alter table role auto_increment=1000")
 		op.SqlExec("alter table tag auto_increment=1000")
 		op.SqlExec("alter table user auto_increment=1000")
-		op.SqlExec("alter table team auto_increment=1000")
 	*/
 
 	// reset cache

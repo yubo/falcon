@@ -7,21 +7,19 @@ package models
 
 import (
 	"errors"
-	"time"
 )
 
 type Host struct {
-	Id            int64     `json:"id"`
-	Uuid          string    `json:"uuid"`
-	Name          string    `json:"name"`
-	Type          string    `json:"typ"`
-	Status        string    `json:"status"`
-	Loc           string    `json:"loc"`
-	Idc           string    `json:"idc"`
-	Pause         int64     `json:"pause"`
-	MaintainBegin int64     `json:"maintain_begin"`
-	MaintainEnd   int64     `json:"maintain_end"`
-	CreateTime    time.Time `json:"ctime"`
+	Id            int64  `json:"id"`
+	Uuid          string `json:"uuid"`
+	Name          string `json:"name"`
+	Type          string `json:"typ"`
+	Status        string `json:"status"`
+	Loc           string `json:"loc"`
+	Idc           string `json:"idc"`
+	Pause         int64  `json:"pause"`
+	MaintainBegin int64  `json:"maintain_begin"`
+	MaintainEnd   int64  `json:"maintain_end"`
 }
 
 type HostCreate struct {
@@ -66,7 +64,7 @@ func (op *Operator) GetHost(id int64) (h *Host, err error) {
 	}
 
 	h = &Host{}
-	err = op.SqlRow(h, "select id, uuid, name, type, status, loc, idc, pause, maintain_begin, maintain_end, create_time from host where id = ?", id)
+	err = op.SqlRow(h, "select id, uuid, name, type, status, loc, idc, pause, maintain_begin, maintain_end from host where id = ?", id)
 	if err != nil {
 		return
 	}
@@ -83,7 +81,7 @@ func (op *Operator) GetHostsCnt(query string) (cnt int64, err error) {
 
 func (op *Operator) GetHosts(query string, limit, offset int) (ret []*Host, err error) {
 	sql, sql_args := sqlName(query)
-	sql = sqlLimit("select id, uuid, name, type, status, loc, idc, pause, maintain_begin, maintain_end, create_time from host "+sql+" ORDER BY name", limit, offset)
+	sql = sqlLimit("select id, uuid, name, type, status, loc, idc, pause, maintain_begin, maintain_end from host "+sql+" ORDER BY name", limit, offset)
 	_, err = op.O.Raw(sql, sql_args...).QueryRows(&ret)
 	return
 }

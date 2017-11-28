@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/golang/glog"
 	"github.com/yubo/falcon"
@@ -21,10 +20,9 @@ type TagCreate struct {
 }
 
 type Tag struct {
-	Id         int64     `json:"id"`
-	Name       string    `json:"name"`
-	Type       int64     `json:"type"`
-	CreateTime time.Time `json:"ctime"`
+	Id   int64  `json:"id"`
+	Name string `json:"name"`
+	Type int64  `json:"type"`
 }
 
 type Tag_rel struct {
@@ -277,7 +275,7 @@ func (op *Operator) GetTag(id int64) (ret *Tag, err error) {
 	}
 
 	ret = &Tag{}
-	err = op.SqlRow(ret, "select id, name, type, create_time from tag where id = ?", id)
+	err = op.SqlRow(ret, "select id, name, type from tag where id = ?", id)
 	if err == nil {
 		moduleCache[CTL_M_TAG].set(id, ret, ret.Name)
 	}
@@ -300,7 +298,7 @@ func (op *Operator) GetTagByName(tag string) (ret *Tag, err error) {
 	}
 
 	ret = &Tag{}
-	err = op.SqlRow(ret, "select id, name, type, create_time from tag where name = ?", tag)
+	err = op.SqlRow(ret, "select id, name, type from tag where name = ?", tag)
 	if err == nil {
 		moduleCache[CTL_M_TAG].set(ret.Id, ret, ret.Name)
 	}
@@ -315,7 +313,7 @@ func (op *Operator) GetTagsCnt(query string) (cnt int64, err error) {
 
 func (op *Operator) GetTags(query string, limit, offset int) (ret []*Tag, err error) {
 	sql, sql_args := sqlName(query)
-	sql = sqlLimit("select id, name, type, create_time from tag "+sql+" ORDER BY name", limit, offset)
+	sql = sqlLimit("select id, name, type from tag "+sql+" ORDER BY name", limit, offset)
 	_, err = op.O.Raw(sql, sql_args...).QueryRows(&ret)
 	return
 }

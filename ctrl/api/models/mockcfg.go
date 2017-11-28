@@ -7,21 +7,19 @@ package models
 
 import (
 	"strings"
-	"time"
 )
 
 type Mockcfg struct {
-	Id      int64     `json:"id"`
-	Name    string    `json:"name"`
-	Obj     string    `json:"obj"`
-	ObjType string    `json:"obj_type"` //group, host, other
-	Metric  string    `json:"metric"`
-	Tags    string    `json:"tags"`
-	Dstype  string    `json:"dstype"`
-	Step    int       `json:"step"`
-	Mock    float64   `json:"mock"`
-	Creator string    `json:"creator"`
-	TCreate time.Time `json:"ctime"`
+	Id      int64   `json:"id"`
+	Name    string  `json:"name"`
+	Obj     string  `json:"obj"`
+	ObjType string  `json:"obj_type"` //group, host, other
+	Metric  string  `json:"metric"`
+	Tags    string  `json:"tags"`
+	Dstype  string  `json:"dstype"`
+	Step    int     `json:"step"`
+	Mock    float64 `json:"mock"`
+	Creator string  `json:"creator"`
 }
 
 type APICreateNoDataInputs struct {

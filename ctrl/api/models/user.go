@@ -9,25 +9,23 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/astaxie/beego/orm"
 )
 
 type User struct {
-	Id         int64     `json:"id"`
-	Muid       int64     `json:"muid"` /* master uid */
-	Uuid       string    `json:"uuid"`
-	Name       string    `json:"name"`
-	Cname      string    `json:"cname"`
-	Mname      string    `json:"mname"` /* master user name */
-	Email      string    `json:"email"`
-	Phone      string    `json:"phone"`
-	Qq         string    `json:"qq"`
-	Extra      string    `json:"extra"`
-	Avatarurl  string    `json:"avatarurl"`
-	Disabled   int       `json:"disabled"`
-	CreateTime time.Time `json:"ctime"`
+	Id        int64  `json:"id"`
+	Muid      int64  `json:"muid"` /* master uid */
+	Uuid      string `json:"uuid"`
+	Name      string `json:"name"`
+	Cname     string `json:"cname"`
+	Mname     string `json:"mname"` /* master user name */
+	Email     string `json:"email"`
+	Phone     string `json:"phone"`
+	Qq        string `json:"qq"`
+	Extra     string `json:"extra"`
+	Avatarurl string `json:"avatarurl"`
+	Disabled  int    `json:"disabled"`
 }
 
 type UserApiAdd struct {
@@ -168,7 +166,7 @@ func GetUser(id int64, o orm.Ormer) (ret *User, err error) {
 	}
 
 	ret = &User{}
-	err = o.Raw("select a.id, a.muid, a.uuid, a.name, a.cname, a.email, a.phone, a.qq, a.disabled, a.extra, a.avatarurl, a.create_time, b.name as mname from user a left join user b on a.muid = b.id where a.id = ?", id).QueryRow(ret)
+	err = o.Raw("select a.id, a.muid, a.uuid, a.name, a.cname, a.email, a.phone, a.qq, a.disabled, a.extra, a.avatarurl, b.name as mname from user a left join user b on a.muid = b.id where a.id = ?", id).QueryRow(ret)
 	if err == nil {
 		moduleCache[CTL_M_USER].set(id, ret)
 	}
@@ -181,7 +179,7 @@ func (op *Operator) GetUser(id int64) (*User, error) {
 
 func (op *Operator) GetUserByUuid(uuid string) (ret *User, err error) {
 	ret = &User{}
-	err = op.SqlRow(ret, "select a.id, a.muid, a.uuid, a.name, a.cname, a.email, a.phone, a.qq, a.disabled, a.extra, a.avatarurl, a.create_time, b.name as mname from user a left join user b on a.muid = b.id where a.uuid = ?", uuid)
+	err = op.SqlRow(ret, "select a.id, a.muid, a.uuid, a.name, a.cname, a.email, a.phone, a.qq, a.disabled, a.extra, a.avatarurl, b.name as mname from user a left join user b on a.muid = b.id where a.uuid = ?", uuid)
 	return ret, err
 }
 
@@ -207,14 +205,14 @@ func (op *Operator) GetUsersCnt(query string) (cnt int64, err error) {
 
 func (op *Operator) GetUsers(query string, limit, offset int) (ret []*User, err error) {
 	sql, sql_args := sqlUser(query)
-	sql = sqlLimit("select user.id, user.muid, user.uuid, user.name, user.cname, user.email, user.phone, user.qq, user.disabled, user.extra, user.avatarurl, user.create_time, user.extra, b.name as mname from user left join user b on user.muid = b.id "+sql+" ORDER BY name", limit, offset)
+	sql = sqlLimit("select user.id, user.muid, user.uuid, user.name, user.cname, user.email, user.phone, user.qq, user.disabled, user.extra, user.avatarurl, user.extra, b.name as mname from user left join user b on user.muid = b.id "+sql+" ORDER BY name", limit, offset)
 	_, err = op.O.Raw(sql, sql_args...).QueryRows(&ret)
 
 	return
 }
 
 func (op *Operator) GetBindedUsers(id int64) (ret []*User, err error) {
-	_, err = op.O.Raw("select id, muid, uuid, name, cname, email, phone, qq, disabled, extra, avatarurl, create_time, extra from user where muid = ?", id).QueryRows(&ret)
+	_, err = op.O.Raw("select id, muid, uuid, name, cname, email, phone, qq, disabled, extra, avatarurl, extra from user where muid = ?", id).QueryRows(&ret)
 	return
 }
 

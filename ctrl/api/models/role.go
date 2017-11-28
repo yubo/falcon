@@ -7,15 +7,13 @@ package models
 
 import (
 	"errors"
-	"time"
 )
 
 type Role struct {
-	Id         int64     `json:"id"`
-	Name       string    `json:"name"`
-	Cname      string    `json:"cname"`
-	Note       string    `json:"note"`
-	CreateTime time.Time `json:"ctime"`
+	Id    int64  `json:"id"`
+	Name  string `json:"name"`
+	Cname string `json:"cname"`
+	Note  string `json:"note"`
 }
 
 type RoleCreate struct {
@@ -48,7 +46,7 @@ func (op *Operator) GetRole(id int64) (ret *Role, err error) {
 	}
 
 	ret = &Role{}
-	err = op.SqlRow(ret, "select id, name, cname, note, create_time from role where id = ?", id)
+	err = op.SqlRow(ret, "select id, name, cname, note from role where id = ?", id)
 	if err == nil {
 		moduleCache[CTL_M_ROLE].set(id, ret)
 	}
@@ -63,7 +61,7 @@ func (op *Operator) GetRolesCnt(query string) (cnt int64, err error) {
 
 func (op *Operator) GetRoles(query string, limit, offset int) (ret []*Role, err error) {
 	sql, sql_args := sqlName(query)
-	sql = sqlLimit("select id, name, cname, note, create_time from role "+sql+" ORDER BY name", limit, offset)
+	sql = sqlLimit("select id, name, cname, note from role "+sql+" ORDER BY name", limit, offset)
 	_, err = op.O.Raw(sql, sql_args...).QueryRows(&ret)
 	return
 }

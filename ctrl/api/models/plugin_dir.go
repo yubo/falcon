@@ -8,15 +8,13 @@ package models
 import (
 	"fmt"
 	"strings"
-	"time"
 )
 
 type PluginDirPost struct {
-	Id           int64     `json:"-"`
-	TagId        int64     `json:"tag_id"`
-	Dir          string    `json:"dir"`
-	CreateUserId int64     `json:"-"`
-	CreateTime   time.Time `json:"-"`
+	Id           int64  `json:"-"`
+	TagId        int64  `json:"tag_id"`
+	Dir          string `json:"dir"`
+	CreateUserId int64  `json:"-"`
 }
 
 type PluginDirGet struct {
@@ -28,11 +26,10 @@ type PluginDirGet struct {
 }
 
 type PluginDir struct {
-	Id           int64     `json:"id"`
-	TagId        int64     `json:"tag_id"`
-	Dir          string    `json:"dir"`
-	CreateUserId int64     `json:"create_user_id"`
-	CreateTime   time.Time `json:"ctime"`
+	Id           int64  `json:"id"`
+	TagId        int64  `json:"tag_id"`
+	Dir          string `json:"dir"`
+	CreateUserId int64  `json:"create_user_id"`
 }
 
 func sqlTagPlugin(tag_id int64, deep bool) (where string, args []interface{}) {

@@ -64,8 +64,6 @@ var (
 		"tag_rel",
 		"tag_host",
 		"user",
-		"team",
-		"team_user",
 		"log",
 		"tpl_rel",
 		"tag_tpl",
@@ -96,7 +94,6 @@ const (
 	CTL_M_TEMPLATE
 	CTL_M_TRIGGER
 	CTL_M_EXPRESSION
-	CTL_M_TEAM
 	CTL_M_TAG_HOST
 	CTL_M_TAG_TPL
 	CTL_M_TMP_GRAPH
@@ -169,7 +166,7 @@ var (
 
 	ModuleName = [CTL_M_SIZE]string{
 		"host", "role", "system", "tag", "user", "token",
-		"template", "rule", "trigger", "expression", "team",
+		"template", "rule", "trigger", "expression",
 		"tag_host", "tag_template", "tmp_graph",
 		"dashboard_graph", "dashboard_screen",
 		"mockcfg", "aggreator",

@@ -48,7 +48,6 @@ func PreStart() error {
 		beego.NSNamespace("/user", beego.NSInclude(&controllers.UserController{})),
 		beego.NSNamespace("/token", beego.NSInclude(&controllers.TokenController{})),
 		beego.NSNamespace("/rel", beego.NSInclude(&controllers.RelController{})),
-		beego.NSNamespace("/team", beego.NSInclude(&controllers.TeamController{})),
 		beego.NSNamespace("/template", beego.NSInclude(&controllers.TemplateController{})),
 		beego.NSNamespace("/expression", beego.NSInclude(&controllers.ExpressionController{})),
 		beego.NSNamespace("/strategy", beego.NSInclude(&controllers.StrategyController{})),

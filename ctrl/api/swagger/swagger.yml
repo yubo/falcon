@@ -2807,185 +2807,6 @@ paths:
               $ref: '#/definitions/models.Tag'
         "400":
           description: "string\terror"
-  /team/:
-    post:
-      tags:
-      - team
-      description: create teams
-      operationId: TeamController.CreateTeam
-      parameters:
-      - in: body
-        name: body
-        description: body for team content
-        required: true
-        schema:
-          $ref: '#/definitions/models.Team'
-      responses:
-        "200":
-          description: Id
-          schema:
-            $ref: '#/definitions/models.Id'
-        "400":
-          description: string error
-  /team/{id}:
-    get:
-      tags:
-      - team
-      description: get team by id
-      operationId: TeamController.Get team by id
-      parameters:
-      - in: path
-        name: id
-        description: team id
-        required: true
-        type: integer
-        format: int64
-      responses:
-        "200":
-          description: team info
-          schema:
-            $ref: '#/definitions/models.Team'
-        "400":
-          description: string error
-    put:
-      tags:
-      - team
-      description: update the team
-      operationId: TeamController.UpdateTeam
-      parameters:
-      - in: path
-        name: id
-        description: The id you want to update
-        required: true
-        type: string
-      - in: body
-        name: body
-        description: body for team content
-        required: true
-        schema:
-          $ref: '#/definitions/models.Team'
-      responses:
-        "200":
-          description: team info
-          schema:
-            $ref: '#/definitions/models.Team'
-        "400":
-          description: string error
-    delete:
-      tags:
-      - team
-      description: delete the team
-      operationId: TeamController.DeleteTeam
-      parameters:
-      - in: path
-        name: id
-        description: The id you want to delete
-        required: true
-        type: string
-      responses:
-        "200":
-          description: '{string} "delete success!"'
-        "400":
-          description: string error
-  /team/{id}/member:
-    put:
-      tags:
-      - team
-      description: create teams
-      operationId: TeamController.update Team op.bers
-      parameters:
-      - in: body
-        name: body
-        description: body for team content
-        required: true
-        schema:
-          $ref: '#/definitions/models.TeamMemberIds'
-      responses:
-        "200":
-          description: member info
-          schema:
-            $ref: '#/definitions/models.TeamMemberIds'
-        "400":
-          description: string error
-  /team/cnt:
-    get:
-      tags:
-      - team
-      description: get Teams number
-      operationId: TeamController.GetTeamsCnt
-      parameters:
-      - in: query
-        name: query
-        description: team name
-        type: string
-      - in: query
-        name: mine
-        description: only show mine team, default false
-        type: boolean
-      responses:
-        "200":
-          description: team total number
-          schema:
-            $ref: '#/definitions/models.Total'
-        "400":
-          description: string error
-  /team/member:
-    get:
-      tags:
-      - team
-      description: get team by id
-      operationId: TeamController.Get team member by teamname or teamid
-      parameters:
-      - in: query
-        name: id
-        description: team id
-        type: integer
-        format: int64
-      - in: query
-        name: name
-        description: team name
-        type: string
-      responses:
-        "200":
-          description: user info
-          schema:
-            $ref: '#/definitions/models.TeamMembers'
-        "400":
-          description: string error
-  /team/search:
-    get:
-      tags:
-      - team
-      description: get all Teams
-      operationId: TeamController.GetTeams
-      parameters:
-      - in: query
-        name: query
-        description: team name
-        type: string
-      - in: query
-        name: mine
-        description: only show mine team, default false
-        type: boolean
-      - in: query
-        name: limit
-        description: limit page number
-        type: integer
-        format: int64
-      - in: query
-        name: offset
-        description: offset  number
-        type: integer
-        format: int64
-      responses:
-        "200":
-          description: teams info
-          schema:
-            type: array
-            items:
-              $ref: '#/definitions/models.TeamUi'
-        "400":
-          description: string error
   /template/:
     post:
       tags:
@@ -4036,9 +3857,6 @@ definitions:
     title: Host
     type: object
     properties:
-      ctime:
-        type: string
-        format: string
       id:
         type: integer
         format: int64
@@ -4176,9 +3994,6 @@ definitions:
     properties:
       creator:
         type: string
-      ctime:
-        type: string
-        format: string
       dstype:
         type: string
       id:
@@ -4377,9 +4192,6 @@ definitions:
     properties:
       cname:
         type: string
-      ctime:
-        type: string
-        format: string
       id:
         type: integer
         format: int64
@@ -4459,9 +4271,6 @@ definitions:
     title: Tag
     type: object
     properties:
-      ctime:
-        type: string
-        format: string
       id:
         type: integer
         format: int64
@@ -4545,60 +4354,10 @@ definitions:
         format: int64
       tpl_pname:
         type: string
-  models.Team:
-    title: Team
-    type: object
-    properties:
-      ctime:
-        type: string
-        format: string
-      id:
-        type: integer
-        format: int64
-      name:
-        type: string
-      note:
-        type: string
-  models.TeamMemberIds:
-    title: TeamMemberIds
-    type: object
-    properties:
-      uids:
-        type: array
-        items:
-          type: integer
-          format: int64
-  models.TeamMembers:
-    title: TeamMembers
-    type: object
-    properties:
-      users:
-        type: array
-        items:
-          $ref: '#/definitions/models.User'
-  models.TeamUi:
-    title: TeamUi
-    type: object
-    properties:
-      creator:
-        type: string
-      ctime:
-        type: string
-        format: string
-      id:
-        type: integer
-        format: int64
-      name:
-        type: string
-      note:
-        type: string
   models.Template:
     title: Template
     type: object
     properties:
-      ctime:
-        type: string
-        format: string
       id:
         type: integer
         format: int64
@@ -4639,9 +4398,6 @@ definitions:
     properties:
       cname:
         type: string
-      ctime:
-        type: string
-        format: string
       id:
         type: integer
         format: int64
@@ -4704,9 +4460,6 @@ definitions:
         type: string
       cname:
         type: string
-      ctime:
-        type: string
-        format: string
       disabled:
         type: integer
         format: int64
@@ -4812,9 +4565,6 @@ tags:
 - name: rel
   description: |
     Operations about Relations
-- name: team
-  description: |
-    Operations about Teams
 - name: template
   description: |
     Operations about Templates
