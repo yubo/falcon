@@ -33,6 +33,15 @@ type cache struct {
 	key    map[string]interface{}
 }
 
+func init() {
+	for i := 0; i < CTL_M_SIZE; i++ {
+		moduleCache[i] = cache{
+			id:  make(map[int64]interface{}),
+			key: make(map[string]interface{}),
+		}
+	}
+}
+
 func (c *cache) set(id int64, p interface{}, keys ...string) {
 	if c.enable {
 		c.Lock()

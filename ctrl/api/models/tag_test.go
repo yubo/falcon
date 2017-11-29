@@ -11,7 +11,7 @@ import (
 	"github.com/yubo/falcon"
 )
 
-func TestNewTagSchema(t *testing.T) {
+func testNewTagSchema(t *testing.T) {
 	cases := []struct {
 		name   string
 		schema string
@@ -28,7 +28,7 @@ func TestNewTagSchema(t *testing.T) {
 	}
 }
 
-func TestTagMap(t *testing.T) {
+func testTagMap(t *testing.T) {
 	cases := []struct {
 		name string
 		tag  string
@@ -52,7 +52,7 @@ func TestTagMap(t *testing.T) {
 	}
 }
 
-func TestTagFmtErr(t *testing.T) {
+func testTagFmtErr(t *testing.T) {
 
 	ts, _ := NewTagSchema("a,b,c;d;e,f,")
 	cases := []struct {
@@ -78,7 +78,7 @@ func TestTagFmtErr(t *testing.T) {
 	}
 }
 
-func TestTagFmt(t *testing.T) {
+func testTagFmt(t *testing.T) {
 
 	ts, _ := NewTagSchema("a,b,c;d;e,f,")
 	cases := []struct {
@@ -99,7 +99,7 @@ func TestTagFmt(t *testing.T) {
 	}
 }
 
-func TestTagParent(t *testing.T) {
+func testTagParent(t *testing.T) {
 	cases := []struct {
 		tag  string
 		want string
@@ -118,7 +118,7 @@ func TestTagParent(t *testing.T) {
 
 }
 
-func TestTagParents(t *testing.T) {
+func testTagParents(t *testing.T) {
 	cases := []struct {
 		tag  string
 		want []string
@@ -136,7 +136,7 @@ func TestTagParents(t *testing.T) {
 	}
 }
 
-func TestTagRelation(t *testing.T) {
+func testTagRelation(t *testing.T) {
 	cases := []struct {
 		tag  string
 		want []string
@@ -152,4 +152,14 @@ func TestTagRelation(t *testing.T) {
 				tc.tag, got, want)
 		}
 	}
+}
+
+func testTag(t *testing.T) {
+	testNewTagSchema(t)
+	testTagMap(t)
+	testTagFmt(t)
+	testTagFmt(t)
+	testTagParent(t)
+	testTagParents(t)
+	testTagRelation(t)
 }

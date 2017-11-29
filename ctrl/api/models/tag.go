@@ -263,7 +263,9 @@ func (op *Operator) CreateTag(t *TagCreate) (id int64, err error) {
 	if id, err = op.createTag(t, sysTagSchema); err != nil {
 		return
 	}
-	cacheTree.build()
+	if cacheTree != nil {
+		cacheTree.build()
+	}
 	return
 }
 
@@ -365,7 +367,9 @@ func (op *Operator) DeleteTag(id int64) (err error) {
 	// TODO: clean tpl_rel, tag_host, ...
 
 	// rebuild cache tree
-	cacheTree.build()
+	if cacheTree != nil {
+		cacheTree.build()
+	}
 
 	if t, ok := moduleCache[CTL_M_TAG].get(id).(*Tag); ok {
 		moduleCache[CTL_M_TAG].del(id, t.Name)

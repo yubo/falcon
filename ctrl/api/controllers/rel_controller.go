@@ -37,7 +37,7 @@ func (c *RelController) GetTreeNode() {
 		depth = 100
 	}
 
-	if err := op.Access(models.SYS_IDX_R_TOKEN, id); err == nil {
+	if err := op.Access(models.SYS_R_TOKEN, id); err == nil {
 		direct = true
 	}
 
@@ -89,7 +89,7 @@ func (c *RelController) GetTagHostCnt() {
 	deep, _ := c.GetBool("deep", true)
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	if err := op.Access(models.SYS_IDX_R_TOKEN, tagId); err != nil {
+	if err := op.Access(models.SYS_R_TOKEN, tagId); err != nil {
 		c.SendMsg(403, err.Error())
 		return
 	}
@@ -120,7 +120,7 @@ func (c *RelController) GetTagHost() {
 	offset, _ := c.GetInt("offset", 0)
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	if err := op.Access(models.SYS_IDX_R_TOKEN, tagId); err != nil {
+	if err := op.Access(models.SYS_R_TOKEN, tagId); err != nil {
 		c.SendMsg(403, err.Error())
 		return
 	}
@@ -146,13 +146,13 @@ func (c *RelController) CreateTagHost() {
 	json.Unmarshal(c.Ctx.Input.RequestBody, &rel)
 
 	if !op.IsAdmin() {
-		if err := op.Access(models.SYS_IDX_O_TOKEN,
+		if err := op.Access(models.SYS_O_TOKEN,
 			rel.TagId); err != nil {
 			c.SendMsg(403, err.Error())
 			return
 		}
 
-		if err := op.Access(models.SYS_IDX_O_TOKEN,
+		if err := op.Access(models.SYS_O_TOKEN,
 			rel.SrcTagId); err != nil {
 			c.SendMsg(403, err.Error())
 			return
@@ -185,13 +185,13 @@ func (c *RelController) CreateTagHosts() {
 	json.Unmarshal(c.Ctx.Input.RequestBody, &rel)
 
 	if !op.IsAdmin() {
-		if err := op.Access(models.SYS_IDX_O_TOKEN,
+		if err := op.Access(models.SYS_O_TOKEN,
 			rel.TagId); err != nil {
 			c.SendMsg(403, err.Error())
 			return
 		}
 
-		if err := op.Access(models.SYS_IDX_O_TOKEN,
+		if err := op.Access(models.SYS_O_TOKEN,
 			rel.SrcTagId); err != nil {
 			c.SendMsg(403, err.Error())
 			return
@@ -224,7 +224,7 @@ func (c *RelController) DelTagHost() {
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	json.Unmarshal(c.Ctx.Input.RequestBody, &rel)
 
-	if err := op.Access(models.SYS_IDX_O_TOKEN, rel.TagId); err != nil {
+	if err := op.Access(models.SYS_O_TOKEN, rel.TagId); err != nil {
 		c.SendMsg(403, err.Error())
 		return
 	}
@@ -249,7 +249,7 @@ func (c *RelController) DelTagHosts() {
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	json.Unmarshal(c.Ctx.Input.RequestBody, &rel)
 
-	if err := op.Access(models.SYS_IDX_O_TOKEN, rel.TagId); err != nil {
+	if err := op.Access(models.SYS_O_TOKEN, rel.TagId); err != nil {
 		c.SendMsg(403, err.Error())
 		return
 	}
@@ -262,28 +262,28 @@ func (c *RelController) DelTagHosts() {
 	}
 }
 
-// @Title GetTagTemplateCnt by tag string
+// @Title GetTagTriggerCnt by tag string
 // @Description get Tag-Template number
-// @Param	query	query   string  false	"template name"
+// @Param	tag_id	query   int	false	"tag id"
+// @Param	query	query   string  false	"trigger name"
 // @Param	deep	query   bool	false	"search sub tag"
-// @Param	mine	query   bool	false	"search mine template"
-// @Param	tag_string	query   string	true	"tag string"
 // @Success 200 {object} models.Total total number
 // @Failure 400 string error
-// @router /tag/template/cnt/0 [get]
-func (c *RelController) GetTagTplCnt0() {
+// @router /tag/trigger/cnt [get]
+func (c *RelController) GetTagTriggerCnt() {
+	tagId, _ := c.GetInt64("tag_id", 1)
 	query := strings.TrimSpace(c.GetString("query"))
 	deep, _ := c.GetBool("deep", true)
-	mine, _ := c.GetBool("mine", true)
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
-	tagId, _ := op.GetTagIdByName(c.GetString("tag_string"))
 
-	if err := op.Access(models.SYS_IDX_R_TOKEN, tagId); err != nil {
-		c.SendMsg(403, err.Error())
-		return
+	if tagId > 0 {
+		if err := op.Access(models.SYS_R_TOKEN, tagId); err != nil {
+			c.SendMsg(403, err.Error())
+			return
+		}
 	}
 
-	n, err := op.GetTagTplCnt(tagId, query, deep, mine)
+	n, err := op.GetTagTriggersCnt(tagId, query, deep)
 	if err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
@@ -291,32 +291,32 @@ func (c *RelController) GetTagTplCnt0() {
 	}
 }
 
-// @Title GetTemplate by tag string
+// @Title GetTriggers by tag id
 // @Description get all Template by tag string
-// @Param	tag_string	query   string	true	"tag string"
+// @Param	tag_id	query   int	false	"tag id"
 // @Param	query	query	string	false	"template name"
 // @Param	deep	query   bool	false	"search sub tag"
-// @Param	mine	query   bool	false	"search mine template"
 // @Param	limit	query	int	false	"per page number"
 // @Param	offset	query	int	false	"offset  number"
-// @Success 200 {object} []models.TagTplGet templates info
+// @Success 200 {object} []models.TriggerApiGet templates info
 // @Failure 400 string error
 // @router /tag/template/search/0 [get]
 func (c *RelController) GetTagTpl0() {
+	tagId, _ := c.GetInt64("tag_id", 1)
 	query := strings.TrimSpace(c.GetString("query"))
 	deep, _ := c.GetBool("deep", true)
-	mine, _ := c.GetBool("mine", true)
 	limit, _ := c.GetInt("limit", models.PAGE_LIMIT)
 	offset, _ := c.GetInt("offset", 0)
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
-	tagId, _ := op.GetTagIdByName(c.GetString("tag_string"))
 
-	if err := op.Access(models.SYS_IDX_R_TOKEN, tagId); err != nil {
-		c.SendMsg(403, err.Error())
-		return
+	if tagId > 0 {
+		if err := op.Access(models.SYS_R_TOKEN, tagId); err != nil {
+			c.SendMsg(403, err.Error())
+			return
+		}
 	}
 
-	ret, err := op.GetTagTpl(tagId, query, deep, mine, limit, offset)
+	ret, err := op.GetTagTriggers(tagId, query, deep, limit, offset)
 	if err != nil {
 		c.SendMsg(400, err.Error())
 	} else {
@@ -324,90 +324,13 @@ func (c *RelController) GetTagTpl0() {
 	}
 }
 
-// @Title GetTagTemplateCnt
-// @Description get Tag-Template number
-// @Param	query	query   string  false	"template name"
-// @Param	deep	query   bool	false	"search sub tag"
-// @Param	mine	query   bool	false	"search mine template"
-// @Param	tag_id	query   int	true	"tag id"
-// @Success 200 {object} models.Total total number
-// @Failure 400 string error
-// @router /tag/template/cnt [get]
-func (c *RelController) GetTagTplCnt() {
-	tagId, _ := c.GetInt64("tag_id", 1)
-	query := strings.TrimSpace(c.GetString("query"))
-	deep, _ := c.GetBool("deep", true)
-	mine, _ := c.GetBool("mine", true)
-	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
-
-	if err := op.Access(models.SYS_IDX_R_TOKEN, tagId); err != nil {
-		c.SendMsg(403, err.Error())
-		return
-	}
-
-	n, err := op.GetTagTplCnt(tagId, query, deep, mine)
-	if err != nil {
-		c.SendMsg(400, err.Error())
-	} else {
-		c.SendMsg(200, totalObj(n))
-	}
-}
-
-// @Title GetTemplate
-// @Description get all Template
-// @Param	tag_id	query	int	true	"tag id"
-// @Param	query	query	string	false	"template name"
-// @Param	deep	query   bool	false	"search sub tag"
-// @Param	mine	query   bool	false	"search mine template"
-// @Param	limit	query	int	false	"per page number"
-// @Param	offset	query	int	false	"offset  number"
-// @Success 200 {object} []models.TagTplGet templates info
-// @Failure 400 string error
-// @router /tag/template/search [get]
-func (c *RelController) GetTagTpl() {
-	tagId, _ := c.GetInt64("tag_id", 1)
-	query := strings.TrimSpace(c.GetString("query"))
-	deep, _ := c.GetBool("deep", true)
-	mine, _ := c.GetBool("mine", true)
-	limit, _ := c.GetInt("limit", models.PAGE_LIMIT)
-	offset, _ := c.GetInt("offset", 0)
-	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
-
-	if err := op.Access(models.SYS_IDX_R_TOKEN, tagId); err != nil {
-		c.SendMsg(403, err.Error())
-		return
-	}
-
-	ret, err := op.GetTagTpl(tagId, query, deep, mine, limit, offset)
-	if err != nil {
-		c.SendMsg(400, err.Error())
-	} else {
-		c.SendMsg(200, ret)
-	}
-}
-
-// @Title create tag template relation
+// @Title create tag trigger relation
 // @Description create tag/template relation
 // @Param	body	body	models.RelTagTpl	true	""
 // @Success 200 {object} models.Id Id
 // @Failure 400 string error
 // @router /tag/template [post]
-func (c *RelController) CreateTagTpl() {
-	var rel models.RelTagTpl
-
-	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
-	json.Unmarshal(c.Ctx.Input.RequestBody, &rel)
-
-	if err := op.Access(models.SYS_IDX_O_TOKEN, rel.TagId); err != nil {
-		c.SendMsg(403, err.Error())
-		return
-	}
-
-	if id, err := op.CreateTagTpl(&rel); err != nil {
-		c.SendMsg(400, err.Error())
-	} else {
-		c.SendMsg(200, idObj(id))
-	}
+func (c *RelController) CreateTagTrigger() {
 }
 
 // @Title create tag template relation by tag string & template name
@@ -417,27 +340,7 @@ func (c *RelController) CreateTagTpl() {
 // @Failure 400 string error
 // @router /tag/template/0 [post]
 func (c *RelController) CreateTagTpl0() {
-	var rel models.RelTagTpl0
 
-	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
-	json.Unmarshal(c.Ctx.Input.RequestBody, &rel)
-
-	if _, err := op.AccessByStr(models.SYS_IDX_O_TOKEN,
-		rel.TagString, false); err != nil {
-		c.SendMsg(403, err.Error())
-		return
-	}
-
-	if !op.IsAdmin() {
-		c.SendMsg(400, falcon.EACCES.Error())
-		return
-	}
-
-	if id, err := op.CreateTagTpl0(&rel); err != nil {
-		c.SendMsg(400, err.Error())
-	} else {
-		c.SendMsg(200, idObj(id))
-	}
 }
 
 // @Title create tag template relation
@@ -447,21 +350,6 @@ func (c *RelController) CreateTagTpl0() {
 // @Failure 400 string error
 // @router /tag/templates [post]
 func (c *RelController) CreateTagTpls() {
-	var rel models.RelTagTpls
-
-	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
-	json.Unmarshal(c.Ctx.Input.RequestBody, &rel)
-
-	if err := op.Access(models.SYS_IDX_O_TOKEN, rel.TagId); err != nil {
-		c.SendMsg(403, err.Error())
-		return
-	}
-
-	if id, err := op.CreateTagTpls(&rel); err != nil {
-		c.SendMsg(400, err.Error())
-	} else {
-		c.SendMsg(200, idObj(id))
-	}
 }
 
 // @Title delete tag template relation by tag string & template name
@@ -471,22 +359,6 @@ func (c *RelController) CreateTagTpls() {
 // @Failure 400 string error
 // @router /tag/template/0 [delete]
 func (c *RelController) DelTagTpl0() {
-	var rel models.RelTagTpl0
-	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
-	json.Unmarshal(c.Ctx.Input.RequestBody, &rel)
-
-	if _, err := op.AccessByStr(models.SYS_IDX_O_TOKEN, rel.TagString,
-		true); err != nil {
-		c.SendMsg(403, err.Error())
-		return
-	}
-
-	n, err := op.DeleteTagTpl0(&rel)
-	if err != nil {
-		c.SendMsg(400, err.Error())
-	} else {
-		c.SendMsg(200, totalObj(n))
-	}
 }
 
 // @Title delete tag template relation
@@ -496,21 +368,6 @@ func (c *RelController) DelTagTpl0() {
 // @Failure 400 string error
 // @router /tag/template [delete]
 func (c *RelController) DelTagTpl() {
-	var rel models.RelTagTpl
-	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
-	json.Unmarshal(c.Ctx.Input.RequestBody, &rel)
-
-	if err := op.Access(models.SYS_IDX_O_TOKEN, rel.TagId); err != nil {
-		c.SendMsg(403, err.Error())
-		return
-	}
-
-	n, err := op.DeleteTagTpl(&rel)
-	if err != nil {
-		c.SendMsg(400, err.Error())
-	} else {
-		c.SendMsg(200, totalObj(n))
-	}
 }
 
 // @Title delete tag template relation
@@ -520,21 +377,6 @@ func (c *RelController) DelTagTpl() {
 // @Failure 400 string error
 // @router /tag/templates [delete]
 func (c *RelController) DelTagTpls() {
-	var rel models.RelTagTpls
-	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
-	json.Unmarshal(c.Ctx.Input.RequestBody, &rel)
-
-	if err := op.Access(models.SYS_IDX_O_TOKEN, rel.TagId); err != nil {
-		c.SendMsg(403, err.Error())
-		return
-	}
-
-	n, err := op.DeleteTagTpls(&rel)
-	if err != nil {
-		c.SendMsg(400, err.Error())
-	} else {
-		c.SendMsg(200, totalObj(n))
-	}
 }
 
 // @Title GetTagRoleUserCnt
@@ -551,7 +393,7 @@ func (c *RelController) GetTagRoleUserCnt() {
 	deep, _ := c.GetBool("deep", true)
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	if err := op.Access(models.SYS_IDX_R_TOKEN, tagId); err != nil {
+	if err := op.Access(models.SYS_R_TOKEN, tagId); err != nil {
 		c.SendMsg(403, err.Error())
 		return
 	}
@@ -582,7 +424,7 @@ func (c *RelController) GetTagRoleUser() {
 	offset, _ := c.GetInt("offset", 0)
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	if err := op.Access(models.SYS_IDX_R_TOKEN, tagId); err != nil {
+	if err := op.Access(models.SYS_R_TOKEN, tagId); err != nil {
 		c.SendMsg(403, err.Error())
 		return
 	}
@@ -611,7 +453,7 @@ func (c *RelController) CreateTagRoleUser() {
 		return
 	}
 
-	if err := op.Access(models.SYS_IDX_O_TOKEN, rel.TagId); err != nil {
+	if err := op.Access(models.SYS_O_TOKEN, rel.TagId); err != nil {
 		c.SendMsg(403, err.Error())
 		return
 	}
@@ -635,7 +477,7 @@ func (c *RelController) DelTagRoleUser() {
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	json.Unmarshal(c.Ctx.Input.RequestBody, &rel)
 
-	if err := op.Access(models.SYS_IDX_A_TOKEN, rel.TagId); err != nil {
+	if err := op.Access(models.SYS_A_TOKEN, rel.TagId); err != nil {
 		c.SendMsg(403, err.Error())
 		return
 	}
@@ -662,7 +504,7 @@ func (c *RelController) GetTagRoleTokenCnt() {
 	deep, _ := c.GetBool("deep", true)
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	if err := op.Access(models.SYS_IDX_R_TOKEN, tagId); err != nil {
+	if err := op.Access(models.SYS_R_TOKEN, tagId); err != nil {
 		c.SendMsg(403, err.Error())
 		return
 	}
@@ -693,7 +535,7 @@ func (c *RelController) GetTagRoleToken() {
 	offset, _ := c.GetInt("offset", 0)
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	if err := op.Access(models.SYS_IDX_R_TOKEN, tagId); err != nil {
+	if err := op.Access(models.SYS_R_TOKEN, tagId); err != nil {
 		c.SendMsg(403, err.Error())
 		return
 	}
@@ -722,7 +564,7 @@ func (c *RelController) CreateTagRoleToken() {
 		return
 	}
 
-	if err := op.Access(models.SYS_IDX_O_TOKEN, rel.TagId); err != nil {
+	if err := op.Access(models.SYS_O_TOKEN, rel.TagId); err != nil {
 		c.SendMsg(403, err.Error())
 		return
 	}
@@ -746,7 +588,7 @@ func (c *RelController) DelTagRoleToken() {
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	json.Unmarshal(c.Ctx.Input.RequestBody, &rel)
 
-	if err := op.Access(models.SYS_IDX_O_TOKEN, rel.TagId); err != nil {
+	if err := op.Access(models.SYS_O_TOKEN, rel.TagId); err != nil {
 		c.SendMsg(403, err.Error())
 		return
 	}
@@ -771,7 +613,7 @@ func (c *RelController) GetTagPluginCnt() {
 	deep, _ := c.GetBool("deep", true)
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	if err := op.Access(models.SYS_IDX_R_TOKEN, tagId); err != nil {
+	if err := op.Access(models.SYS_R_TOKEN, tagId); err != nil {
 		c.SendMsg(403, err.Error())
 		return
 	}
@@ -800,7 +642,7 @@ func (c *RelController) GetPluginDir() {
 	offset, _ := c.GetInt("offset", 0)
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	if err := op.Access(models.SYS_IDX_R_TOKEN, tagId); err != nil {
+	if err := op.Access(models.SYS_R_TOKEN, tagId); err != nil {
 		c.SendMsg(403, err.Error())
 		return
 	}
@@ -825,7 +667,7 @@ func (c *RelController) CreatePluginDir() {
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	json.Unmarshal(c.Ctx.Input.RequestBody, &input)
 
-	if err := op.Access(models.SYS_IDX_O_TOKEN, input.TagId); err != nil {
+	if err := op.Access(models.SYS_O_TOKEN, input.TagId); err != nil {
 		c.SendMsg(403, err.Error())
 		return
 	}
@@ -850,7 +692,7 @@ func (c *RelController) DeletePluginDir() {
 
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	if err := op.Access(models.SYS_IDX_O_TOKEN, tagId); err != nil {
+	if err := op.Access(models.SYS_O_TOKEN, tagId); err != nil {
 		c.SendMsg(403, err.Error())
 		return
 	}

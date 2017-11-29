@@ -147,243 +147,6 @@ paths:
           description: map[string]string map[string]string online endpoint list
         "400":
           description: string error
-  /aggreator/:
-    post:
-      tags:
-      - aggreator
-      description: create aggreators
-      operationId: AggreatorController.CreateAggreator
-      parameters:
-      - in: body
-        name: body
-        description: body for aggreator content
-        required: true
-        schema:
-          $ref: '#/definitions/models.APICreateAggregatorInput'
-      responses:
-        "200":
-          description: Id
-          schema:
-            $ref: '#/definitions/models.Id'
-        "400":
-          description: string error
-  /aggreator/{id}:
-    get:
-      tags:
-      - aggreator
-      description: get aggreator by id
-      operationId: AggreatorController.Get
-      parameters:
-      - in: path
-        name: id
-        description: The key for staticblock
-        required: true
-        type: integer
-        format: int64
-      responses:
-        "200":
-          description: aggreator info
-          schema:
-            $ref: '#/definitions/models.Aggreator'
-        "400":
-          description: string error
-    put:
-      tags:
-      - aggreator
-      description: update the aggreator
-      operationId: AggreatorController.UpdateAggreator
-      parameters:
-      - in: path
-        name: id
-        description: The id you want to update
-        required: true
-        type: string
-      - in: body
-        name: body
-        description: body for aggreator content
-        required: true
-        schema:
-          $ref: '#/definitions/models.APIUpdateAggregatorInput'
-      responses:
-        "200":
-          description: aggreator info
-          schema:
-            $ref: '#/definitions/models.Aggreator'
-        "400":
-          description: string error
-    delete:
-      tags:
-      - aggreator
-      description: delete the aggreator
-      operationId: AggreatorController.DeleteAggreator
-      parameters:
-      - in: path
-        name: id
-        description: The id you want to delete
-        required: true
-        type: string
-      responses:
-        "200":
-          description: '{string} "delete success!"'
-        "400":
-          description: string error
-  /aggreator/0:
-    post:
-      tags:
-      - aggreator
-      description: create aggreators by tag_string
-      operationId: AggreatorController.CreateAggreator
-      parameters:
-      - in: body
-        name: body
-        description: body for aggreator content
-        required: true
-        schema:
-          $ref: '#/definitions/models.APICreateAggregatorInput0'
-      responses:
-        "200":
-          description: Id
-          schema:
-            $ref: '#/definitions/models.Id'
-        "400":
-          description: string error
-    delete:
-      tags:
-      - aggreator
-      description: delete the aggreator by tag string
-      operationId: AggreatorController.DeleteAggreators by tag string
-      parameters:
-      - in: body
-        name: rule
-        description: The aggreators you want to delete
-        required: true
-        schema:
-          $ref: '#/definitions/models.DeleteAggreator0'
-      responses:
-        "200":
-          description: delete aggreator total number
-          schema:
-            $ref: '#/definitions/models.Total'
-        "400":
-          description: string error
-  /aggreator/cnt:
-    get:
-      tags:
-      - aggreator
-      description: get Aggreators number
-      operationId: AggreatorController.GeaggreatorgreatorsCnt
-      parameters:
-      - in: query
-        name: tag_id
-        description: tag id
-        required: true
-        type: integer
-        format: int64
-      - in: query
-        name: deep
-        description: search sub tag
-        type: boolean
-      responses:
-        "200":
-          description: aggreator total number
-          schema:
-            $ref: '#/definitions/models.Total'
-        "400":
-          description: string error
-  /aggreator/cnt/0:
-    get:
-      tags:
-      - aggreator
-      description: get Aggreators number
-      operationId: AggreatorController.GeaggreatorgreatorsCnt
-      parameters:
-      - in: query
-        name: tag_string
-        description: tag string
-        required: true
-        type: string
-      - in: query
-        name: deep
-        description: search sub tag
-        type: boolean
-      responses:
-        "200":
-          description: aggreator total number
-          schema:
-            $ref: '#/definitions/models.Total'
-        "400":
-          description: string error
-  /aggreator/search:
-    get:
-      tags:
-      - aggreator
-      description: get all Aggreators
-      operationId: AggreatorController.Geaggreatorgreators
-      parameters:
-      - in: query
-        name: tag_id
-        description: tag id
-        required: true
-        type: integer
-        format: int64
-      - in: query
-        name: deep
-        description: search sub tag
-        type: boolean
-      - in: query
-        name: limit
-        description: limit page number
-        type: integer
-        format: int64
-      - in: query
-        name: offset
-        description: offset  number
-        type: integer
-        format: int64
-      responses:
-        "200":
-          description: aggreators info
-          schema:
-            type: array
-            items:
-              $ref: '#/definitions/models.Aggreator'
-        "400":
-          description: string error
-  /aggreator/search/0:
-    get:
-      tags:
-      - aggreator
-      description: get all Aggreators
-      operationId: AggreatorController.Geaggreatorgreators by tag string
-      parameters:
-      - in: query
-        name: tag_string
-        description: tag string
-        required: true
-        type: string
-      - in: query
-        name: deep
-        description: search sub tag
-        type: boolean
-      - in: query
-        name: limit
-        description: limit page number
-        type: integer
-        format: int64
-      - in: query
-        name: offset
-        description: offset  number
-        type: integer
-        format: int64
-      responses:
-        "200":
-          description: aggreators info
-          schema:
-            type: array
-            items:
-              $ref: '#/definitions/models.GetAggreator'
-        "400":
-          description: string error
   /auth/callback/{module}:
     get:
       tags:
@@ -747,182 +510,6 @@ paths:
             $ref: '#/definitions/models.APITmpGraph'
         "400":
           description: string error
-  /expression/:
-    post:
-      tags:
-      - expression
-      description: create expressions
-      operationId: ExpressionController.CreateExpression
-      parameters:
-      - in: body
-        name: body
-        description: body for expression content
-        required: true
-        schema:
-          $ref: '#/definitions/models.ExpressionActionApiPut'
-      responses:
-        "200":
-          description: models.Expression.Id
-          schema:
-            $ref: '#/definitions/models.Id'
-        "400":
-          description: string error
-  /expression/{id}:
-    get:
-      tags:
-      - expression
-      description: get expression by id
-      operationId: ExpressionController.Get
-      parameters:
-      - in: path
-        name: id
-        description: The key for staticblock
-        required: true
-        type: integer
-        format: int64
-      responses:
-        "200":
-          description: expression and action info
-          schema:
-            $ref: '#/definitions/models.ExpressionActionApiGet'
-        "400":
-          description: string error
-    put:
-      tags:
-      - expression
-      description: update the expression
-      operationId: ExpressionController.UpdateExpressionAction
-      parameters:
-      - in: path
-        name: id
-        description: The id you want to update
-        required: true
-        type: string
-      - in: body
-        name: body
-        description: body for expression content
-        required: true
-        schema:
-          $ref: '#/definitions/models.ExpressionActionApiPut'
-      responses:
-        "200":
-          description: expression
-          schema:
-            $ref: '#/definitions/models.Expression'
-        "400":
-          description: string error
-    delete:
-      tags:
-      - expression
-      description: delete the expression
-      operationId: ExpressionController.DeleteExpression
-      parameters:
-      - in: path
-        name: id
-        description: The id you want to delete
-        required: true
-        type: string
-      responses:
-        "200":
-          description: '{string} delete success!'
-        "400":
-          description: string error
-  /expression/0:
-    delete:
-      tags:
-      - expression
-      description: delete the expression by expression
-      operationId: ExpressionController.DeleteExpression by expression
-      parameters:
-      - in: query
-        name: expr
-        description: The expression you want to delete
-        required: true
-        type: string
-      responses:
-        "200":
-          description: '{string} delete success!'
-        "400":
-          description: string error
-  /expression/cnt:
-    get:
-      tags:
-      - expression
-      description: get Expressions number
-      operationId: ExpressionController.GetExpressionsCnt
-      parameters:
-      - in: query
-        name: query
-        description: expression name
-        type: string
-      - in: query
-        name: mine
-        description: only show mine expressions, default true
-        type: boolean
-      responses:
-        "200":
-          description: expression number
-          schema:
-            $ref: '#/definitions/models.Total'
-        "400":
-          description: string error
-  /expression/pause:
-    put:
-      tags:
-      - expression
-      description: pause the expression
-      operationId: ExpressionController.pause Expression
-      parameters:
-      - in: query
-        name: id
-        description: The id you want to update
-        required: true
-        type: string
-      - in: query
-        name: pause
-        description: '1: pause, 0: not pause'
-        required: true
-        type: integer
-        format: int64
-      responses:
-        "200":
-          description: null success
-        "400":
-          description: string error
-  /expression/search:
-    get:
-      tags:
-      - expression
-      description: get all Expressions
-      operationId: ExpressionController.GetExpressions
-      parameters:
-      - in: query
-        name: query
-        description: expression name
-        type: string
-      - in: query
-        name: mine
-        description: only show mine expressions, default true
-        type: boolean
-      - in: query
-        name: limit
-        description: limit page number
-        type: integer
-        format: int64
-      - in: query
-        name: offset
-        description: offset  number
-        type: integer
-        format: int64
-      responses:
-        "200":
-          description: expressionuis
-          schema:
-            type: array
-            items:
-              $ref: '#/definitions/models.ExpressionApiGet'
-        "400":
-          description: string error
   /graph/counter_data:
     post:
       tags:
@@ -1145,154 +732,6 @@ paths:
               $ref: '#/definitions/models.Host'
         "400":
           description: string error
-  /matter/{id}:
-    put:
-      tags:
-      - matter
-      description: update matter
-      operationId: MatterController.update Matter
-      parameters:
-      - in: path
-        name: id
-        description: The id you want to update
-        required: true
-        type: integer
-        format: int64
-      - in: body
-        name: body
-        description: body for matter content
-        required: true
-        schema:
-          $ref: '#/definitions/models.Matter'
-      responses:
-        "200":
-          description: matter  info
-          schema:
-            $ref: '#/definitions/models.Matter'
-        "400":
-          description: string error
-  /matter/claim:
-    post:
-      tags:
-      - matter
-      description: claim matter
-      operationId: MatterController.Claim matter
-      parameters:
-      - in: body
-        name: body
-        description: body for team content
-        required: true
-        schema:
-          $ref: '#/definitions/models.Claim'
-      responses:
-        "200":
-          description: string ok
-        "400":
-          description: string error
-  /matter/cnt:
-    get:
-      tags:
-      - matter
-      description: get Matters number
-      operationId: MatterController.GetMattersCnt
-      parameters:
-      - in: query
-        name: status
-        description: matter status
-        type: integer
-        format: int64
-      responses:
-        "200":
-          description: matter total number
-          schema:
-            format: int64
-            type: integer
-        "400":
-          description: string error
-  /matter/event/cnt:
-    get:
-      tags:
-      - matter
-      description: get Event number
-      operationId: MatterController.GetEventCnt
-      parameters:
-      - in: query
-        name: matter
-        description: matter id
-        type: integer
-        format: int64
-      responses:
-        "200":
-          description: event total number
-          schema:
-            format: int64
-            type: integer
-        "400":
-          description: string error
-  /matter/event/search:
-    get:
-      tags:
-      - matter
-      description: get Events
-      operationId: MatterController.GetEvents
-      parameters:
-      - in: query
-        name: matter
-        description: matter id
-        required: true
-        type: integer
-        format: int64
-      - in: query
-        name: limit
-        description: limit page number
-        type: integer
-        format: int64
-      - in: query
-        name: offset
-        description: offset  number
-        type: integer
-        format: int64
-      responses:
-        "200":
-          description: matters
-          schema:
-            type: array
-            items:
-              $ref: '#/definitions/models.Events'
-        "400":
-          description: string error
-  /matter/search:
-    get:
-      tags:
-      - matter
-      description: get Matters
-      operationId: MatterController.GetMatters
-      parameters:
-      - in: query
-        name: status
-        description: matter status
-        required: true
-        type: integer
-        format: int64
-      - in: query
-        name: limit
-        description: limit page number
-        type: integer
-        format: int64
-      - in: query
-        name: offset
-        description: offset  number
-        type: integer
-        format: int64
-      responses:
-        "200":
-          description: matters
-          schema:
-            type: array
-            items:
-              $ref: '#/definitions/models.Matter'
-        "400":
-          description: string error
   /metric/cnt:
     get:
       tags:
@@ -1339,142 +778,6 @@ paths:
             type: array
             items:
               $ref: '#/definitions/models.Metric'
-        "400":
-          description: string error
-  /nodata/:
-    post:
-      tags:
-      - nodata
-      description: create mockcfgs
-      operationId: MockcfgController.CreateMockcfg
-      parameters:
-      - in: body
-        name: body
-        description: body for mockcfg content
-        required: true
-        schema:
-          $ref: '#/definitions/models.NoDataApiPut'
-      responses:
-        "200":
-          description: Id
-          schema:
-            $ref: '#/definitions/models.Id'
-        "400":
-          description: string error
-  /nodata/{id}:
-    get:
-      tags:
-      - nodata
-      description: get mockcfg by id
-      operationId: MockcfgController.Get
-      parameters:
-      - in: path
-        name: id
-        description: The key for staticblock
-        required: true
-        type: integer
-        format: int64
-      responses:
-        "200":
-          description: mockcfg info
-          schema:
-            $ref: '#/definitions/models.Mockcfg'
-        "400":
-          description: string error
-    put:
-      tags:
-      - nodata
-      description: update the mockcfg
-      operationId: MockcfgController.UpdateMockcfg
-      parameters:
-      - in: path
-        name: id
-        description: The id you want to update
-        required: true
-        type: string
-      - in: body
-        name: body
-        description: body for mockcfg content
-        required: true
-        schema:
-          $ref: '#/definitions/models.NoDataApiPut'
-      responses:
-        "200":
-          description: mockcfg info
-          schema:
-            $ref: '#/definitions/models.NoDataApiPut'
-        "400":
-          description: string error
-    delete:
-      tags:
-      - nodata
-      description: delete the mockcfg
-      operationId: MockcfgController.DeleteMockcfg
-      parameters:
-      - in: path
-        name: id
-        description: The id you want to delete
-        required: true
-        type: string
-      responses:
-        "200":
-          description: '{string} "delete success!"'
-        "400":
-          description: string error
-  /nodata/cnt:
-    get:
-      tags:
-      - nodata
-      description: get Mockcfgs number
-      operationId: MockcfgController.GetMockcfgsCnt
-      parameters:
-      - in: query
-        name: query
-        description: mockcfg name
-        type: string
-      - in: query
-        name: mine
-        description: only show mine expressions, default true
-        type: boolean
-      responses:
-        "200":
-          description: mockcfg total number
-          schema:
-            $ref: '#/definitions/models.Total'
-        "400":
-          description: string error
-  /nodata/search:
-    get:
-      tags:
-      - nodata
-      description: get all Mockcfgs
-      operationId: MockcfgController.GetMockcfgs
-      parameters:
-      - in: query
-        name: query
-        description: mockcfg name
-        type: string
-      - in: query
-        name: mine
-        description: only show mine expressions, default true
-        type: boolean
-      - in: query
-        name: limit
-        description: limit page number
-        type: integer
-        format: int64
-      - in: query
-        name: offset
-        description: offset  number
-        type: integer
-        format: int64
-      responses:
-        "200":
-          description: mockcfgs info
-          schema:
-            type: array
-            items:
-              $ref: '#/definitions/models.Mockcfg'
         "400":
           description: string error
   /pub/config/ctrl:
@@ -2079,7 +1382,7 @@ paths:
       tags:
       - rel
       description: create tag/template relation
-      operationId: RelController.create tag template relation
+      operationId: RelController.create tag trigger relation
       parameters:
       - in: body
         name: body
@@ -2150,125 +1453,18 @@ paths:
             $ref: '#/definitions/models.Total'
         "400":
           description: string error
-  /rel/tag/template/cnt:
-    get:
-      tags:
-      - rel
-      description: get Tag-Template number
-      operationId: RelController.GetTagTemplateCnt
-      parameters:
-      - in: query
-        name: query
-        description: template name
-        type: string
-      - in: query
-        name: deep
-        description: search sub tag
-        type: boolean
-      - in: query
-        name: mine
-        description: search mine template
-        type: boolean
-      - in: query
-        name: tag_id
-        description: tag id
-        required: true
-        type: integer
-        format: int64
-      responses:
-        "200":
-          description: total number
-          schema:
-            $ref: '#/definitions/models.Total'
-        "400":
-          description: string error
-  /rel/tag/template/cnt/0:
-    get:
-      tags:
-      - rel
-      description: get Tag-Template number
-      operationId: RelController.GetTagTemplateCnt by tag string
-      parameters:
-      - in: query
-        name: query
-        description: template name
-        type: string
-      - in: query
-        name: deep
-        description: search sub tag
-        type: boolean
-      - in: query
-        name: mine
-        description: search mine template
-        type: boolean
-      - in: query
-        name: tag_string
-        description: tag string
-        required: true
-        type: string
-      responses:
-        "200":
-          description: total number
-          schema:
-            $ref: '#/definitions/models.Total'
-        "400":
-          description: string error
-  /rel/tag/template/search:
-    get:
-      tags:
-      - rel
-      description: get all Template
-      operationId: RelController.GetTemplate
-      parameters:
-      - in: query
-        name: tag_id
-        description: tag id
-        required: true
-        type: integer
-        format: int64
-      - in: query
-        name: query
-        description: template name
-        type: string
-      - in: query
-        name: deep
-        description: search sub tag
-        type: boolean
-      - in: query
-        name: mine
-        description: search mine template
-        type: boolean
-      - in: query
-        name: limit
-        description: per page number
-        type: integer
-        format: int64
-      - in: query
-        name: offset
-        description: offset  number
-        type: integer
-        format: int64
-      responses:
-        "200":
-          description: templates info
-          schema:
-            type: array
-            items:
-              $ref: '#/definitions/models.TagTplGet'
-        "400":
-          description: string error
   /rel/tag/template/search/0:
     get:
       tags:
       - rel
       description: get all Template by tag string
-      operationId: RelController.GetTemplate by tag string
+      operationId: RelController.GetTriggers by tag id
       parameters:
       - in: query
-        name: tag_string
-        description: tag string
-        required: true
-        type: string
+        name: tag_id
+        description: tag id
+        type: integer
+        format: int64
       - in: query
         name: query
         description: template name
@@ -2276,10 +1472,6 @@ paths:
       - in: query
         name: deep
         description: search sub tag
-        type: boolean
-      - in: query
-        name: mine
-        description: search mine template
         type: boolean
       - in: query
         name: limit
@@ -2297,7 +1489,7 @@ paths:
           schema:
             type: array
             items:
-              $ref: '#/definitions/models.TagTplGet'
+              $ref: '#/definitions/models.TriggerApiGet'
         "400":
           description: string error
   /rel/tag/templates:
@@ -2333,6 +1525,33 @@ paths:
       responses:
         "200":
           description: affected number
+          schema:
+            $ref: '#/definitions/models.Total'
+        "400":
+          description: string error
+  /rel/tag/trigger/cnt:
+    get:
+      tags:
+      - rel
+      description: get Tag-Template number
+      operationId: RelController.GetTagTriggerCnt by tag string
+      parameters:
+      - in: query
+        name: tag_id
+        description: tag id
+        type: integer
+        format: int64
+      - in: query
+        name: query
+        description: trigger name
+        type: string
+      - in: query
+        name: deep
+        description: search sub tag
+        type: boolean
+      responses:
+        "200":
+          description: total number
           schema:
             $ref: '#/definitions/models.Total'
         "400":
@@ -2565,144 +1784,6 @@ paths:
             $ref: '#/definitions/models.User'
         "400":
           description: string error
-  /strategy/:
-    post:
-      tags:
-      - strategy
-      description: create strategys
-      operationId: StrategyController.CreateStrategy
-      parameters:
-      - in: body
-        name: body
-        description: body for strategy content
-        required: true
-        schema:
-          $ref: '#/definitions/models.Strategy'
-      responses:
-        "200":
-          description: Id
-          schema:
-            $ref: '#/definitions/models.Id'
-        "400":
-          description: string error
-  /strategy/{id}:
-    get:
-      tags:
-      - strategy
-      description: get strategy by id
-      operationId: StrategyController.Get
-      parameters:
-      - in: path
-        name: id
-        description: The key for staticblock
-        required: true
-        type: integer
-        format: int64
-      responses:
-        "200":
-          description: strategy info
-          schema:
-            $ref: '#/definitions/models.Strategy'
-        "400":
-          description: string error
-    put:
-      tags:
-      - strategy
-      description: update the strategy
-      operationId: StrategyController.UpdateStrategy
-      parameters:
-      - in: path
-        name: id
-        description: The id you want to update
-        required: true
-        type: string
-      - in: body
-        name: body
-        description: body for strategy content
-        required: true
-        schema:
-          $ref: '#/definitions/models.Strategy'
-      responses:
-        "200":
-          description: strategy info
-          schema:
-            $ref: '#/definitions/models.Strategy'
-        "400":
-          description: string error
-    delete:
-      tags:
-      - strategy
-      description: delete the strategy
-      operationId: StrategyController.DeleteStrategy
-      parameters:
-      - in: path
-        name: id
-        description: The id you want to delete
-        required: true
-        type: string
-      responses:
-        "200":
-          description: '{string} delete success!'
-        "400":
-          description: string error
-  /strategy/cnt:
-    get:
-      tags:
-      - strategy
-      description: get Strategys number
-      operationId: StrategyController.GetStrategysCnt
-      parameters:
-      - in: query
-        name: tid
-        description: template id
-        type: integer
-        format: int64
-      - in: query
-        name: query
-        description: strategy name
-        type: string
-      responses:
-        "200":
-          description: strategy total number
-          schema:
-            $ref: '#/definitions/models.Total'
-        "400":
-          description: string error
-  /strategy/search:
-    get:
-      tags:
-      - strategy
-      description: get all Strategys
-      operationId: StrategyController.GetStrategys
-      parameters:
-      - in: query
-        name: tid
-        description: template id
-        type: integer
-        format: int64
-      - in: query
-        name: query
-        description: strategy name
-        type: string
-      - in: query
-        name: limit
-        description: limit page number
-        type: integer
-        format: int64
-      - in: query
-        name: offset
-        description: offset  number
-        type: integer
-        format: int64
-      responses:
-        "200":
-          description: strategys info
-          schema:
-            type: array
-            items:
-              $ref: '#/definitions/models.Strategy'
-        "400":
-          description: string error
   /tag/:
     post:
       tags:
@@ -2807,146 +1888,6 @@ paths:
               $ref: '#/definitions/models.Tag'
         "400":
           description: "string\terror"
-  /template/:
-    post:
-      tags:
-      - template
-      description: create templates
-      operationId: TemplateController.CreateTemplate
-      parameters:
-      - in: body
-        name: body
-        description: body for template content
-        required: true
-        schema:
-          $ref: '#/definitions/models.TemplateAction'
-      responses:
-        "200":
-          description: Id
-          schema:
-            $ref: '#/definitions/models.Id'
-        "400":
-          description: string error
-  /template/{id}:
-    get:
-      tags:
-      - template
-      description: get template by id
-      operationId: TemplateController.Get
-      parameters:
-      - in: path
-        name: id
-        description: template id
-        required: true
-        type: integer
-        format: int64
-      - in: query
-        name: clone
-        description: clone tid to new one
-        type: boolean
-      responses:
-        "200":
-          description: template and action info
-          schema:
-            $ref: '#/definitions/models.TemplateAction'
-        "400":
-          description: string error
-    put:
-      tags:
-      - template
-      description: update the template
-      operationId: TemplateController.UpdateTemplate
-      parameters:
-      - in: path
-        name: id
-        description: The id you want to update
-        required: true
-        type: string
-      - in: body
-        name: body
-        description: body for template content
-        required: true
-        schema:
-          $ref: '#/definitions/models.TemplateAction'
-      responses:
-        "200":
-          description: template info
-          schema:
-            $ref: '#/definitions/models.Template'
-        "400":
-          description: string error
-    delete:
-      tags:
-      - template
-      description: delete the template
-      operationId: TemplateController.DeleteTemplate
-      parameters:
-      - in: path
-        name: id
-        description: The id you want to delete
-        required: true
-        type: string
-      responses:
-        '{code:200,':
-          description: data:"delete success!"} delete success!
-        '{code:400,':
-          description: msg:string}
-  /template/cnt:
-    get:
-      tags:
-      - template
-      description: get Templates number
-      operationId: TemplateController.GetTemplatesCnt
-      parameters:
-      - in: query
-        name: query
-        description: template name
-        type: string
-      - in: query
-        name: mine
-        description: only show mine template, default true
-        type: boolean
-      responses:
-        "200":
-          description: total number
-          schema:
-            $ref: '#/definitions/models.Total'
-        "400":
-          description: string error
-  /template/search:
-    get:
-      tags:
-      - template
-      description: get all Templates
-      operationId: TemplateController.GetTemplates
-      parameters:
-      - in: query
-        name: query
-        description: template name
-        type: string
-      - in: query
-        name: mine
-        description: only show mine template, default true
-        type: boolean
-      - in: query
-        name: limit
-        description: limit page number
-        type: integer
-        format: int64
-      - in: query
-        name: offset
-        description: offset  number
-        type: integer
-        format: int64
-      responses:
-        "200":
-          description: templates ui info
-          schema:
-            type: array
-            items:
-              $ref: '#/definitions/models.TemplateUi'
-        "400":
-          description: string error
   /token/:
     put:
       tags:
@@ -3068,6 +2009,115 @@ paths:
             type: array
             items:
               $ref: '#/definitions/models.Token'
+        "400":
+          description: string error
+  /trigger/:
+    post:
+      tags:
+      - trigger
+      description: create triggers
+      operationId: TriggerController.CreateTrigger
+      parameters:
+      - in: body
+        name: body
+        description: body for trigger content
+        required: true
+        schema:
+          $ref: '#/definitions/models.TriggerApiAdd'
+      responses:
+        "200":
+          description: Id
+          schema:
+            $ref: '#/definitions/models.Id'
+        "400":
+          description: string error
+  /trigger/{id}:
+    put:
+      tags:
+      - trigger
+      description: update the trigger
+      operationId: TriggerController.UpdateTrigger
+      parameters:
+      - in: path
+        name: id
+        description: The id you want to update
+        required: true
+        type: string
+      - in: body
+        name: body
+        description: body for trigger content
+        required: true
+        schema:
+          $ref: '#/definitions/.TriggerAction'
+      responses:
+        "200":
+          description: trigger info
+          schema:
+            $ref: '#/definitions/models.Trigger'
+        "400":
+          description: string error
+    delete:
+      tags:
+      - trigger
+      description: delete the trigger
+      operationId: TriggerController.DeleteTrigger
+      parameters:
+      - in: path
+        name: id
+        description: The id you want to delete
+        required: true
+        type: string
+      responses:
+        '{code:200,':
+          description: data:"delete success!"} delete success!
+        '{code:400,':
+          description: msg:string}
+  /trigger/cnt:
+    get:
+      tags:
+      - trigger
+      description: get Triggers number
+      operationId: TriggerController.GetTriggersCnt
+      parameters:
+      - in: query
+        name: query
+        description: trigger name
+        type: string
+      responses:
+        "200":
+          description: total number
+          schema:
+            $ref: '#/definitions/models.Total'
+        "400":
+          description: string error
+  /trigger/search:
+    get:
+      tags:
+      - trigger
+      description: get all Triggers
+      operationId: TriggerController.GetTriggers
+      parameters:
+      - in: query
+        name: query
+        description: trigger name
+        type: string
+      - in: query
+        name: limit
+        description: limit page number
+        type: integer
+        format: int64
+      - in: query
+        name: offset
+        description: offset  number
+        type: integer
+        format: int64
+      responses:
+        "200":
+          description: triggers ui info
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/.TriggerUi'
         "400":
           description: string error
   /user/:
@@ -3372,45 +2422,10 @@ paths:
 definitions:
   .RelTagHostsAdd:
     type: object
-  models.APICreateAggregatorInput:
-    title: APICreateAggregatorInput
+  .TriggerAction:
     type: object
-    properties:
-      denominator:
-        type: string
-      endpoint:
-        type: string
-      metric:
-        type: string
-      numerator:
-        type: string
-      step:
-        type: integer
-        format: int64
-      tag_id:
-        type: integer
-        format: int64
-      tags:
-        type: string
-  models.APICreateAggregatorInput0:
-    title: APICreateAggregatorInput0
+  .TriggerUi:
     type: object
-    properties:
-      denominator:
-        type: string
-      endpoint:
-        type: string
-      metric:
-        type: string
-      numerator:
-        type: string
-      step:
-        type: integer
-        format: int64
-      tag_string:
-        type: string
-      tags:
-        type: string
   models.APIGraph:
     title: APIGraph
     type: object
@@ -3486,58 +2501,6 @@ definitions:
         type: array
         items:
           type: string
-  models.APIUpdateAggregatorInput:
-    title: APIUpdateAggregatorInput
-    type: object
-    properties:
-      denominator:
-        type: string
-      endpoint:
-        type: string
-      id:
-        type: integer
-        format: int64
-      metric:
-        type: string
-      numerator:
-        type: string
-      step:
-        type: integer
-        format: int64
-      tags:
-        type: string
-  models.Action:
-    title: Action
-    type: object
-    properties:
-      after_callback_mail:
-        type: integer
-        format: int32
-      after_callback_sms:
-        type: integer
-        format: int32
-      before_callback_mail:
-        type: integer
-        format: int32
-      before_callback_sms:
-        type: integer
-        format: int32
-      callback:
-        type: integer
-        format: int32
-      id:
-        type: integer
-        format: int64
-      send_mail:
-        type: integer
-        format: int32
-      send_sms:
-        type: integer
-        format: int32
-      uic:
-        type: string
-      url:
-        type: string
   models.AddDashboardScreen:
     title: AddDashboardScreen
     type: object
@@ -3547,47 +2510,6 @@ definitions:
       pid:
         type: integer
         format: int64
-  models.Aggreator:
-    title: Aggreator
-    type: object
-    properties:
-      creator:
-        type: string
-      denominator:
-        type: string
-      ds_type:
-        type: string
-      endpoint:
-        type: string
-      id:
-        type: integer
-        format: int64
-      metric:
-        type: string
-      numerator:
-        type: string
-      step:
-        type: integer
-        format: int64
-      tag_id:
-        type: integer
-        format: int64
-      tags:
-        type: string
-  models.Claim:
-    title: Claim
-    type: object
-    properties:
-      Commit:
-        type: string
-      Matter:
-        type: integer
-        format: int64
-      Timestamp:
-        type: integer
-        format: int64
-      User:
-        type: string
   models.DashboardGraph:
     title: DashboardGraph
     type: object
@@ -3628,26 +2550,6 @@ definitions:
       pid:
         type: integer
         format: int64
-  models.DeleteAggreator0:
-    title: DeleteAggreator0
-    type: object
-    properties:
-      entries:
-        type: array
-        items:
-          $ref: '#/definitions/models.DeleteAggreator0Entry'
-      tag_string:
-        type: string
-  models.DeleteAggreator0Entry:
-    title: DeleteAggreator0Entry
-    type: object
-    properties:
-      endpoint:
-        type: string
-      metric:
-        type: string
-      tags:
-        type: string
   models.Endpoint:
     title: Endpoint
     type: object
@@ -3668,24 +2570,6 @@ definitions:
         format: int64
       type:
         type: string
-  models.Events:
-    title: Events
-    type: object
-    properties:
-      Endpoint:
-        type: string
-      Eventid:
-        type: string
-      Func:
-        type: string
-      Metric:
-        type: string
-      Priority:
-        type: string
-      Status:
-        type: string
-      Timestamp:
-        type: string
   models.ExpansionStatus:
     title: ExpansionStatus
     type: object
@@ -3695,146 +2579,6 @@ definitions:
       migrating:
         type: boolean
       new_endpoint:
-        type: string
-  models.Expression:
-    title: Expression
-    type: object
-    properties:
-      condition:
-        type: string
-      createUid:
-        type: integer
-        format: int64
-      expression:
-        type: string
-      fun:
-        type: string
-      id:
-        type: integer
-        format: int64
-      maxStep:
-        type: integer
-        format: int64
-      msg:
-        type: string
-      name:
-        type: string
-      op:
-        type: string
-      pause:
-        type: integer
-        format: int64
-      priority:
-        type: integer
-        format: int64
-  models.ExpressionActionApiGet:
-    title: ExpressionActionApiGet
-    type: object
-    properties:
-      action:
-        $ref: '#/definitions/models.Action'
-      expression:
-        $ref: '#/definitions/models.Expression'
-  models.ExpressionActionApiPut:
-    title: ExpressionActionApiPut
-    type: object
-    properties:
-      action:
-        $ref: '#/definitions/models.Action'
-      expression:
-        $ref: '#/definitions/models.ExpressionApiPut'
-  models.ExpressionApiGet:
-    title: ExpressionApiGet
-    type: object
-    properties:
-      condition:
-        type: string
-      creator:
-        type: string
-      expression:
-        type: string
-      fun:
-        type: string
-      id:
-        type: integer
-        format: int64
-      max_step:
-        type: integer
-        format: int64
-      msg:
-        type: string
-      op:
-        type: string
-      pause:
-        type: integer
-        format: int64
-      priority:
-        type: integer
-        format: int64
-      sendMail:
-        type: integer
-        format: int32
-      sendSms:
-        type: integer
-        format: int32
-      uic:
-        type: string
-  models.ExpressionApiPut:
-    title: ExpressionApiPut
-    type: object
-    properties:
-      condition:
-        type: string
-      createUid:
-        type: integer
-        format: int64
-      expression:
-        type: string
-      fun:
-        type: string
-      maxStep:
-        type: integer
-        format: int64
-      msg:
-        type: string
-      name:
-        type: string
-      op:
-        type: string
-      pause:
-        type: integer
-        format: int64
-      priority:
-        type: integer
-        format: int64
-  models.GetAggreator:
-    title: GetAggreator
-    type: object
-    properties:
-      creator:
-        type: string
-      denominator:
-        type: string
-      ds_type:
-        type: string
-      endpoint:
-        type: string
-      id:
-        type: integer
-        format: int64
-      metric:
-        type: string
-      numerator:
-        type: string
-      step:
-        type: integer
-        format: int64
-      tag_id:
-        type: integer
-        format: int64
-      tag_name:
-        type: string
-      tags:
         type: string
   models.GraphQueryResponse:
     title: GraphQueryResponse
@@ -3962,80 +2706,11 @@ definitions:
         format: string
       user:
         type: string
-  models.Matter:
-    title: Matter
-    type: object
-    properties:
-      Aggregation:
-        type: string
-      Endtime:
-        type: integer
-        format: int64
-      Id:
-        type: integer
-        format: int64
-      Name:
-        type: string
-      Starttime:
-        type: integer
-        format: int64
-      Status:
-        type: integer
-        format: int64
   models.Metric:
     title: Metric
     type: object
     properties:
       name:
-        type: string
-  models.Mockcfg:
-    title: Mockcfg
-    type: object
-    properties:
-      creator:
-        type: string
-      dstype:
-        type: string
-      id:
-        type: integer
-        format: int64
-      metric:
-        type: string
-      mock:
-        type: number
-        format: double
-      name:
-        type: string
-      obj:
-        type: string
-      obj_type:
-        type: string
-      step:
-        type: integer
-        format: int64
-      tags:
-        type: string
-  models.NoDataApiPut:
-    title: NoDataApiPut
-    type: object
-    properties:
-      dstype:
-        type: string
-      metric:
-        type: string
-      mock:
-        type: number
-        format: double
-      name:
-        type: string
-      obj:
-        type: string
-      obj_type:
-        type: string
-      step:
-        type: integer
-        format: int64
-      tags:
         type: string
   models.Obj:
     title: Obj
@@ -4232,41 +2907,6 @@ definitions:
       success:
         type: integer
         format: int64
-  models.Strategy:
-    title: Strategy
-    type: object
-    properties:
-      condition:
-        type: string
-      fun:
-        type: string
-      id:
-        type: integer
-        format: int64
-      maxStep:
-        type: integer
-        format: int64
-      metric:
-        type: string
-      metricId:
-        type: integer
-        format: int64
-      note:
-        type: string
-      op:
-        type: string
-      priority:
-        type: integer
-        format: int64
-      runBegin:
-        type: string
-      runEnd:
-        type: string
-      tags:
-        type: string
-      tplId:
-        type: integer
-        format: int64
   models.Tag:
     title: Tag
     type: object
@@ -4330,68 +2970,6 @@ definitions:
         format: int64
       user_name:
         type: string
-  models.TagTplGet:
-    title: TagTplGet
-    type: object
-    properties:
-      creator:
-        type: string
-      id:
-        type: integer
-        format: int64
-      tag_id:
-        type: integer
-        format: int64
-      tag_name:
-        type: string
-      tpl_id:
-        type: integer
-        format: int64
-      tpl_name:
-        type: string
-      tpl_pid:
-        type: integer
-        format: int64
-      tpl_pname:
-        type: string
-  models.Template:
-    title: Template
-    type: object
-    properties:
-      id:
-        type: integer
-        format: int64
-      name:
-        type: string
-      pid:
-        type: integer
-        format: int64
-  models.TemplateAction:
-    title: TemplateAction
-    type: object
-    properties:
-      action:
-        $ref: '#/definitions/models.Action'
-      pname:
-        type: string
-      template:
-        $ref: '#/definitions/models.Template'
-  models.TemplateUi:
-    title: TemplateUi
-    type: object
-    properties:
-      creator:
-        type: string
-      id:
-        type: integer
-        format: int64
-      name:
-        type: string
-      pid:
-        type: integer
-        format: int64
-      pname:
-        type: string
   models.Token:
     title: Token
     type: object
@@ -4452,6 +3030,111 @@ definitions:
         type: string
       read:
         type: boolean
+  models.Trigger:
+    title: Trigger
+    type: object
+    properties:
+      func:
+        type: string
+      id:
+        type: integer
+        format: int64
+      metric:
+        type: string
+      msg:
+        type: string
+      name:
+        type: string
+      op:
+        type: string
+      parent_id:
+        type: integer
+        format: int64
+      priority:
+        type: integer
+        format: int64
+      tag_id:
+        type: integer
+        format: int64
+      tags:
+        type: string
+      tpl_id:
+        type: integer
+        format: int64
+      value:
+        type: string
+      version:
+        type: integer
+        format: int64
+  models.TriggerApiAdd:
+    title: TriggerApiAdd
+    type: object
+    properties:
+      func:
+        type: string
+      metric:
+        type: string
+      msg:
+        type: string
+      name:
+        type: string
+      op:
+        type: string
+      parent_id:
+        type: integer
+        format: int64
+      priority:
+        type: integer
+        format: int64
+      tags:
+        type: string
+      value:
+        type: string
+  models.TriggerApiGet:
+    title: TriggerApiGet
+    type: object
+    properties:
+      func:
+        type: string
+      id:
+        type: integer
+        format: int64
+      metric:
+        type: string
+      msg:
+        type: string
+      name:
+        type: string
+      op:
+        type: string
+      parent_id:
+        type: integer
+        format: int64
+      parent_name:
+        type: string
+      priority:
+        type: integer
+        format: int64
+      refcnt:
+        type: integer
+        format: int64
+      tag_id:
+        type: integer
+        format: int64
+      tag_name:
+        type: string
+      tags:
+        type: string
+      tpl_id:
+        type: integer
+        format: int64
+      tpl_name:
+        type: string
+      value:
+        type: string
+      version:
+        type: integer
+        format: int64
   models.User:
     title: User
     type: object
@@ -4565,15 +3248,6 @@ tags:
 - name: rel
   description: |
     Operations about Relations
-- name: template
-  description: |
-    Operations about Templates
-- name: expression
-  description: |
-    Operations about Expressions
-- name: strategy
-  description: |
-    Operations about Strategys
 - name: settings
   description: |
     Operations about porfile/config/info
@@ -4583,18 +3257,9 @@ tags:
 - name: admin
   description: |
     Operations about porfile/config/info
-- name: matter
-  description: |
-    Operations about Matters
 - name: dashboard
   description: |
     Operations about dashboard
-- name: nodata
-  description: |
-    Operations about Mockcfgs
-- name: aggreator
-  description: |
-    Operations about Aggreators
 - name: graph
   description: |
     Operations about idx
@@ -4604,3 +3269,6 @@ tags:
 - name: weapp
   description: |
     Operations about weixin app
+- name: trigger
+  description: |
+    Operations about Triggers

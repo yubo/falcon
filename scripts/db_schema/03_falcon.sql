@@ -49,45 +49,6 @@ COMMENT='配置 agent 插件';
 
 
 
-/**
- * nodata mock config
- */
-DROP TABLE IF EXISTS `mockcfg`;
-CREATE TABLE `mockcfg` (
-  `id`			bigint unsigned			NOT NULL AUTO_INCREMENT,
-  `name`		varchar(255)	DEFAULT ''	NOT NULL,
-  `obj`			varchar(10240)	DEFAULT ''	NOT NULL,
-  `obj_type`		varchar(255)	DEFAULT ''	NOT NULL,
-  `metric`		varchar(128)	DEFAULT ''	NOT NULL,
-  `tags`		varchar(1024)	DEFAULT ''	NOT NULL,
-  `dstype`		varchar(32)	DEFAULT 'GAUGE'	NOT NULL,
-  `step`		bigint unsigned	DEFAULT '60'	NOT NULL,
-  `mock`		DOUBLE		DEFAULT '0'	NOT NULL,
-  `creator`		varchar(64)	DEFAULT ''	NOT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uniq_name` (`name`)
-) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8 COLLATE = utf8_unicode_ci
-COMMENT='nodata 模块配置, 伪造数据';
-
-/**
- *  aggregator aggreator metric config table
- */
-DROP TABLE IF EXISTS `aggreator`;
-CREATE TABLE `aggreator` (
-  `id`			bigint unsigned			NOT NULL AUTO_INCREMENT,
-  `tag_id`		bigint unsigned	DEFAULT '0'	NOT NULL,
-  `numerator`		varchar(10240)	DEFAULT '0'	NOT NULL,
-  `denominator`		varchar(10240)	DEFAULT '0'	NOT NULL,
-  `endpoint`		varchar(255)	DEFAULT '0'	NOT NULL,
-  `metric`		varchar(255)	DEFAULT '0'	NOT NULL,
-  `tags`		varchar(255)	DEFAULT '0'	NOT NULL,
-  `ds_type`		varchar(255)	DEFAULT '0'	NOT NULL,
-  `step`		integer		DEFAULT '0'	NOT NULL,
-  `creator`		varchar(255)	DEFAULT '0'	NOT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8 COLLATE = utf8_unicode_ci
-COMMENT='数据聚合';
-
 
 DROP TABLE IF EXISTS `dashboard_graph`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -333,24 +294,6 @@ CREATE TABLE `tpl_rel` (
 ) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8
 COLLATE = utf8_unicode_ci COMMENT = '节点上的模板关联(tag,tpl,sub_meta)';
 
--- -----------------------------------------------------
--- Table `tag_tpl`
--- -----------------------------------------------------
-DROP TABLE IF EXISTS `tag_tpl`;
-CREATE TABLE `tag_tpl` (
-  `id`			bigint unsigned			NOT NULL AUTO_INCREMENT,
-  `tpl_id`		bigint unsigned			NOT NULL,
-  `tag_id`		bigint unsigned			NOT NULL,
-  `creator`		bigint unsigned			NOT NULL,
-  PRIMARY KEY (`id`),
-  INDEX `index_tpl_id` (`tpl_id`),
-  INDEX `index_tag_id` (`tag_id`),
-  INDEX `index_creator` (`creator`),
-  UNIQUE INDEX `index_tag_tpl` (`tpl_id`, `tag_id`)
-) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8
-COLLATE = utf8_unicode_ci COMMENT = '节点上的策略模板';
-/*!40101 SET character_set_client = @saved_cs_client */;
-
 --
 -- Table structure for table `action`
 --
@@ -375,87 +318,20 @@ COMMENT='事件行为';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Table structure for table `strategy`
+-- Table structure for table `triggers`
 --
-
-DROP TABLE IF EXISTS `strategy`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `strategy` (
-  `id`			bigint unsigned	NOT NULL AUTO_INCREMENT,
-  `metric_id`		bigint unsigned	DEFAULT '0'		NOT NULL,
-  `tags`		varchar(2048)				NULL,
-  `max_step`		integer		DEFAULT '1'		NOT NULL,
-  `priority`		integer		DEFAULT '0'		NOT NULL,
-  `func`		varchar(16)	DEFAULT 'last(#1)'	NOT NULL,
-  `op`			varchar(8)	DEFAULT ''		NOT NULL,
-  `condition`		varchar(64)	DEFAULT ''		NOT NULL,
-  `note`		varchar(128)	DEFAULT ''		NOT NULL,
-  `metric`		varchar(1024)   DEFAULT ''		NOT NULL,
-  `run_begin`		varchar(16)	DEFAULT ''		NOT NULL,
-  `run_end`		varchar(16)	DEFAULT ''		NOT NULL,
-  `tpl_id`		bigint unsigned				NULL,
-  PRIMARY KEY (`id`),
-  KEY `idx_strategy_tpl_id` (`tpl_id`)
-) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8 COLLATE = utf8_unicode_ci
-COMMENT='报警策略, trashed';
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `template`
---
-
-DROP TABLE IF EXISTS `template`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `template` (
-  `id`			bigint unsigned	NOT NULL AUTO_INCREMENT,
-  `name`		varchar(255)	DEFAULT ''	NOT NULL,
-  `parent_id`		bigint unsigned	DEFAULT '0'	NOT NULL,
-  `action_id`		bigint unsigned	DEFAULT '0'	NOT NULL,
-  `create_user_id`	bigint unsigned	DEFAULT '0'	NOT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `idx_name` (`name`),
-  KEY `idx_tpl_create_user` (`create_user_id`)
-) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8 COLLATE = utf8_unicode_ci
-COMMENT='报警策略模板, trashed';
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `expression`
---
-DROP TABLE IF EXISTS `expression`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `expression` (
-  `id`			bigint unsigned				NOT NULL AUTO_INCREMENT,
-  `name`		varchar(128)				NULL,
-  `expression`		varchar(1024)	DEFAULT ''		NOT NULL,
-  `op`			varchar(8)	DEFAULT ''		NOT NULL,
-  `condition`		varchar(16)	DEFAULT ''		NOT NULL,
-  `max_step`		bigint unsigned	DEFAULT '1'		NOT NULL,
-  `priority`		integer		DEFAULT '0'		NOT NULL,
-  `msg`			varchar(1024)	DEFAULT ''		NOT NULL,
-  `action_threshold`	varchar(16)	DEFAULT 'last(#1)'	NOT NULL,
-  `action_id`		bigint unsigned	DEFAULT '0'		NOT NULL,
-  `create_user_id`	bigint unsigned	DEFAULT '0'		NOT NULL,
-  `pause`		integer		DEFAULT '0'		NOT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `idx_expression_name` (`name`)
-) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8 COLLATE = utf8_unicode_ci
-COMMENT='全局表达式, trashed';
-/*!40101 SET character_set_client = @saved_cs_client */;
 
 DROP TABLE IF EXISTS `triggers`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `triggers` (
   `id`			bigint unsigned			NOT NULL AUTO_INCREMENT,
-  `grp_id`		bigint unsigned 		NULL COMMENT '触发器分组 id',
-  `tpl_id`		bigint unsigned			NULL COMMENT '模板 id',
-  `tag_id`		bigint unsigned			NULL COMMENT '绑定的 tag id',
+  `parent_id`		bigint unsigned DEFAULT '0'	NOT NULL COMMENT '父触发器 id(group)',
+  `tpl_id`		bigint unsigned	DEFAULT '0'	NOT NULL COMMENT '模板 id',
+  `tag_id`		bigint unsigned	DEFAULT '0'	NOT NULL COMMENT '绑定的 tag id',
+  `refcnt`		integer		DEFAULT '0'	NOT NULL COMMENT 'reference number',
   `version`		integer		DEFAULT '0'	NOT NULL,
-  `name`		varchar(128)	DEFAULT ''	NOT NULL,
+  `name`		varchar(128)			NULL,
   `metric`		varchar(1024)	DEFAULT ''	NOT NULL,
   `tags`		varchar(2048)	DEFAULT ''	NOT NULL,
   `priority`		integer		DEFAULT '0'	NOT NULL,
@@ -464,7 +340,10 @@ CREATE TABLE `triggers` (
   `value`		varchar(64)	DEFAULT ''	NOT NULL COMMENT 'expr=func+op+value',
   `msg`			varchar(1024)	DEFAULT ''	NOT NULL,
   PRIMARY KEY (`id`),
-  KEY `idx_triggers_tpl_id` (`tpl_id`)
+  INDEX `index_parent_id` (`parent_id`),
+  INDEX `index_tpl_id` (`tpl_id`),
+  INDEX `index_tag_id` (`tag_id`),
+  UNIQUE INDEX `index_triggers_tag_name` (`tag_id`, `name`)
 ) ENGINE = InnoDB AUTO_INCREMENT=10000 DEFAULT CHARACTER SET=utf8 COLLATE=utf8_unicode_ci
 COMMENT='报警策略';
 /*!40101 SET character_set_client = @saved_cs_client */;

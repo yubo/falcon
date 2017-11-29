@@ -48,19 +48,14 @@ func PreStart() error {
 		beego.NSNamespace("/user", beego.NSInclude(&controllers.UserController{})),
 		beego.NSNamespace("/token", beego.NSInclude(&controllers.TokenController{})),
 		beego.NSNamespace("/rel", beego.NSInclude(&controllers.RelController{})),
-		beego.NSNamespace("/template", beego.NSInclude(&controllers.TemplateController{})),
-		beego.NSNamespace("/expression", beego.NSInclude(&controllers.ExpressionController{})),
-		beego.NSNamespace("/strategy", beego.NSInclude(&controllers.StrategyController{})),
 		beego.NSNamespace("/settings", beego.NSInclude(&controllers.SetController{})),
 		beego.NSNamespace("/metric", beego.NSInclude(&controllers.MetricController{})),
 		beego.NSNamespace("/admin", beego.NSInclude(&controllers.AdminController{})),
-		beego.NSNamespace("/matter", beego.NSInclude(&controllers.MatterController{})),
 		beego.NSNamespace("/dashboard", beego.NSInclude(&controllers.DashboardController{})),
-		beego.NSNamespace("/nodata", beego.NSInclude(&controllers.MockcfgController{})),
-		beego.NSNamespace("/aggreator", beego.NSInclude(&controllers.AggreatorController{})),
 		beego.NSNamespace("/graph", beego.NSInclude(&controllers.GraphController{})),
 		beego.NSNamespace("/pub", beego.NSInclude(&controllers.PubController{})),
 		beego.NSNamespace("/weapp", beego.NSInclude(&controllers.WeappController{})),
+		beego.NSNamespace("/trigger", beego.NSInclude(&controllers.TriggerController{})),
 	)
 	beego.AddNamespace(ns)
 

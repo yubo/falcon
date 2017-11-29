@@ -22,6 +22,7 @@ import (
 	"github.com/astaxie/beego/orm"
 	"github.com/golang/glog"
 	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/ctrl"
 )
 
 type Log struct {
@@ -391,4 +392,74 @@ func getByteTls(url string, timeout time.Duration) ([]byte, error) {
 	}
 	defer r.Body.Close()
 	return ioutil.ReadAll(r.Body)
+}
+
+func (op *Operator) resetDb(file string) (interface{}, error) {
+	var cmds []string
+	buf, err := ioutil.ReadFile(file)
+	if err != nil {
+		return "", err
+	}
+
+	lines := strings.Split(string(buf), "\n")
+	for cmd, in, i := "", false, 0; i < len(lines); i++ {
+		line := lines[i]
+		if len(line) == 0 {
+			continue
+		}
+
+		if in {
+			cmd += " " + strings.TrimSpace(line)
+			if line[len(line)-1] == ';' {
+				cmds = append(cmds, cmd)
+				in = false
+			}
+		} else {
+			n := strings.Index(line, " ")
+			if n <= 0 {
+				continue
+			}
+
+			switch line[:n] {
+			case "SET", "CREATE", "INSERT", "DROP":
+				cmd = line
+				if line[len(line)-1] == ';' {
+					cmds = append(cmds, cmd)
+				} else {
+					in = true
+				}
+			}
+		}
+	}
+
+	for i := 0; i < len(cmds); i++ {
+		_, err := op.O.Raw(cmds[i]).Exec()
+		if err != nil {
+			glog.Error(MODULE_NAME+" sql %s ret %s", cmds[i], err.Error())
+		}
+	}
+	return "", nil
+}
+
+func (op *Operator) ResetDb(populate bool) (interface{}, error) {
+
+	file := ctrl.Configure.Ctrl.Str(ctrl.C_DB_SCHEMA)
+	if file == "" {
+		return "", fmt.Errorf("please config ctrl:dbSchema  file path")
+	}
+
+	if ret, err := op.resetDb(file); err != nil {
+		return ret, err
+	}
+
+	// reset cache
+	// ugly hack
+	initCache(ctrl.Configure)
+
+	if populate {
+		return op.populate()
+	}
+
+	return "reset db done", nil
+
 }

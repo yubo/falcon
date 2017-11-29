@@ -25,9 +25,6 @@ import (
 const (
 	DB_PREFIX   = ""
 	PAGE_LIMIT  = 10
-	SYS_R_TOKEN = "falcon_read"
-	SYS_O_TOKEN = "falcon_operate"
-	SYS_A_TOKEN = "falcon_admin"
 	MODULE_NAME = "\x1B[32m[CTRL_MODELS]\x1B[0m "
 )
 
@@ -39,10 +36,19 @@ const (
 
 const (
 	_ = iota
-	SYS_IDX_R_TOKEN
-	SYS_IDX_O_TOKEN
-	SYS_IDX_A_TOKEN
-	SYS_IDX_TOKEN_SIZE
+	SYS_R_TOKEN
+	SYS_O_TOKEN
+	SYS_A_TOKEN
+	SYS_TOKEN_SIZE
+)
+
+var (
+	tokenName = [SYS_TOKEN_SIZE]string{
+		"",
+		"falcon_read",
+		"falcon_operate",
+		"falcon_admin",
+	}
 )
 
 var (
@@ -50,8 +56,6 @@ var (
 	dbTables = []string{
 		"agents_info",
 		"plugin_dir",
-		"mockcfg",
-		"aggreator",
 		"dashboard_graph",
 		"dashboard_screen",
 		"tmp_graph",
@@ -66,18 +70,7 @@ var (
 		"user",
 		"log",
 		"tpl_rel",
-		"tag_tpl",
-		"action",
-		"expression",
-		"action",
-		"strategy",
-		"template",
-	}
-	tokenName = [SYS_IDX_TOKEN_SIZE]string{
-		"",
-		SYS_R_TOKEN,
-		SYS_O_TOKEN,
-		SYS_A_TOKEN,
+		"triggers",
 	}
 )
 
@@ -87,21 +80,27 @@ const (
 	CTL_M_ROLE
 	CTL_M_SYSTEM
 	CTL_M_TAG
+	CTL_M_TPL
+
 	CTL_M_USER
 	CTL_M_TOKEN
-	CTL_M_TPL
 	CTL_M_RULE
-	CTL_M_TEMPLATE
 	CTL_M_TRIGGER
 	CTL_M_EXPRESSION
+
 	CTL_M_TAG_HOST
-	CTL_M_TAG_TPL
-	CTL_M_TMP_GRAPH
 	CTL_M_DASHBOARD_GRAPH
 	CTL_M_DASHBOARD_SCREEN
-	CTL_M_MOCKCFG
-	CTL_M_AGGREATOR
+	CTL_M_TMP_GRAPH
 	CTL_M_SIZE
+)
+
+var (
+	ModuleName = [CTL_M_SIZE]string{
+		"host", "role", "system", "tag", "tpl",
+		"user", "token", "rule", "trigger", "expression",
+		"tag_host", "dashboard_graph", "dashboard_screen", "tmp_graph",
+	}
 )
 
 // ctl method name
@@ -111,6 +110,12 @@ const (
 	CTL_A_SET
 	CTL_A_GET
 	CTL_A_SIZE
+)
+
+var (
+	ActionName = [CTL_A_SIZE]string{
+		"add", "del", "set", "get",
+	}
 )
 
 // ctl runmode name
@@ -163,18 +168,6 @@ var (
 	// weixin app
 	wxappid     string
 	wxappsecret string
-
-	ModuleName = [CTL_M_SIZE]string{
-		"host", "role", "system", "tag", "user", "token",
-		"template", "rule", "trigger", "expression",
-		"tag_host", "tag_template", "tmp_graph",
-		"dashboard_graph", "dashboard_screen",
-		"mockcfg", "aggreator",
-	}
-
-	ActionName = [CTL_A_SIZE]string{
-		"add", "del", "set", "get",
-	}
 )
 
 func PreStart(conf *config.ConfCtrl) (err error) {

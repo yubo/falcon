@@ -30,7 +30,7 @@ func (c *TagController) CreateTag() {
 	tag.Type = 0
 
 	// TODO: check parent exist/acl
-	if _, err := op.AccessByStr(models.SYS_IDX_O_TOKEN, models.TagParent(tag.Name),
+	if _, err := op.AccessByStr(models.SYS_O_TOKEN, models.TagParent(tag.Name),
 		false); err != nil {
 		c.SendMsg(403, err.Error())
 		return
@@ -124,7 +124,7 @@ func (c *TagController) UpdateTag() {
 
 	json.Unmarshal(c.Ctx.Input.RequestBody, &tag)
 
-	if _, err = op.AccessByStr(models.SYS_IDX_O_TOKEN, models.TagParent(tag.Name),
+	if _, err = op.AccessByStr(models.SYS_O_TOKEN, models.TagParent(tag.Name),
 		true); err != nil {
 		c.SendMsg(403, err.Error())
 		return
@@ -165,7 +165,7 @@ func (c *TagController) DeleteTag() {
 		return
 	}
 
-	if _, err = op.AccessByStr(models.SYS_IDX_O_TOKEN,
+	if _, err = op.AccessByStr(models.SYS_O_TOKEN,
 		models.TagParent(tag.Name), false); err != nil {
 		c.SendMsg(403, err.Error())
 		return

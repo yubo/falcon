@@ -108,18 +108,18 @@ func UserTokens(uid int64, username string, o orm.Ormer) (token int) {
 
 	_, err := o.Raw("SELECT b1.token_id FROM (SELECT a1.tag_id AS user_tag_id, a2.tag_id AS token_tag_id, a1.tpl_id AS role_id, a1.sub_id AS user_id, a2.sub_id AS token_id FROM tpl_rel a1 JOIN tpl_rel a2 ON a1.type_id = ? AND a1.sub_id = ? AND a2.type_id = ?  AND a2.sub_id in (?, ?, ?) AND a1.tpl_id = a2.tpl_id) b1 JOIN tag_rel b2 ON b1.user_tag_id = b2.tag_id AND b1.token_tag_id = b2.sup_tag_id GROUP BY b1.token_id",
 		TPL_REL_T_ACL_USER, uid, TPL_REL_T_ACL_TOKEN,
-		SYS_IDX_R_TOKEN, SYS_IDX_O_TOKEN,
-		SYS_IDX_A_TOKEN).QueryRows(&tids)
+		SYS_R_TOKEN, SYS_O_TOKEN,
+		SYS_A_TOKEN).QueryRows(&tids)
 	if err != nil {
 		return 0
 	}
 	for _, tid := range tids {
 		switch tid {
-		case SYS_IDX_R_TOKEN:
+		case SYS_R_TOKEN:
 			token |= SYS_F_R_TOKEN
-		case SYS_IDX_O_TOKEN:
+		case SYS_O_TOKEN:
 			token |= SYS_F_O_TOKEN
-		case SYS_IDX_A_TOKEN:
+		case SYS_A_TOKEN:
 			token |= SYS_F_A_TOKEN
 		}
 	}

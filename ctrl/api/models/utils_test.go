@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-func TestMdiff(t *testing.T) {
+func testMdiff(t *testing.T) {
 	cases := []struct {
 		src   []string
 		dst   []string
@@ -29,7 +29,7 @@ func TestMdiff(t *testing.T) {
 	}
 }
 
-func Testintscmp64(t *testing.T) {
+func testintscmp64(t *testing.T) {
 	cases := []struct {
 		a    []int64
 		b    []int64
@@ -48,7 +48,7 @@ func Testintscmp64(t *testing.T) {
 	}
 }
 
-func Test_t(t *testing.T) {
+func test_t(t *testing.T) {
 	cases := []struct {
 		a string
 		b string
@@ -64,4 +64,10 @@ func Test_t(t *testing.T) {
 			t.Errorf("_T(%s) = %s; want %v", c.b, got, c.a)
 		}
 	}
+}
+
+func testUtils(t *testing.T) {
+	testMdiff(t)
+	testintscmp64(t)
+	test_t(t)
 }
