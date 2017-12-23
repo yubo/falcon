@@ -47,7 +47,6 @@ func PreStart() error {
 		beego.NSNamespace("/tag", beego.NSInclude(&controllers.TagController{})),
 		beego.NSNamespace("/user", beego.NSInclude(&controllers.UserController{})),
 		beego.NSNamespace("/token", beego.NSInclude(&controllers.TokenController{})),
-		beego.NSNamespace("/rel", beego.NSInclude(&controllers.RelController{})),
 		beego.NSNamespace("/settings", beego.NSInclude(&controllers.SetController{})),
 		beego.NSNamespace("/metric", beego.NSInclude(&controllers.MetricController{})),
 		beego.NSNamespace("/admin", beego.NSInclude(&controllers.AdminController{})),
@@ -55,7 +54,9 @@ func PreStart() error {
 		beego.NSNamespace("/graph", beego.NSInclude(&controllers.GraphController{})),
 		beego.NSNamespace("/pub", beego.NSInclude(&controllers.PubController{})),
 		beego.NSNamespace("/weapp", beego.NSInclude(&controllers.WeappController{})),
-		beego.NSNamespace("/trigger", beego.NSInclude(&controllers.TriggerController{})),
+		beego.NSNamespace("/plugin", beego.NSInclude(&controllers.PluginController{})),
+		beego.NSNamespace("/event", beego.NSInclude(&controllers.EventController{})),
+		//beego.NSNamespace("/action", beego.NSInclude(&controllers.ActionController{})),
 	)
 	beego.AddNamespace(ns)
 
@@ -116,8 +117,9 @@ func accessFilter(ctx *context.Context) {
 				strings.HasPrefix(ctx.Request.RequestURI, "/v1.0/role") ||
 				strings.HasPrefix(ctx.Request.RequestURI, "/v1.0/tag") ||
 				strings.HasPrefix(ctx.Request.RequestURI, "/v1.0/token") ||
-				strings.HasPrefix(ctx.Request.RequestURI, "/v1.0/rel/tag/host") ||
-				strings.HasPrefix(ctx.Request.RequestURI, "/v1.0/rel/tag/role") {
+				//strings.HasPrefix(ctx.Request.RequestURI, "/v1.0/token/tag") ||
+				strings.HasPrefix(ctx.Request.RequestURI, "/v1.0/host/tag") ||
+				strings.HasPrefix(ctx.Request.RequestURI, "/v1.0/user/tag") {
 				http.Error(ctx.ResponseWriter, "permission denied, xiaomi runmode", 403)
 			}
 		}

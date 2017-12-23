@@ -11,16 +11,16 @@ import (
 
 func (op *Operator) populate() (interface{}, error) {
 	var (
-		err         error
-		items       []string
-		id          int64
-		tag_idx     = make(map[string]int64)
-		user_idx    = make(map[string]int64)
-		role_idx    = make(map[string]int64)
-		token_idx   = make(map[string]int64)
-		host_idx    = make(map[string]int64)
-		trigger_idx = make(map[string]int64)
-		test_user   = "test01"
+		err               error
+		items             []string
+		id                int64
+		tag_idx           = make(map[string]int64)
+		user_idx          = make(map[string]int64)
+		role_idx          = make(map[string]int64)
+		token_idx         = make(map[string]int64)
+		host_idx          = make(map[string]int64)
+		event_trigger_idx = make(map[string]int64)
+		test_user         = "test01"
 	)
 	tag_idx["/"] = 1
 
@@ -84,7 +84,7 @@ func (op *Operator) populate() (interface{}, error) {
 			return nil, err
 		}
 
-		if _, err = op.CreateTagHost(&RelTagHostApiAdd{TagId: tag_idx[item2[0]],
+		if _, err = op.CreateTagHost(&TagHostApiAdd{TagId: tag_idx[item2[0]],
 			HostId: host_idx[item2[1]]}); err != nil {
 			glog.Error(err.Error())
 			return nil, err
@@ -92,9 +92,9 @@ func (op *Operator) populate() (interface{}, error) {
 	}
 
 	// trigger
-	triggers := [][]*Trigger{
-		[]*Trigger{
-			&Trigger{
+	event_triggers := [][]*EventTrigger{
+		[]*EventTrigger{
+			&EventTrigger{
 				Name:     "cpu",
 				Priority: 1,
 				Metric:   "cpu.idle",
@@ -103,7 +103,7 @@ func (op *Operator) populate() (interface{}, error) {
 				Value:    "5",
 				Msg:      "cpu idle below the lower limit(5%)",
 			},
-			&Trigger{
+			&EventTrigger{
 				Priority: 0,
 				Metric:   "cpu.idle",
 				Func:     "all(#3)",
@@ -111,7 +111,7 @@ func (op *Operator) populate() (interface{}, error) {
 				Value:    "1",
 				Msg:      "cpu idle below the lower limit(1%)",
 			},
-			&Trigger{
+			&EventTrigger{
 				Priority: 3,
 				Metric:   "cpu.idle",
 				Func:     "all(#3)",
@@ -120,8 +120,8 @@ func (op *Operator) populate() (interface{}, error) {
 				Msg:      "cpu idle below the lower limit(10%)",
 			},
 		},
-		[]*Trigger{
-			&Trigger{
+		[]*EventTrigger{
+			&EventTrigger{
 				Name:     "df",
 				Priority: 2,
 				Metric:   "df.bytes.free.percent",
@@ -131,8 +131,8 @@ func (op *Operator) populate() (interface{}, error) {
 				Msg:      "disk free below the lower limit",
 			},
 		},
-		[]*Trigger{
-			&Trigger{
+		[]*EventTrigger{
+			&EventTrigger{
 				Name:     "disk",
 				Priority: 1,
 				Metric:   "disk.io.util",
@@ -141,7 +141,7 @@ func (op *Operator) populate() (interface{}, error) {
 				Value:    "800",
 				Msg:      "io over the upper limit",
 			},
-			&Trigger{
+			&EventTrigger{
 				Priority: 1,
 				Metric:   "disk.io.util",
 				Func:     "all(#3)",
@@ -152,19 +152,32 @@ func (op *Operator) populate() (interface{}, error) {
 		},
 	}
 
-	// step 1 init triggers
-	for _, ts := range triggers {
+	// step 1 init event_triggers
+	for _, ts := range event_triggers {
 		parentId := int64(0)
 		for _, t := range ts {
 			t.ParentId = parentId
-			if id, err = op.CreateTrigger(t); err != nil {
+			if id, err = op.CreateEventTrigger(t); err != nil {
 				glog.Error(err.Error())
 				return nil, err
 			}
 			if parentId == 0 {
-				trigger_idx[t.Name] = id
+				event_trigger_idx[t.Name] = id
 				parentId = id
 			}
+		}
+	}
+
+	// clone event triggers to tag
+	items2 = [][2]string{
+		{"cop=xiaomi", "cpu"},
+		{"cop=xiaomi", "df"},
+		{"cop=xiaomi,owt=inf", "disk"},
+	}
+	for _, item2 := range items2 {
+		if _, err = op.CloneEventTrigger(event_trigger_idx[item2[1]], tag_idx[item2[0]]); err != nil {
+			glog.Error(err.Error())
+			return nil, err
 		}
 	}
 

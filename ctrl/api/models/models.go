@@ -29,6 +29,12 @@ const (
 )
 
 const (
+	CTL_SEARCH_CUR = iota
+	CTL_SEARCH_PARENT
+	CTL_SEARCH_CHILD
+)
+
+const (
 	SYS_F_R_TOKEN = 1 << iota
 	SYS_F_O_TOKEN
 	SYS_F_A_TOKEN
@@ -70,7 +76,7 @@ var (
 		"user",
 		"log",
 		"tpl_rel",
-		"triggers",
+		"event_trigger",
 	}
 )
 
@@ -85,8 +91,8 @@ const (
 	CTL_M_USER
 	CTL_M_TOKEN
 	CTL_M_RULE
-	CTL_M_TRIGGER
-	CTL_M_EXPRESSION
+	CTL_M_EVENT_TRIGGER
+	CTL_M_ACTION_TRIGGER
 
 	CTL_M_TAG_HOST
 	CTL_M_DASHBOARD_GRAPH
@@ -98,7 +104,7 @@ const (
 var (
 	ModuleName = [CTL_M_SIZE]string{
 		"host", "role", "system", "tag", "tpl",
-		"user", "token", "rule", "trigger", "expression",
+		"user", "token", "rule", "event_trigger", "action_trigger",
 		"tag_host", "dashboard_graph", "dashboard_screen", "tmp_graph",
 	}
 )
@@ -141,8 +147,9 @@ type Total struct {
 }
 
 type Stats struct {
-	Success int64 `json:"success"`
-	Failure int64 `json:"failure"`
+	Success int64    `json:"success"`
+	Failure int64    `json:"failure"`
+	Errs    []string `json:"errs"`
 }
 
 type KeyValue struct {
@@ -314,7 +321,7 @@ func initConfig(conf *config.ConfCtrl) error {
 	beego.BConfig.WebConfig.AutoRender = false
 	beego.BConfig.WebConfig.Session.SessionOn = true
 	beego.BConfig.WebConfig.Session.SessionName = "falconSessionId"
-	beego.BConfig.WebConfig.Session.SessionProvider = "mysql"
+	beego.BConfig.WebConfig.Session.SessionProvider = "falcon"
 	beego.BConfig.WebConfig.Session.SessionProviderConfig = dsn
 	beego.BConfig.WebConfig.Session.SessionDisableHTTPOnly = false
 	beego.BConfig.WebConfig.StaticDir["/"] = "static"
@@ -327,7 +334,7 @@ func initConfig(conf *config.ConfCtrl) error {
 		beego.BConfig.RunMode = "dev"
 		beego.BConfig.WebConfig.EnableDocs = true
 		beego.BConfig.WebConfig.DirectoryIndex = true
-		beego.BConfig.WebConfig.StaticDir["/doc"] = "swagger"
+		beego.BConfig.WebConfig.StaticDir["/v1.0/doc"] = "swagger"
 	} else {
 		beego.BConfig.RunMode = "prod"
 	}

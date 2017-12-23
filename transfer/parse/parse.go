@@ -34,8 +34,7 @@ const LOG = 57356
 const HOST = 57357
 const DISABLED = 57358
 const DEBUG = 57359
-const BACKEND = 57360
-const UPSTREAM = 57361
+const SHAREMAP = 57360
 
 var yyToknames = [...]string{
 	"$end",
@@ -58,8 +57,7 @@ var yyToknames = [...]string{
 	"HOST",
 	"DISABLED",
 	"DEBUG",
-	"BACKEND",
-	"UPSTREAM",
+	"SHAREMAP",
 }
 var yyStatenames = [...]string{}
 
@@ -67,7 +65,7 @@ const yyEofCode = 1
 const yyErrCode = 2
 const yyInitialStackSize = 16
 
-//line transfer/parse/parse.y:131
+//line transfer/parse/parse.y:116
 
 //line yacctab:1
 var yyExca = [...]int{
@@ -78,64 +76,58 @@ var yyExca = [...]int{
 
 const yyPrivate = 57344
 
-const yyLast = 72
+const yyLast = 51
 
 var yyAct = [...]int{
 
-	11, 59, 58, 19, 25, 5, 57, 3, 16, 15,
-	24, 6, 29, 30, 31, 28, 27, 12, 13, 41,
-	47, 9, 8, 10, 14, 56, 16, 15, 45, 49,
-	43, 37, 18, 44, 36, 51, 17, 38, 20, 21,
-	22, 23, 16, 15, 26, 34, 39, 46, 32, 50,
-	48, 52, 55, 42, 54, 53, 26, 16, 15, 16,
-	15, 40, 20, 21, 22, 23, 35, 33, 7, 4,
-	2, 1,
+	11, 39, 38, 25, 20, 21, 22, 23, 16, 15,
+	24, 6, 29, 30, 31, 27, 19, 12, 13, 18,
+	17, 9, 8, 10, 14, 26, 16, 15, 28, 16,
+	15, 20, 21, 22, 23, 26, 36, 40, 41, 34,
+	5, 33, 3, 26, 35, 37, 32, 7, 4, 2,
+	1,
 }
 var yyPact = [...]int{
 
-	-1000, -2, -1000, -1000, 3, -1000, 27, 23, 28, 54,
-	40, 52, 54, 54, 41, -1000, -1000, -1000, -1000, -1000,
+	-1000, 33, -1000, -1000, 3, -1000, 11, 10, -6, 24,
+	39, 21, 24, 24, 34, -1000, -1000, -1000, -1000, -1000,
 	-1000, -1000, -1000, -1000, -1000, -1000, -1000, -1000, -1000, -1000,
-	-1000, -1000, -1000, 37, -1000, 22, 54, -1000, 39, -1000,
-	11, -1000, 19, 28, 13, -1000, -1000, -1000, 21, -1000,
-	52, 54, 16, -3, -7, -8, -1000, -1000, -1000, -1000,
+	-1000, -1000, 31, -1000, -7, -8, 24, 24, -1000, -1000,
+	-1000, -1000,
 }
 var yyPgo = [...]int{
 
-	0, 3, 0, 4, 71, 70, 69, 68, 67, 66,
-	61, 53, 50,
+	0, 16, 0, 3, 50, 49, 48, 47, 46, 44,
 }
 var yyR1 = [...]int{
 
 	0, 4, 4, 1, 1, 1, 1, 1, 2, 2,
 	3, 5, 5, 6, 6, 7, 7, 7, 7, 7,
 	7, 7, 7, 7, 7, 7, 8, 8, 9, 9,
-	10, 10, 11, 11, 11, 12, 12, 12, 12, 12,
+	9,
 }
 var yyR2 = [...]int{
 
 	0, 0, 2, 1, 1, 1, 1, 0, 1, 1,
 	1, 1, 3, 1, 3, 0, 2, 2, 1, 2,
-	2, 2, 2, 2, 2, 4, 0, 3, 0, 5,
-	0, 3, 0, 2, 4, 0, 4, 4, 4, 4,
+	2, 2, 2, 2, 2, 4, 1, 3, 0, 2,
+	2,
 }
 var yyChk = [...]int{
 
 	-1000, -4, -5, 9, -6, 7, 8, -7, 19, 18,
 	20, -2, 14, 15, 21, 6, 5, 9, 9, -1,
 	10, 11, 12, 13, -2, -3, 4, -3, -1, -2,
-	-2, -2, 7, -8, 8, -9, -2, 9, -2, 7,
-	-10, 8, -11, 19, 22, 9, -1, 7, -12, 8,
-	-2, 14, -2, -3, -1, -2, 9, 9, 9, 9,
+	-2, -2, -8, 7, 8, -9, -3, 14, 9, 9,
+	-2, -2,
 }
 var yyDef = [...]int{
 
 	1, -2, 2, 11, 15, 13, 0, 0, 7, 0,
 	18, 7, 0, 0, 0, 8, 9, 12, 14, 16,
 	3, 4, 5, 6, 17, 19, 10, 20, 21, 23,
-	22, 24, 26, 28, 25, 0, 0, 27, 0, 30,
-	32, 29, 0, 7, 0, 31, 33, 35, 0, 34,
-	7, 0, 0, 0, 0, 0, 36, 37, 38, 39,
+	22, 24, 28, 26, 0, 0, 0, 0, 25, 27,
+	29, 30,
 }
 var yyTok1 = [...]int{
 
@@ -156,7 +148,7 @@ var yyTok1 = [...]int{
 var yyTok2 = [...]int{
 
 	2, 3, 4, 5, 6, 10, 11, 12, 13, 14,
-	15, 16, 17, 18, 19, 20, 21, 22,
+	15, 16, 17, 18, 19, 20, 21,
 }
 var yyTok3 = [...]int{
 	0,
@@ -623,53 +615,35 @@ yydefault:
 				yy.Error(err.Error())
 			}
 		}
-	case 29:
-		yyDollar = yyS[yypt-5 : yypt+1]
-		//line transfer/parse/parse.y:101
+	case 25:
+		yyDollar = yyS[yypt-4 : yypt+1]
+		//line transfer/parse/parse.y:93
 		{
-			yy_transfer_backend.Type = yyDollar[1].text
-			yy_transfer_backend.Name = yyDollar[2].text
-			if !yy_transfer_backend.Disabled || yy.debug {
-				conf.Backend = append(conf.Backend, *yy_transfer_backend)
+			// check sharemap
+			conf.ShareCount = len(conf.ShareMap)
+			for i := 0; i < conf.ShareCount; i++ {
+				if _, ok := conf.ShareMap[i]; !ok {
+					yy.Error(fmt.Sprintf("miss shareMap[%d]\n", i))
+				}
 			}
-			yy_transfer_backend = &config.TransferBackend{}
 		}
-	case 33:
+	case 26:
+		yyDollar = yyS[yypt-1 : yypt+1]
+		//line transfer/parse/parse.y:105
+		{
+			conf.ShareMap = make(map[int]string)
+		}
+	case 29:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line transfer/parse/parse.y:116
+		//line transfer/parse/parse.y:111
 		{
-			yy_transfer_backend.Disabled = yyDollar[2].b
+			conf.ShareMap[yyDollar[1].num] = yyDollar[2].text
 		}
-	case 34:
-		yyDollar = yyS[yypt-4 : yypt+1]
-		//line transfer/parse/parse.y:117
+	case 30:
+		yyDollar = yyS[yypt-2 : yypt+1]
+		//line transfer/parse/parse.y:112
 		{
-			yy_transfer_backend.Upstream = yy_ss2
-			yy_ss2 = make(map[string]string)
-		}
-	case 36:
-		yyDollar = yyS[yypt-4 : yypt+1]
-		//line transfer/parse/parse.y:124
-		{
-			yy_ss2[yyDollar[2].text] = yyDollar[3].text
-		}
-	case 37:
-		yyDollar = yyS[yypt-4 : yypt+1]
-		//line transfer/parse/parse.y:125
-		{
-			yy_ss2[yyDollar[2].text] = fmt.Sprintf("%d", yyDollar[3].num)
-		}
-	case 38:
-		yyDollar = yyS[yypt-4 : yypt+1]
-		//line transfer/parse/parse.y:126
-		{
-			yy_ss2[yyDollar[2].text] = fmt.Sprintf("%v", yyDollar[3].b)
-		}
-	case 39:
-		yyDollar = yyS[yypt-4 : yypt+1]
-		//line transfer/parse/parse.y:127
-		{
-			yy.include(yyDollar[3].text)
+			yy.include(yyDollar[2].text)
 		}
 	}
 	goto yystack /* stack new state and value */

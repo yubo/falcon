@@ -11,34 +11,19 @@ import (
 	"github.com/yubo/falcon/config"
 )
 
-type TransferBackend struct {
-	Disabled bool
-	Name     string
-	Type     string
-	Upstream map[string]string
-}
-
-func (p TransferBackend) String() string {
-	var s1, s2 string
-
-	s1 = fmt.Sprintf("%s %s", p.Type, p.Name)
-	if p.Disabled {
-		s1 += "(Disable)"
-	}
-
-	for k, v := range p.Upstream {
-		s2 += fmt.Sprintf("%-17s %s\n", k, v)
-	}
-	return fmt.Sprintf("%s cluster (\n%s\n)", s1, config.IndentLines(1, s2))
+type TransferShareMap struct {
+	ShareCount int
+	ShareMap   map[int]string
 }
 
 type ConfTransfer struct {
-	Debug    int
-	Disabled bool
-	Name     string
-	Host     string
-	Backend  []TransferBackend
-	Configer config.Configer
+	Debug      int
+	Disabled   bool
+	Name       string
+	Host       string
+	ShareMap   map[int]string
+	ShareCount int
+	Configer   config.Configer
 }
 
 func (p ConfTransfer) GetName() string {
@@ -47,8 +32,8 @@ func (p ConfTransfer) GetName() string {
 
 func (p ConfTransfer) String() string {
 	var s1 string
-	for _, v := range p.Backend {
-		s1 += fmt.Sprintf("%s\n", v.String())
+	for k, v := range p.ShareMap {
+		s1 += fmt.Sprintf("%d %s\n", k, v)
 	}
 	return fmt.Sprintf("%-17s %d\n"+
 		"%-17s %v\n"+
@@ -60,7 +45,7 @@ func (p ConfTransfer) String() string {
 		"disabled", p.Disabled,
 		"Name", p.Name,
 		"Host", p.Host,
-		"backend", config.IndentLines(1, s1),
+		"shareMap", config.IndentLines(1, s1),
 		p.Configer.String(),
 	)
 }

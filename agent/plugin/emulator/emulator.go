@@ -18,7 +18,10 @@ import (
 )
 
 func init() {
-	agent.RegisterCollector(&emulator{})
+	agent.RegisterCollector(&emulator{
+		gname: "emulator",
+		name:  "main",
+	})
 }
 
 type tpl struct {
@@ -29,6 +32,8 @@ type tpl struct {
 }
 
 type emulator struct {
+	name   string
+	gname  string
 	enable bool
 	host   []string
 	metric []string
@@ -68,7 +73,11 @@ func (p *tpl) emuValue(ts int64) float64 {
 }
 
 func (p *emulator) Name() string {
-	return "emulator"
+	return p.name
+}
+
+func (p *emulator) GName() string {
+	return p.gname
 }
 
 func (p *emulator) Start(ag *agent.Agent) (err error) {

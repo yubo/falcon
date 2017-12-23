@@ -16,10 +16,10 @@ func init() {
 		falcon.GetType(config.ConfBackend{}))
 
 	// cache should early register(init cache data)
-	backend.RegisterModule(&backend.StorageModule{})
+	// backend.RegisterModule(&backend.StorageModule{})
 	backend.RegisterModule(&backend.CacheModule{})
 	backend.RegisterModule(&backend.GrpcModule{})
-	backend.RegisterModule(&backend.HttpModule{})
+	// backend.RegisterModule(&backend.HttpModule{})
 	backend.RegisterModule(&backend.IndexModule{})
 	backend.RegisterModule(&backend.StatsModule{})
 	backend.RegisterModule(&backend.TimerModule{})

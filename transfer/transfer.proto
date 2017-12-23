@@ -6,7 +6,7 @@ import "google/api/annotations.proto";
 import "falcon.proto";
 
 service Transfer {
-	rpc Update(falcon.UpdateRequest) returns (falcon.UpdateResponse) {
+	rpc Put(falcon.PutRequest) returns (falcon.PutResponse) {
 		option (google.api.http) = {
 			post: "/v1/transfer/update"
 			body: "*"
@@ -19,12 +19,4 @@ service Transfer {
 			body: "*"
 		};
 	}
-
-	rpc GetRrd(falcon.GetRrdRequest) returns (falcon.GetRrdResponse) {
-		option (google.api.http) = {
-			post: "/v1/backend/getrrd"
-			body: "*"
-		};
-	}
-
 }

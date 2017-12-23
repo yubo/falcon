@@ -101,7 +101,7 @@ func (c *DashboardController) UpdateGraphs() {
 		}
 	}
 
-	c.SendMsg(200, statsObj(success, failure))
+	c.SendMsg(200, statsObj(success, failure, nil))
 }
 
 // @Title update Graph

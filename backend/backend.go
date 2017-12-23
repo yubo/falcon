@@ -10,8 +10,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"stathat.com/c/consistent"
-
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/golang/glog"
 	"github.com/yubo/falcon"
@@ -28,7 +26,7 @@ const (
 	CONN_RETRY              = 2
 	CACHE_SIZE              = 1 << 5
 	CACHE_SIZE_MASK         = CACHE_SIZE - 1
-	DATA_TIMESTAMP_REGULATE = true
+	DATA_TIMESTAMP_REGULATE = false
 	INDEX_QPS               = 100
 	INDEX_UPDATE_CYCLE_TIME = 86400
 	INDEX_TIMEOUT           = 86400
@@ -59,8 +57,8 @@ const (
 	C_SHMKEY           = "shmkey"
 	C_SHMSIZE          = "shmsize"
 	C_DSN              = "dsn"
-	C_HDISK            = "hdisk"
-	C_PAYLOADSIZE      = "payloadsize"
+	//C_HDISK            = "hdisk"
+	C_PAYLOADSIZE = "payloadsize"
 )
 
 var (
@@ -110,10 +108,9 @@ type Backend struct {
 	cache *backendCache
 
 	//storageModule
-	hdisk                    []string
-	storageNetTaskCh         map[string]chan *netTask
-	storageIoTaskCh          []chan *ioTask
-	storageMigrateConsistent *consistent.Consistent
+	//hdisk []string
+	//storageNetTaskCh map[string]chan *netTask
+	//storageIoTaskCh  []chan *ioTask
 
 	ts           int64
 	statTicker   chan time.Time
@@ -153,33 +150,6 @@ func (p *Backend) Prestart() (err error) {
 		}
 	}
 	return err
-	// core
-
-	/*
-		//cache
-		p.cacheInit()
-
-		// rpc
-		p.rpcConnects = connList{list: list.New()}
-
-		// http
-		p.httpMux = http.NewServeMux()
-		p.httpRoutes()
-
-		// rrdtool/sync_disk/migrate
-		p.storageNetTaskCh = make(map[string]chan *netTask)
-		p.storageMigrateClients = make(map[string][]*rpc.Client)
-		p.storageMigrateConsistent = consistent.New()
-
-		// store
-		size := CACHE_TIME / FLUSH_DISK_STEP
-		if size < 0 {
-			glog.Fatalf(MODULE_NAME+"store.init, bad size %d\n", size)
-		}
-		p.status = falcon.APP_STATUS_INIT
-		return nil
-	*/
-
 }
 
 func (p *Backend) Start() (err error) {
@@ -195,17 +165,6 @@ func (p *Backend) Start() (err error) {
 
 	p.status = falcon.APP_STATUS_RUNNING
 	return err
-
-	/*
-		p.running = make(chan struct{}, 0)
-		p.timeStart()
-		p.rrdStart()
-		p.rpcStart()
-		p.indexStart()
-		p.httpStart()
-		p.statStart()
-		p.cacheStart()
-	*/
 }
 
 func (p *Backend) Stop() (err error) {
@@ -219,16 +178,6 @@ func (p *Backend) Stop() (err error) {
 		}
 	}
 	return err
-	/*
-		close(p.running)
-		p.cacheStop()
-		p.statStop()
-		p.httpStop()
-		p.indexStop()
-		p.rpcStop()
-		p.rrdStop()
-		p.timeStop()
-	*/
 }
 
 func (p *Backend) Reload(c interface{}) (err error) {

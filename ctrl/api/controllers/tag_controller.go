@@ -178,3 +178,64 @@ func (c *TagController) DeleteTag() {
 		c.SendMsg(200, "delete success!")
 	}
 }
+
+/*******************************************************************************
+ ************************ relation *********************************************
+ ******************************************************************************/
+
+// @Title Get tree's node
+// @Description get node and it's children
+// @Param	id	query 	int64	false	"tag id default root(1)"
+// @Param	depth	query   int	false	"depth levels default -1(no limit)"
+// @Success 200 {object} models.TreeNode all nodes of the tree(read)
+// @Failure 400 string error
+// @router /node [get]
+func (c *TagController) GetTreeNode() {
+	var ret *models.TreeNode
+
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
+	id, _ := c.GetInt64("id", 1)
+	depth, _ := c.GetInt("depth", -1)
+	direct := false
+
+	if depth < 0 {
+		depth = 100
+	}
+
+	if err := op.Access(models.SYS_R_TOKEN, id); err == nil {
+		direct = true
+	}
+
+	ret = op.GetTreeNode(id, depth, direct)
+	if ret == nil {
+		c.SendMsg(400, "tree empty or Permission denied")
+	} else {
+		c.SendMsg(200, ret)
+	}
+}
+
+// @Title Get tags(operate)
+// @Description get has operate token tags
+// @Param	expand	query   bool	false	"include child tag(default:false)"
+// @Success 200 {object} []int64 all ids of the node that can be operated
+// @Failure 400 string error
+// @router /operate [get]
+func (c *TagController) GetOpTag() {
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
+	expand, _ := c.GetBool("expand", false)
+	ret, _ := op.GetOpTag(expand)
+	c.SendMsg(200, ret)
+}
+
+// @Title Get tags(read)
+// @Description get has read token tags
+// @Param	expand	query   bool	false	"include child tag(default:false)"
+// @Success 200 {object} []int64 all ids of the node that can be read
+// @Failure 400 string error
+// @router /read [get]
+func (c *TagController) GetReadTag() {
+	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
+	expand, _ := c.GetBool("expand", false)
+	ret, _ := op.GetReadTag(expand)
+	c.SendMsg(200, ret)
+}

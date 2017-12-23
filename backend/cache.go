@@ -29,15 +29,15 @@ type cacheEntry struct {
 	commitTs int64
 	createTs int64
 	lastTs   int64
-	host     []byte
-	name     []byte
+	endpoint []byte
+	metric   []byte
 	tags     []byte
 	typ      falcon.ItemType
-	step     int32
 	dataId   uint32
 	commitId uint32
 	time     []int64
 	value    []float64
+	//step     int32
 	//heartbeat int
 	//min       byte
 	//max       byte
@@ -46,11 +46,10 @@ type cacheEntry struct {
 // should === falcon.RrdItem.Id()
 func (p *cacheEntry) id() string {
 	return fmt.Sprintf("%s/%s/%s/%s/%d",
-		p.host,
-		p.name,
+		p.endpoint,
+		p.metric,
 		p.tags,
-		p.typ,
-		int(p.step))
+		p.typ)
 }
 
 func (p *cacheEntry) csum() string {
@@ -66,67 +65,6 @@ func (p *cacheEntry) put(item *falcon.Item) {
 	p.time[idx] = item.Ts
 	p.value[idx] = item.Value
 	p.dataId += 1
-}
-
-// fetch remote ds
-func (p *cacheEntry) fetchCommit(b *Backend) {
-	done := make(chan error)
-
-	node, err := b.storageMigrateConsistent.Get(p.hashkey)
-	if err != nil {
-		return
-	}
-
-	b.storageNetTaskCh[node] <- &netTask{
-		Method: NET_TASK_M_FETCH_COMMIT,
-		e:      p,
-		Done:   done,
-	}
-
-	// net_task slow, shouldn't block commitCache()
-	// warning: recev sigout when migrating, maybe lost memory data
-	go func() {
-		err := <-done
-		if err != nil {
-			glog.Warning(MODULE_NAME+"get %s from remote err[%s]\n", p.hashkey, err)
-			return
-		}
-		//todo: flushfile after getfile? not yet
-	}()
-}
-
-func (p *cacheEntry) createRrd(b *Backend) error {
-	done := make(chan error, 1)
-
-	b.ktoch(p.hashkey) <- &ioTask{
-		method: IO_TASK_M_RRD_ADD,
-		args:   p,
-		done:   done,
-	}
-	err := <-done
-
-	p.commitTs = b.timeNow()
-
-	return err
-}
-
-func (p *cacheEntry) commit(b *Backend) error {
-	done := make(chan error, 1)
-
-	b.ktoch(p.hashkey) <- &ioTask{
-		method: IO_TASK_M_RRD_UPDATE,
-		args:   p,
-		done:   done,
-	}
-	err := <-done
-
-	p.commitTs = b.timeNow()
-
-	return err
-}
-
-func (p *cacheEntry) filename(b *Backend) string {
-	return b.ktofname(p.hashkey)
 }
 
 // return [l, h)
@@ -187,17 +125,16 @@ func (p *cacheEntry) dequeueAll() []*falcon.RRDData {
 
 func (p *cacheEntry) _getItems() (ret []*falcon.Item) {
 
-	rrds, _ := p._getData(0, p.dataId)
+	data, _ := p._getData(0, p.dataId)
 
-	for _, v := range rrds {
+	for _, v := range data {
 		ret = append(ret, &falcon.Item{
-			Host:  p.host,
-			Name:  p.name,
-			Tags:  p.tags,
-			Value: v.V,
-			Ts:    v.Ts,
-			Type:  p.typ,
-			Step:  p.step,
+			Endpoint: p.endpoint,
+			Metric:   p.metric,
+			Tags:     p.tags,
+			Value:    v.V,
+			Ts:       v.Ts,
+			Type:     p.typ,
 		})
 	}
 
@@ -219,22 +156,21 @@ func (p *cacheEntry) getItem() (ret *falcon.Item) {
 	//p.dataId always > 0
 	idx := uint32(p.dataId-1) & CACHE_SIZE_MASK
 	return &falcon.Item{
-		Host:  p.host,
-		Name:  p.name,
-		Tags:  p.tags,
-		Value: p.value[idx],
-		Ts:    p.time[idx],
-		Type:  p.typ,
-		Step:  p.step,
+		Endpoint: p.endpoint,
+		Metric:   p.metric,
+		Tags:     p.tags,
+		Value:    p.value[idx],
+		Ts:       p.time[idx],
+		Type:     p.typ,
 	}
 	return
 }
 
 func (p *cacheEntry) String() string {
-	return fmt.Sprintf("key:%s host:%s name:%s "+
-		"tags:%s type:%s step:%d\n",
-		p.hashkey, p.host, p.name,
-		p.tags, p.typ, p.step)
+	return fmt.Sprintf("key %s endpoint %s metric %s "+
+		"tags %s type %s\n",
+		p.hashkey, p.endpoint, p.metric,
+		p.tags, p.typ)
 }
 
 // }}}

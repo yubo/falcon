@@ -435,7 +435,7 @@ func (op *Operator) resetDb(file string) (interface{}, error) {
 	for i := 0; i < len(cmds); i++ {
 		_, err := op.O.Raw(cmds[i]).Exec()
 		if err != nil {
-			glog.Error(MODULE_NAME+" sql %s ret %s", cmds[i], err.Error())
+			glog.Errorf(MODULE_NAME+" sql %s\nerr %s", cmds[i], err.Error())
 		}
 	}
 	return "", nil
@@ -462,4 +462,12 @@ func (op *Operator) ResetDb(populate bool) (interface{}, error) {
 
 	return "reset db done", nil
 
+}
+
+func iif(a bool, b, c interface{}) interface{} {
+	if a {
+		return b
+	} else {
+		return c
+	}
 }

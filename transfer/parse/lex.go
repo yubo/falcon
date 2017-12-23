@@ -25,12 +25,11 @@ const (
 )
 
 var (
-	yy                  *yyLex
-	conf                *config.ConfTransfer
-	yy_ss               = make(map[string]string)
-	yy_ss2              = make(map[string]string)
-	yy_as               = make([]string, 0)
-	yy_transfer_backend = &config.TransferBackend{}
+	yy    *yyLex
+	conf  *config.ConfTransfer
+	yy_ss = make(map[string]string)
+	yy_is = make(map[int]string)
+	yy_as = make([]string, 0)
 
 	f_ip      = regexp.MustCompile(`^[0-9]+\.[0-0]+\.[0-9]+\.[0-9]+[ \t\n;{}]{1}`)
 	f_num     = regexp.MustCompile(`^0x[0-9a-fA-F]+|^[0-9]+[ \t\n;{}]{1}`)
@@ -51,8 +50,7 @@ var (
 		"host":     HOST,
 		"disabled": DISABLED,
 		"debug":    DEBUG,
-		"backend":  BACKEND,
-		"upstream": UPSTREAM,
+		"shareMap": SHAREMAP,
 	}
 )
 

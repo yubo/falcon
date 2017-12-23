@@ -15,8 +15,8 @@ func init() {
 	falcon.RegisterModule(&transfer.Transfer{}, "transfer",
 		falcon.GetType(config.ConfTransfer{}))
 	transfer.RegisterModule(&transfer.StatsModule{})
-	transfer.RegisterModule(&transfer.GrpcModule{})
-	transfer.RegisterModule(&transfer.HttpModule{})
-	transfer.RegisterModule(&transfer.BackendModule{})
+	transfer.RegisterModule(&transfer.ServiceModule{})
+	transfer.RegisterModule(&transfer.ServiceGwModule{})
+	transfer.RegisterModule(&transfer.ClientModule{})
 
 }

@@ -7,6 +7,8 @@ package models
 
 import (
 	"errors"
+	"fmt"
+	"strings"
 )
 
 type Token struct {
@@ -109,4 +111,100 @@ func (op *Operator) DeleteToken(id int64) error {
 	DbLog(op.O, op.User.Id, CTL_M_TOKEN, id, CTL_A_DEL, "")
 
 	return nil
+}
+
+/*******************************************************************************
+ ************************ tag role token ***************************************
+ ******************************************************************************/
+
+type TagRoleTokenApi struct {
+	TagId   int64 `json:"tag_id"`
+	RoleId  int64 `json:"role_id"`
+	TokenId int64 `json:"token_id"`
+}
+
+type TagRolesTokensApiAdd struct {
+	TagId    int64   `json:"tag_id"`
+	RoleIds  []int64 `json:"role_ids"`
+	TokenIds []int64 `json:"token_ids"`
+}
+
+type TagRolesTokensApiDel struct {
+	TagId     int64 `json:"tag_id"`
+	RoleToken []struct {
+		RoleId  int64 `json:"role_id"`
+		TokenId int64 `json:"token_id"`
+	} `json:"role_token"`
+}
+
+type TagRoleTokenApiGet struct {
+	TagName   string `json:"tag_name"`
+	RoleName  string `json:"role_name"`
+	TokenName string `json:"token_name"`
+	TagId     int64  `json:"tag_id"`
+	RoleId    int64  `json:"role_id"`
+	TokenId   int64  `json:"token_id"`
+}
+
+func tagRoleTokenSql(tagId int64, query string, deep bool) (where string, args []interface{}) {
+	sql2 := []string{}
+	sql3 := []interface{}{}
+
+	sql2 = append(sql2, "a.type_id = ?")
+	sql3 = append(sql3, TPL_REL_T_ACL_TOKEN)
+
+	if query != "" {
+		sql2 = append(sql2, "tk.name like ?")
+		sql3 = append(sql3, "%"+query+"%")
+	}
+
+	if deep {
+		sql2 = append(sql2, fmt.Sprintf("a.tag_id in (select tag_id from tag_rel where sup_tag_id = %d)", tagId))
+	} else {
+		sql2 = append(sql2, "a.tag_id = ?")
+		sql3 = append(sql3, tagId)
+	}
+
+	if len(sql2) != 0 {
+		where = "WHERE " + strings.Join(sql2, " AND ")
+		args = sql3
+	}
+	return
+}
+
+func (op *Operator) GetTagRoleTokenCnt(tagId int64,
+	query string, deep bool) (cnt int64, err error) {
+	sql, sql_args := tagRoleTokenSql(tagId, query, deep)
+	err = op.O.Raw("SELECT count(*) FROM tpl_rel a JOIN tag t ON t.id = a.tag_id JOIN role r ON r.id = a.tpl_id JOIN token tk ON tk.id = a.sub_id "+sql, sql_args...).QueryRow(&cnt)
+	return
+}
+
+func (op *Operator) GetTagRoleToken(tagId int64, query string, deep bool,
+	limit, offset int) (ret []TagRoleTokenApiGet, err error) {
+	sql, sql_args := tagRoleTokenSql(tagId, query, deep)
+	sql = "SELECT t.name as tag_name, r.name as role_name, tk.name as token_name, a.tag_id, a.tpl_id as role_id, a.sub_id as token_id FROM tpl_rel a JOIN tag t ON t.id = a.tag_id JOIN role r ON r.id = a.tpl_id JOIN token tk ON tk.id = a.sub_id  " + sql + " ORDER BY tk.name, r.name LIMIT ? OFFSET ?"
+	sql_args = append(sql_args, limit, offset)
+	_, err = op.O.Raw(sql, sql_args...).QueryRows(&ret)
+	return
+}
+
+func (op *Operator) CreateTagRoleToken(rel *TagRoleTokenApi) (int64, error) {
+	return addTplRel(op.O, op.User.Id, rel.TagId, rel.RoleId,
+		rel.TokenId, TPL_REL_T_ACL_TOKEN)
+}
+
+func (op *Operator) DeleteTagRoleToken(rel *TagRoleTokenApi) (int64, error) {
+	return delTplRel(op.O, op.User.Id, rel.TagId, rel.RoleId,
+		rel.TokenId, TPL_REL_T_ACL_TOKEN)
+}
+
+func (op *Operator) GetTagTags(tagId int64) (nodes []zTreeNode, err error) {
+	if tagId == 0 {
+		return []zTreeNode{{Id: 1, Name: "/"}}, nil
+	}
+	_, err = op.O.Raw("SELECT `tag_id` AS `id`, `b`.`name` FROM `tag_rel` `a` LEFT JOIN `tag` `b` ON `a`.`tag_id` = `b`.`id` WHERE `a`.`sup_tag_id` = ? AND `a`.`offset` = 1 and `b`.`type` = 0", tagId).QueryRows(&nodes)
+	if err != nil {
+		return nil, err
+	}
+	return
 }

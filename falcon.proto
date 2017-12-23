@@ -25,52 +25,42 @@ message RRDData {
 }
 
 message Item {
-	double   value = 1;
-	int64    ts    = 2;
-	int32    step  = 3;
-	ItemType type  = 4;
-	bytes    host  = 5;
-	bytes    name  = 6;
-	bytes    tags  = 7;
+	double   value     = 1;
+	int64    ts        = 2;
+	ItemType type      = 3;
+	bytes    endpoint  = 4;
+	bytes    metric    = 5;
+	bytes    tags      = 6;
 }
 
 message Response {
 	int32 code = 1;
 }
 
-message UpdateRequest {
+message PutRequest {
 	repeated Item items = 1;
 }
 
-message UpdateResponse {
+message PutResponse {
 	int32  total  = 1;
 	int32  errors = 2;
-}
-
-message GetRrdRequest {
-	bytes key = 1;
-}
-
-message GetRrdResponse {
-	File file = 1;	
 }
 
 message GetRequest {
 	int64    start     = 1;
 	int64    end       = 2;
-	bytes    host      = 3;
-	bytes    name      = 4;
-	int32    step      = 5;
-	Cf       consolFun = 6;
-	ItemType type      = 7;
+	bytes    endpoint  = 3;
+	bytes    metric    = 4;
+	Cf       consolFun = 5;
+	ItemType type      = 6;
 
 }
 
 message GetResponse {
-	bytes            host = 1;
-	bytes            name = 2;
-	ItemType         type = 3;
-	int32            step = 4;
-	repeated RRDData vs   = 5; 
+	bytes            endpoint = 1;
+	bytes            metric   = 2;
+	ItemType         type     = 3;
+	int32            step     = 4;
+	repeated RRDData vs       = 5; 
 }
 

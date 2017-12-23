@@ -104,7 +104,7 @@ func (p *miSyncContent) getNode(tag string) *miNode {
 	return node
 }
 
-func miGetTagHostByTag(tagstring, query string, localhosts map[string]*Host) (ret []*RelTagHost, err error) {
+func miGetTagHostByTag(tagstring, query string, localhosts map[string]*Host) (ret []*TagHostApiGet, err error) {
 	var ok bool
 	var tag string
 
@@ -134,7 +134,7 @@ func miGetTagHostByTag(tagstring, query string, localhosts map[string]*Host) (re
 			continue
 		}
 		if v, ok := localhosts[host.name]; ok {
-			th := &RelTagHost{
+			th := &TagHostApiGet{
 				TagName:  tag,
 				HostName: host.name,
 				HostId:   v.Id,
@@ -146,7 +146,7 @@ func miGetTagHostByTag(tagstring, query string, localhosts map[string]*Host) (re
 }
 
 func miGetTagHostCnt(tag, query string, deep bool) (int64, error) {
-	var hosts []*RelTagHost
+	var hosts []*TagHostApiGet
 	var err error
 
 	if miSyncer.ctx == nil {
@@ -161,7 +161,7 @@ func miGetTagHostCnt(tag, query string, deep bool) (int64, error) {
 }
 
 func miGetTagHost(tag, query string, deep bool,
-	limit, offset int) (ret []*RelTagHost, err error) {
+	limit, offset int) (ret []*TagHostApiGet, err error) {
 
 	if miSyncer.ctx == nil {
 		return

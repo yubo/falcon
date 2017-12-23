@@ -6,10 +6,10 @@
 package agent
 
 import (
+	"fmt"
 	"math/rand"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/transfer"
 	"golang.org/x/net/context"
@@ -30,71 +30,73 @@ func (p *UpstreamModule) update(items []*falcon.Item, timeout int) (err error) {
 
 	ctx, _ := context.WithTimeout(context.Background(),
 		time.Duration(timeout)*time.Millisecond)
-	_, err = p.client.Update(ctx, &falcon.UpdateRequest{Items: items})
+	_, err = p.client.Put(ctx, &falcon.PutRequest{Items: items})
 	if err != nil {
 		statsInc(ST_UPSTREAM_UPDATE_ERR, 1)
 	}
 	return err
 }
 
-func (p *UpstreamModule) mainLoop(agent *Agent) error {
+func stdoutLoop(p *UpstreamModule, ch chan []*falcon.Item) {
+	for {
+		select {
+		case <-p.ctx.Done():
+			return
+		case get_items := <-ch:
+			for k, v := range get_items {
+				fmt.Printf(MODULE_NAME+"%d %s\n", k, v)
+			}
+		}
+	}
+}
+
+func socketLoop(p *UpstreamModule, ch chan []*falcon.Item, agent *Agent) {
 	callTimeout, _ := agent.Conf.Configer.Int(C_CALL_TIMEOUT)
 	payloadSize, _ := agent.Conf.Configer.Int(C_PAYLOADSIZE)
-
-	conn, _, err := falcon.DialRr(p.ctx, agent.Conf.Configer.Str(C_UPSTREAM), true)
-	if err != nil {
-		return err
-	}
-
-	p.client = transfer.NewTransferClient(conn)
-	ch := agent.appUpdateChan
 	items := make([]*falcon.Item, payloadSize)
 	i := 0
 
-	go func() {
-		defer conn.Close()
-		for {
-			select {
-			case <-p.ctx.Done():
-				return
-			case _items := <-ch:
-				for _, item := range _items {
-					items[i] = item
-					i++
-					if i == payloadSize {
-						p.update(items[:i], callTimeout)
-						i = 0
-					}
-
+	for {
+		select {
+		case <-p.ctx.Done():
+			return
+		case get_items := <-ch:
+			for _, item := range get_items {
+				items[i] = item
+				i++
+				if i == payloadSize {
+					p.update(items[:i], callTimeout)
+					i = 0
 				}
-			case <-time.After(time.Second):
-				p.update(items[:i], callTimeout)
-				i = 0
 
 			}
+		case <-time.After(time.Second):
+			p.update(items[:i], callTimeout)
+			i = 0
 
 		}
-	}()
-	return nil
+
+	}
 
 }
 
-func (p *UpstreamModule) debugLoop(agent *Agent) error {
+func (p *UpstreamModule) mainLoop(agent *Agent) error {
 
-	if agent.Conf.Debug > 1 {
-		go func() {
-			for {
-				select {
-				case <-p.ctx.Done():
-					return
-				case items := <-agent.appUpdateChan:
-					for k, v := range items {
-						glog.V(3).Infof(MODULE_NAME+"%d %s", k, v)
-					}
-				}
-			}
-		}()
+	upstream := agent.Conf.Configer.Str(C_UPSTREAM)
+	if upstream == "stdout" {
+		go stdoutLoop(p, agent.appUpdateChan)
+		return nil
 	}
+
+	conn, _, err := falcon.DialRr(p.ctx, upstream, true)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	p.client = transfer.NewTransferClient(conn)
+	go socketLoop(p, agent.appUpdateChan, agent)
+
 	return nil
 }
 
@@ -106,10 +108,6 @@ func (p *UpstreamModule) prestart(agent *Agent) error {
 func (p *UpstreamModule) start(agent *Agent) error {
 
 	p.ctx, p.cancel = context.WithCancel(context.Background())
-
-	if err := p.debugLoop(agent); err != nil {
-		return err
-	}
 
 	if err := p.mainLoop(agent); err != nil {
 		return err

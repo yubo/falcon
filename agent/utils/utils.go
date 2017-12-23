@@ -12,16 +12,15 @@ import (
 	"github.com/yubo/falcon"
 )
 
-func NewMetricValue(step int, host, metric string,
+func NewMetricValue(step int, endpoint, metric string,
 	val float64, dataType falcon.ItemType, tags ...string) *falcon.Item {
 
 	item := &falcon.Item{
-		Value: val,
-		Ts:    time.Now().Unix(),
-		Step:  int32(step),
-		Type:  dataType,
-		Host:  []byte(host),
-		Name:  []byte(metric),
+		Value:    val,
+		Ts:       time.Now().Unix(),
+		Type:     dataType,
+		Endpoint: []byte(endpoint),
+		Metric:   []byte(metric),
 	}
 
 	if len(tags) > 0 {

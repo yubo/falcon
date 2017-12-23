@@ -16,7 +16,8 @@ import (
 
 type collector_t struct {
 	a []Collector
-	m map[string]Collector
+	//m map[string]Collector
+	groups map[string]map[string]Collector
 }
 
 var (
@@ -24,19 +25,25 @@ var (
 )
 
 type Collector interface {
+	GName() string
 	Name() string
 	Start(*Agent) error
-	Collect(int, string) ([]*falcon.Item, error)
 	Reset()
+	Collect(int, string) ([]*falcon.Item, error)
 }
 
 func init() {
-	collector.m = make(map[string]Collector)
+	//collector.m = make(map[string]Collector)
+	collector.groups = make(map[string]map[string]Collector)
 }
 
 func RegisterCollector(c Collector) {
 	glog.V(4).Infof(MODULE_NAME+"register collector %s", c.Name())
-	collector.m[c.Name()] = c
+	//collector.m[c.Name()] = c
+	if _, ok := collector.groups[c.GName()]; !ok {
+		collector.groups[c.GName()] = make(map[string]Collector)
+	}
+	collector.groups[c.GName()][c.Name()] = c
 }
 
 type CollectModule struct {
@@ -51,12 +58,14 @@ func (p *CollectModule) prestart(agent *Agent) error {
 
 	for _, plugin := range plugins {
 		plugin = strings.TrimSpace(plugin)
-		if c, ok := collector.m[plugin]; ok {
+		if group, ok := collector.groups[plugin]; ok {
 			// skip if exists
 			if keys[plugin] {
 				continue
 			}
-			collector.a = append(collector.a, c)
+			for _, c := range group {
+				collector.a = append(collector.a, c)
+			}
 			keys[plugin] = true
 		}
 	}

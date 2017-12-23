@@ -19,7 +19,7 @@ var (
 )
 
 const (
-	sqlPath = "/tmp/falcon.sql"
+	sqlPath = "../../../scripts/db_schema/03_falcon.sql"
 )
 
 func init() {
@@ -64,43 +64,52 @@ func testOrm(t *testing.T) {
 	t.Logf("=== run")
 	testDbReset(t)
 	op := &Operator{O: orm.NewOrm()}
-	e := &Trigger{
-		//UNIQUE INDEX `index_triggers_tag_name` (`tag_id`, `name`)
-		TagId: 1,
+	e := &EventTrigger{
+		//UNIQUE INDEX `index_event_trigger_tag_name` (`tag_id`, `name`)
+		TagId: 111,
 		Name:  "test",
 	}
 
-	id, err := op.SqlInsert("insert triggers (tag_id, name) values (?, ?)", e.TagId, e.Name)
+	id, err := op.SqlInsert("insert event_trigger (tag_id, name) values (?, ?)", e.TagId, e.Name)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// just nil/noset will skip un check
 	// test un
-	if _, err := op.SqlInsert("insert triggers (tag_id, cname) values (?, ?)", e.TagId, e.Name); err == nil {
+	if _, err := op.SqlInsert("insert event_trigger (tag_id, name) values (?, ?)", e.TagId, e.Name); err == nil {
 		t.Fatalf("insert row again got nil, want err\n")
 	}
 
+	if _, err := op.SqlInsert("insert event_trigger (tag_id, name) values (?, ?)", e.TagId, nil); err != nil {
+		t.Fatalf("insert row again got %v, want nil\n", err)
+	}
+
+	if _, err := op.SqlInsert("insert event_trigger (tag_id) values (?)", e.TagId); err != nil {
+		t.Fatalf("insert row again got %v, want nil\n", err)
+	}
+
 	// test un is null; ugly
-	if _, err := op.SqlInsert("insert triggers (tag_id) values (?)", e.TagId); err != nil {
+	if _, err := op.SqlInsert("insert event_trigger (tag_id) values (?)", e.TagId); err != nil {
 		t.Fatalf("insert null un row got %v, want nil\n", err)
 	}
-	if _, err := op.SqlInsert("insert triggers (name) values (?)", e.Name); err != nil {
+	if _, err := op.SqlInsert("insert event_trigger (name) values (?)", e.Name); err != nil {
 		t.Fatalf("insert null un row got %v, want nil\n", err)
 	}
 
-	if err := op.SqlRow(e, "select id, name, tag_id from triggers where id = ?", id); err != nil {
+	if err := op.SqlRow(e, "select id, name, tag_id from event_trigger where id = ?", id); err != nil {
 		t.Fatal(err)
 	}
 
-	if n, err := op.SqlExec("delete from triggers where id = ?", id); err != nil {
+	if n, err := op.SqlExec("delete from event_trigger where id = ?", id); err != nil {
 		t.Fatalf("delete row %d got %d, %v want 1, nil\n", id, n, err)
 	}
 
-	if n, err := op.SqlExec("delete from triggers where id = ?", id); n != 0 || err != err {
+	if n, err := op.SqlExec("delete from event_trigger where id = ?", id); n != 0 || err != err {
 		t.Fatalf("delete row %d again, got %d, %v want 0, nil", id, n, err)
 	}
 
-	if err := op.SqlRow(e, "select id, name, tag_id from triggers where id = ?", id); err != orm.ErrNoRows {
+	if err := op.SqlRow(e, "select id, name, tag_id from event_trigger where id = ?", id); err != orm.ErrNoRows {
 		t.Fatalf("select no exists row, got %v, want %v", err, orm.ErrNoRows)
 	}
 
@@ -114,7 +123,9 @@ func testPopulate(t *testing.T) {
 	}
 
 	op := &Operator{O: orm.NewOrm()}
-	op.resetDb(sqlPath)
+	if _, err := op.resetDb(sqlPath); err != nil {
+		t.Error(err)
+	}
 
 	o := orm.NewOrm()
 	sys, _ := GetUser(1, o)
@@ -135,7 +146,7 @@ func TestAll(t *testing.T) {
 
 	testPopulate(t)
 
-	//testOrm(t)
+	testOrm(t)
 	//testTag(t)
 	//testSettings(t)
 	//testToken(t)

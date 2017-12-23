@@ -31,17 +31,11 @@ func (p *GrpcModule) Get(ctx context.Context,
 	return &falcon.GetResponse{}, nil
 }
 
-func (p *GrpcModule) GetRrd(ctx context.Context,
-	in *falcon.GetRrdRequest) (*falcon.GetRrdResponse, error) {
-
-	return &falcon.GetRrdResponse{}, nil
-}
-
-func (p *GrpcModule) Update(ctx context.Context,
-	in *falcon.UpdateRequest) (*falcon.UpdateResponse, error) {
+func (p *GrpcModule) Put(ctx context.Context,
+	in *falcon.PutRequest) (*falcon.PutResponse, error) {
 
 	p.updateChan <- in.Items
-	return &falcon.UpdateResponse{int32(len(in.Items)), 0}, nil
+	return &falcon.PutResponse{int32(len(in.Items)), 0}, nil
 }
 
 func (p *GrpcModule) prestart(agent *Agent) error {

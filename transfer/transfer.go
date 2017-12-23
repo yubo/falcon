@@ -27,9 +27,10 @@ const (
 	C_WORKER_PROCESSES = "workerprocesses"
 	C_CONN_TIMEOUT     = "conntimeout"
 	C_CALL_TIMEOUT     = "calltimeout"
-	C_PAYLOADSIZE      = "payloadsize"
+	C_BURST_SIZE       = "burstsize"
 	C_GRPC_ENABLE      = "grpc_enable"
 	C_GRPC_ADDR        = "grpcaddr"
+	//C_PAYLOADSIZE      = "payloadsize"
 )
 
 var (
@@ -44,7 +45,7 @@ var (
 		C_RPC_ADDR:         "127.0.0.1:8433",
 		C_GRPC_ENABLE:      "true",
 		C_GRPC_ADDR:        "127.0.0.1:8434",
-		C_PAYLOADSIZE:      "16",
+		C_BURST_SIZE:       "16",
 	}
 )
 

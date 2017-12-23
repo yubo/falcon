@@ -49,8 +49,8 @@ func (p *ldapAuth) Verify(_c interface{}) (bool, string, error) {
 	username := c.GetString("username")
 	password := c.GetString("password")
 
-	if beego.BConfig.RunMode == "dev" && username == "test" {
-		return true, "test", nil
+	if beego.BConfig.RunMode == "dev" && username[:4] == "test" {
+		return true, username, nil
 	}
 
 	success, uuid, err := ldapUserAuthentication(p.addr, p.baseDN, p.filter,

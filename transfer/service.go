@@ -16,7 +16,7 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
-type GrpcModule struct {
+type ServiceModule struct {
 	enable     bool
 	ctx        context.Context
 	cancel     context.CancelFunc
@@ -24,20 +24,15 @@ type GrpcModule struct {
 	updateChan chan []*falcon.Item
 }
 
-func (p *GrpcModule) GetRrd(ctx context.Context,
-	in *falcon.GetRrdRequest) (*falcon.GetRrdResponse, error) {
-	return &falcon.GetRrdResponse{}, nil
-}
-
-func (p *GrpcModule) Get(ctx context.Context,
+func (p *ServiceModule) Get(ctx context.Context,
 	in *falcon.GetRequest) (*falcon.GetResponse, error) {
 	return &falcon.GetResponse{}, nil
 }
 
-func (p *GrpcModule) Update(ctx context.Context,
-	in *falcon.UpdateRequest) (*falcon.UpdateResponse, error) {
+func (p *ServiceModule) Put(ctx context.Context,
+	in *falcon.PutRequest) (*falcon.PutResponse, error) {
 
-	res := &falcon.UpdateResponse{Total: int32(len(in.Items))}
+	res := &falcon.PutResponse{Total: int32(len(in.Items))}
 	items := []*falcon.Item{}
 	now := time.Now().Unix()
 
@@ -59,14 +54,14 @@ func (p *GrpcModule) Update(ctx context.Context,
 	return res, nil
 }
 
-func (p *GrpcModule) prestart(transfer *Transfer) error {
+func (p *ServiceModule) prestart(transfer *Transfer) error {
 	p.enable, _ = transfer.Conf.Configer.Bool(C_GRPC_ENABLE)
 	p.address = transfer.Conf.Configer.Str(C_GRPC_ADDR)
 	p.updateChan = transfer.appUpdateChan
 	return nil
 }
 
-func (p *GrpcModule) start(transfer *Transfer) (err error) {
+func (p *ServiceModule) start(transfer *Transfer) (err error) {
 
 	if !p.enable {
 		glog.Info(MODULE_NAME + "grpc.Start not enabled")
@@ -81,7 +76,7 @@ func (p *GrpcModule) start(transfer *Transfer) (err error) {
 	}
 
 	server := grpc.NewServer()
-	RegisterTransferServer(server, &GrpcModule{})
+	RegisterTransferServer(server, &ServiceModule{})
 
 	// Register reflection service on gRPC server.
 	reflection.Register(server)
@@ -99,7 +94,7 @@ func (p *GrpcModule) start(transfer *Transfer) (err error) {
 	return nil
 }
 
-func (p *GrpcModule) stop(transfer *Transfer) error {
+func (p *ServiceModule) stop(transfer *Transfer) error {
 	if !p.enable {
 		return nil
 	}
@@ -107,7 +102,7 @@ func (p *GrpcModule) stop(transfer *Transfer) error {
 	return nil
 }
 
-func (p *GrpcModule) reload(transfer *Transfer) error {
+func (p *ServiceModule) reload(transfer *Transfer) error {
 	if p.enable {
 		p.stop(transfer)
 		time.Sleep(time.Second)

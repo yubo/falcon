@@ -3,7 +3,7 @@
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
-package plugin
+package sys
 
 import (
 	"bufio"
@@ -59,8 +59,8 @@ type cpuCoreSample struct {
 }
 
 func (p *cpuCoreSample) String() string {
-	return fmt.Sprintf("<User:%d, Nice:%d, System:%d, Idle:%d, Iowait:%d,"+
-		" Irq:%d, SoftIrq:%d, Steal:%d, Guest:%d, Total:%d>",
+	return fmt.Sprintf("User %d Nice %d System %d Idle %d Iowait %d"+
+		" Irq %d SoftIrq %d Steal %d Guest %d Total %d",
 		p.data[PROC_STAT_USER],
 		p.data[PROC_STAT_NICE],
 		p.data[PROC_STAT_SYSTEM],
@@ -83,8 +83,8 @@ type cpuStatSample struct {
 }
 
 func (p *cpuStatSample) String() string {
-	return fmt.Sprintf("<Cpu:%v, Cpus:%v, Ctxt:%d,"+
-		" Processes:%d, ProcsRunning:%d, ProcsBlocking:%d>",
+	return fmt.Sprintf("Cpu %v Cpus %v Ctxt %d"+
+		" Processes %d ProcsRunning %d ProcsBlocking %d",
 		p.cpu,
 		p.cpus,
 		p.ctxt,
@@ -94,16 +94,25 @@ func (p *cpuStatSample) String() string {
 }
 
 func init() {
-	agent.RegisterCollector(&cpuCollector{})
+	agent.RegisterCollector(&cpuCollector{
+		name:  "cpu",
+		gname: "sys",
+	})
 }
 
 type cpuCollector struct {
-	cur  *cpuStatSample
-	last *cpuStatSample
+	cur   *cpuStatSample
+	last  *cpuStatSample
+	name  string
+	gname string
+}
+
+func (p *cpuCollector) GName() string {
+	return p.gname
 }
 
 func (p *cpuCollector) Name() string {
-	return "cpu"
+	return p.name
 }
 
 func (p *cpuCollector) Reset() {
@@ -112,7 +121,7 @@ func (p *cpuCollector) Reset() {
 }
 
 func (p *cpuCollector) Start(agent *agent.Agent) error {
-	glog.V(4).Infof("")
+	glog.V(5).Infof("start")
 	return nil
 }
 
@@ -123,7 +132,7 @@ func (p *cpuCollector) Collect(step int,
 	if err != nil {
 		return nil, err
 	}
-	glog.V(4).Infof("%v", p.cur)
+	glog.V(5).Infof("%v", p.cur)
 	return p.stat(step, host)
 }
 

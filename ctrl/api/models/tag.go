@@ -8,6 +8,7 @@ package models
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/golang/glog"
@@ -40,6 +41,28 @@ type TagNode struct {
 type TagSchema struct {
 	data  string
 	nodes []TagNode
+}
+
+type zTreeNode struct {
+	Id   int64  `json:"id"`
+	Name string `json:"name"`
+}
+
+type TreeNode struct {
+	TagId    int64  `json:"id"`
+	SupTagId int64  `json:"-"`
+	Name     string `json:"name"`
+	Label    string `json:"label"`
+	Read     bool   `json:"read"`
+	//Operate  bool        `json:"operate"`
+	Child []*TreeNode `json:"children"`
+}
+
+type tagNode struct {
+	TagId    int64
+	SupTagId int64
+	Name     string
+	Child    []*tagNode
 }
 
 const (
@@ -377,4 +400,134 @@ func (op *Operator) DeleteTag(id int64) (err error) {
 	DbLog(op.O, op.User.Id, CTL_M_TAG, id, CTL_A_DEL, "")
 
 	return nil
+}
+
+/*******************************************************************************
+ ************************ tag - tag ********************************************
+ ******************************************************************************/
+
+func cloneTreeNode(t *TreeNode, depth int) (out *TreeNode) {
+
+	if t == nil {
+		return
+	}
+
+	out = &TreeNode{
+		TagId:    t.TagId,
+		SupTagId: t.SupTagId,
+		Name:     t.Name,
+		Label:    t.Label,
+		Read:     t.Read,
+	}
+
+	if depth == 0 {
+		return
+	}
+
+	out.Child = make([]*TreeNode, len(t.Child))
+
+	for i, _ := range t.Child {
+		out.Child[i] = cloneTreeNode(t.Child[i], depth-1)
+	}
+
+	return
+}
+
+func pruneTagTree(nodes map[int64]*TreeNode, idx int64) (tree *TreeNode) {
+	n, ok := nodes[idx]
+	if !ok {
+		return nil
+	}
+
+	n.Label = n.Name[strings.LastIndexAny(n.Name, ",")+1:]
+
+	return tree
+}
+
+func (op *Operator) GetOpTag(expand bool) ([]int64, error) {
+	if expand {
+		return userHasTokenTagExpend(op.O, op.User.Id, SYS_O_TOKEN)
+	} else {
+		return userHasTokenTag(op.O, op.User.Id, SYS_O_TOKEN)
+	}
+}
+
+func (op *Operator) GetReadTag(expand bool) ([]int64, error) {
+	if expand {
+		return userHasTokenTagExpend(op.O, op.User.Id, SYS_R_TOKEN)
+	} else {
+		return userHasTokenTag(op.O, op.User.Id, SYS_R_TOKEN)
+	}
+}
+
+func (op *Operator) GetTreeNode(tagId int64, depth int, direct bool) (tree *TreeNode) {
+	var (
+		ids, names []string
+		isChild    []bool
+	)
+
+	if direct {
+		return cloneTreeNode(cacheTree.get(tagId), depth)
+	}
+
+	_, err := op.O.Raw("SELECT group_concat(d1.sup_tag_id order by d1.`offset` desc) as ids, group_concat(d3.name order by d1.`offset` desc SEPARATOR ',,') as tags from tag_rel d1 join (SELECT c1.tag_id, c1.sup_tag_id, c1.offset from tag_rel c1 join (SELECT distinct b1.user_tag_id FROM (SELECT a1.tag_id AS user_tag_id, a2.tag_id AS token_tag_id, a1.tpl_id AS role_id, a1.sub_id AS user_id, a2.sub_id AS token_id FROM tpl_rel a1 JOIN tpl_rel a2 ON a1.type_id = ? AND a1.sub_id = ? AND a2.type_id = ?  AND a2.sub_id = ? AND a1.tpl_id = a2.tpl_id) b1 JOIN tag_rel b2 ON b1.user_tag_id = b2.tag_id AND b1.token_tag_id = b2.sup_tag_id ) c2 on c1.tag_id = c2.user_tag_id WHERE c1.sup_tag_id = ?) d2 left join tag d3 on d1.sup_tag_id = d3.id WHERE d1.tag_id = d2.tag_id AND d1.offset <= d2.offset GROUP BY d1.tag_id ", TPL_REL_T_ACL_USER, op.User.Id, TPL_REL_T_ACL_TOKEN, SYS_R_TOKEN, tagId).QueryRows(&ids, &names)
+	if err != nil {
+		return nil
+	}
+
+	// set child falg to remove from tree
+	isChild = make([]bool, len(names))
+	for i := 0; i < len(names); i++ {
+		for j := 0; j < i; j++ {
+			if strings.HasPrefix(names[i], names[j]+",,") {
+				isChild[i] = true
+			}
+		}
+	}
+
+	nmap := make(map[int64]*TreeNode)
+
+	for i := 0; i < len(ids); i++ {
+		if isChild[i] {
+			continue
+		}
+		name := strings.Split(names[i], ",,")
+		_id := strings.Split(ids[i], ",")
+		id := make([]int64, len(_id))
+
+		for j := 0; j < len(id); j++ {
+			id[j], _ = strconv.ParseInt(_id[j], 10, 0)
+		}
+
+		if !(len(id) > 0 && id[0] > 0) {
+			return nil
+		}
+
+		for j := 0; j < len(id); j++ {
+			if _, ok := nmap[id[j]]; ok {
+				continue
+			}
+
+			n := &TreeNode{
+				TagId: id[j],
+				Name:  name[j],
+				Label: name[j][strings.LastIndexAny(name[j], ",")+1:],
+			}
+
+			if j == len(id)-1 {
+				if m := depth - len(id); m > 0 {
+					n = cloneTreeNode(cacheTree.get(id[len(id)-1]), m)
+				} else {
+					n.Read = true
+				}
+			}
+			nmap[id[j]] = n
+
+			if j-1 >= 0 {
+				nmap[id[j-1]].Child = append(nmap[id[j-1]].Child, n)
+			}
+		}
+
+	}
+	return nmap[tagId]
 }

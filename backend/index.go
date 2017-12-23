@@ -27,12 +27,11 @@ func indexUpdate(e *cacheEntry, db *sql.DB) {
 		err           error
 		hid, cid, tid int64
 		dstype        string
-		step          int
 	)
 
 	statsInc(ST_INDEX_UPDATE, 1)
 	hid = -1
-	err = db.QueryRow("SELECT id FROM host WHERE host = ?", e.host).Scan(&hid)
+	err = db.QueryRow("SELECT id FROM host WHERE host = ?", e.endpoint).Scan(&hid)
 	if err != nil {
 		statsInc(ST_INDEX_HOST_MISS, 1)
 		if err == sql.ErrNoRows || hid < 0 {
@@ -40,7 +39,7 @@ func indexUpdate(e *cacheEntry, db *sql.DB) {
 			ret, err := db.Exec("INSERT INTO host(host, ts, t_create) "+
 				"VALUES (?, ?, now()) ON DUPLICATE KEY "+
 				"UPDATE id=LAST_INSERT_ID(id), ts=VALUES(ts)",
-				e.host, e.lastTs)
+				e.endpoint, e.lastTs)
 			if err != nil {
 				statsInc(ST_INDEX_HOST_INSERT_ERR, 1)
 				glog.Warning(MODULE_NAME, err)
@@ -53,7 +52,7 @@ func indexUpdate(e *cacheEntry, db *sql.DB) {
 				return
 			}
 		} else {
-			glog.Warning(MODULE_NAME+string(e.host), err)
+			glog.Warning(MODULE_NAME+string(e.endpoint), err)
 			return
 		}
 	}
@@ -98,23 +97,22 @@ func indexUpdate(e *cacheEntry, db *sql.DB) {
 	counter := e.id()
 
 	cid = -1
-	step = 0
 	dstype = "nil"
 
-	err = db.QueryRow("SELECT id,step,type FROM counter WHERE "+
+	err = db.QueryRow("SELECT id, type FROM counter WHERE "+
 		"host_id = ? and counter = ?",
-		hid, counter).Scan(&cid, &step, &dstype)
+		hid, counter).Scan(&cid, &dstype)
 	if err != nil {
 		statsInc(ST_INDEX_COUNTER_MISS, 1)
 		if err == sql.ErrNoRows || cid < 0 {
 			statsInc(ST_INDEX_COUNTER_INSERT, 1)
 			ret, err := db.Exec("INSERT INTO counter(host_id,counter,"+
-				"step,type,ts,t_create) "+
-				"VALUES (?,?,?,?,?,now()) "+
+				"type,ts,t_create) "+
+				"VALUES (?,?,?,?,now()) "+
 				"ON DUPLICATE KEY "+
 				"UPDATE id=LAST_INSERT_ID(id),ts=VALUES(ts),"+
-				"step=VALUES(step),type=VALUES(type)",
-				hid, counter, e.step, e.typ,
+				"type=VALUES(type)",
+				hid, counter, e.typ,
 				e.lastTs)
 			if err != nil {
 				statsInc(ST_INDEX_COUNTER_INSERT_ERR, 1)

@@ -59,6 +59,11 @@ num:
 
 conf: ';'
 	| PID_FILE text ';' { conf.PidFile = $2 }
+	| text '=' text ';' {
+		if err := os.Setenv($1, $3); err != nil {
+	 		yy.Error(err.Error())
+		}
+	}
 	| LOG text num ';'  {
 		conf.Log = $2
 		conf.Logv = $3

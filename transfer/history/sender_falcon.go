@@ -87,8 +87,8 @@ func (p *senderFalcon) stop() error {
 
 // falcon {{{
 func falconUpstreamUpdate(client backend.BackendClient, items []*falcon.Item) {
-	if res, err := client.Update(context.Background(),
-		&falcon.UpdateRequest{Items: items}); err != nil {
+	if res, err := client.Put(context.Background(),
+		&falcon.PutRequest{Items: items}); err != nil {
 		glog.Error(err)
 		statsInc(ST_UPSTREAM_PUT_ERR, 1)
 	} else {

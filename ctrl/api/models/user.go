@@ -266,3 +266,90 @@ func (op *Operator) DeleteUser(id int64) error {
 
 	return nil
 }
+
+/*******************************************************************************
+ ************************ tag role user ****************************************
+ ******************************************************************************/
+
+type TagRoleUserApi struct {
+	TagId  int64 `json:"tag_id"`
+	RoleId int64 `json:"role_id"`
+	UserId int64 `json:"user_id"`
+}
+
+type TagRolesUsersApiAdd struct {
+	TagId   int64   `json:"tag_id"`
+	RoleIds []int64 `json:"role_ids"`
+	UserIds []int64 `json:"user_ids"`
+}
+
+type TagRolesUsersApiDel struct {
+	TagId    int64 `json:"tag_id"`
+	RoleUser []struct {
+		RoleId int64 `json:"role_id"`
+		UserId int64 `json:"user_id"`
+	} `json:"role_user"`
+}
+
+type TagRoleUserApiGet struct {
+	TagName  string `json:"tag_name"`
+	RoleName string `json:"role_name"`
+	UserName string `json:"user_name"`
+	TagId    int64  `json:"tag_id"`
+	RoleId   int64  `json:"role_id"`
+	UserId   int64  `json:"user_id"`
+}
+
+func tagRoleUserSql(tagId int64, query string, deep bool) (where string, args []interface{}) {
+	sql2 := []string{}
+	sql3 := []interface{}{}
+
+	sql2 = append(sql2, "a.type_id = ?")
+	sql3 = append(sql3, TPL_REL_T_ACL_USER)
+
+	if query != "" {
+		sql2 = append(sql2, "u.name like ?")
+		sql3 = append(sql3, "%"+query+"%")
+	}
+
+	if deep {
+		sql2 = append(sql2, fmt.Sprintf("a.tag_id in (select tag_id from tag_rel where sup_tag_id = %d)", tagId))
+	} else {
+		sql2 = append(sql2, "a.tag_id = ?")
+		sql3 = append(sql3, tagId)
+	}
+
+	if len(sql2) != 0 {
+		where = "WHERE " + strings.Join(sql2, " AND ")
+		args = sql3
+	}
+	return
+}
+
+func (op *Operator) GetTagRoleUserCnt(tagId int64,
+	query string, deep bool) (cnt int64, err error) {
+	// TODO: acl filter
+	// just for admin?
+	sql, sql_args := tagRoleUserSql(tagId, query, deep)
+	err = op.O.Raw("SELECT count(*) FROM tpl_rel a JOIN tag t ON t.id = a.tag_id JOIN role r ON r.id = a.tpl_id JOIN user u ON u.id = a.sub_id "+sql, sql_args...).QueryRow(&cnt)
+	return
+}
+
+func (op *Operator) GetTagRoleUser(tagId int64, query string, deep bool,
+	limit, offset int) (ret []TagRoleUserApiGet, err error) {
+	sql, sql_args := tagRoleUserSql(tagId, query, deep)
+	sql = "SELECT t.name as tag_name, r.name as role_name, u.name as user_name, a.tag_id, a.tpl_id as role_id, a.sub_id as user_id FROM tpl_rel a JOIN tag t ON t.id = a.tag_id JOIN role r ON r.id = a.tpl_id JOIN user u ON u.id = a.sub_id " + sql + " ORDER BY u.name, r.name LIMIT ? OFFSET ?"
+	sql_args = append(sql_args, limit, offset)
+	_, err = op.O.Raw(sql, sql_args...).QueryRows(&ret)
+	return
+}
+
+func (op *Operator) CreateTagRoleUser(rel *TagRoleUserApi) (int64, error) {
+	return addTplRel(op.O, op.User.Id, rel.TagId, rel.RoleId,
+		rel.UserId, TPL_REL_T_ACL_USER)
+}
+
+func (op *Operator) DeleteTagRoleUser(rel *TagRoleUserApi) (int64, error) {
+	return delTplRel(op.O, op.User.Id, rel.TagId, rel.RoleId,
+		rel.UserId, TPL_REL_T_ACL_USER)
+}

@@ -38,35 +38,26 @@ func init() {
 }
 
 type upstream struct {
-	name      string
-	upstream  sender
-	scheduler scheduler
+	name     string
+	upstream sender
 }
 
 /* upstream */
 type BackendModule struct {
-	backends []*upstream
-	ctx      context.Context
-	cancel   context.CancelFunc
+	shareUpsteam []*upstream
+	ctx          context.Context
+	cancel       context.CancelFunc
 }
 
 func (p *BackendModule) prestart(transfer *Transfer) error {
 
-	p.backends = make([]*upstream, 0)
-	for _, v := range transfer.Conf.Backend {
-		if v.Disabled {
-			continue
-		}
+	p.shareUpsteam = make([]*upstream, 0)
+	for _, v := range transfer.Conf.ShareMap {
 		b := &upstream{name: v.Name}
-		if st, ok := _sender[v.Type]; ok {
-			b.upstream = st.new(transfer)
-		} else {
-			return falcon.ErrUnsupported
-		}
 
 		b.scheduler = newSchedConsistent()
 
-		for node, addr := range v.Upstream {
+		for shareid, addr := range transfer.Conf.ShareMap {
 			ch := make(chan *falcon.Item)
 			b.scheduler.addChan(node, ch)
 			b.upstream.addClientChan(node, addr, ch)

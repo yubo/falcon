@@ -11,6 +11,7 @@ import (
 
 	"github.com/astaxie/beego"
 	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/ctrl"
 	"github.com/yubo/falcon/ctrl/api/models"
 )
 
@@ -118,6 +119,16 @@ func (c *AdminController) GetDebugAction() {
 	var obj interface{}
 	action := c.GetString(":action")
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
+
+	conf, err := op.ConfigerGet("ctrl")
+	if err != nil {
+		c.SendMsg(400, err.Error())
+		return
+	}
+	if conf.DefaultBool(ctrl.C_DEV_MODE, false) == false {
+		c.SendMsg(400, "just for dev mode")
+		return
+	}
 
 	switch action {
 	case "populate":

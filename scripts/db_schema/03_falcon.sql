@@ -1,7 +1,6 @@
-USE falcon;
+-- USE falcon;
 SET NAMES utf8;
 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0;
-SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0;
 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='TRADITIONAL,ALLOW_INVALID_DATES';
 
 -- -----------------------------------------------------
@@ -318,13 +317,13 @@ COMMENT='事件行为';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Table structure for table `triggers`
+-- Table structure for table `event_trigger`
 --
 
-DROP TABLE IF EXISTS `triggers`;
+DROP TABLE IF EXISTS `event_trigger`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `triggers` (
+CREATE TABLE `event_trigger` (
   `id`			bigint unsigned			NOT NULL AUTO_INCREMENT,
   `parent_id`		bigint unsigned DEFAULT '0'	NOT NULL COMMENT '父触发器 id(group)',
   `tpl_id`		bigint unsigned	DEFAULT '0'	NOT NULL COMMENT '模板 id',
@@ -343,14 +342,13 @@ CREATE TABLE `triggers` (
   INDEX `index_parent_id` (`parent_id`),
   INDEX `index_tpl_id` (`tpl_id`),
   INDEX `index_tag_id` (`tag_id`),
-  UNIQUE INDEX `index_triggers_tag_name` (`tag_id`, `name`)
+  UNIQUE INDEX `index_event_trigger_tag_name` (`tag_id`, `name`)
 ) ENGINE = InnoDB AUTO_INCREMENT=10000 DEFAULT CHARACTER SET=utf8 COLLATE=utf8_unicode_ci
-COMMENT='报警策略';
+COMMENT='事件策略';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 
 SET SQL_MODE=@OLD_SQL_MODE;
-SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
 
 INSERT INTO `tag` (`id`, `name`) VALUES (1, '');

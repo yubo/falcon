@@ -510,6 +510,171 @@ paths:
             $ref: '#/definitions/models.APITmpGraph'
         "400":
           description: string error
+  /event/tag/template:
+    post:
+      tags:
+      - event
+      description: create tag/template relation
+      operationId: EventController.create tag trigger relation
+      parameters:
+      - in: body
+        name: body
+        description: "true"
+        schema:
+          $ref: '#/definitions/.RelTagTpl'
+      responses:
+        "200":
+          description: Id
+          schema:
+            $ref: '#/definitions/models.Id'
+        "400":
+          description: string error
+  /event/trigger:
+    put:
+      tags:
+      - event
+      description: update the trigger
+      operationId: EventController.update event trigger
+      parameters:
+      - in: body
+        name: body
+        description: body for event trigger content
+        required: true
+        schema:
+          $ref: '#/definitions/models.EventTriggerApiUpdate'
+      responses:
+        "200":
+          description: trigger info
+          schema:
+            $ref: '#/definitions/.Trigger'
+        "400":
+          description: string error
+    post:
+      tags:
+      - event
+      description: create event trigger
+      operationId: EventController.Create event trigger
+      parameters:
+      - in: body
+        name: body
+        description: body for trigger content
+        required: true
+        schema:
+          $ref: '#/definitions/models.EventTriggerApiAdd'
+      responses:
+        "200":
+          description: Id
+          schema:
+            $ref: '#/definitions/models.Id'
+        "400":
+          description: string error
+    delete:
+      tags:
+      - event
+      description: delete the event trigger
+      operationId: EventController.delete event trigger
+      parameters:
+      - in: body
+        name: body
+        description: body for delete event trigger content
+        required: true
+        schema:
+          $ref: '#/definitions/models.EventTriggerApiDel'
+      responses:
+        '{code:400,':
+          description: msg:string}
+        "200":
+          description: api call result
+          schema:
+            $ref: '#/definitions/models.Stats'
+  /event/trigger/clone:
+    post:
+      tags:
+      - event
+      description: clone event triggers to tag node
+      operationId: EventController.clone event triggers to tag node
+      parameters:
+      - in: body
+        name: body
+        description: body for clone event trigger content
+        required: true
+        schema:
+          $ref: '#/definitions/models.EventTriggerApiClone'
+      responses:
+        "200":
+          description: api call result
+          schema:
+            $ref: '#/definitions/models.Stats'
+        "403":
+          description: string error
+  /event/trigger/cnt:
+    get:
+      tags:
+      - event
+      description: get event triggers number
+      operationId: EventController.Get event triggers Cnt
+      parameters:
+      - in: query
+        name: tag_id
+        description: tag id
+        type: integer
+        format: int64
+      - in: query
+        name: deep
+        description: '0: cur tag, 1: include parent , 2: include child'
+        type: integer
+        format: int64
+      - in: query
+        name: query
+        description: trigger name
+        type: string
+      responses:
+        "200":
+          description: total number
+          schema:
+            $ref: '#/definitions/models.Total'
+        "400":
+          description: string error
+  /event/trigger/search:
+    get:
+      tags:
+      - event
+      description: get all event triggers
+      operationId: EventController.Get event triggers
+      parameters:
+      - in: query
+        name: tag_id
+        description: tag id
+        type: integer
+        format: int64
+      - in: query
+        name: deep
+        description: '0: cur tag, 1: include parent , 2: include child'
+        type: integer
+        format: int64
+      - in: query
+        name: query
+        description: trigger name
+        type: string
+      - in: query
+        name: limit
+        description: limit page number
+        type: integer
+        format: int64
+      - in: query
+        name: offset
+        description: offset  number
+        type: integer
+        format: int64
+      responses:
+        "200":
+          description: triggers ui info
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/models.EventTriggerApiGet'
+        "400":
+          description: string error
   /graph/counter_data:
     post:
       tags:
@@ -645,7 +810,9 @@ paths:
           format: int64
       responses:
         "200":
-          description: '{string} "delete success!"'
+          description: api call result
+          schema:
+            $ref: '#/definitions/models.Stats'
         "400":
           description: string error
   /host/{id}:
@@ -732,6 +899,110 @@ paths:
               $ref: '#/definitions/models.Host'
         "400":
           description: string error
+  /host/tag:
+    post:
+      tags:
+      - host
+      description: create tag/hosts relation
+      operationId: HostController.create tag host relation
+      parameters:
+      - in: body
+        name: body
+        description: "true"
+        schema:
+          $ref: '#/definitions/models.TagHostsApiAdd'
+      responses:
+        "200":
+          description: affected number
+          schema:
+            $ref: '#/definitions/models.Total'
+        "400":
+          description: string error
+    delete:
+      tags:
+      - host
+      description: delete tag/hosts relation
+      operationId: HostController.delete tag host relation
+      parameters:
+      - in: body
+        name: body
+        description: unbind tag_id host_id relation
+        required: true
+        schema:
+          $ref: '#/definitions/models.TagHostsApiDel'
+      responses:
+        "200":
+          description: affected number
+          schema:
+            $ref: '#/definitions/models.Total'
+        "400":
+          description: string error
+  /host/tag/cnt:
+    get:
+      tags:
+      - host
+      description: get Tag-Host number
+      operationId: HostController.GetTagHostCnt
+      parameters:
+      - in: query
+        name: tag_id
+        description: tag id
+        type: integer
+        format: int64
+      - in: query
+        name: query
+        description: host name
+        type: string
+      - in: query
+        name: deep
+        description: search sub tag
+        type: boolean
+      responses:
+        "200":
+          description: total number
+          schema:
+            $ref: '#/definitions/models.Total'
+        "400":
+          description: string error
+  /host/tag/search:
+    get:
+      tags:
+      - host
+      description: get all Host
+      operationId: HostController.GetHost
+      parameters:
+      - in: query
+        name: tag_id
+        description: tag id
+        type: integer
+        format: int64
+      - in: query
+        name: query
+        description: host name
+        type: string
+      - in: query
+        name: deep
+        description: search sub tag
+        type: boolean
+      - in: query
+        name: limit
+        description: limit page number
+        type: integer
+        format: int64
+      - in: query
+        name: offset
+        description: offset  number
+        type: integer
+        format: int64
+      responses:
+        "200":
+          description: tag host info
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/.TagHost'
+        "400":
+          description: string error
   /metric/cnt:
     get:
       tags:
@@ -778,6 +1049,110 @@ paths:
             type: array
             items:
               $ref: '#/definitions/models.Metric'
+        "400":
+          description: string error
+  /plugin/tag/plugindir:
+    post:
+      tags:
+      - plugin
+      description: create tag/template relation
+      operationId: PluginController.create tag template relation
+      parameters:
+      - in: body
+        name: body
+        description: "true"
+        schema:
+          $ref: '#/definitions/models.PluginDirPost'
+      responses:
+        "200":
+          description: Id
+          schema:
+            $ref: '#/definitions/models.Id'
+        "400":
+          description: string error
+    delete:
+      tags:
+      - plugin
+      description: delete the plugin
+      operationId: PluginController.Delete tag plugin
+      parameters:
+      - in: query
+        name: tag_id
+        description: tag id
+        required: true
+        type: integer
+        format: int64
+      - in: query
+        name: id
+        description: The id you want to delete
+        required: true
+        type: integer
+        format: int64
+      responses:
+        "200":
+          description: total number
+          schema:
+            $ref: '#/definitions/models.Total'
+        "400":
+          description: string error
+  /plugin/tag/plugindir/cnt:
+    get:
+      tags:
+      - plugin
+      description: get Tag-plugin number
+      operationId: PluginController.GetTagPluginCnt
+      parameters:
+      - in: query
+        name: tag_id
+        description: tag id
+        required: true
+        type: integer
+        format: int64
+      - in: query
+        name: deep
+        description: include child tag(default:true)
+        type: boolean
+      responses:
+        "200":
+          description: total number
+          schema:
+            $ref: '#/definitions/models.Total'
+        "400":
+          description: string error
+  /plugin/tag/plugindir/search:
+    get:
+      tags:
+      - plugin
+      description: get all Template
+      operationId: PluginController.Get plugin dir
+      parameters:
+      - in: query
+        name: tag_id
+        description: tag id
+        required: true
+        type: integer
+        format: int64
+      - in: query
+        name: deep
+        description: include child tag(default:true)
+        type: boolean
+      - in: query
+        name: limit
+        description: per page number
+        type: integer
+        format: int64
+      - in: query
+        name: offset
+        description: offset  number
+        type: integer
+        format: int64
+      responses:
+        "200":
+          description: plugin info
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/models.PluginDirGet'
         "400":
           description: string error
   /pub/config/ctrl:
@@ -852,708 +1227,7 @@ paths:
           schema:
             type: array
             items:
-              $ref: '#/definitions/models.RelTagHost'
-        "400":
-          description: string error
-  /rel/node:
-    get:
-      tags:
-      - rel
-      description: get node and it's children
-      operationId: RelController.Get tree's node
-      parameters:
-      - in: query
-        name: id
-        description: tag id default root(1)
-        type: integer
-        format: int64
-      - in: query
-        name: depth
-        description: depth levels default -1(no limit)
-        type: integer
-        format: int64
-      responses:
-        "200":
-          description: all nodes of the tree(read)
-          schema:
-            $ref: '#/definitions/models.TreeNode'
-        "400":
-          description: string error
-  /rel/operate/tag:
-    get:
-      tags:
-      - rel
-      description: get has operate token tags
-      operationId: RelController.Get tags(operate)
-      parameters:
-      - in: query
-        name: expand
-        description: include child tag(default:false)
-        type: boolean
-      responses:
-        "200":
-          description: all ids of the node that can be operated
-          schema:
-            type: array
-            items:
-              format: int64
-              type: integer
-        "400":
-          description: string error
-  /rel/read/tag:
-    get:
-      tags:
-      - rel
-      description: get has read token tags
-      operationId: RelController.Get tags(read)
-      parameters:
-      - in: query
-        name: expand
-        description: include child tag(default:false)
-        type: boolean
-      responses:
-        "200":
-          description: all ids of the node that can be read
-          schema:
-            type: array
-            items:
-              format: int64
-              type: integer
-        "400":
-          description: string error
-  /rel/tag/host:
-    post:
-      tags:
-      - rel
-      description: create tag/host relation
-      operationId: RelController.create tag host relation
-      parameters:
-      - in: body
-        name: body
-        description: "true"
-        schema:
-          $ref: '#/definitions/models.RelTagHostApiAdd'
-      responses:
-        "200":
-          description: affected number
-          schema:
-            $ref: '#/definitions/models.Total'
-        "400":
-          description: string error
-    delete:
-      tags:
-      - rel
-      description: delete tag/host relation
-      operationId: RelController.delete tag host relation
-      parameters:
-      - in: body
-        name: body
-        description: unbind tag_id host_id relation
-        required: true
-        schema:
-          $ref: '#/definitions/models.RelTagHostApiDel'
-      responses:
-        "200":
-          description: affected number
-          schema:
-            $ref: '#/definitions/models.Total'
-        "400":
-          description: string error
-  /rel/tag/host/cnt:
-    get:
-      tags:
-      - rel
-      description: get Tag-Host number
-      operationId: RelController.GetTagHostCnt
-      parameters:
-      - in: query
-        name: tag_id
-        description: tag id
-        type: integer
-        format: int64
-      - in: query
-        name: query
-        description: host name
-        type: string
-      - in: query
-        name: deep
-        description: search sub tag
-        type: boolean
-      responses:
-        "200":
-          description: total number
-          schema:
-            $ref: '#/definitions/models.Total'
-        "400":
-          description: string error
-  /rel/tag/host/search:
-    get:
-      tags:
-      - rel
-      description: get all Host
-      operationId: RelController.GetHost
-      parameters:
-      - in: query
-        name: tag_id
-        description: tag id
-        type: integer
-        format: int64
-      - in: query
-        name: query
-        description: host name
-        type: string
-      - in: query
-        name: deep
-        description: search sub tag
-        type: boolean
-      - in: query
-        name: limit
-        description: limit page number
-        type: integer
-        format: int64
-      - in: query
-        name: offset
-        description: offset  number
-        type: integer
-        format: int64
-      responses:
-        "200":
-          description: tag host info
-          schema:
-            type: array
-            items:
-              $ref: '#/definitions/models.RelTagHost'
-        "400":
-          description: string error
-  /rel/tag/hosts:
-    post:
-      tags:
-      - rel
-      description: create tag/hosts relation
-      operationId: RelController.create tag host relation
-      parameters:
-      - in: body
-        name: body
-        description: "true"
-        schema:
-          $ref: '#/definitions/.RelTagHostsAdd'
-      responses:
-        "200":
-          description: affected number
-          schema:
-            $ref: '#/definitions/models.Total'
-        "400":
-          description: string error
-    delete:
-      tags:
-      - rel
-      description: delete tag/hosts relation
-      operationId: RelController.delete tag host relation
-      parameters:
-      - in: body
-        name: body
-        description: unbind tag_id host_id relation
-        required: true
-        schema:
-          $ref: '#/definitions/models.RelTagHostsApiDel'
-      responses:
-        "200":
-          description: affected number
-          schema:
-            $ref: '#/definitions/models.Total'
-        "400":
-          description: string error
-  /rel/tag/plugindir:
-    post:
-      tags:
-      - rel
-      description: create tag/template relation
-      operationId: RelController.create tag template relation
-      parameters:
-      - in: body
-        name: body
-        description: "true"
-        schema:
-          $ref: '#/definitions/models.PluginDirPost'
-      responses:
-        "200":
-          description: Id
-          schema:
-            $ref: '#/definitions/models.Id'
-        "400":
-          description: string error
-    delete:
-      tags:
-      - rel
-      description: delete the plugin
-      operationId: RelController.Delete tag plugin
-      parameters:
-      - in: query
-        name: tag_id
-        description: tag id
-        required: true
-        type: integer
-        format: int64
-      - in: query
-        name: id
-        description: The id you want to delete
-        required: true
-        type: integer
-        format: int64
-      responses:
-        "200":
-          description: total number
-          schema:
-            $ref: '#/definitions/models.Total'
-        "400":
-          description: string error
-  /rel/tag/plugindir/cnt:
-    get:
-      tags:
-      - rel
-      description: get Tag-plugin number
-      operationId: RelController.GetTagPluginCnt
-      parameters:
-      - in: query
-        name: tag_id
-        description: tag id
-        required: true
-        type: integer
-        format: int64
-      - in: query
-        name: deep
-        description: include child tag(default:true)
-        type: boolean
-      responses:
-        "200":
-          description: total number
-          schema:
-            $ref: '#/definitions/models.Total'
-        "400":
-          description: string error
-  /rel/tag/plugindir/search:
-    get:
-      tags:
-      - rel
-      description: get all Template
-      operationId: RelController.Get plugin dir
-      parameters:
-      - in: query
-        name: tag_id
-        description: tag id
-        required: true
-        type: integer
-        format: int64
-      - in: query
-        name: deep
-        description: include child tag(default:true)
-        type: boolean
-      - in: query
-        name: limit
-        description: per page number
-        type: integer
-        format: int64
-      - in: query
-        name: offset
-        description: offset  number
-        type: integer
-        format: int64
-      responses:
-        "200":
-          description: plugin info
-          schema:
-            type: array
-            items:
-              $ref: '#/definitions/models.PluginDirGet'
-        "400":
-          description: string error
-  /rel/tag/role/token:
-    post:
-      tags:
-      - rel
-      description: create tag/role/tokens relation
-      operationId: RelController.create tag role tokens relation
-      parameters:
-      - in: body
-        name: body
-        description: "true"
-        schema:
-          $ref: '#/definitions/models.TagRoleTokenApi'
-      responses:
-        "200":
-          description: affected id
-          schema:
-            $ref: '#/definitions/models.Id'
-        "400":
-          description: string error
-    delete:
-      tags:
-      - rel
-      description: delete tag/role/token relation
-      operationId: RelController.delete tag role token relation
-      parameters:
-      - in: body
-        name: body
-        description: "true"
-        schema:
-          $ref: '#/definitions/models.TagRoleTokenApi'
-      responses:
-        "200":
-          description: affected id
-          schema:
-            $ref: '#/definitions/models.Id'
-        "400":
-          description: string error
-  /rel/tag/role/token/cnt:
-    get:
-      tags:
-      - rel
-      description: get tag role token number
-      operationId: RelController.GetTagRoleTokenCnt
-      parameters:
-      - in: query
-        name: query
-        description: token name
-        type: string
-      - in: query
-        name: tag_id
-        description: tag id
-        required: true
-        type: integer
-        format: int64
-      - in: query
-        name: deep
-        description: search sub tag
-        type: boolean
-      responses:
-        "200":
-          description: affected number
-          schema:
-            $ref: '#/definitions/models.Total'
-        "400":
-          description: string error
-  /rel/tag/role/token/search:
-    get:
-      tags:
-      - rel
-      description: get tag role token
-      operationId: RelController.GetTagRoleToken
-      parameters:
-      - in: query
-        name: tag_id
-        description: tag id
-        required: true
-        type: integer
-        format: int64
-      - in: query
-        name: query
-        description: token name
-        type: string
-      - in: query
-        name: deep
-        description: search sub tag
-        type: boolean
-      - in: query
-        name: limit
-        description: limit page number
-        type: integer
-        format: int64
-      - in: query
-        name: offset
-        description: offset  number
-        type: integer
-        format: int64
-      responses:
-        "200":
-          description: hosts info
-          schema:
-            type: array
-            items:
-              $ref: '#/definitions/models.Host'
-        "400":
-          description: string error
-  /rel/tag/role/user:
-    post:
-      tags:
-      - rel
-      description: create tag/role/users relation
-      operationId: RelController.create tag role users relation
-      parameters:
-      - in: body
-        name: body
-        description: "true"
-        schema:
-          $ref: '#/definitions/models.TagRoleUserApi'
-      responses:
-        "200":
-          description: Id
-          schema:
-            $ref: '#/definitions/models.Id'
-        "400":
-          description: string error
-    delete:
-      tags:
-      - rel
-      description: delete tag/role/user relation
-      operationId: RelController.delete tag role user relation
-      parameters:
-      - in: body
-        name: body
-        description: "true"
-        schema:
-          $ref: '#/definitions/models.TagRoleUserApi'
-      responses:
-        "200":
-          description: affected id
-          schema:
-            $ref: '#/definitions/models.Id'
-        "400":
-          description: string error
-  /rel/tag/role/user/cnt:
-    get:
-      tags:
-      - rel
-      description: get tag role user number
-      operationId: RelController.GetTagRoleUserCnt
-      parameters:
-      - in: query
-        name: query
-        description: user name
-        type: string
-      - in: query
-        name: tag_id
-        description: tag id
-        required: true
-        type: integer
-        format: int64
-      - in: query
-        name: deep
-        description: search sub tag
-        type: boolean
-      responses:
-        "200":
-          description: user total number
-          schema:
-            $ref: '#/definitions/models.Total'
-        "400":
-          description: string error
-  /rel/tag/role/user/search:
-    get:
-      tags:
-      - rel
-      description: get tag role user
-      operationId: RelController.GetTagRoleUser
-      parameters:
-      - in: query
-        name: tag_id
-        description: tag id
-        required: true
-        type: integer
-        format: int64
-      - in: query
-        name: query
-        description: user name
-        type: string
-      - in: query
-        name: deep
-        description: search sub tag
-        type: boolean
-      - in: query
-        name: limit
-        description: limit page number
-        type: integer
-        format: int64
-      - in: query
-        name: offset
-        description: offset  number
-        type: integer
-        format: int64
-      responses:
-        "200":
-          description: tag role user info
-          schema:
-            type: array
-            items:
-              $ref: '#/definitions/models.TagRoleUserApiGet'
-        "400":
-          description: string error
-  /rel/tag/template:
-    post:
-      tags:
-      - rel
-      description: create tag/template relation
-      operationId: RelController.create tag trigger relation
-      parameters:
-      - in: body
-        name: body
-        description: "true"
-        schema:
-          $ref: '#/definitions/models.RelTagTpl'
-      responses:
-        "200":
-          description: Id
-          schema:
-            $ref: '#/definitions/models.Id'
-        "400":
-          description: string error
-    delete:
-      tags:
-      - rel
-      description: delete tag/template relation
-      operationId: RelController.delete tag template relation
-      parameters:
-      - in: body
-        name: body
-        description: "true"
-        schema:
-          $ref: '#/definitions/models.RelTagTpl'
-      responses:
-        "200":
-          description: affected number
-          schema:
-            $ref: '#/definitions/models.Total'
-        "400":
-          description: string error
-  /rel/tag/template/0:
-    post:
-      tags:
-      - rel
-      description: create tag/templates relation by tag string & template name
-      operationId: RelController.create tag template relation by tag string & template
-        name
-      parameters:
-      - in: body
-        name: body
-        description: "true"
-        schema:
-          $ref: '#/definitions/models.RelTagTpl0'
-      responses:
-        "200":
-          description: Id
-          schema:
-            $ref: '#/definitions/models.Id'
-        "400":
-          description: string error
-    delete:
-      tags:
-      - rel
-      description: delete tag/template relation by tag string & template name
-      operationId: RelController.delete tag template relation by tag string & template
-        name
-      parameters:
-      - in: body
-        name: body
-        description: "true"
-        schema:
-          $ref: '#/definitions/models.RelTagTpl0'
-      responses:
-        "200":
-          description: affected number
-          schema:
-            $ref: '#/definitions/models.Total'
-        "400":
-          description: string error
-  /rel/tag/template/search/0:
-    get:
-      tags:
-      - rel
-      description: get all Template by tag string
-      operationId: RelController.GetTriggers by tag id
-      parameters:
-      - in: query
-        name: tag_id
-        description: tag id
-        type: integer
-        format: int64
-      - in: query
-        name: query
-        description: template name
-        type: string
-      - in: query
-        name: deep
-        description: search sub tag
-        type: boolean
-      - in: query
-        name: limit
-        description: per page number
-        type: integer
-        format: int64
-      - in: query
-        name: offset
-        description: offset  number
-        type: integer
-        format: int64
-      responses:
-        "200":
-          description: templates info
-          schema:
-            type: array
-            items:
-              $ref: '#/definitions/models.TriggerApiGet'
-        "400":
-          description: string error
-  /rel/tag/templates:
-    post:
-      tags:
-      - rel
-      description: create tag/templates relation
-      operationId: RelController.create tag template relation
-      parameters:
-      - in: body
-        name: body
-        description: "true"
-        schema:
-          $ref: '#/definitions/models.RelTagTpls'
-      responses:
-        "200":
-          description: Id
-          schema:
-            $ref: '#/definitions/models.Id'
-        "400":
-          description: string error
-    delete:
-      tags:
-      - rel
-      description: delete tag/templates relation
-      operationId: RelController.delete tag template relation
-      parameters:
-      - in: body
-        name: body
-        description: "true"
-        schema:
-          $ref: '#/definitions/models.RelTagTpls'
-      responses:
-        "200":
-          description: affected number
-          schema:
-            $ref: '#/definitions/models.Total'
-        "400":
-          description: string error
-  /rel/tag/trigger/cnt:
-    get:
-      tags:
-      - rel
-      description: get Tag-Template number
-      operationId: RelController.GetTagTriggerCnt by tag string
-      parameters:
-      - in: query
-        name: tag_id
-        description: tag id
-        type: integer
-        format: int64
-      - in: query
-        name: query
-        description: trigger name
-        type: string
-      - in: query
-        name: deep
-        description: search sub tag
-        type: boolean
-      responses:
-        "200":
-          description: total number
-          schema:
-            $ref: '#/definitions/models.Total'
+              $ref: '#/definitions/.RelTagHost'
         "400":
           description: string error
   /role/:
@@ -1858,6 +1532,72 @@ paths:
             $ref: '#/definitions/models.Total'
         "400":
           description: string error
+  /tag/node:
+    get:
+      tags:
+      - tag
+      description: get node and it's children
+      operationId: TagController.Get tree's node
+      parameters:
+      - in: query
+        name: id
+        description: tag id default root(1)
+        type: integer
+        format: int64
+      - in: query
+        name: depth
+        description: depth levels default -1(no limit)
+        type: integer
+        format: int64
+      responses:
+        "200":
+          description: all nodes of the tree(read)
+          schema:
+            $ref: '#/definitions/models.TreeNode'
+        "400":
+          description: string error
+  /tag/operate:
+    get:
+      tags:
+      - tag
+      description: get has operate token tags
+      operationId: TagController.Get tags(operate)
+      parameters:
+      - in: query
+        name: expand
+        description: include child tag(default:false)
+        type: boolean
+      responses:
+        "200":
+          description: all ids of the node that can be operated
+          schema:
+            type: array
+            items:
+              format: int64
+              type: integer
+        "400":
+          description: string error
+  /tag/read:
+    get:
+      tags:
+      - tag
+      description: get has read token tags
+      operationId: TagController.Get tags(read)
+      parameters:
+      - in: query
+        name: expand
+        description: include child tag(default:false)
+        type: boolean
+      responses:
+        "200":
+          description: all ids of the node that can be read
+          schema:
+            type: array
+            items:
+              format: int64
+              type: integer
+        "400":
+          description: string error
   /tag/search:
     get:
       tags:
@@ -1981,6 +1721,43 @@ paths:
             $ref: '#/definitions/models.Total'
         "400":
           description: string error
+  /token/m/tag/roles:
+    post:
+      tags:
+      - token
+      description: create tag/role/tokens relation
+      operationId: TokenController.create tag role tokens relation
+      parameters:
+      - in: body
+        name: body
+        description: "true"
+        schema:
+          $ref: '#/definitions/models.TagRolesTokensApiAdd'
+      responses:
+        "200":
+          description: affected number
+          schema:
+            $ref: '#/definitions/models.Total'
+        "400":
+          description: string error
+    delete:
+      tags:
+      - token
+      description: delete tag/role/token relation
+      operationId: TokenController.delete tag role token relation
+      parameters:
+      - in: body
+        name: body
+        description: "true"
+        schema:
+          $ref: '#/definitions/models.TagRolesTokensApiDel'
+      responses:
+        "200":
+          description: affected number
+          schema:
+            $ref: '#/definitions/models.Total'
+        "400":
+          description: string error
   /token/search:
     get:
       tags:
@@ -2011,96 +1788,55 @@ paths:
               $ref: '#/definitions/models.Token'
         "400":
           description: string error
-  /trigger/:
-    post:
-      tags:
-      - trigger
-      description: create triggers
-      operationId: TriggerController.CreateTrigger
-      parameters:
-      - in: body
-        name: body
-        description: body for trigger content
-        required: true
-        schema:
-          $ref: '#/definitions/models.TriggerApiAdd'
-      responses:
-        "200":
-          description: Id
-          schema:
-            $ref: '#/definitions/models.Id'
-        "400":
-          description: string error
-  /trigger/{id}:
-    put:
-      tags:
-      - trigger
-      description: update the trigger
-      operationId: TriggerController.UpdateTrigger
-      parameters:
-      - in: path
-        name: id
-        description: The id you want to update
-        required: true
-        type: string
-      - in: body
-        name: body
-        description: body for trigger content
-        required: true
-        schema:
-          $ref: '#/definitions/.TriggerAction'
-      responses:
-        "200":
-          description: trigger info
-          schema:
-            $ref: '#/definitions/models.Trigger'
-        "400":
-          description: string error
-    delete:
-      tags:
-      - trigger
-      description: delete the trigger
-      operationId: TriggerController.DeleteTrigger
-      parameters:
-      - in: path
-        name: id
-        description: The id you want to delete
-        required: true
-        type: string
-      responses:
-        '{code:200,':
-          description: data:"delete success!"} delete success!
-        '{code:400,':
-          description: msg:string}
-  /trigger/cnt:
+  /token/tag/role/cnt:
     get:
       tags:
-      - trigger
-      description: get Triggers number
-      operationId: TriggerController.GetTriggersCnt
+      - token
+      description: get tag role token number
+      operationId: TokenController.GetTagRoleTokenCnt
       parameters:
       - in: query
         name: query
-        description: trigger name
+        description: token name
         type: string
+      - in: query
+        name: tag_id
+        description: tag id
+        required: true
+        type: integer
+        format: int64
+      - in: query
+        name: deep
+        description: search sub tag
+        type: boolean
       responses:
         "200":
-          description: total number
+          description: affected number
           schema:
             $ref: '#/definitions/models.Total'
         "400":
           description: string error
-  /trigger/search:
+  /token/tag/role/search:
     get:
       tags:
-      - trigger
-      description: get all Triggers
-      operationId: TriggerController.GetTriggers
+      - token
+      description: get tag role token
+      operationId: TokenController.GetTagRoleToken
       parameters:
       - in: query
+        name: tag_id
+        description: tag id
+        required: true
+        type: integer
+        format: int64
+      - in: query
         name: query
-        description: trigger name
+        description: token name
         type: string
+      - in: query
+        name: deep
+        description: search sub tag
+        type: boolean
       - in: query
         name: limit
         description: limit page number
@@ -2113,11 +1849,11 @@ paths:
         format: int64
       responses:
         "200":
-          description: triggers ui info
+          description: hosts info
           schema:
             type: array
             items:
-              $ref: '#/definitions/.TriggerUi'
+              $ref: '#/definitions/models.Host'
         "400":
           description: string error
   /user/:
@@ -2157,6 +1893,27 @@ paths:
           description: Id
           schema:
             $ref: '#/definitions/models.Id'
+        "400":
+          description: string error
+    delete:
+      tags:
+      - user
+      description: delete the user
+      operationId: UserController.Delete
+      parameters:
+      - in: body
+        name: body
+        description: The []id you want to delete
+        required: true
+        type: array
+        items:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          description: api call result
+          schema:
+            $ref: '#/definitions/models.Stats'
         "400":
           description: string error
   /user/{id}:
@@ -2263,6 +2020,111 @@ paths:
             type: array
             items:
               $ref: '#/definitions/models.User'
+        "400":
+          description: string error
+  /user/tag/role:
+    post:
+      tags:
+      - user
+      description: create tag/roles/users relation
+      operationId: UserController.create tag role users relation
+      parameters:
+      - in: body
+        name: body
+        description: "true"
+        schema:
+          $ref: '#/definitions/models.TagRolesUsersApiAdd'
+      responses:
+        "200":
+          description: affected number
+          schema:
+            $ref: '#/definitions/models.Total'
+        "400":
+          description: string error
+    delete:
+      tags:
+      - user
+      description: delete tag/roles/users relation
+      operationId: UserController.delete tag role user relation
+      parameters:
+      - in: body
+        name: body
+        description: "true"
+        schema:
+          $ref: '#/definitions/models.TagRolesUsersApiDel'
+      responses:
+        "200":
+          description: affected number
+          schema:
+            $ref: '#/definitions/models.Total'
+        "400":
+          description: string error
+  /user/tag/role/cnt:
+    get:
+      tags:
+      - user
+      description: get tag role user number
+      operationId: UserController.GetTagRoleUserCnt
+      parameters:
+      - in: query
+        name: query
+        description: user name
+        type: string
+      - in: query
+        name: tag_id
+        description: tag id
+        required: true
+        type: integer
+        format: int64
+      - in: query
+        name: deep
+        description: search sub tag
+        type: boolean
+      responses:
+        "200":
+          description: user total number
+          schema:
+            $ref: '#/definitions/models.Total'
+        "400":
+          description: string error
+  /user/tag/role/search:
+    get:
+      tags:
+      - user
+      description: get tag role user
+      operationId: UserController.GetTagRoleUser
+      parameters:
+      - in: query
+        name: tag_id
+        description: tag id
+        required: true
+        type: integer
+        format: int64
+      - in: query
+        name: query
+        description: user name
+        type: string
+      - in: query
+        name: deep
+        description: search sub tag
+        type: boolean
+      - in: query
+        name: limit
+        description: limit page number
+        type: integer
+        format: int64
+      - in: query
+        name: offset
+        description: offset  number
+        type: integer
+        format: int64
+      responses:
+        "200":
+          description: tag role user info
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/models.TagRoleUserApiGet'
         "400":
           description: string error
   /user/unbind/{id}:
@@ -2420,11 +2282,17 @@ paths:
         "400":
           description: string error
 definitions:
-  .RelTagHostsAdd:
+  .ActionTriggerApiAdd:
     type: object
-  .TriggerAction:
+  .RelTagHost:
     type: object
-  .TriggerUi:
+  .RelTagTpl:
+    type: object
+  .TagHost:
+    type: object
+  .Trigger:
+    type: object
+  .false:
     type: object
   models.APIGraph:
     title: APIGraph
@@ -2569,6 +2437,136 @@ definitions:
         type: integer
         format: int64
       type:
+        type: string
+  models.EventTriggerApiAdd:
+    title: EventTriggerApiAdd
+    type: object
+    properties:
+      func:
+        type: string
+      metric:
+        type: string
+      msg:
+        type: string
+      name:
+        type: string
+      op:
+        type: string
+      parent_id:
+        type: integer
+        format: int64
+      priority:
+        type: integer
+        format: int64
+      tag_id:
+        type: integer
+        format: int64
+      tags:
+        type: string
+      value:
+        type: string
+  models.EventTriggerApiClone:
+    title: EventTriggerApiClone
+    type: object
+    properties:
+      event_trigger_ids:
+        type: array
+        items:
+          type: integer
+          format: int64
+      tag_id:
+        type: integer
+        format: int64
+  models.EventTriggerApiDel:
+    title: EventTriggerApiDel
+    type: object
+    properties:
+      event_trigger_ids:
+        type: array
+        items:
+          type: integer
+          format: int64
+      tag_id:
+        type: integer
+        format: int64
+  models.EventTriggerApiGet:
+    title: EventTriggerApiGet
+    type: object
+    properties:
+      children:
+        type: array
+        items:
+          $ref: '#/definitions/models.EventTriggerApiGet'
+      func:
+        type: string
+      id:
+        type: integer
+        format: int64
+      metric:
+        type: string
+      msg:
+        type: string
+      name:
+        type: string
+      op:
+        type: string
+      parent_id:
+        type: integer
+        format: int64
+      parent_name:
+        type: string
+      priority:
+        type: integer
+        format: int64
+      refcnt:
+        type: integer
+        format: int64
+      tag_id:
+        type: integer
+        format: int64
+      tag_name:
+        type: string
+      tags:
+        type: string
+      tpl_id:
+        type: integer
+        format: int64
+      tpl_name:
+        type: string
+      value:
+        type: string
+      version:
+        type: integer
+        format: int64
+  models.EventTriggerApiUpdate:
+    title: EventTriggerApiUpdate
+    type: object
+    properties:
+      func:
+        type: string
+      id:
+        type: integer
+        format: int64
+      metric:
+        type: string
+      msg:
+        type: string
+      name:
+        type: string
+      op:
+        type: string
+      priority:
+        type: integer
+        format: int64
+      tag_id:
+        type: integer
+        format: int64
+      tags:
+        type: string
+      tpl_id:
+        type: integer
+        format: int64
+      value:
         type: string
   models.ExpansionStatus:
     title: ExpansionStatus
@@ -2770,97 +2768,6 @@ definitions:
       value:
         type: number
         format: double
-  models.RelTagHost:
-    title: RelTagHost
-    type: object
-    properties:
-      host_id:
-        type: integer
-        format: int64
-      host_name:
-        type: string
-      id:
-        type: integer
-        format: int64
-      maintain_begin:
-        type: integer
-        format: int64
-      maintain_end:
-        type: integer
-        format: int64
-      pause:
-        type: integer
-        format: int64
-      tag_id:
-        type: integer
-        format: int64
-      tag_name:
-        type: string
-  models.RelTagHostApiAdd:
-    title: RelTagHostApiAdd
-    type: object
-    properties:
-      host_id:
-        type: integer
-        format: int64
-      src_tag_id:
-        type: integer
-        format: int64
-      tag_id:
-        type: integer
-        format: int64
-  models.RelTagHostApiDel:
-    title: RelTagHostApiDel
-    type: object
-    properties:
-      host_id:
-        type: integer
-        format: int64
-      tag_id:
-        type: integer
-        format: int64
-  models.RelTagHostsApiDel:
-    title: RelTagHostsApiDel
-    type: object
-    properties:
-      host_ids:
-        type: array
-        items:
-          type: integer
-          format: int64
-      tag_id:
-        type: integer
-        format: int64
-  models.RelTagTpl:
-    title: RelTagTpl
-    type: object
-    properties:
-      tag_id:
-        type: integer
-        format: int64
-      tpl_id:
-        type: integer
-        format: int64
-  models.RelTagTpl0:
-    title: RelTagTpl0
-    type: object
-    properties:
-      tag_string:
-        type: string
-      tpl_name:
-        type: string
-  models.RelTagTpls:
-    title: RelTagTpls
-    type: object
-    properties:
-      tag_id:
-        type: integer
-        format: int64
-      tpl_ids:
-        type: array
-        items:
-          type: integer
-          format: int64
   models.Role:
     title: Role
     type: object
@@ -2901,6 +2808,10 @@ definitions:
     title: Stats
     type: object
     properties:
+      errs:
+        type: array
+        items:
+          type: string
       failure:
         type: integer
         format: int64
@@ -2925,30 +2836,54 @@ definitions:
     properties:
       name:
         type: string
-  models.TagRoleTokenApi:
-    title: TagRoleTokenApi
+  models.TagHostApiAdd:
+    title: TagHostApiAdd
     type: object
     properties:
-      role_id:
+      host_id:
+        type: integer
+        format: int64
+      src_tag_id:
         type: integer
         format: int64
       tag_id:
         type: integer
         format: int64
-      token_id:
-        type: integer
-        format: int64
-  models.TagRoleUserApi:
-    title: TagRoleUserApi
+  models.TagHostApiDel:
+    title: TagHostApiDel
     type: object
     properties:
-      role_id:
+      host_id:
         type: integer
         format: int64
       tag_id:
         type: integer
         format: int64
-      user_id:
+  models.TagHostsApiAdd:
+    title: TagHostsApiAdd
+    type: object
+    properties:
+      host_ids:
+        type: array
+        items:
+          type: integer
+          format: int64
+      src_tag_id:
+        type: integer
+        format: int64
+      tag_id:
+        type: integer
+        format: int64
+  models.TagHostsApiDel:
+    title: TagHostsApiDel
+    type: object
+    properties:
+      host_ids:
+        type: array
+        items:
+          type: integer
+          format: int64
+      tag_id:
         type: integer
         format: int64
   models.TagRoleUserApiGet:
@@ -2970,6 +2905,62 @@ definitions:
         format: int64
       user_name:
         type: string
+  models.TagRolesTokensApiAdd:
+    title: TagRolesTokensApiAdd
+    type: object
+    properties:
+      role_ids:
+        type: array
+        items:
+          type: integer
+          format: int64
+      tag_id:
+        type: integer
+        format: int64
+      token_ids:
+        type: array
+        items:
+          type: integer
+          format: int64
+  models.TagRolesTokensApiDel:
+    title: TagRolesTokensApiDel
+    type: object
+    properties:
+      role_token:
+        type: array
+        items:
+          $ref: '#/definitions/38453.0xc42038da70.false'
+      tag_id:
+        type: integer
+        format: int64
+  models.TagRolesUsersApiAdd:
+    title: TagRolesUsersApiAdd
+    type: object
+    properties:
+      role_ids:
+        type: array
+        items:
+          type: integer
+          format: int64
+      tag_id:
+        type: integer
+        format: int64
+      user_ids:
+        type: array
+        items:
+          type: integer
+          format: int64
+  models.TagRolesUsersApiDel:
+    title: TagRolesUsersApiDel
+    type: object
+    properties:
+      role_user:
+        type: array
+        items:
+          $ref: '#/definitions/114946.0xc4204bb0b0.false'
+      tag_id:
+        type: integer
+        format: int64
   models.Token:
     title: Token
     type: object
@@ -3030,111 +3021,6 @@ definitions:
         type: string
       read:
         type: boolean
-  models.Trigger:
-    title: Trigger
-    type: object
-    properties:
-      func:
-        type: string
-      id:
-        type: integer
-        format: int64
-      metric:
-        type: string
-      msg:
-        type: string
-      name:
-        type: string
-      op:
-        type: string
-      parent_id:
-        type: integer
-        format: int64
-      priority:
-        type: integer
-        format: int64
-      tag_id:
-        type: integer
-        format: int64
-      tags:
-        type: string
-      tpl_id:
-        type: integer
-        format: int64
-      value:
-        type: string
-      version:
-        type: integer
-        format: int64
-  models.TriggerApiAdd:
-    title: TriggerApiAdd
-    type: object
-    properties:
-      func:
-        type: string
-      metric:
-        type: string
-      msg:
-        type: string
-      name:
-        type: string
-      op:
-        type: string
-      parent_id:
-        type: integer
-        format: int64
-      priority:
-        type: integer
-        format: int64
-      tags:
-        type: string
-      value:
-        type: string
-  models.TriggerApiGet:
-    title: TriggerApiGet
-    type: object
-    properties:
-      func:
-        type: string
-      id:
-        type: integer
-        format: int64
-      metric:
-        type: string
-      msg:
-        type: string
-      name:
-        type: string
-      op:
-        type: string
-      parent_id:
-        type: integer
-        format: int64
-      parent_name:
-        type: string
-      priority:
-        type: integer
-        format: int64
-      refcnt:
-        type: integer
-        format: int64
-      tag_id:
-        type: integer
-        format: int64
-      tag_name:
-        type: string
-      tags:
-        type: string
-      tpl_id:
-        type: integer
-        format: int64
-      tpl_name:
-        type: string
-      value:
-        type: string
-      version:
-        type: integer
-        format: int64
   models.User:
     title: User
     type: object
@@ -3245,9 +3131,6 @@ tags:
 - name: token
   description: |
     Operations about Tokens
-- name: rel
-  description: |
-    Operations about Relations
 - name: settings
   description: |
     Operations about porfile/config/info
@@ -3269,6 +3152,6 @@ tags:
 - name: weapp
   description: |
     Operations about weixin app
-- name: trigger
+- name: event
   description: |
-    Operations about Triggers
+    Operations about event

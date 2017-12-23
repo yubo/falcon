@@ -8,7 +8,7 @@ package falcon
 import "fmt"
 
 func (p *GetRequest) Id() string {
-	return fmt.Sprintf("%s/%s/%s/%d", p.Host, p.Name, p.Type, p.Step)
+	return fmt.Sprintf("%s/%s/%s", p.Endpoint, p.Metric, p.Type)
 }
 
 func (p *GetRequest) Csum() string {
@@ -16,7 +16,7 @@ func (p *GetRequest) Csum() string {
 }
 
 func (p *Item) Id() string {
-	return fmt.Sprintf("%s/%s/%s/%s/%d", p.Host, p.Name, p.Tags, p.Type, p.Step)
+	return fmt.Sprintf("%s/%s/%s/%s/%d", p.Endpoint, p.Metric, p.Tags, p.Type)
 }
 
 func (p *Item) Adjust(now int64) error {
@@ -24,15 +24,11 @@ func (p *Item) Adjust(now int64) error {
 		return ErrEmpty
 	}
 
-	if len(p.Name) == 0 || len(p.Host) == 0 {
+	if len(p.Metric) == 0 || len(p.Endpoint) == 0 {
 		return EINVAL
 	}
 
-	if p.Step <= 0 {
-		return EINVAL
-	}
-
-	if len(p.Name)+len(p.Tags) > 510 {
+	if len(p.Metric)+len(p.Tags) > 510 {
 		return EINVAL
 	}
 

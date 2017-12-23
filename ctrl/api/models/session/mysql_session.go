@@ -59,6 +59,10 @@ var (
 	mysqlpder = &Provider{}
 )
 
+func init() {
+	session.Register("falcon", mysqlpder)
+}
+
 // SessionStore mysql session store
 type SessionStore struct {
 	c      *sql.DB
@@ -226,8 +230,4 @@ func (mp *Provider) SessionAll() int {
 		return 0
 	}
 	return total
-}
-
-func init() {
-	session.Register("mysql", mysqlpder)
 }
