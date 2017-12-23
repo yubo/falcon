@@ -35,7 +35,7 @@ func init() {
 	models.RegisterAuth(LDAP_NAME, &ldapAuth{})
 }
 
-func (p *ldapAuth) Init(conf *config.ConfCtrl) error {
+func (p *ldapAuth) Init(conf *config.Ctrl) error {
 	p.addr = conf.Ctrl.Str(ctrl.C_LDAP_ADDR)
 	p.baseDN = conf.Ctrl.Str(ctrl.C_LDAP_BASE_DN)
 	p.bindDN = conf.Ctrl.Str(ctrl.C_LDAP_BIND_DN)

@@ -64,11 +64,11 @@ type StatsModule struct {
 	cancel context.CancelFunc
 }
 
-func (p *StatsModule) PreStart(c *config.ConfCtrl) error {
+func (p *StatsModule) PreStart(c *config.Ctrl) error {
 	return nil
 }
 
-func (p *StatsModule) Start(c *config.ConfCtrl) error {
+func (p *StatsModule) Start(c *config.Ctrl) error {
 	p.ctx, p.cancel = context.WithCancel(context.Background())
 	if c.Debug > 0 {
 		ticker := time.NewTicker(time.Second * DEBUG_STAT_STEP).C
@@ -86,12 +86,12 @@ func (p *StatsModule) Start(c *config.ConfCtrl) error {
 	return nil
 }
 
-func (p *StatsModule) Stop(c *config.ConfCtrl) error {
+func (p *StatsModule) Stop(c *config.Ctrl) error {
 	p.cancel()
 	return nil
 }
 
-func (p *StatsModule) Reload(old, c *config.ConfCtrl) error {
+func (p *StatsModule) Reload(old, c *config.Ctrl) error {
 	p.Stop(c)
 	time.Sleep(time.Second)
 	p.PreStart(c)

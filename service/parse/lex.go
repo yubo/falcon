@@ -15,21 +15,21 @@ import (
 
 	"github.com/golang/glog"
 	fconfig "github.com/yubo/falcon/config"
-	"github.com/yubo/falcon/transfer/config"
+	"github.com/yubo/falcon/service/config"
 )
 
 const (
 	eof           = 0
 	MAX_CTX_LEVEL = 16
-	MODULE_NAME   = "\x1B[32m[TRANSFER_PARSE]\x1B[0m "
+	MODULE_NAME   = "\x1B[32m[SERVICE_PARSE]\x1B[0m "
 )
 
 var (
-	yy    *yyLex
-	conf  *config.Transfer
-	yy_ss = make(map[string]string)
-	yy_is = make(map[int]string)
-	yy_as = make([]string, 0)
+	yy     *yyLex
+	conf   *config.Service
+	yy_ss  = make(map[string]string)
+	yy_ss2 = make(map[string]string)
+	yy_as  = make([]string, 0)
 
 	f_ip      = regexp.MustCompile(`^[0-9]+\.[0-0]+\.[0-9]+\.[0-9]+[ \t\n;{}]{1}`)
 	f_num     = regexp.MustCompile(`^0x[0-9a-fA-F]+|^[0-9]+[ \t\n;{}]{1}`)
@@ -50,7 +50,8 @@ var (
 		"host":     HOST,
 		"disabled": DISABLED,
 		"debug":    DEBUG,
-		"shareMap": SHAREMAP,
+		"migrate":  MIGRATE,
+		"upstream": UPSTREAM,
 	}
 )
 
@@ -297,7 +298,7 @@ func Parse(text []byte, filename string, lino int, debug bool) fconfig.ModuleCon
 	yy.ctx.pos = 0
 	yy.ctx.text = text
 
-	glog.V(5).Infof("transfer parse text %s", string(yy.ctx.text))
+	glog.V(5).Infof("service parse text %s", string(yy.ctx.text))
 	yyParse(yy)
 	return conf
 }

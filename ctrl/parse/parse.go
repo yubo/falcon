@@ -587,7 +587,7 @@ yydefault:
 		//line ctrl/parse/parse.y:78
 		{
 			// begin
-			conf = &config.ConfCtrl{Name: "ctrl"}
+			conf = &config.Ctrl{Name: "ctrl"}
 		}
 	case 19:
 		yyDollar = yyS[yypt-2 : yypt+1]

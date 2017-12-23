@@ -10,7 +10,7 @@ import (
 	"os"
 	"fmt"
 
-	"github.com/yubo/falcon/transfer/config"
+	"github.com/yubo/falcon/service/config"
 	fconfig "github.com/yubo/falcon/config"
 )
 
@@ -31,7 +31,7 @@ import (
 
 %token '{' '}' ';'
 %token ON YES OFF NO INCLUDE ROOT PID_FILE LOG HOST DISABLED DEBUG
-%token SHAREMAP
+%token MIGRATE UPSTREAM
 
 %%
 
@@ -56,28 +56,30 @@ num:
 	NUM { $$ = yy.i }
 ;
 
+
 conf: ';'
-	| transfer '}' ';'      {
+	| service '}' ';'      {
 		// end
 	 	conf.Configer.Set(fconfig.APP_CONF_FILE, yy_ss)
 		yy_ss = make(map[string]string)
 	
-		//conf.Name = fmt.Sprintf("transfer_%s", conf.Name)
+		//conf.Name = fmt.Sprintf("service_%s", conf.Name)
 		if conf.Host == "" {
 			conf.Host, _ = os.Hostname()
 		}
 	}
 ;
 
-transfer:
+service:
 	'{' {
 	 	// begin
-		conf = &config.ConfTransfer{Name: "transfer"}
-	}| transfer transfer_item ';'
+		conf = &config.ConfService{Name: "service"}
+	}| service service_item ';'
 ;
 
-transfer_item:
+service_item:
 	| DISABLED bool	{ conf.Disabled = $2 }
+ 	| MIGRATE 	'{' service_migrate '}'
 	| HOST text	{ conf.Host = $2 }
 	| DEBUG		{ conf.Debug = 1 }
 	| DEBUG num	{ conf.Debug = $2 }
@@ -89,29 +91,25 @@ transfer_item:
 		if err := os.Chdir($2); err != nil {
 			yy.Error(err.Error())
 		}
+	};
+
+service_migrate:
+	| service_migrate service_migrate_item ';'
+
+service_migrate_item:
+	| DISABLED bool { conf.Migrate.Disabled = $2 }
+	| UPSTREAM '{' ss2 '}' {
+		conf.Migrate.Upstream = yy_ss2
+		yy_ss2 = make(map[string]string)
 	}
-	| SHAREMAP sharemap '}' {
-		// check sharemap
-		conf.ShareCount = len(conf.ShareMap)	
-		for i := 0; i < conf.ShareCount; i++ {
-			if _, ok := conf.ShareMap[i]; !ok {
-				yy.Error(fmt.Sprintf("miss shareMap[%d]\n", i))
-			}
-		}
-	}
 ;
 
-sharemap:
-	'{' {
-		conf.ShareMap = make(map[int]string)
-	}| sharemap sharemap_item ';'
+ss2:
+	| ss2 text text ';'    { yy_ss2[$2] = $3 }
+	| ss2 text num ';'     { yy_ss2[$2] = fmt.Sprintf("%d", $3) }
+	| ss2 text bool ';'    { yy_ss2[$2] = fmt.Sprintf("%v", $3) }
+	| ss2 INCLUDE text ';' { yy.include($3) }
 ;
-
-sharemap_item:
-	| num text	{ conf.ShareMap[$1] = $2 }
-	| INCLUDE text	{ yy.include($2) }
-;
-
 
 %%
 

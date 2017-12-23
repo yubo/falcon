@@ -61,7 +61,7 @@ const (
 
 var (
 	modules   []module
-	Configure *config.ConfCtrl
+	Configure *config.Ctrl
 
 	ConfDefault = map[string]string{
 		C_MASTER_MODE:             "true",
@@ -105,10 +105,10 @@ var (
 // module {{{
 
 type module interface {
-	PreStart(*config.ConfCtrl) error        // alloc public data
-	Start(*config.ConfCtrl) error           // alloc private data, run private goroutine
-	Stop(*config.ConfCtrl) error            // free private data, private goroutine exit
-	Reload(old, new *config.ConfCtrl) error // try to keep the data, refresh configure
+	PreStart(*config.Ctrl) error        // alloc public data
+	Start(*config.Ctrl) error           // alloc private data, run private goroutine
+	Stop(*config.Ctrl) error            // free private data, private goroutine exit
+	Reload(old, new *config.Ctrl) error // try to keep the data, refresh configure
 }
 
 func RegisterModule(m module) {
@@ -119,8 +119,8 @@ func RegisterModule(m module) {
 
 // Ctrl {{{
 type Ctrl struct {
-	Conf    *config.ConfCtrl
-	oldConf *config.ConfCtrl
+	Conf    *config.Ctrl
+	oldConf *config.Ctrl
 	// runtime
 	status uint32
 	// rpcListener  *net.TCPListener
@@ -130,7 +130,7 @@ type Ctrl struct {
 
 func (p *Ctrl) New(conf interface{}) falcon.Module {
 	return &Ctrl{
-		Conf: conf.(*config.ConfCtrl),
+		Conf: conf.(*config.Ctrl),
 	}
 }
 
@@ -139,7 +139,7 @@ func (p *Ctrl) Name() string {
 }
 
 func (p *Ctrl) Parse(text []byte, filename string, lino int, debug bool) fconfig.ModuleConf {
-	p.Conf = parse.Parse(text, filename, lino, debug).(*config.ConfCtrl)
+	p.Conf = parse.Parse(text, filename, lino, debug).(*config.Ctrl)
 	/* TODO: fill agent, transfer, backend, graph */
 	p.Conf.Ctrl.Set(fconfig.APP_CONF_DEFAULT, ConfDefault)
 	return p.Conf
@@ -198,7 +198,7 @@ func (p *Ctrl) Stop() (err error) {
 func (p *Ctrl) Reload(c interface{}) (err error) {
 	glog.V(3).Infof(MODULE_NAME+"%s Reload()", p.Conf.Name)
 	p.oldConf = p.Conf
-	p.Conf = c.(*config.ConfCtrl)
+	p.Conf = c.(*config.Ctrl)
 
 	for i := 0; i < len(modules); i++ {
 		if e := modules[i].Reload(p.oldConf, p.Conf); e != nil {

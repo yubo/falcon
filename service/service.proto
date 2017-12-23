@@ -1,0 +1,23 @@
+syntax = "proto3";
+option go_package = "github.com/yubo/falcon/service";
+package service;
+
+import "google/api/annotations.proto";
+import "falcon.proto";
+
+service Service {
+	rpc Put(falcon.PutRequest) returns (falcon.PutResponse) {
+		option (google.api.http) = {
+			post: "/v1/service/put"
+			body: "*"
+		};
+	}
+
+	rpc Get(falcon.GetRequest) returns (falcon.GetResponse) {
+		option (google.api.http) = {
+			post: "/v1/service/get"
+			body: "*"
+		};
+	}
+}
+

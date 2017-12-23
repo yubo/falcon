@@ -30,7 +30,7 @@ func init() {
 	models.RegisterAuth(GOOGLE_NAME, &googleAuth{})
 }
 
-func (p *googleAuth) Init(conf *config.ConfCtrl) error {
+func (p *googleAuth) Init(conf *config.Ctrl) error {
 	p.config = oauth2.Config{
 		Endpoint:     google.Endpoint,
 		Scopes:       []string{googleOauth2.PlusMeScope, googleOauth2.UserinfoEmailScope},

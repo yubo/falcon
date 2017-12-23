@@ -12,12 +12,12 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/yubo/falcon"
-	"github.com/yubo/falcon/backend"
+	"github.com/yubo/falcon/service"
 	"golang.org/x/net/context"
 )
 
 // ClientModule: transfer's module for banckend
-// backendgroup: upstream container
+// servicegroup: upstream container
 // upstream: connection to the
 
 type sender interface {
@@ -33,15 +33,9 @@ func init() {
 type rpcClients struct {
 	addr string
 	conn *grpc.ClientConn
-	cli  backend.BackendClient
+	cli  service.ServiceClient
 }
 
-type upstream struct {
-	name     string
-	upstream sender
-}
-
-/* upstream */
 type ClientModule struct {
 	sharemap     []chan *falcon.Item
 	serviceChans map[string]chan *falcon.Item
@@ -82,13 +76,13 @@ func (p *ClientModule) start(transfer *Transfer) (err error) {
 	p.ctx, p.cancel = context.WithCancel(context.Background())
 
 	for _, c := range p.clients {
-		// FIXME: remove WithBlock, and reconnection when backend online
+		// FIXME: remove WithBlock, and reconnection when service online
 		c.conn, _, err = falcon.DialRr(p.ctx, c.addr, true)
 		if err != nil {
 			glog.Fatalf(MODULE_NAME+"addr:%s err:%s\n",
 				c.addr, err)
 		}
-		c.cli = backend.NewBackendClient(c.conn)
+		c.cli = service.NewServiceClient(c.conn)
 	}
 
 	for service, ch := range p.serviceChans {
@@ -111,7 +105,7 @@ func (p *ClientModule) reload(transfer *Transfer) error {
 	return p.start(transfer)
 }
 
-func clientPut(client backend.BackendClient, items []*falcon.Item) {
+func clientPut(client service.ServiceClient, items []*falcon.Item) {
 	if res, err := client.Put(context.Background(),
 		&falcon.PutRequest{Items: items}); err != nil {
 		glog.Error(err)

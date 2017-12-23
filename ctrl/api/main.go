@@ -21,6 +21,8 @@ import (
 	"github.com/yubo/falcon/ctrl/config"
 	"github.com/yubo/falcon/parse"
 	"github.com/yubo/gotool/flags"
+
+	_ "github.com/yubo/falcon/ctrl/plugin/demo"
 )
 
 var opts falcon.CmdOpts
@@ -32,7 +34,7 @@ const (
 func init() {
 
 	falcon.RegisterModule(&ctrl.Ctrl{}, "ctrl",
-		falcon.GetType(config.ConfCtrl{}))
+		falcon.GetType(config.Ctrl{}))
 	ctrl.RegisterModule(&module.DevModule{})
 	ctrl.RegisterModule(&ctrl.EtcdCliModule{})
 	ctrl.RegisterModule(&ctrl.StatsModule{})

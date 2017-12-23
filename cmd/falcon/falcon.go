@@ -20,8 +20,8 @@ import (
 	"github.com/yubo/gotool/flags"
 
 	_ "github.com/yubo/falcon/agent/modules"
-	_ "github.com/yubo/falcon/backend/modules"
 	_ "github.com/yubo/falcon/ctrl/modules"
+	_ "github.com/yubo/falcon/service/modules"
 	_ "github.com/yubo/falcon/transfer/modules"
 )
 

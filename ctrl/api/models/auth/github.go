@@ -34,7 +34,7 @@ func init() {
 	models.RegisterAuth(GITHUB_NAME, &githubAuth{})
 }
 
-func (p *githubAuth) Init(conf *config.ConfCtrl) error {
+func (p *githubAuth) Init(conf *config.Ctrl) error {
 	p.config = oauth2.Config{
 		Endpoint:     github.Endpoint,
 		Scopes:       []string{"user:email"},

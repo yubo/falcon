@@ -11,12 +11,7 @@ import (
 	"github.com/yubo/falcon/config"
 )
 
-type TransferShareMap struct {
-	ShareCount int
-	ShareMap   map[int]string
-}
-
-type ConfTransfer struct {
+type Transfer struct {
 	Debug      int
 	Disabled   bool
 	Name       string
@@ -26,11 +21,11 @@ type ConfTransfer struct {
 	Configer   config.Configer
 }
 
-func (p ConfTransfer) GetName() string {
+func (p Transfer) GetName() string {
 	return p.Name
 }
 
-func (p ConfTransfer) String() string {
+func (p Transfer) String() string {
 	var s1 string
 	for k, v := range p.ShareMap {
 		s1 += fmt.Sprintf("%d %s\n", k, v)

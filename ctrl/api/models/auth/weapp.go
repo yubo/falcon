@@ -22,7 +22,7 @@ func init() {
 	models.RegisterAuth(WEAPP_NAME, &weappAuth{})
 }
 
-func (p *weappAuth) Init(conf *config.ConfCtrl) error {
+func (p *weappAuth) Init(conf *config.Ctrl) error {
 	return nil
 }
 

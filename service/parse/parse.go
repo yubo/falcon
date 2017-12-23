@@ -1,18 +1,18 @@
-//line agent/parse/parse.y:7
+//line service/parse/parse.y:7
 package parse
 
 import __yyfmt__ "fmt"
 
-//line agent/parse/parse.y:7
+//line service/parse/parse.y:7
 import (
 	"fmt"
 	"os"
 
-	"github.com/yubo/falcon/agent/config"
 	fconfig "github.com/yubo/falcon/config"
+	"github.com/yubo/falcon/service/config"
 )
 
-//line agent/parse/parse.y:19
+//line service/parse/parse.y:19
 type yySymType struct {
 	yys  int
 	num  int
@@ -34,7 +34,8 @@ const LOG = 57356
 const HOST = 57357
 const DISABLED = 57358
 const DEBUG = 57359
-const METRIC = 57360
+const MIGRATE = 57360
+const UPSTREAM = 57361
 
 var yyToknames = [...]string{
 	"$end",
@@ -57,7 +58,8 @@ var yyToknames = [...]string{
 	"HOST",
 	"DISABLED",
 	"DEBUG",
-	"METRIC",
+	"MIGRATE",
+	"UPSTREAM",
 }
 var yyStatenames = [...]string{}
 
@@ -65,7 +67,7 @@ const yyEofCode = 1
 const yyErrCode = 2
 const yyInitialStackSize = 16
 
-//line agent/parse/parse.y:94
+//line service/parse/parse.y:114
 
 //line yacctab:1
 var yyExca = [...]int{
@@ -76,51 +78,63 @@ var yyExca = [...]int{
 
 const yyPrivate = 57344
 
-const yyLast = 39
+const yyLast = 63
 
 var yyAct = [...]int{
 
-	15, 14, 17, 6, 19, 20, 21, 22, 24, 12,
-	13, 16, 25, 9, 8, 10, 25, 15, 14, 11,
-	26, 7, 19, 20, 21, 22, 18, 4, 5, 23,
-	3, 28, 29, 30, 15, 14, 2, 1, 27,
+	12, 52, 51, 19, 26, 20, 21, 22, 23, 16,
+	15, 25, 6, 30, 31, 32, 29, 28, 13, 14,
+	34, 40, 10, 8, 11, 9, 16, 15, 50, 42,
+	5, 36, 3, 49, 37, 44, 38, 18, 17, 24,
+	39, 27, 43, 41, 45, 48, 35, 47, 46, 27,
+	16, 15, 16, 15, 33, 20, 21, 22, 23, 7,
+	4, 2, 1,
 }
 var yyPact = [...]int{
 
-	-1000, 21, -1000, -1000, -5, -1000, 2, -7, -6, 29,
-	8, 12, 29, 29, -1000, -1000, -1000, -1000, -1000, -1000,
+	-1000, 23, -1000, -1000, 4, -1000, 29, 28, -5, 32,
+	47, 37, 45, 47, 47, -1000, -1000, -1000, -1000, -1000,
 	-1000, -1000, -1000, -1000, -1000, -1000, -1000, -1000, -1000, -1000,
-	-1000,
+	-1000, -1000, -1000, 12, -1000, 27, -5, 14, -1000, -1000,
+	-1000, 21, -1000, 45, 47, 24, 19, -7, -8, -1000,
+	-1000, -1000, -1000,
 }
 var yyPgo = [...]int{
 
-	0, 26, 19, 8, 37, 36, 27, 21,
+	0, 3, 0, 4, 62, 61, 60, 59, 54, 46,
+	43,
 }
 var yyR1 = [...]int{
 
 	0, 4, 4, 1, 1, 1, 1, 1, 2, 2,
 	3, 5, 5, 6, 6, 7, 7, 7, 7, 7,
-	7, 7, 7, 7, 7,
+	7, 7, 7, 7, 7, 7, 8, 8, 9, 9,
+	9, 10, 10, 10, 10, 10,
 }
 var yyR2 = [...]int{
 
 	0, 0, 2, 1, 1, 1, 1, 0, 1, 1,
-	1, 1, 3, 1, 3, 0, 2, 2, 1, 2,
-	2, 2, 2, 2, 2,
+	1, 1, 3, 1, 3, 0, 2, 4, 2, 1,
+	2, 2, 2, 2, 2, 2, 0, 3, 0, 2,
+	4, 0, 4, 4, 4, 4,
 }
 var yyChk = [...]int{
 
-	-1000, -4, -5, 9, -6, 7, 8, -7, 19, 18,
-	20, -2, 14, 15, 6, 5, 9, 9, -1, 10,
-	11, 12, 13, -2, -3, 4, -3, -1, -2, -2,
-	-2,
+	-1000, -4, -5, 9, -6, 7, 8, -7, 19, 21,
+	18, 20, -2, 14, 15, 6, 5, 9, 9, -1,
+	10, 11, 12, 13, 7, -2, -3, 4, -3, -1,
+	-2, -2, -2, -8, 8, -9, 19, 22, 9, -1,
+	7, -10, 8, -2, 14, -2, -3, -1, -2, 9,
+	9, 9, 9,
 }
 var yyDef = [...]int{
 
 	1, -2, 2, 11, 15, 13, 0, 0, 7, 0,
-	18, 7, 0, 0, 8, 9, 12, 14, 16, 3,
-	4, 5, 6, 17, 19, 10, 20, 21, 23, 22,
-	24,
+	0, 19, 7, 0, 0, 8, 9, 12, 14, 16,
+	3, 4, 5, 6, 26, 18, 20, 10, 21, 22,
+	24, 23, 25, 28, 17, 0, 7, 0, 27, 29,
+	31, 0, 30, 7, 0, 0, 0, 0, 0, 32,
+	33, 34, 35,
 }
 var yyTok1 = [...]int{
 
@@ -141,7 +155,7 @@ var yyTok1 = [...]int{
 var yyTok2 = [...]int{
 
 	2, 3, 4, 5, 6, 10, 11, 12, 13, 14,
-	15, 16, 17, 18, 19, 20, 21,
+	15, 16, 17, 18, 19, 20, 21, 22,
 }
 var yyTok3 = [...]int{
 	0,
@@ -486,127 +500,164 @@ yydefault:
 
 	case 3:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line agent/parse/parse.y:43
+		//line service/parse/parse.y:43
 		{
 			yyVAL.b = true
 		}
 	case 4:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line agent/parse/parse.y:44
+		//line service/parse/parse.y:44
 		{
 			yyVAL.b = true
 		}
 	case 5:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line agent/parse/parse.y:45
+		//line service/parse/parse.y:45
 		{
 			yyVAL.b = false
 		}
 	case 6:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line agent/parse/parse.y:46
+		//line service/parse/parse.y:46
 		{
 			yyVAL.b = false
 		}
 	case 7:
 		yyDollar = yyS[yypt-0 : yypt+1]
-		//line agent/parse/parse.y:47
+		//line service/parse/parse.y:47
 		{
 			yyVAL.b = true
 		}
 	case 8:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line agent/parse/parse.y:51
+		//line service/parse/parse.y:51
 		{
 			yyVAL.text = string(yy.t)
 		}
 	case 9:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line agent/parse/parse.y:52
+		//line service/parse/parse.y:52
 		{
 			yyVAL.text = exprText(yy.t)
 		}
 	case 10:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line agent/parse/parse.y:56
+		//line service/parse/parse.y:56
 		{
 			yyVAL.num = yy.i
 		}
 	case 12:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line agent/parse/parse.y:60
+		//line service/parse/parse.y:61
 		{
 			// end
 			conf.Configer.Set(fconfig.APP_CONF_FILE, yy_ss)
 			yy_ss = make(map[string]string)
 
-			//conf.Name = fmt.Sprintf("agent_%s", conf.Name)
+			//conf.Name = fmt.Sprintf("service_%s", conf.Name)
 			if conf.Host == "" {
 				conf.Host, _ = os.Hostname()
 			}
 		}
 	case 13:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line agent/parse/parse.y:73
+		//line service/parse/parse.y:74
 		{
 			// begin
-			conf = &config.Agent{Name: "agent"}
+			conf = &config.Service{Name: "service"}
 		}
 	case 16:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line agent/parse/parse.y:80
+		//line service/parse/parse.y:81
 		{
 			conf.Disabled = yyDollar[2].b
 		}
-	case 17:
+	case 18:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line agent/parse/parse.y:81
+		//line service/parse/parse.y:83
 		{
 			conf.Host = yyDollar[2].text
 		}
-	case 18:
+	case 19:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line agent/parse/parse.y:82
+		//line service/parse/parse.y:84
 		{
 			conf.Debug = 1
 		}
-	case 19:
+	case 20:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line agent/parse/parse.y:83
+		//line service/parse/parse.y:85
 		{
 			conf.Debug = yyDollar[2].num
 		}
-	case 20:
+	case 21:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line agent/parse/parse.y:84
+		//line service/parse/parse.y:86
 		{
 			yy_ss[yyDollar[1].text] = fmt.Sprintf("%d", yyDollar[2].num)
 		}
-	case 21:
+	case 22:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line agent/parse/parse.y:85
+		//line service/parse/parse.y:87
 		{
 			yy_ss[yyDollar[1].text] = fmt.Sprintf("%v", yyDollar[2].b)
 		}
-	case 22:
+	case 23:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line agent/parse/parse.y:86
+		//line service/parse/parse.y:88
 		{
 			yy.include(yyDollar[2].text)
 		}
-	case 23:
+	case 24:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line agent/parse/parse.y:87
+		//line service/parse/parse.y:89
 		{
 			yy_ss[yyDollar[1].text] = yyDollar[2].text
 		}
-	case 24:
+	case 25:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line agent/parse/parse.y:88
+		//line service/parse/parse.y:90
 		{
 			if err := os.Chdir(yyDollar[2].text); err != nil {
 				yy.Error(err.Error())
 			}
+		}
+	case 29:
+		yyDollar = yyS[yypt-2 : yypt+1]
+		//line service/parse/parse.y:100
+		{
+			conf.Migrate.Disabled = yyDollar[2].b
+		}
+	case 30:
+		yyDollar = yyS[yypt-4 : yypt+1]
+		//line service/parse/parse.y:101
+		{
+			conf.Migrate.Upstream = yy_ss2
+			yy_ss2 = make(map[string]string)
+		}
+	case 32:
+		yyDollar = yyS[yypt-4 : yypt+1]
+		//line service/parse/parse.y:108
+		{
+			yy_ss2[yyDollar[2].text] = yyDollar[3].text
+		}
+	case 33:
+		yyDollar = yyS[yypt-4 : yypt+1]
+		//line service/parse/parse.y:109
+		{
+			yy_ss2[yyDollar[2].text] = fmt.Sprintf("%d", yyDollar[3].num)
+		}
+	case 34:
+		yyDollar = yyS[yypt-4 : yypt+1]
+		//line service/parse/parse.y:110
+		{
+			yy_ss2[yyDollar[2].text] = fmt.Sprintf("%v", yyDollar[3].b)
+		}
+	case 35:
+		yyDollar = yyS[yypt-4 : yypt+1]
+		//line service/parse/parse.y:111
+		{
+			yy.include(yyDollar[3].text)
 		}
 	}
 	goto yystack /* stack new state and value */

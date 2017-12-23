@@ -11,7 +11,7 @@ import (
 	"github.com/yubo/falcon/config"
 )
 
-type ConfCtrl struct {
+type Ctrl struct {
 	// only in config.conf
 	Debug    int
 	Disabled bool
@@ -26,11 +26,11 @@ type ConfCtrl struct {
 	// height will cover low
 }
 
-func (c ConfCtrl) GetName() string {
+func (c Ctrl) GetName() string {
 	return c.Name
 }
 
-func (c ConfCtrl) String() string {
+func (c Ctrl) String() string {
 	var s string
 	for k, v := range c.Metrics {
 		s += fmt.Sprintf("%s ", v)

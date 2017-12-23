@@ -14,7 +14,7 @@ import (
 
 func init() {
 	falcon.RegisterModule(&ctrl.Ctrl{}, "ctrl",
-		falcon.GetType(config.ConfCtrl{}))
+		falcon.GetType(config.Ctrl{}))
 	ctrl.RegisterModule(&module.ApiModule{})
 	ctrl.RegisterModule(&ctrl.EtcdCliModule{})
 	ctrl.RegisterModule(&ctrl.StatsModule{})

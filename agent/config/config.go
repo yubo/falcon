@@ -11,7 +11,7 @@ import (
 	"github.com/yubo/falcon/config"
 )
 
-type ConfAgent struct {
+type Agent struct {
 	Debug    int
 	Disabled bool
 	Name     string
@@ -19,11 +19,11 @@ type ConfAgent struct {
 	Configer config.Configer
 }
 
-func (c ConfAgent) GetName() string {
+func (c Agent) GetName() string {
 	return c.Name
 }
 
-func (c ConfAgent) String() string {
+func (c Agent) String() string {
 	return fmt.Sprintf("%-17s %d\n"+
 		"%-17s %v\n"+
 		"%-17s %s\n"+

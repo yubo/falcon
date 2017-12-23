@@ -129,7 +129,7 @@ func (tree *cacheTreeT) _build() {
 }
 
 /* called by initModels() */
-func initCache(c *config.ConfCtrl) error {
+func initCache(c *config.Ctrl) error {
 	for _, module := range strings.Split(
 		c.Ctrl.Str(ctrl.C_CACHE_MODULE), ",") {
 		for k, v := range ModuleName {

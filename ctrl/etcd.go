@@ -40,7 +40,7 @@ func EtcdGet(key string) (string, error) {
 	return etcdCli.cli.Get(key)
 }
 
-func (p *EtcdCliModule) PreStart(c *config.ConfCtrl) error {
+func (p *EtcdCliModule) PreStart(c *config.Ctrl) error {
 
 	p.cli = falcon.NewEtcdCli(c.Ctrl)
 	p.cli.Prestart()
@@ -48,17 +48,17 @@ func (p *EtcdCliModule) PreStart(c *config.ConfCtrl) error {
 	return nil
 }
 
-func (p *EtcdCliModule) Start(c *config.ConfCtrl) error {
+func (p *EtcdCliModule) Start(c *config.Ctrl) error {
 	p.cli.Start()
 	return nil
 }
 
-func (p *EtcdCliModule) Stop(c *config.ConfCtrl) error {
+func (p *EtcdCliModule) Stop(c *config.Ctrl) error {
 	p.cli.Stop()
 	return nil
 }
 
-func (p *EtcdCliModule) Reload(old, c *config.ConfCtrl) error {
+func (p *EtcdCliModule) Reload(old, c *config.Ctrl) error {
 	p.cli.Reload(c.Ctrl)
 	return p.Start(c)
 }

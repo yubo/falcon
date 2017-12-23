@@ -177,7 +177,7 @@ var (
 	wxappsecret string
 )
 
-func PreStart(conf *config.ConfCtrl) (err error) {
+func PreStart(conf *config.Ctrl) (err error) {
 	if err = initConfig(conf); err != nil {
 		panic(err)
 	}
@@ -201,14 +201,14 @@ func PreStart(conf *config.ConfCtrl) (err error) {
 	return nil
 }
 
-func initMetric(c *config.ConfCtrl) error {
+func initMetric(c *config.Ctrl) error {
 	for _, m := range c.Metrics {
 		metrics = append(metrics, &Metric{Name: m})
 	}
 	return nil
 }
 
-func initAuth(c *config.ConfCtrl) error {
+func initAuth(c *config.Ctrl) error {
 	Auths = make(map[string]AuthInterface)
 	for _, name := range strings.Split(c.Ctrl.Str(ctrl.C_AUTH_MODULE), ",") {
 		if auth, ok := allAuths[name]; ok {
@@ -251,7 +251,7 @@ func initConfigAdmin(c *fconfig.Configer) map[string]bool {
 // called by (p *Ctrl) Init()
 // already load file config and def config
 // will load db config
-func initConfig(conf *config.ConfCtrl) error {
+func initConfig(conf *config.Ctrl) error {
 	var err error
 
 	glog.V(4).Infof(MODULE_NAME+"%s Init()", conf.Name)

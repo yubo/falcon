@@ -20,7 +20,7 @@ type ApiModule struct {
 	b beego.BeegoModule
 }
 
-func (p *ApiModule) PreStart(c *config.ConfCtrl) error {
+func (p *ApiModule) PreStart(c *config.Ctrl) error {
 	if err := routers.PreStart(); err != nil {
 		return err
 	}
@@ -30,16 +30,16 @@ func (p *ApiModule) PreStart(c *config.ConfCtrl) error {
 	return p.b.PreStart()
 }
 
-func (p *ApiModule) Start(c *config.ConfCtrl) error {
+func (p *ApiModule) Start(c *config.Ctrl) error {
 	return p.b.Start()
 }
 
-func (p *ApiModule) Stop(c *config.ConfCtrl) error {
+func (p *ApiModule) Stop(c *config.Ctrl) error {
 	return p.b.Stop()
 	return nil
 }
 
-func (p *ApiModule) Reload(old, c *config.ConfCtrl) error {
+func (p *ApiModule) Reload(old, c *config.Ctrl) error {
 	p.Stop(c)
 	time.Sleep(time.Second)
 	p.PreStart(c)
@@ -50,7 +50,7 @@ type DevModule struct {
 	b beego.BeegoModule
 }
 
-func (p *DevModule) PreStart(c *config.ConfCtrl) error {
+func (p *DevModule) PreStart(c *config.Ctrl) error {
 	if err := routers.PreStart(); err != nil {
 		return err
 	}
@@ -60,16 +60,16 @@ func (p *DevModule) PreStart(c *config.ConfCtrl) error {
 	return nil
 }
 
-func (p *DevModule) Start(c *config.ConfCtrl) error {
+func (p *DevModule) Start(c *config.Ctrl) error {
 	beego.Run()
 	return nil
 }
 
-func (p *DevModule) Stop(c *config.ConfCtrl) error {
+func (p *DevModule) Stop(c *config.Ctrl) error {
 	return nil
 }
 
-func (p *DevModule) Reload(old, c *config.ConfCtrl) error {
+func (p *DevModule) Reload(old, c *config.Ctrl) error {
 	p.Stop(c)
 	time.Sleep(time.Second)
 	p.PreStart(c)

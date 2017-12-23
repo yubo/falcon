@@ -13,10 +13,10 @@ import (
 
 func init() {
 	falcon.RegisterModule(&transfer.Transfer{}, "transfer",
-		falcon.GetType(config.ConfTransfer{}))
+		falcon.GetType(config.Transfer{}))
 	transfer.RegisterModule(&transfer.StatsModule{})
-	transfer.RegisterModule(&transfer.ServiceModule{})
-	transfer.RegisterModule(&transfer.ServiceGwModule{})
+	transfer.RegisterModule(&transfer.ApiModule{})
+	transfer.RegisterModule(&transfer.ApiGwModule{})
 	transfer.RegisterModule(&transfer.ClientModule{})
 
 }

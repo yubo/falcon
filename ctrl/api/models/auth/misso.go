@@ -38,7 +38,7 @@ func init() {
 	models.RegisterAuth(MISSO_NAME, &missoAuth{})
 }
 
-func (p *missoAuth) Init(conf *config.ConfCtrl) error {
+func (p *missoAuth) Init(conf *config.Ctrl) error {
 	p.RedirectURL = conf.Ctrl.Str(ctrl.C_MISSO_REDIRECT_URL)
 	p.CookieSecretKey = "secret-key-for-encrypt-cookie"
 	p.missoAuthDomain = "http://sso.pt.xiaomi.com"

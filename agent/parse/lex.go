@@ -26,7 +26,7 @@ const (
 
 var (
 	yy    *yyLex
-	conf  *config.ConfAgent
+	conf  *config.Agent
 	yy_ss = make(map[string]string)
 	yy_as = make([]string, 0)
 
