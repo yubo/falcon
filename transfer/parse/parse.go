@@ -34,7 +34,7 @@ const LOG = 57356
 const HOST = 57357
 const DISABLED = 57358
 const DEBUG = 57359
-const SHAREMAP = 57360
+const UPSTREAM = 57360
 
 var yyToknames = [...]string{
 	"$end",
@@ -57,7 +57,7 @@ var yyToknames = [...]string{
 	"HOST",
 	"DISABLED",
 	"DEBUG",
-	"SHAREMAP",
+	"UPSTREAM",
 }
 var yyStatenames = [...]string{}
 
@@ -65,7 +65,7 @@ const yyEofCode = 1
 const yyErrCode = 2
 const yyInitialStackSize = 16
 
-//line transfer/parse/parse.y:116
+//line transfer/parse/parse.y:115
 
 //line yacctab:1
 var yyExca = [...]int{
@@ -618,29 +618,28 @@ yydefault:
 		yyDollar = yyS[yypt-3 : yypt+1]
 		//line transfer/parse/parse.y:93
 		{
-			// check sharemap
-			conf.ShareCount = len(conf.ShareMap)
-			for i := 0; i < conf.ShareCount; i++ {
-				if _, ok := conf.ShareMap[i]; !ok {
-					yy.Error(fmt.Sprintf("miss shareMap[%d]\n", i))
+			// check upstream
+			for i := 0; i < len(conf.Upstream); i++ {
+				if _, ok := conf.Upstream[i]; !ok {
+					yy.Error(fmt.Sprintf("miss Upstream[%d]\n", i))
 				}
 			}
 		}
 	case 26:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line transfer/parse/parse.y:105
+		//line transfer/parse/parse.y:104
 		{
-			conf.ShareMap = make(map[int]string)
+			conf.Upstream = make(map[int]string)
 		}
 	case 29:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line transfer/parse/parse.y:111
+		//line transfer/parse/parse.y:110
 		{
-			conf.ShareMap[yyDollar[1].num] = yyDollar[2].text
+			conf.Upstream[yyDollar[1].num] = yyDollar[2].text
 		}
 	case 30:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line transfer/parse/parse.y:112
+		//line transfer/parse/parse.y:111
 		{
 			yy.include(yyDollar[2].text)
 		}

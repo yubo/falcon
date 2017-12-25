@@ -9,11 +9,13 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/yubo/falcon"
+
 	"golang.org/x/net/context"
 )
 
 type ApiGwModule struct {
-	enable   bool
+	disable  bool
 	ctx      context.Context
 	cancel   context.CancelFunc
 	upstream string
@@ -21,14 +23,14 @@ type ApiGwModule struct {
 }
 
 func (p *ApiGwModule) prestart(service *Service) error {
-	p.upstream = service.Conf.Configer.Str(C_GRPC_ADDR)
+	p.upstream = service.Conf.Configer.Str(C_API_ADDR)
 	p.address = service.Conf.Configer.Str(C_HTTP_ADDR)
-	p.enable, _ = service.Conf.Configer.Bool(C_HTTP_ENABLE)
+	p.disable = falcon.AddrIsDisable(p.address)
 	return nil
 }
 
 func (p *ApiGwModule) start(service *Service) error {
-	if !p.enable {
+	if p.disable {
 		return nil
 	}
 
@@ -59,7 +61,7 @@ func (p *ApiGwModule) start(service *Service) error {
 }
 
 func (p *ApiGwModule) stop(service *Service) error {
-	if !p.enable {
+	if p.disable {
 		return nil
 	}
 	p.cancel()
@@ -67,7 +69,7 @@ func (p *ApiGwModule) stop(service *Service) error {
 }
 
 func (p *ApiGwModule) reload(service *Service) error {
-	if p.enable {
+	if !p.disable {
 		p.stop(service)
 		time.Sleep(time.Second)
 	}

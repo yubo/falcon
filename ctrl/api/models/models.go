@@ -254,7 +254,7 @@ func initConfigAdmin(c *fconfig.Configer) map[string]bool {
 func initConfig(conf *config.Ctrl) error {
 	var err error
 
-	glog.V(4).Infof(MODULE_NAME+"%s Init()", conf.Name)
+	glog.V(5).Infof(MODULE_NAME+"%s Init()", conf.Name)
 
 	orm.RegisterDriver("mysql", orm.DRMySQL)
 
@@ -276,7 +276,7 @@ func initConfig(conf *config.Ctrl) error {
 	if c, err := GetDbConfig(Db.Ctrl, "ctrl"); err == nil {
 		conf.Ctrl.Set(fconfig.APP_CONF_DB, c)
 	}
-	glog.V(4).Infof(MODULE_NAME+"initConfig get config %s", cf.String())
+	glog.V(5).Infof(MODULE_NAME+"initConfig get config %s", cf.String())
 
 	// ctrl config
 	if err = orm.RegisterDataBase("idx", "mysql", cf.Str(ctrl.C_IDX_DSN), dbMaxIdle, dbMaxConn); err != nil {

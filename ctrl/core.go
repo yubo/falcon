@@ -67,7 +67,6 @@ var (
 		C_MASTER_MODE:             "true",
 		C_MI_MODE:                 "false",
 		C_DEV_MODE:                "false",
-		C_HTTP_ADDR:               "8001",
 		C_SESSION_GC_MAX_LIFETIME: "86400",
 		C_SESSION_COOKIE_LIFETIME: "86400",
 		C_AUTH_MODULE:             "ldap",

@@ -10,6 +10,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/golang/glog"
 	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/service"
 	"golang.org/x/net/context"
@@ -18,11 +19,11 @@ import (
 )
 
 type ApiModule struct {
-	enable     bool
-	ctx        context.Context
-	cancel     context.CancelFunc
-	address    string
-	updateChan chan []*falcon.Item
+	disable bool
+	ctx     context.Context
+	cancel  context.CancelFunc
+	address string
+	putChan chan []*falcon.Item
 }
 
 func (p *ApiModule) Get(ctx context.Context,
@@ -34,22 +35,24 @@ func (p *ApiModule) Get(ctx context.Context,
 func (p *ApiModule) Put(ctx context.Context,
 	in *falcon.PutRequest) (*falcon.PutResponse, error) {
 
-	p.updateChan <- in.Items
+	p.putChan <- in.Items
 	return &falcon.PutResponse{int32(len(in.Items)), 0}, nil
 }
 
 func (p *ApiModule) prestart(agent *Agent) error {
-	p.enable, _ = agent.Conf.Configer.Bool(C_GRPC_ENABLE)
-	p.address = agent.Conf.Configer.Str(C_GRPC_ADDR)
-	p.updateChan = agent.appUpdateChan
+	p.address = agent.Conf.Configer.Str(C_API_ADDR)
+	glog.Info(MODULE_NAME + "address " + p.address)
+	p.disable = falcon.AddrIsDisable(p.address)
+	p.putChan = agent.appPutChan
 	return nil
 }
 
 func (p *ApiModule) start(agent *Agent) error {
-
-	if !p.enable {
+	glog.V(3).Info(MODULE_NAME + "api start")
+	if p.disable {
 		return nil
 	}
+	glog.V(3).Info(MODULE_NAME + "api start")
 
 	p.ctx, p.cancel = context.WithCancel(context.Background())
 
@@ -59,7 +62,7 @@ func (p *ApiModule) start(agent *Agent) error {
 	}
 
 	server := grpc.NewServer()
-	service.RegisterServiceServer(server, &ApiModule{})
+	service.RegisterServiceServer(server, p)
 
 	// Register reflection service on gRPC server.
 	reflection.Register(server)
@@ -78,7 +81,7 @@ func (p *ApiModule) start(agent *Agent) error {
 }
 
 func (p *ApiModule) stop(agent *Agent) error {
-	if !p.enable {
+	if p.disable {
 		return nil
 	}
 	p.cancel()
@@ -86,7 +89,7 @@ func (p *ApiModule) stop(agent *Agent) error {
 }
 
 func (p *ApiModule) reload(agent *Agent) error {
-	if p.enable {
+	if !p.disable {
 		p.stop(agent)
 		time.Sleep(time.Second)
 	}

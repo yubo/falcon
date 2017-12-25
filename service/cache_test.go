@@ -25,12 +25,12 @@ var (
 
 func newItem1(i int) *falcon.Item {
 	return &falcon.Item{
-		Endpoint: []byte(fmt.Sprintf("host_%d", i)),
-		Metric:   []byte(fmt.Sprintf("key_%d", i)),
-		Value:    float64(i),
-		Ts:       int64(i) * DEBUG_STEP,
-		Type:     falcon.ItemType_GAUGE,
-		Tags:     []byte{},
+		Endpoint:  []byte(fmt.Sprintf("host_%d", i)),
+		Metric:    []byte(fmt.Sprintf("key_%d", i)),
+		Value:     float64(i),
+		Timestamp: int64(i) * DEBUG_STEP,
+		Type:      falcon.ItemType_GAUGE,
+		Tags:      []byte{},
 	}
 }
 
@@ -68,24 +68,24 @@ func TestCache(t *testing.T) {
 	}
 	fmt.Printf("c.get success\n")
 
-	if len(cacheApp.cache.hash) != 1 {
-		t.Errorf("c.hash size error size %d want 1", len(cacheApp.cache.hash))
+	if len(cacheApp.cache.data) != 1 {
+		t.Errorf("c.hash size error size %d want 1", len(cacheApp.cache.data))
 	}
 
 	item = newItem1(2)
 	cacheApp.createEntry(item.Csum(), item)
-	if len(cacheApp.cache.hash) != 2 {
-		t.Errorf("c.hash size error size %d want 2", len(cacheApp.cache.hash))
+	if len(cacheApp.cache.data) != 2 {
+		t.Errorf("c.hash size error size %d want 2", len(cacheApp.cache.data))
 	}
 
 	// unlink
 	cacheApp.cache.unlink(newItem1(1).Csum())
-	if len(cacheApp.cache.hash) != 1 {
-		t.Errorf("c.hash size error size %d want 1", len(cacheApp.cache.hash))
+	if len(cacheApp.cache.data) != 1 {
+		t.Errorf("c.hash size error size %d want 1", len(cacheApp.cache.data))
 	}
 	fmt.Printf("c.unlink success\n")
 
-	for k, _ := range cacheApp.cache.hash {
+	for k, _ := range cacheApp.cache.data {
 		cacheApp.cache.unlink(k)
 	}
 	fmt.Printf("all c.unlink success\n")
@@ -102,23 +102,12 @@ func TestCacheQueue(t *testing.T) {
 	}
 
 	//fmt.Printf("cacheEtnry filename: %s\n", entry.filename())
-
 	for i := 1; i < 2*CACHE_SIZE; i++ {
 		testEntry.put(newItem1(i))
-		if i < CACHE_SIZE {
-			if i != len(testEntry.getItems()) {
-				t.Errorf("len(data) %d want %d", len(testEntry.getItems()), i)
-			}
-		} else {
-			if len(testEntry.getItems()) != CACHE_SIZE {
-				t.Errorf("len(data) %d want %d", len(testEntry.getItems()), CACHE_SIZE)
-			}
+		if len(testEntry.getItems(CACHE_SIZE)) != CACHE_SIZE {
+			t.Errorf("len(data) %d want %d", len(testEntry.getItems(CACHE_SIZE)), CACHE_SIZE)
 		}
 	}
 	fmt.Printf("e.getItems() success\n")
 
-	testEntry.dequeueAll()
-	if testEntry.commitId != testEntry.dataId {
-		t.Errorf("len(cache) %d want %d", int(testEntry.dataId-testEntry.commitId), 0)
-	}
 }

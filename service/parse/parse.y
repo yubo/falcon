@@ -73,7 +73,7 @@ conf: ';'
 service:
 	'{' {
 	 	// begin
-		conf = &config.ConfService{Name: "service"}
+		conf = &config.Service{Name: "service"}
 	}| service service_item ';'
 ;
 

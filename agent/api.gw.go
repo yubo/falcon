@@ -10,12 +10,13 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/service"
 	"golang.org/x/net/context"
 )
 
 type ApiGwModule struct {
-	enable   bool
+	disable  bool
 	ctx      context.Context
 	cancel   context.CancelFunc
 	upstream string
@@ -23,17 +24,17 @@ type ApiGwModule struct {
 }
 
 func (p *ApiGwModule) prestart(agent *Agent) error {
-	p.upstream = agent.Conf.Configer.Str(C_GRPC_ADDR)
+	p.upstream = agent.Conf.Configer.Str(C_API_ADDR)
 	p.address = agent.Conf.Configer.Str(C_HTTP_ADDR)
-	p.enable, _ = agent.Conf.Configer.Bool(C_HTTP_ENABLE)
+	p.disable = falcon.AddrIsDisable(p.address)
 	return nil
 }
 
 func (p *ApiGwModule) start(agent *Agent) error {
-	if !p.enable {
-		glog.Info(MODULE_NAME + "http.Start not enabled")
+	if p.disable {
 		return nil
 	}
+	glog.Info(MODULE_NAME + "http start")
 
 	p.ctx, p.cancel = context.WithCancel(context.Background())
 
@@ -62,7 +63,7 @@ func (p *ApiGwModule) start(agent *Agent) error {
 }
 
 func (p *ApiGwModule) stop(agent *Agent) error {
-	if !p.enable {
+	if p.disable {
 		return nil
 	}
 	p.cancel()
@@ -70,7 +71,7 @@ func (p *ApiGwModule) stop(agent *Agent) error {
 }
 
 func (p *ApiGwModule) reload(agent *Agent) error {
-	if p.enable {
+	if !p.disable {
 		p.stop(agent)
 		time.Sleep(time.Second)
 	}

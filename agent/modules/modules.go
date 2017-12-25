@@ -10,7 +10,6 @@ import (
 	"github.com/yubo/falcon/agent"
 	"github.com/yubo/falcon/agent/config"
 	_ "github.com/yubo/falcon/agent/plugin"
-	_ "github.com/yubo/falcon/agent/plugin/emulator"
 )
 
 func init() {
@@ -18,5 +17,6 @@ func init() {
 	agent.RegisterModule(&agent.StatsModule{})
 	agent.RegisterModule(&agent.CollectModule{})
 	agent.RegisterModule(&agent.ClientModule{})
+	agent.RegisterModule(&agent.ApiModule{})
 	agent.RegisterModule(&agent.ApiGwModule{})
 }

@@ -6,20 +6,21 @@
 package service
 
 import (
+	"database/sql"
 	"strings"
 	"time"
-
-	"database/sql"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/golang/glog"
 	"github.com/yubo/gotool/list"
+	"golang.org/x/net/context"
 )
 
 type IndexModule struct {
 	indexUpdateCh chan *cacheEntry
 	indexDb       *sql.DB
-	running       chan struct{}
+	ctx           context.Context
+	cancel        context.CancelFunc
 }
 
 func indexUpdate(e *cacheEntry, db *sql.DB) {
@@ -31,12 +32,12 @@ func indexUpdate(e *cacheEntry, db *sql.DB) {
 
 	statsInc(ST_INDEX_UPDATE, 1)
 	hid = -1
-	err = db.QueryRow("SELECT id FROM host WHERE host = ?", e.endpoint).Scan(&hid)
+	err = db.QueryRow("SELECT id FROM endpoint WHERE endpoint = ?", e.endpoint).Scan(&hid)
 	if err != nil {
 		statsInc(ST_INDEX_HOST_MISS, 1)
 		if err == sql.ErrNoRows || hid < 0 {
 			statsInc(ST_INDEX_HOST_INSERT, 1)
-			ret, err := db.Exec("INSERT INTO host(host, ts, t_create) "+
+			ret, err := db.Exec("INSERT INTO endpoint(endpoint, ts, t_create) "+
 				"VALUES (?, ?, now()) ON DUPLICATE KEY "+
 				"UPDATE id=LAST_INSERT_ID(id), ts=VALUES(ts)",
 				e.endpoint, e.lastTs)
@@ -63,12 +64,12 @@ func indexUpdate(e *cacheEntry, db *sql.DB) {
 
 		tid = -1
 		err := db.QueryRow("SELECT id FROM tag WHERE tag = ? and "+
-			"host_id = ?", tag, hid).Scan(&tid)
+			"endpoint_id = ?", tag, hid).Scan(&tid)
 		if err != nil {
 			statsInc(ST_INDEX_TAG_MISS, 1)
 			if err == sql.ErrNoRows || tid < 0 {
 				statsInc(ST_INDEX_TAG_INSERT, 1)
-				ret, err := db.Exec("INSERT INTO tag(tag, host_id, "+
+				ret, err := db.Exec("INSERT INTO tag_endpoint(tag, endpoint_id, "+
 					"ts, t_create) "+
 					"VALUES (?, ?, ?, now()) "+
 					"ON DUPLICATE KEY "+
@@ -93,20 +94,20 @@ func indexUpdate(e *cacheEntry, db *sql.DB) {
 
 	}
 
-	// host_id
-	counter := e.id()
+	// endpoint_id
+	counter := e.key()
 
 	cid = -1
 	dstype = "nil"
 
 	err = db.QueryRow("SELECT id, type FROM counter WHERE "+
-		"host_id = ? and counter = ?",
+		"endpoint_id = ? and counter = ?",
 		hid, counter).Scan(&cid, &dstype)
 	if err != nil {
 		statsInc(ST_INDEX_COUNTER_MISS, 1)
 		if err == sql.ErrNoRows || cid < 0 {
 			statsInc(ST_INDEX_COUNTER_INSERT, 1)
-			ret, err := db.Exec("INSERT INTO counter(host_id,counter,"+
+			ret, err := db.Exec("INSERT INTO endpoint_counter(endpoint_id,counter,"+
 				"type,ts,t_create) "+
 				"VALUES (?,?,?,?,now()) "+
 				"ON DUPLICATE KEY "+
@@ -154,10 +155,8 @@ func (this *IndexModule) indexTrashWorker(b *Service) {
 	q2 := &b.cache.idx2q
 	for {
 		select {
-		case _, ok := <-this.running:
-			if !ok {
-				return
-			}
+		case <-this.ctx.Done():
+			return
 		case <-ticker:
 			for p = q2.head.Next; p != &q2.head; p = p.Next {
 				_p = p.Next
@@ -191,10 +190,8 @@ func (p *IndexModule) indexWorker(b *Service) {
 
 	for {
 		select {
-		case _, ok := <-p.running:
-			if !ok {
-				return
-			}
+		case <-p.ctx.Done():
+			return
 		case <-ticker:
 			statsInc(ST_INDEX_TICK, 1)
 
@@ -233,10 +230,8 @@ func (p *IndexModule) indexWorker(b *Service) {
 func (p *IndexModule) updateWorker() {
 	for {
 		select {
-		case _, ok := <-p.running:
-			if !ok {
-				return
-			}
+		case <-p.ctx.Done():
+			return
 		case e := <-p.indexUpdateCh:
 			go indexUpdate(e, p.indexDb)
 		}
@@ -245,7 +240,7 @@ func (p *IndexModule) updateWorker() {
 
 // indexModule depend on cacheModule
 func (p *IndexModule) prestart(b *Service) error {
-	p.running = make(chan struct{}, 0)
+	p.ctx, p.cancel = context.WithCancel(context.Background())
 	p.indexUpdateCh = make(chan *cacheEntry, INDEX_MAX_OPEN_CONNS)
 	return nil
 }
@@ -278,7 +273,7 @@ func (p *IndexModule) start(b *Service) error {
 }
 
 func (p *IndexModule) stop(b *Service) error {
-	close(p.running)
+	p.cancel()
 	return nil
 }
 

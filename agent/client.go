@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/golang/glog"
 	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/service"
 	"golang.org/x/net/context"
@@ -23,80 +24,84 @@ type ClientModule struct {
 	cancel context.CancelFunc
 }
 
-func (p *ClientModule) update(items []*falcon.Item, timeout int) (err error) {
+func (p *ClientModule) put(items []*falcon.Item, timeout int) {
 
-	statsInc(ST_UPSTREAM_UPDATE, 1)
-	statsInc(ST_UPSTREAM_UPDATE_ITEM, len(items))
+	statsInc(ST_TX_PUT_ITERS, 1)
+	statsInc(ST_TX_PUT_ITEMS, len(items))
 
 	ctx, _ := context.WithTimeout(context.Background(),
 		time.Duration(timeout)*time.Millisecond)
-	_, err = p.client.Put(ctx, &falcon.PutRequest{Items: items})
+	resp, err := p.client.Put(ctx, &falcon.PutRequest{Items: items})
 	if err != nil {
-		statsInc(ST_UPSTREAM_UPDATE_ERR, 1)
+		statsInc(ST_TX_PUT_ERR_ITERS, 1)
 	}
-	return err
+	statsInc(ST_TX_PUT_ERR_ITEMS, int(resp.Errors))
 }
 
-func stdoutLoop(p *ClientModule, ch chan []*falcon.Item) {
-	for {
-		select {
-		case <-p.ctx.Done():
-			return
-		case get_items := <-ch:
-			for k, v := range get_items {
-				fmt.Printf(MODULE_NAME+"%d %s\n", k, v)
-			}
-		}
-	}
-}
-
-func socketLoop(p *ClientModule, ch chan []*falcon.Item, agent *Agent) {
-	callTimeout, _ := agent.Conf.Configer.Int(C_CALL_TIMEOUT)
-	burstSize, _ := agent.Conf.Configer.Int(C_BURST_SIZE)
-	items := make([]*falcon.Item, burstSize)
-	i := 0
-
-	for {
-		select {
-		case <-p.ctx.Done():
-			return
-		case get_items := <-ch:
-			for _, item := range get_items {
-				items[i] = item
-				i++
-				if i == burstSize {
-					p.update(items[:i], callTimeout)
-					i = 0
-				}
-
-			}
-		case <-time.After(time.Second):
-			p.update(items[:i], callTimeout)
-			i = 0
-
-		}
-
-	}
-
-}
-
-func (p *ClientModule) mainLoop(agent *Agent) error {
-
+func (client *ClientModule) mainLoop(agent *Agent) error {
 	upstream := agent.Conf.Configer.Str(C_UPSTREAM)
 	if upstream == "stdout" {
-		go stdoutLoop(p, agent.appUpdateChan)
+		go func() {
+			for {
+				select {
+				case <-client.ctx.Done():
+					return
+				case get_items := <-agent.appPutChan:
+					for _, item := range get_items {
+						fmt.Printf("%s TX PUT %d %15s %10.4f %s\n",
+							MODULE_NAME, item.Timestamp, item.Metric,
+							item.Value, item.Tags)
+					}
+				}
+			}
+		}()
 		return nil
 	}
 
-	conn, _, err := falcon.DialRr(p.ctx, upstream, true)
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
+	go func() {
+		conn, _, err := falcon.DialRr(client.ctx, upstream, true)
+		if err != nil {
+			return
+		}
+		defer conn.Close()
 
-	p.client = service.NewServiceClient(conn)
-	go socketLoop(p, agent.appUpdateChan, agent)
+		client.client = service.NewServiceClient(conn)
+		callTimeout, _ := agent.Conf.Configer.Int(C_CALL_TIMEOUT)
+		burstSize, _ := agent.Conf.Configer.Int(C_BURST_SIZE)
+		host := []byte(agent.Conf.Host)
+		items := make([]*falcon.Item, burstSize)
+		i := 0
 
+		for {
+			select {
+			case <-client.ctx.Done():
+				return
+			case get_items := <-agent.appPutChan:
+				glog.V(4).Infof("%s TX PUT %d\n", MODULE_NAME, len(get_items))
+				for _, item := range get_items {
+
+					glog.V(5).Infof("%s TX PUT %d %15s %10.4f %s\n",
+						MODULE_NAME, item.Timestamp, item.Metric,
+						item.Value, item.Tags)
+
+					item.Endpoint = host
+					items[i] = item
+					i++
+					if i == burstSize {
+						client.put(items[:i], callTimeout)
+						i = 0
+					}
+
+				}
+			case <-time.After(time.Second):
+				if i > 0 {
+					client.put(items[:i], callTimeout)
+					i = 0
+				}
+			}
+
+		}
+	}()
 	return nil
 }
 

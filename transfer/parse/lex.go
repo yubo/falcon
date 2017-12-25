@@ -50,7 +50,7 @@ var (
 		"host":     HOST,
 		"disabled": DISABLED,
 		"debug":    DEBUG,
-		"shareMap": SHAREMAP,
+		"upstream": UPSTREAM,
 	}
 )
 

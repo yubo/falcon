@@ -14,14 +14,8 @@ import (
 	"golang.org/x/net/context"
 )
 
-type collector_t struct {
-	a []Collector
-	//m map[string]Collector
-	groups map[string]map[string]Collector
-}
-
 var (
-	collector collector_t
+	collectorGroups map[string]map[string]Collector
 )
 
 type Collector interface {
@@ -29,44 +23,49 @@ type Collector interface {
 	Name() string
 	Start(*Agent) error
 	Reset()
-	Collect(int, string) ([]*falcon.Item, error)
+	Collect() ([]*falcon.Item, error)
 }
 
 func init() {
-	//collector.m = make(map[string]Collector)
-	collector.groups = make(map[string]map[string]Collector)
+	collectorGroups = make(map[string]map[string]Collector)
 }
 
 func RegisterCollector(c Collector) {
 	glog.V(4).Infof(MODULE_NAME+"register collector %s", c.Name())
-	//collector.m[c.Name()] = c
-	if _, ok := collector.groups[c.GName()]; !ok {
-		collector.groups[c.GName()] = make(map[string]Collector)
+	if _, ok := collectorGroups[c.GName()]; !ok {
+		collectorGroups[c.GName()] = make(map[string]Collector)
 	}
-	collector.groups[c.GName()][c.Name()] = c
+	collectorGroups[c.GName()][c.Name()] = c
 }
 
 type CollectModule struct {
+	a []Collector
+
 	ctx    context.Context
 	cancel context.CancelFunc
 }
 
 func (p *CollectModule) prestart(agent *Agent) error {
+
+	p.a = []Collector{}
+
 	keys := make(map[string]bool)
 
 	plugins := strings.Split(agent.Conf.Configer.Str(C_PLUGINS), ",")
 
 	for _, plugin := range plugins {
 		plugin = strings.TrimSpace(plugin)
-		if group, ok := collector.groups[plugin]; ok {
+		if group, ok := collectorGroups[plugin]; ok {
 			// skip if exists
 			if keys[plugin] {
 				continue
 			}
 			for _, c := range group {
-				collector.a = append(collector.a, c)
+				p.a = append(p.a, c)
 			}
 			keys[plugin] = true
+		} else {
+			glog.Infof("plugin %s miss", plugin)
 		}
 	}
 
@@ -76,11 +75,10 @@ func (p *CollectModule) prestart(agent *Agent) error {
 func (p *CollectModule) start(agent *Agent) error {
 
 	p.ctx, p.cancel = context.WithCancel(context.Background())
-	host := agent.Conf.Host
-	i, _ := agent.Conf.Configer.Int(C_INTERVAL)
-	ticker := time.NewTicker(time.Second * time.Duration(i)).C
+	interval, _ := agent.Conf.Configer.Int(C_INTERVAL)
+	ticker := time.NewTicker(time.Second * time.Duration(interval)).C
 
-	for _, c := range collector.a {
+	for _, c := range p.a {
 		if err := c.Start(agent); err != nil {
 			return err
 		}
@@ -92,10 +90,9 @@ func (p *CollectModule) start(agent *Agent) error {
 			case <-p.ctx.Done():
 				return
 			case <-ticker:
-				for _, c := range collector.a {
-					if items, err := c.Collect(i,
-						host); err == nil {
-						agent.appUpdateChan <- items
+				for _, c := range p.a {
+					if items, err := c.Collect(); err == nil {
+						agent.appPutChan <- items
 					}
 				}
 			}

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	"golang.org/x/net/context"
 )
 
 type statsIdx struct {
@@ -187,11 +188,12 @@ func statsRrd() {
 }
 
 type StatsModule struct {
-	running chan struct{}
+	ctx    context.Context
+	cancel context.CancelFunc
 }
 
 func (p *StatsModule) prestart(b *Service) error {
-	p.running = make(chan struct{}, 0)
+	p.ctx, p.cancel = context.WithCancel(context.Background())
 	return nil
 }
 
@@ -201,10 +203,8 @@ func (p *StatsModule) start(b *Service) error {
 		go func() {
 			for {
 				select {
-				case _, ok := <-p.running:
-					if !ok {
-						return
-					}
+				case <-p.ctx.Done():
+					return
 				case <-ticker:
 					glog.V(3).Info(MODULE_NAME + statsModuleHandle(DEBUG_STAT_MODULE))
 				}
@@ -215,7 +215,7 @@ func (p *StatsModule) start(b *Service) error {
 }
 
 func (p *StatsModule) stop(b *Service) error {
-	close(p.running)
+	p.cancel()
 	return nil
 }
 

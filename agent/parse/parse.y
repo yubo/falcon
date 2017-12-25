@@ -72,7 +72,7 @@ conf: ';'
 agent:
 	'{' {
 	 	// begin
-		conf = &config.ConfAgent{Name: "agent"}
+		conf = &config.Agent{Name: "agent"}
 	}| agent agent_item ';'
 ;
 

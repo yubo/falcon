@@ -31,7 +31,7 @@ import (
 
 %token '{' '}' ';'
 %token ON YES OFF NO INCLUDE ROOT PID_FILE LOG HOST DISABLED DEBUG
-%token SHAREMAP
+%token UPSTREAM
 
 %%
 
@@ -72,7 +72,7 @@ conf: ';'
 transfer:
 	'{' {
 	 	// begin
-		conf = &config.ConfTransfer{Name: "transfer"}
+		conf = &config.Transfer{Name: "transfer"}
 	}| transfer transfer_item ';'
 ;
 
@@ -90,25 +90,24 @@ transfer_item:
 			yy.Error(err.Error())
 		}
 	}
-	| SHAREMAP sharemap '}' {
-		// check sharemap
-		conf.ShareCount = len(conf.ShareMap)	
-		for i := 0; i < conf.ShareCount; i++ {
-			if _, ok := conf.ShareMap[i]; !ok {
-				yy.Error(fmt.Sprintf("miss shareMap[%d]\n", i))
+	| UPSTREAM upstream '}' {
+		// check upstream
+		for i := 0; i < len(conf.Upstream); i++ {
+			if _, ok := conf.Upstream[i]; !ok {
+				yy.Error(fmt.Sprintf("miss Upstream[%d]\n", i))
 			}
 		}
 	}
 ;
 
-sharemap:
+upstream:
 	'{' {
-		conf.ShareMap = make(map[int]string)
-	}| sharemap sharemap_item ';'
+		conf.Upstream = make(map[int]string)
+	}| upstream upstream_item ';'
 ;
 
-sharemap_item:
-	| num text	{ conf.ShareMap[$1] = $2 }
+upstream_item:
+	| num text	{ conf.Upstream[$1] = $2 }
 	| INCLUDE text	{ yy.include($2) }
 ;
 

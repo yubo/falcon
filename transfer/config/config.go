@@ -12,13 +12,12 @@ import (
 )
 
 type Transfer struct {
-	Debug      int
-	Disabled   bool
-	Name       string
-	Host       string
-	ShareMap   map[int]string
-	ShareCount int
-	Configer   config.Configer
+	Debug    int
+	Disabled bool
+	Name     string
+	Host     string
+	Upstream map[int]string
+	Configer config.Configer
 }
 
 func (p Transfer) GetName() string {
@@ -27,7 +26,7 @@ func (p Transfer) GetName() string {
 
 func (p Transfer) String() string {
 	var s1 string
-	for k, v := range p.ShareMap {
+	for k, v := range p.Upstream {
 		s1 += fmt.Sprintf("%d %s\n", k, v)
 	}
 	return fmt.Sprintf("%-17s %d\n"+
@@ -40,7 +39,7 @@ func (p Transfer) String() string {
 		"disabled", p.Disabled,
 		"Name", p.Name,
 		"Host", p.Host,
-		"shareMap", config.IndentLines(1, s1),
+		"Upstream", config.IndentLines(1, s1),
 		p.Configer.String(),
 	)
 }

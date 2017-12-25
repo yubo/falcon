@@ -15,24 +15,20 @@ import (
 )
 
 const (
-	ST_UPSTREAM_RECONNECT = iota
-	ST_UPSTREAM_DIAL
-	ST_UPSTREAM_DIAL_ERR
-	ST_UPSTREAM_UPDATE
-	ST_UPSTREAM_UPDATE_ITEM
-	ST_UPSTREAM_UPDATE_ERR
+	ST_TX_PUT_ITERS = iota
+	ST_TX_PUT_ITEMS
+	ST_TX_PUT_ERR_ITERS
+	ST_TX_PUT_ERR_ITEMS
 	ST_ARRAY_SIZE
 )
 
 var (
 	counter     [ST_ARRAY_SIZE]uint64
 	counterName [ST_ARRAY_SIZE]string = [ST_ARRAY_SIZE]string{
-		"ST_UPSTREAM_RECONNECT",
-		"ST_UPSTREAM_DIAL",
-		"ST_UPSTREAM_DIAL_ERR",
-		"ST_UPSTREAM_UPDATE",
-		"ST_UPSTREAM_UPDATE_ITEM",
-		"ST_UPSTREAM_UPDATE_ERR",
+		"st_tx_put_iters",
+		"st_tx_put_items",
+		"st_tx_put_err_iters",
+		"st_tx_put_err_items",
 	}
 )
 

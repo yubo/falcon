@@ -55,11 +55,11 @@ install: $(TARGETS)
 deploy: $(DEPENDS)
 	cd dist && ../scripts/deploy.sh
 
-run:
-	./dist/bin/falcon -config ./docs/etc/agent.example.conf -logtostderr -v 4 start 2>&1
+start:
+	./dist/bin/falcon -config ./docs/etc/falcon.example.conf -logtostderr -v 4 start 2>&1
 
 reload:
-	./dist/bin/falcon -config ./docs/etc/falcon.conf -logtostderr -v 4 reload 2>&1
+	./dist/bin/falcon -config ./docs/etc/falcon.example.conf -logtostderr -v 4 reload 2>&1
 
 parse: $(TARGETS)
 	./dist/bin/falcon -config ./docs/etc/falcon.example.conf -logtostderr -v 4 parse 2>&1

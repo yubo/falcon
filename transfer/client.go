@@ -20,26 +20,17 @@ import (
 // servicegroup: upstream container
 // upstream: connection to the
 
-type sender interface {
-	new(*Transfer) sender
-	start(string) error
-	stop() error
-	addClientChan(string, string, chan *falcon.Item) error
-}
-
-func init() {
-}
-
-type rpcClients struct {
+type rpcClient struct {
 	addr string
 	conn *grpc.ClientConn
 	cli  service.ServiceClient
 }
 
 type ClientModule struct {
+	putChan      chan []*falcon.Item
 	sharemap     []chan *falcon.Item
 	serviceChans map[string]chan *falcon.Item
-	clients      map[string]*rpcClients
+	clients      map[string]*rpcClient
 	connTimeout  int
 	callTimeout  int
 	burstSize    int
@@ -49,19 +40,20 @@ type ClientModule struct {
 
 func (p *ClientModule) prestart(transfer *Transfer) error {
 
-	p.sharemap = make([]chan *falcon.Item, transfer.Conf.ShareCount)
+	p.putChan = transfer.appPutChan
+	p.sharemap = make([]chan *falcon.Item, len(transfer.Conf.Upstream))
 	p.serviceChans = make(map[string]chan *falcon.Item)
-	p.clients = make(map[string]*rpcClients)
+	p.clients = make(map[string]*rpcClient)
 	p.connTimeout, _ = transfer.Conf.Configer.Int(C_CONN_TIMEOUT)
 	p.callTimeout, _ = transfer.Conf.Configer.Int(C_CALL_TIMEOUT)
 	p.burstSize, _ = transfer.Conf.Configer.Int(C_BURST_SIZE)
 
-	for shareid, service := range transfer.Conf.ShareMap {
+	for shareid, service := range transfer.Conf.Upstream {
 		ch, ok := p.serviceChans[service]
 		if !ok {
 			ch = make(chan *falcon.Item)
 			p.serviceChans[service] = ch
-			p.clients[service] = &rpcClients{addr: service}
+			p.clients[service] = &rpcClient{addr: service}
 		}
 		p.sharemap[shareid] = ch
 	}
@@ -85,9 +77,11 @@ func (p *ClientModule) start(transfer *Transfer) (err error) {
 		c.cli = service.NewServiceClient(c.conn)
 	}
 
+	go putWorker(p.ctx, p.putChan, p.sharemap)
+
 	for service, ch := range p.serviceChans {
 		go clientWorker(p.ctx, ch, p.clients[service],
-			p.burstSize)
+			p.burstSize, p.callTimeout)
 	}
 
 	return nil
@@ -105,20 +99,42 @@ func (p *ClientModule) reload(transfer *Transfer) error {
 	return p.start(transfer)
 }
 
-func clientPut(client service.ServiceClient, items []*falcon.Item) {
-	if res, err := client.Put(context.Background(),
-		&falcon.PutRequest{Items: items}); err != nil {
-		glog.Error(err)
-		statsInc(ST_UPSTREAM_PUT_ERR, 1)
-	} else {
-		statsInc(ST_UPSTREAM_PUT, 1)
-		statsInc(ST_UPSTREAM_PUT_ITEM_TOTAL, int(res.Total))
-		statsInc(ST_UPSTREAM_PUT_ITEM_ERR, int(res.Errors))
+func putWorker(ctx context.Context, in chan []*falcon.Item, out []chan *falcon.Item) {
+	n := uint64(len(out))
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case items := <-in:
+			for _, item := range items {
+				select {
+				case out[item.Sum64()%n] <- item:
+				default:
+				}
+			}
+		}
 	}
+
+}
+
+func clientPut(client service.ServiceClient, items []*falcon.Item,
+	timeout int) {
+
+	statsInc(ST_TX_PUT_ITERS, 1)
+	statsInc(ST_TX_PUT_ITEMS, len(items))
+
+	ctx, _ := context.WithTimeout(context.Background(),
+		time.Duration(timeout)*time.Millisecond)
+	res, err := client.Put(ctx,
+		&falcon.PutRequest{Items: items})
+	if err != nil {
+		statsInc(ST_TX_PUT_ERR_ITERS, 1)
+	}
+	statsInc(ST_TX_PUT_ERR_ITEMS, int(res.Errors))
 }
 
 func clientWorker(ctx context.Context,
-	ch chan *falcon.Item, c *rpcClients, burstSize int) {
+	ch chan *falcon.Item, c *rpcClient, burstSize, timeout int) {
 
 	var i int
 
@@ -132,11 +148,11 @@ func clientWorker(ctx context.Context,
 			items[i] = item
 			i++
 			if i == burstSize {
-				clientPut(c.cli, items[:i])
+				clientPut(c.cli, items[:i], timeout)
 				i = 0
 			}
 		case <-time.After(time.Second):
-			clientPut(c.cli, items[:i])
+			clientPut(c.cli, items[:i], timeout)
 			i = 0
 		}
 	}

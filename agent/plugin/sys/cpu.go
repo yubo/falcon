@@ -125,15 +125,14 @@ func (p *cpuCollector) Start(agent *agent.Agent) error {
 	return nil
 }
 
-func (p *cpuCollector) Collect(step int,
-	host string) (ret []*falcon.Item, err error) {
+func (p *cpuCollector) Collect() (ret []*falcon.Item, err error) {
 	p.last = p.cur
 	p.cur, err = p.collect()
 	if err != nil {
 		return nil, err
 	}
 	glog.V(5).Infof("%v", p.cur)
-	return p.stat(step, host)
+	return p.stat()
 }
 
 func (p *cpuCollector) collect() (*cpuStatSample, error) {
@@ -159,8 +158,7 @@ func (p *cpuCollector) collect() (*cpuStatSample, error) {
 	return ps, nil
 }
 
-func (p *cpuCollector) stat(step int,
-	host string) (ret []*falcon.Item, err error) {
+func (p *cpuCollector) stat() (ret []*falcon.Item, err error) {
 	var n float64
 	if p.last == nil {
 		return nil, errors.New("no data")
@@ -174,14 +172,14 @@ func (p *cpuCollector) stat(step int,
 	}
 
 	for i := 1; i < PROC_STAT_TOTAL; i++ {
-		ret = append(ret, utils.GaugeValue(step, host, procStatName[i],
+		ret = append(ret, utils.GaugeValue(procStatName[i],
 			float64(p.cur.cpu.data[i]-p.last.cpu.data[i])*n))
 	}
-	ret = append(ret, utils.GaugeValue(step, host, "cpu.busy",
+	ret = append(ret, utils.GaugeValue("cpu.busy",
 		float64(100.0-float64(p.cur.cpu.data[PROC_STAT_IDLE]-
 			p.last.cpu.data[PROC_STAT_IDLE])*n)))
 
-	ret = append(ret, utils.GaugeValue(step, host, "cpu.switches",
+	ret = append(ret, utils.GaugeValue("cpu.switches",
 		float64(p.cur.ctxt-p.last.ctxt)))
 
 	return ret, nil

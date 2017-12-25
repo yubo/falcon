@@ -10,12 +10,13 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/service"
 	"golang.org/x/net/context"
 )
 
 type ApiGwModule struct {
-	enable   bool
+	disable  bool
 	ctx      context.Context
 	cancel   context.CancelFunc
 	upstream string
@@ -23,15 +24,15 @@ type ApiGwModule struct {
 }
 
 func (p *ApiGwModule) prestart(transfer *Transfer) error {
-	p.upstream = transfer.Conf.Configer.Str(C_GRPC_ADDR)
+	p.upstream = transfer.Conf.Configer.Str(C_API_ADDR)
 	p.address = transfer.Conf.Configer.Str(C_HTTP_ADDR)
-	p.enable, _ = transfer.Conf.Configer.Bool(C_HTTP_ENABLE)
+	p.disable = falcon.AddrIsDisable(p.address)
 	return nil
 }
 
 func (p *ApiGwModule) start(transfer *Transfer) error {
-	if !p.enable {
-		glog.Info(MODULE_NAME + "http.Start not enabled")
+	if p.disable {
+		glog.Info(MODULE_NAME + "http disable")
 		return nil
 	}
 
@@ -62,7 +63,7 @@ func (p *ApiGwModule) start(transfer *Transfer) error {
 }
 
 func (p *ApiGwModule) stop(transfer *Transfer) error {
-	if !p.enable {
+	if p.disable {
 		return nil
 	}
 	p.cancel()
@@ -70,7 +71,7 @@ func (p *ApiGwModule) stop(transfer *Transfer) error {
 }
 
 func (p *ApiGwModule) reload(transfer *Transfer) error {
-	if p.enable {
+	if !p.disable {
 		p.stop(transfer)
 		time.Sleep(time.Second)
 	}

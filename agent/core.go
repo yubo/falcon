@@ -20,44 +20,39 @@ const (
 	CONN_RETRY      = 2
 	DEBUG_STAT_STEP = 60
 
-	C_UPSTREAM         = "upstream"
-	C_CONN_TIMEOUT     = "conntimeout"
-	C_CALL_TIMEOUT     = "calltimeout"
-	C_WORKER_PROCESSES = "workerprocesses"
-	C_HTTP_ADDR        = "httpaddr"
-	C_RPC_ADDR         = "rpcaddr"
-	C_GRPC_ADDR        = "grpcaddr"
-	C_INTERVAL         = "interval"
-	C_BURST_SIZE       = "burstsize"
-	C_IFACE_PREFIX     = "ifaceprefix"
-	C_HTTP_ENABLE      = "http_enable"
-	C_GRPC_ENABLE      = "grpc_enable"
-	C_RPC_ENABLE       = "rpc_enable"
-	C_PLUGINS          = "plugins"
-	C_EMU_ENABLE       = "emuenable"
-	C_EMU_HOST         = "emuhost"
-	C_EMU_HOSTNUM      = "emuhostnum"
-	C_EMU_METRIC       = "emumetric"
-	C_EMU_METRICNUM    = "emumetricnum"
-	C_EMU_TPL          = "tpl"
-	C_EMU_TPLNUM       = "tplnum"
+	C_UPSTREAM     = "upstream"
+	C_CONN_TIMEOUT = "conntimeout"
+	C_CALL_TIMEOUT = "calltimeout"
+	C_API_ADDR     = "apiaddr"
+	C_HTTP_ADDR    = "httpaddr"
+	C_INTERVAL     = "interval"
+	C_BURST_SIZE   = "burstsize"
+	C_IFACE_PREFIX = "ifaceprefix"
+	C_PLUGINS      = "plugins"
+	C_EMU_ENABLE   = "emuenable"
+	C_EMU_TPL_DIR  = "emutpldir"
+	//C_RPC_ADDR     = "rpcaddr"
+	//C_WORKER_PROCESSES = "workerprocesses"
+	//C_HTTP_ENABLE  = "http_enable"
+	//C_GRPC_ENABLE  = "grpc_enable"
+	//C_RPC_ENABLE   = "rpc_enable"
 )
 
 var (
 	modules     []module
 	ConfDefault = map[string]string{
-		C_CONN_TIMEOUT:     "1000",
-		C_CALL_TIMEOUT:     "5000",
-		C_WORKER_PROCESSES: "2",
-		C_HTTP_ENABLE:      "true",
-		C_HTTP_ADDR:        "127.0.0.1:1988",
-		C_RPC_ENABLE:       "true",
-		C_RPC_ADDR:         "127.0.0.1:1989",
-		C_GRPC_ENABLE:      "true",
-		C_GRPC_ADDR:        "127.0.0.1:1990",
-		C_INTERVAL:         "60",
-		C_BURST_SIZE:       "16",
-		C_IFACE_PREFIX:     "eth,em",
+		C_CONN_TIMEOUT: "1000",
+		C_CALL_TIMEOUT: "5000",
+		C_INTERVAL:     "60",
+		C_BURST_SIZE:   "16",
+		C_IFACE_PREFIX: "eth,em",
+		//C_WORKER_PROCESSES: "2",
+		//C_HTTP_ENABLE:  "true",
+		//C_HTTP_ADDR:    "127.0.0.1:1988",
+		//C_RPC_ENABLE:   "true",
+		//C_RPC_ADDR:     "127.0.0.1:1989",
+		//C_GRPC_ENABLE:  "true",
+		//C_GRPC_ADDR:    "127.0.0.1:1990",
 	}
 )
 
@@ -71,6 +66,7 @@ type module interface {
 }
 
 func RegisterModule(m module) {
+	glog.Infof("%s RegisterModule %s", MODULE_NAME, falcon.GetType(m))
 	modules = append(modules, m)
 }
 
@@ -81,14 +77,14 @@ type Agent struct {
 	Conf    *config.Agent
 	oldConf *config.Agent
 	// runtime
-	status        uint32
-	appUpdateChan chan []*falcon.Item
+	status     uint32
+	appPutChan chan []*falcon.Item
 }
 
 func (p *Agent) New(conf interface{}) falcon.Module {
 	return &Agent{
-		Conf:          conf.(*config.Agent),
-		appUpdateChan: make(chan []*falcon.Item, 64),
+		Conf:       conf.(*config.Agent),
+		appPutChan: make(chan []*falcon.Item, 64),
 	}
 }
 
@@ -111,10 +107,9 @@ func (p *Agent) Prestart() (err error) {
 	p.status = falcon.APP_STATUS_INIT
 
 	for i := 0; i < len(modules); i++ {
-		if e := modules[i].prestart(p); e != nil {
-			//panic(err)
-			err = e
-			glog.Error(err)
+		if err = modules[i].prestart(p); err != nil {
+			panic(err)
+			//glog.Error(err)
 		}
 	}
 	return err
@@ -126,6 +121,7 @@ func (p *Agent) Start() (err error) {
 
 	for i := 0; i < len(modules); i++ {
 		if e := modules[i].start(p); e != nil {
+			panic(err)
 			err = e
 			glog.Error(err)
 		}
@@ -138,8 +134,9 @@ func (p *Agent) Start() (err error) {
 func (p *Agent) Stop() (err error) {
 	glog.V(3).Infof(MODULE_NAME+"%s Stop()", p.Conf.Name)
 	p.status = falcon.APP_STATUS_EXIT
-	for i := len(modules) - 1; i >= 0; i-- {
-		if e := modules[i].stop(p); e != nil {
+	for n, i := len(modules), 0; i < n; i++ {
+		if e := modules[n-i-1].stop(p); e != nil {
+			panic(err)
 			err = e
 			glog.Error(err)
 		}

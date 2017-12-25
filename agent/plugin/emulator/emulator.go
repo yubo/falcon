@@ -6,7 +6,6 @@
 package emulator
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -21,6 +20,7 @@ func init() {
 	agent.RegisterCollector(&emulator{
 		gname: "emulator",
 		name:  "main",
+		tpl:   make(map[string]tpl),
 	})
 }
 
@@ -32,15 +32,11 @@ type tpl struct {
 }
 
 type emulator struct {
-	name   string
-	gname  string
-	enable bool
-	host   []string
-	metric []string
-	// tpl[host][metric] tpl
-	tpl map[string]map[string]tpl
-	hn  int
-	mn  int
+	name  string
+	gname string
+	tpl   map[string]tpl
+	hn    int
+	mn    int
 }
 
 func readTpl(filePath string) (tpl, error) {
@@ -69,7 +65,8 @@ func readTpl(filePath string) (tpl, error) {
 func (p *tpl) emuValue(ts int64) float64 {
 	time := int(ts % int64(p.n*p.interval))
 	idx := time / p.interval
-	return p.v[idx] + float64(time%p.interval)*((p.v[(idx+1)%p.n]-p.v[idx])/float64(p.interval))
+	return p.v[idx] + float64(time%p.interval)*((p.v[(idx+1)%
+		p.n]-p.v[idx])/float64(p.interval))
 }
 
 func (p *emulator) Name() string {
@@ -81,60 +78,42 @@ func (p *emulator) GName() string {
 }
 
 func (p *emulator) Start(ag *agent.Agent) (err error) {
-	var (
-		host   string
-		metric string
-		tp     string
-		tplnum int
-	)
-	p.enable, err = ag.Conf.Configer.Bool(agent.C_EMU_ENABLE)
-	if !p.enable {
-		return nil
+
+	dir := ag.Conf.Configer.Str(agent.C_EMU_TPL_DIR)
+
+	fd, err := os.Open(dir)
+	if err != nil {
+		return err
+	}
+	defer fd.Close()
+
+	files, err := fd.Readdirnames(-1)
+	if err != nil {
+		return err
 	}
 
-	host = ag.Conf.Configer.Str(agent.C_EMU_HOST)
-	p.hn, _ = ag.Conf.Configer.Int(agent.C_EMU_HOSTNUM)
-	metric = ag.Conf.Configer.Str(agent.C_EMU_METRIC)
-	p.mn, _ = ag.Conf.Configer.Int(agent.C_EMU_METRICNUM)
-	tp = ag.Conf.Configer.Str(agent.C_EMU_TPL)
-	tplnum, _ = ag.Conf.Configer.Int(agent.C_EMU_TPLNUM)
-
-	p.tpl = make(map[string]map[string]tpl, p.hn)
-
-	for n, i := 0, 0; i < p.hn; i++ {
-		_host := fmt.Sprintf(host, i)
-		p.tpl[_host] = make(map[string]tpl)
-
-		for j := 0; j < p.mn; j++ {
-			_metric := fmt.Sprintf(metric, j)
-
-			p.tpl[_host][_metric], err = readTpl(fmt.Sprintf(tp, n%tplnum))
-			if err != nil {
-				glog.Fatal(err)
-			}
-			n++
+	for _, file := range files {
+		n := len(file)
+		if !(n > 4 && file[n-4:] == ".tpl") {
+			continue
 		}
+		metric := file[:n-4]
+		p.tpl[metric], err = readTpl(dir + "/" + file)
 	}
 
 	return nil
 }
 
-func (p *emulator) Collect(step int,
-	host string) (ret []*falcon.Item, err error) {
-	if !p.enable {
-		return nil, errors.New("not enable")
-	}
+func (p *emulator) Collect() (ret []*falcon.Item, err error) {
 
 	now := time.Now().Unix()
-	ret = make([]*falcon.Item, p.hn*p.mn)
+	ret = make([]*falcon.Item, len(p.tpl))
 
 	n := 0
-	for host, _ := range p.tpl {
-		for metric, _ := range p.tpl[host] {
-			tpl := p.tpl[host][metric]
-			ret[n] = utils.GaugeValue(tpl.interval, host, metric,
-				tpl.emuValue(now))
-		}
+	for metric, _ := range p.tpl {
+		tpl := p.tpl[metric]
+		ret[n] = utils.GaugeValue(metric, tpl.emuValue(now))
+		n++
 	}
 
 	return ret, nil

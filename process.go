@@ -9,9 +9,11 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/golang/glog"
 	"github.com/yubo/falcon/config"
@@ -93,6 +95,7 @@ func (p *Process) Save() error {
 func (p *Process) Start() {
 
 	SetGlog(p.Config)
+	rand.Seed(time.Now().Unix())
 
 	for i := 0; i < len(p.Config.Conf); i++ {
 		m, ok := ModuleTpls[GetType(p.Config.Conf[i])]

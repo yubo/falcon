@@ -77,7 +77,7 @@ conf: ';'
 ctrl:
 	'{' {
 	 	// begin
-		conf = &config.ConfCtrl{Name: "ctrl"}
+		conf = &config.Ctrl{Name: "ctrl"}
 	}| ctrl ctrl_item ';'
 ;
 

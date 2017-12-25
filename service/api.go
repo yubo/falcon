@@ -17,7 +17,7 @@ import (
 )
 
 type ApiModule struct {
-	enable  bool
+	disable bool
 	ctx     context.Context
 	cancel  context.CancelFunc
 	address string
@@ -33,21 +33,20 @@ func (p *ApiModule) Get(ctx context.Context,
 	statsInc(ST_RPC_SERV_QUERY, 1)
 
 	resp = &falcon.GetResponse{
-		Vs:       []*falcon.RRDData{},
 		Endpoint: in.Endpoint,
 		Metric:   in.Metric,
 		Type:     in.Type,
 	}
 
-	if e = p.service.cache.get(in.Csum()); e == nil {
+	if e = p.service.cache.get(in.Key()); e == nil {
 		err = falcon.ErrNoExits
 		return
 	}
 
 	// TODO: get tsdb, rrd ?
-	resp.Vs, _ = e._getData(e.commitId, e.dataId)
+	resp.Dps = e._getData(CACHE_SIZE)
 
-	statsInc(ST_RPC_SERV_QUERY_ITEM, len(resp.Vs))
+	statsInc(ST_RPC_SERV_QUERY_ITEM, len(resp.Dps))
 
 	return
 }
@@ -55,21 +54,21 @@ func (p *ApiModule) Get(ctx context.Context,
 func (p *ApiModule) Put(ctx context.Context,
 	in *falcon.PutRequest) (*falcon.PutResponse, error) {
 
-	total, errors := handleItems(p.service, in.Items)
+	total, errors := putItems(p.service, in.Items)
 	return &falcon.PutResponse{Total: int32(total), Errors: int32(errors)}, nil
 }
 
 func (p *ApiModule) prestart(service *Service) error {
-	p.enable, _ = service.Conf.Configer.Bool(C_GRPC_ENABLE)
-	p.address = service.Conf.Configer.Str(C_GRPC_ADDR)
+	p.address = service.Conf.Configer.Str(C_API_ADDR)
+	p.disable = falcon.AddrIsDisable(p.address)
 	p.service = service
 	return nil
 }
 
 func (p *ApiModule) start(service *Service) error {
 
-	if !p.enable {
-		glog.Info(MODULE_NAME + "grpc.Start not enabled")
+	if p.disable {
+		glog.Info(MODULE_NAME + "api disable")
 		return nil
 	}
 
@@ -81,7 +80,7 @@ func (p *ApiModule) start(service *Service) error {
 	}
 
 	server := grpc.NewServer()
-	RegisterServiceServer(server, &ApiModule{})
+	RegisterServiceServer(server, p)
 
 	// Register reflection service on gRPC server.
 	reflection.Register(server)
@@ -100,7 +99,7 @@ func (p *ApiModule) start(service *Service) error {
 }
 
 func (p *ApiModule) stop(service *Service) error {
-	if !p.enable {
+	if p.disable {
 		return nil
 	}
 	p.cancel()
@@ -108,7 +107,7 @@ func (p *ApiModule) stop(service *Service) error {
 }
 
 func (p *ApiModule) reload(service *Service) error {
-	if p.enable {
+	if !p.disable {
 		p.stop(service)
 		time.Sleep(time.Second)
 	}
@@ -116,10 +115,11 @@ func (p *ApiModule) reload(service *Service) error {
 	return p.start(service)
 }
 
-func handleItems(service *Service, items []*falcon.Item) (total, errors int) {
+func putItems(service *Service, items []*falcon.Item) (total, errors int) {
 	var (
-		err error
-		e   *cacheEntry
+		err  error
+		e    *cacheEntry
+		item *falcon.Item
 	)
 
 	if total = len(items); total == 0 {
@@ -131,34 +131,22 @@ func handleItems(service *Service, items []*falcon.Item) (total, errors int) {
 	statsInc(ST_RPC_SERV_RECV_ITEM, total)
 
 	for i := 0; i < total; i++ {
-		if items[i] == nil {
+		if item = items[i]; item == nil {
 			errors++
 			continue
 		}
-		key := items[i].Csum()
+		key := item.Key()
 
 		e = service.cache.get(key)
 		if e == nil {
-			e, err = service.createEntry(key, items[i])
+			e, err = service.createEntry(key, item)
 			if err != nil {
 				errors++
 				continue
 			}
 		}
 
-		/*
-			if DATA_TIMESTAMP_REGULATE {
-				items[i].Ts = items[i].Ts -
-					items[i].Ts%int64(items[i].Step)
-			}
-
-			if items[i].Ts <= e.lastTs || items[i].Ts <= 0 {
-				errors++
-				continue
-			}
-		*/
-
-		e.put(items[i])
+		e.put(item)
 	}
 	return
 }

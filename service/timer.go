@@ -8,14 +8,17 @@ package service
 import (
 	"sync/atomic"
 	"time"
+
+	"golang.org/x/net/context"
 )
 
 type TimerModule struct {
-	running chan struct{}
+	ctx    context.Context
+	cancel context.CancelFunc
 }
 
 func (p *TimerModule) prestart(b *Service) error {
-	p.running = make(chan struct{}, 0)
+	p.ctx, p.cancel = context.WithCancel(context.Background())
 	return nil
 }
 
@@ -25,10 +28,8 @@ func (p *TimerModule) start(b *Service) error {
 	go func() {
 		for {
 			select {
-			case _, ok := <-p.running:
-				if !ok {
-					return
-				}
+			case <-p.ctx.Done():
+				return
 
 			case <-ticker:
 				now := time.Now().Unix()
@@ -45,7 +46,7 @@ func (p *TimerModule) start(b *Service) error {
 }
 
 func (p *TimerModule) stop(b *Service) error {
-	close(p.running)
+	p.cancel()
 	atomic.StoreInt64(&b.ts, 0)
 	return nil
 }

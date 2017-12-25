@@ -18,11 +18,11 @@ import (
 )
 
 type ApiModule struct {
-	enable     bool
-	ctx        context.Context
-	cancel     context.CancelFunc
-	address    string
-	updateChan chan []*falcon.Item
+	disable bool
+	ctx     context.Context
+	cancel  context.CancelFunc
+	address string
+	putChan chan []*falcon.Item
 }
 
 func (p *ApiModule) Get(ctx context.Context,
@@ -32,6 +32,8 @@ func (p *ApiModule) Get(ctx context.Context,
 
 func (p *ApiModule) Put(ctx context.Context,
 	in *falcon.PutRequest) (*falcon.PutResponse, error) {
+
+	glog.V(3).Infof("%s RX PUT %d", MODULE_NAME, len(in.Items))
 
 	res := &falcon.PutResponse{Total: int32(len(in.Items))}
 	items := []*falcon.Item{}
@@ -45,27 +47,32 @@ func (p *ApiModule) Put(ctx context.Context,
 		items = append(items, item)
 	}
 
-	p.updateChan <- in.Items
-	glog.V(3).Infof(MODULE_NAME+"recv %d", len(items))
+	select {
+	case p.putChan <- items:
+	default:
+		glog.V(4).Infof("%s RX PUT %d FAIL", MODULE_NAME, len(in.Items))
+		res.Errors = res.Total
+	}
 
-	statsInc(ST_RPC_UPDATE, 1)
-	statsInc(ST_RPC_UPDATE_CNT, len(items))
-	statsInc(ST_RPC_UPDATE_ERR, int(res.Errors))
+	statsInc(ST_RX_PUT_ITERS, 1)
+	statsInc(ST_RX_PUT_ITEMS, int(res.Total))
+	statsInc(ST_RX_PUT_ERR_ITEMS, int(res.Errors))
 
 	return res, nil
 }
 
 func (p *ApiModule) prestart(transfer *Transfer) error {
-	p.enable, _ = transfer.Conf.Configer.Bool(C_GRPC_ENABLE)
-	p.address = transfer.Conf.Configer.Str(C_GRPC_ADDR)
-	p.updateChan = transfer.appUpdateChan
+	p.address = transfer.Conf.Configer.Str(C_API_ADDR)
+	p.disable = falcon.AddrIsDisable(p.address)
+	p.putChan = transfer.appPutChan
+
 	return nil
 }
 
 func (p *ApiModule) start(transfer *Transfer) (err error) {
 
-	if !p.enable {
-		glog.Info(MODULE_NAME + "grpc.Start not enabled")
+	if p.disable {
+		glog.Info(MODULE_NAME + "api disable")
 		return nil
 	}
 
@@ -77,7 +84,7 @@ func (p *ApiModule) start(transfer *Transfer) (err error) {
 	}
 
 	server := grpc.NewServer()
-	service.RegisterServiceServer(server, &ApiModule{})
+	service.RegisterServiceServer(server, p)
 
 	// Register reflection service on gRPC server.
 	reflection.Register(server)
@@ -96,7 +103,7 @@ func (p *ApiModule) start(transfer *Transfer) (err error) {
 }
 
 func (p *ApiModule) stop(transfer *Transfer) error {
-	if !p.enable {
+	if p.disable {
 		return nil
 	}
 	p.cancel()
@@ -104,7 +111,7 @@ func (p *ApiModule) stop(transfer *Transfer) error {
 }
 
 func (p *ApiModule) reload(transfer *Transfer) error {
-	if p.enable {
+	if !p.disable {
 		p.stop(transfer)
 		time.Sleep(time.Second)
 	}
