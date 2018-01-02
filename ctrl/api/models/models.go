@@ -13,6 +13,7 @@ import (
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/orm"
 	"github.com/golang/glog"
+	"github.com/yubo/falcon"
 	fconfig "github.com/yubo/falcon/config"
 	"github.com/yubo/falcon/ctrl"
 	"github.com/yubo/falcon/ctrl/config"
@@ -279,17 +280,15 @@ func initConfig(conf *config.Ctrl) error {
 	glog.V(5).Infof(MODULE_NAME+"initConfig get config %s", cf.String())
 
 	// ctrl config
-	if err = orm.RegisterDataBase("idx", "mysql", cf.Str(ctrl.C_IDX_DSN), dbMaxIdle, dbMaxConn); err != nil {
+	if Db.Idx, err = falcon.NewOrm("ctrl_index",
+		cf.Str(ctrl.C_IDX_DSN), dbMaxIdle, dbMaxConn); err != nil {
 		return err
 	}
-	Db.Idx = orm.NewOrm()
-	Db.Idx.Using("idx")
 
-	if err = orm.RegisterDataBase("alarm", "mysql", cf.Str(ctrl.C_ALARM_DSN), dbMaxIdle, dbMaxConn); err != nil {
+	if Db.Alarm, err = falcon.NewOrm("ctrl_alarm",
+		cf.Str(ctrl.C_ALARM_DSN), dbMaxIdle, dbMaxConn); err != nil {
 		return err
 	}
-	Db.Alarm = orm.NewOrm()
-	Db.Alarm.Using("alarm")
 
 	sysTagSchema, err = NewTagSchema(cf.Str(ctrl.C_TAG_SCHEMA))
 	transferUrl = cf.Str(ctrl.C_TRANSFER_URL)

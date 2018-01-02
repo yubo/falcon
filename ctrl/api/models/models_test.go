@@ -30,8 +30,8 @@ func init() {
 		}
 		return defaultValue
 	}
-	user := env("MYSQL_TEST_USER", "root")
-	pass := env("MYSQL_TEST_PASS", "12341234")
+	user := env("MYSQL_TEST_USER", "falcon")
+	pass := env("MYSQL_TEST_PASS", "1234")
 	prot := env("MYSQL_TEST_PROT", "tcp")
 	addr := env("MYSQL_TEST_ADDR", "localhost:3306")
 	dbname := env("MYSQL_TEST_DBNAME", "falcon_test")
@@ -141,13 +141,17 @@ func testPopulate(t *testing.T) {
 }
 
 func TestAll(t *testing.T) {
+
+	if !test_db_init {
+		t.Logf("test db not inited, skip test populate\n")
+		return
+	}
 	op := &Operator{O: orm.NewOrm()}
 	op.resetDb(sqlPath)
 
 	testPopulate(t)
 
 	testOrm(t)
-	//testTag(t)
 	//testSettings(t)
 	//testToken(t)
 	//testMi(t)

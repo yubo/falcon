@@ -79,7 +79,7 @@ const (
 )
 
 var (
-	stat_module [ST_M_SIZE]statsIdx = [ST_M_SIZE]statsIdx{
+	stat_module = [ST_M_SIZE]statsIdx{
 		{
 			ST_RPC_SERV_QUERY,
 			ST_RRD_CREAT,
@@ -102,7 +102,7 @@ var (
 		},
 	}
 
-	statName [ST_ARRAY_SIZE]string = [ST_ARRAY_SIZE]string{
+	statName = [ST_ARRAY_SIZE]string{
 		"ST_RPC_SERV_QUERY",
 		"ST_RPC_SERV_QUERY_ITEM",
 		"ST_RPC_SERV_RECV",
@@ -199,7 +199,8 @@ func (p *StatsModule) prestart(b *Service) error {
 
 func (p *StatsModule) start(b *Service) error {
 	if b.Conf.Debug > 0 {
-		ticker := falconTicker(time.Second*DEBUG_STAT_STEP, b.Conf.Debug)
+		//	ticker := falconTicker(time.Second*DEBUG_STAT_STEP, b.Conf.Debug)
+		ticker := time.NewTicker(time.Second * DEBUG_STAT_STEP).C
 		go func() {
 			for {
 				select {

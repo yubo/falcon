@@ -66,7 +66,7 @@ func test_t(t *testing.T) {
 	}
 }
 
-func testUtils(t *testing.T) {
+func TestUtils(t *testing.T) {
 	testMdiff(t)
 	testintscmp64(t)
 	test_t(t)

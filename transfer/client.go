@@ -71,8 +71,9 @@ func (p *ClientModule) start(transfer *Transfer) (err error) {
 		// FIXME: remove WithBlock, and reconnection when service online
 		c.conn, _, err = falcon.DialRr(p.ctx, c.addr, true)
 		if err != nil {
-			glog.Fatalf(MODULE_NAME+"addr:%s err:%s\n",
-				c.addr, err)
+			glog.Errorf("%s addr:%s err:%s\n",
+				MODULE_NAME, c.addr, err)
+			return err
 		}
 		c.cli = service.NewServiceClient(c.conn)
 	}
@@ -107,8 +108,9 @@ func putWorker(ctx context.Context, in chan []*falcon.Item, out []chan *falcon.I
 			return
 		case items := <-in:
 			for _, item := range items {
+				item.ShardId = int32(item.Sum64() % n)
 				select {
-				case out[item.Sum64()%n] <- item:
+				case out[item.ShardId] <- item:
 				default:
 				}
 			}

@@ -6,8 +6,6 @@
 package controllers
 
 import (
-	"strings"
-
 	"github.com/yubo/falcon/ctrl"
 	"github.com/yubo/falcon/ctrl/api/models"
 )
@@ -42,72 +40,4 @@ func (c *PubController) GetConfig() {
 	}
 
 	c.SendMsg(200, ret)
-}
-
-// @Title GetTagHostCnt
-// @Description get Tag-Host number
-// @Param	tag	query   string	false	"tag string(cop.xiaomi_pdl.inf or cop=xiaomi,pdl=inf)"
-// @Param	query	query   string  false	"host name"
-// @Param	deep	query   bool	false	"search sub tag"
-// @Success 200 {object} models.Total total number
-// @Failure 400 string error
-// @router /rel/tag/host/cnt [get]
-func (c *PubController) GetTagHostCnt() {
-	tag := c.GetString("tag")
-	query := strings.TrimSpace(c.GetString("query"))
-	deep, _ := c.GetBool("deep", true)
-	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
-
-	if tag == "/" {
-		tag = ""
-	}
-
-	tag_id, err := op.GetTagIdByName(tag)
-	if err != nil {
-		c.SendMsg(400, err.Error())
-		return
-	}
-
-	n, err := op.GetTagHostCnt(tag_id, query, deep)
-	if err != nil {
-		c.SendMsg(400, err.Error())
-	} else {
-		c.SendMsg(200, totalObj(n))
-	}
-}
-
-// @Title GetHost
-// @Description get all Host
-// @Param	tag	query   string	false	"tag string(cop.xiaomi_pdl.inf or cop=xiaomi,pdl=inf)"
-// @Param	query	query	string	false	"host name"
-// @Param	deep	query   bool	false	"search sub tag"
-// @Param	limit	query	int	false	"limit page number"
-// @Param	offset	query	int	false	"offset  number"
-// @Success 200 {object} []models.RelTagHost tag host info
-// @Failure 400 string error
-// @router /rel/tag/host/search [get]
-func (c *PubController) GetTagHost() {
-	tag := c.GetString("tag")
-	query := c.GetString("query")
-	deep, _ := c.GetBool("deep", true)
-	limit, _ := c.GetInt("limit", models.PAGE_LIMIT)
-	offset, _ := c.GetInt("offset", 0)
-	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
-
-	if tag == "/" {
-		tag = ""
-	}
-
-	tag_id, err := op.GetTagIdByName(tag)
-	if err != nil {
-		c.SendMsg(400, err.Error())
-		return
-	}
-
-	ret, err := op.GetTagHost(tag_id, query, deep, limit, offset)
-	if err != nil {
-		c.SendMsg(400, err.Error())
-	} else {
-		c.SendMsg(200, ret)
-	}
 }

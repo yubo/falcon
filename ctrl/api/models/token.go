@@ -197,14 +197,3 @@ func (op *Operator) DeleteTagRoleToken(rel *TagRoleTokenApi) (int64, error) {
 	return delTplRel(op.O, op.User.Id, rel.TagId, rel.RoleId,
 		rel.TokenId, TPL_REL_T_ACL_TOKEN)
 }
-
-func (op *Operator) GetTagTags(tagId int64) (nodes []zTreeNode, err error) {
-	if tagId == 0 {
-		return []zTreeNode{{Id: 1, Name: "/"}}, nil
-	}
-	_, err = op.O.Raw("SELECT `tag_id` AS `id`, `b`.`name` FROM `tag_rel` `a` LEFT JOIN `tag` `b` ON `a`.`tag_id` = `b`.`id` WHERE `a`.`sup_tag_id` = ? AND `a`.`offset` = 1 and `b`.`type` = 0", tagId).QueryRows(&nodes)
-	if err != nil {
-		return nil, err
-	}
-	return
-}

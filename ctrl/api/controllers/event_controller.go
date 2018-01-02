@@ -222,16 +222,3 @@ func (c *EventController) DeleteEventTrigger() {
 
 	c.SendMsg(200, statsObj(success, failure, errs))
 }
-
-/*******************************************************************************
- ************************ tag event trigger  ***********************************
- ******************************************************************************/
-
-// @Title create tag trigger relation
-// @Description create tag/template relation
-// @Param	body	body	models.RelTagTpl	true	""
-// @Success 200 {object} models.Id Id
-// @Failure 400 string error
-// @router /tag/template [post]
-func (c *EventController) CreateTagTrigger() {
-}

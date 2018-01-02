@@ -17,7 +17,7 @@ func init() {
 
 	// cache should early register(init cache data)
 	// service.RegisterModule(&service.StorageModule{})
-	service.RegisterModule(&service.CacheModule{})
+	service.RegisterModule(&service.ShardModule{})
 	service.RegisterModule(&service.ApiModule{})
 	// service.RegisterModule(&service.HttpModule{})
 	service.RegisterModule(&service.IndexModule{})

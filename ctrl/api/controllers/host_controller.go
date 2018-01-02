@@ -222,7 +222,7 @@ func (c *HostController) GetTagHostCnt() {
 // @Param	deep	query   bool	false	"search sub tag"
 // @Param	limit	query	int	false	"limit page number"
 // @Param	offset	query	int	false	"offset  number"
-// @Success 200 {object} []models.TagHost tag host info
+// @Success 200 {object} []models.TagHostApiGet tag host info
 // @Failure 400 string error
 // @router /tag/search [get]
 func (c *HostController) GetTagHost() {

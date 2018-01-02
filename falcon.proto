@@ -25,12 +25,13 @@ message DataPoint {
 }
 
 message Item {
-	double   value     = 1;
-	int64    timestamp = 2;
-	ItemType type      = 3;
-	bytes    endpoint  = 4;
-	bytes    metric    = 5;
-	bytes    tags      = 6;
+	int32    shareId   = 1;
+	ItemType type      = 2;
+	double   value     = 3;
+	int64    timestamp = 4;
+	bytes    endpoint  = 5;
+	bytes    metric    = 6;
+	bytes    tags      = 7;
 }
 
 message Response {
@@ -49,11 +50,12 @@ message PutResponse {
 message GetRequest {
 	int64    start     = 1;
 	int64    end       = 2;
-	bytes    endpoint  = 3;
-	bytes    metric    = 4;
-	bytes    tags      = 5;
-	Cf       consolFun = 6;
-	ItemType type      = 7;
+	int32    shareId   = 3;
+	Cf       consolFun = 4;
+	ItemType type      = 5;
+	bytes    endpoint  = 6;
+	bytes    metric    = 7;
+	bytes    tags      = 8;
 
 }
 

@@ -7,6 +7,7 @@ package falcon
 
 import (
 	"crypto/md5"
+	"database/sql"
 	"errors"
 	"fmt"
 	"hash/crc32"
@@ -20,6 +21,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/astaxie/beego/orm"
 )
 
 var (
@@ -159,4 +162,20 @@ func Override(dst, src interface{}) error {
 
 	}
 	return nil
+}
+
+func NewOrm(name, dsn string, maxIdleConns, maxOpenConns int) (o orm.Ormer, err error) {
+	db, err := sql.Open("mysql", dsn)
+	if err != nil {
+		return
+	}
+
+	db.SetMaxIdleConns(maxIdleConns)
+	db.SetMaxOpenConns(maxOpenConns)
+
+	if err = db.Ping(); err != nil {
+		return
+	}
+
+	return orm.NewOrmWithDB("mysql", name, db)
 }

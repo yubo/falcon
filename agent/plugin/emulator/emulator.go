@@ -39,27 +39,32 @@ type emulator struct {
 	mn    int
 }
 
-func readTpl(filePath string) (tpl, error) {
-	tpl := tpl{file: filePath}
-	fd, err := os.Open(filePath)
+func readTpl(filePath string) (tpl_ tpl, err error) {
+	var fd *os.File
+
+	tpl_.file = filePath
+	fd, err = os.Open(filePath)
 	if err != nil {
-		glog.Fatalf("open %s: %v", tpl.file, err)
+		glog.Errorf("open %s: %v", tpl_.file, err)
+		return
 	}
 	defer fd.Close()
 
-	_, err = fmt.Fscanf(fd, "%d %d", &tpl.n, &tpl.interval)
+	_, err = fmt.Fscanf(fd, "%d %d", &tpl_.n, &tpl_.interval)
 	if err != nil {
-		glog.Fatalf("open %s: %v", tpl.file, err)
+		glog.Errorf("open %s: %v", tpl_.file, err)
+		return
 	}
 
-	tpl.v = make([]float64, tpl.n)
-	for i := 0; i < tpl.n; i++ {
-		_, err = fmt.Fscanf(fd, "%f", &tpl.v[i])
+	tpl_.v = make([]float64, tpl_.n)
+	for i := 0; i < tpl_.n; i++ {
+		_, err = fmt.Fscanf(fd, "%f", &tpl_.v[i])
 		if err != nil {
-			glog.Fatalf("open %s: %v", tpl.file, err)
+			glog.Errorf("open %s: %v", tpl_.file, err)
+			return
 		}
 	}
-	return tpl, nil
+	return
 }
 
 func (p *tpl) emuValue(ts int64) float64 {

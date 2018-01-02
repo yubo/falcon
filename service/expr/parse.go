@@ -1,65 +1,57 @@
 //line parse.y:7
-package parse
+package expr
 
 import __yyfmt__ "fmt"
 
 //line parse.y:7
-import (
-	"fmt"
-	"os"
-
-	fconfig "github.com/yubo/falcon/config"
-	"github.com/yubo/falcon/service/config"
-)
-
-//line parse.y:19
+//line parse.y:11
 type yySymType struct {
-	yys  int
-	num  int
-	text string
-	b    bool
+	yys      int
+	num      int
+	float    float64
+	b        bool
+	expr     *Expr
+	expr_obj *ExprObj
 }
 
 const NUM = 57346
-const TEXT = 57347
-const IPA = 57348
-const ON = 57349
-const YES = 57350
-const OFF = 57351
-const NO = 57352
-const INCLUDE = 57353
-const ROOT = 57354
-const PID_FILE = 57355
-const LOG = 57356
-const HOST = 57357
-const DISABLED = 57358
-const DEBUG = 57359
-const MIGRATE = 57360
-const UPSTREAM = 57361
+const TRUE = 57347
+const FALSE = 57348
+const ALL = 57349
+const MAX = 57350
+const MIN = 57351
+const AVG = 57352
+const SUM = 57353
+const DIFF = 57354
+const PDIFF = 57355
 
 var yyToknames = [...]string{
 	"$end",
 	"error",
 	"$unk",
 	"NUM",
-	"TEXT",
-	"IPA",
-	"'{'",
-	"'}'",
-	"';'",
-	"ON",
-	"YES",
-	"OFF",
-	"NO",
-	"INCLUDE",
-	"ROOT",
-	"PID_FILE",
-	"LOG",
-	"HOST",
-	"DISABLED",
-	"DEBUG",
-	"MIGRATE",
-	"UPSTREAM",
+	"'('",
+	"')'",
+	"'='",
+	"'>'",
+	"'<'",
+	"'&'",
+	"'|'",
+	"'#'",
+	"'+'",
+	"'-'",
+	"'*'",
+	"'/'",
+	"','",
+	"TRUE",
+	"FALSE",
+	"ALL",
+	"MAX",
+	"MIN",
+	"AVG",
+	"SUM",
+	"DIFF",
+	"PDIFF",
 }
 var yyStatenames = [...]string{}
 
@@ -67,7 +59,7 @@ const yyEofCode = 1
 const yyErrCode = 2
 const yyInitialStackSize = 16
 
-//line parse.y:114
+//line parse.y:93
 
 //line yacctab:1
 var yyExca = [...]int{
@@ -78,84 +70,73 @@ var yyExca = [...]int{
 
 const yyPrivate = 57344
 
-const yyLast = 63
+const yyLast = 40
 
 var yyAct = [...]int{
 
-	12, 52, 51, 19, 26, 20, 21, 22, 23, 16,
-	15, 25, 6, 30, 31, 32, 29, 28, 13, 14,
-	34, 40, 10, 8, 11, 9, 16, 15, 50, 42,
-	5, 36, 3, 49, 37, 44, 38, 18, 17, 24,
-	39, 27, 43, 41, 45, 48, 35, 47, 46, 27,
-	16, 15, 16, 15, 33, 20, 21, 22, 23, 7,
-	4, 2, 1,
+	8, 10, 5, 10, 34, 4, 29, 23, 22, 28,
+	20, 2, 31, 12, 13, 6, 7, 18, 25, 9,
+	24, 9, 10, 21, 12, 13, 16, 15, 17, 26,
+	27, 33, 32, 30, 19, 35, 1, 11, 14, 3,
 }
 var yyPact = [...]int{
 
-	-1000, 23, -1000, -1000, 4, -1000, 29, 28, -5, 32,
-	47, 37, 45, 47, 47, -1000, -1000, -1000, -1000, -1000,
-	-1000, -1000, -1000, -1000, -1000, -1000, -1000, -1000, -1000, -1000,
-	-1000, -1000, -1000, 12, -1000, 27, -5, 14, -1000, -1000,
-	-1000, 21, -1000, 45, 47, 24, 19, -7, -8, -1000,
-	-1000, -1000, -1000,
+	-3, -1000, 14, -1000, 19, -3, -1000, -1000, -1000, 5,
+	-1000, -3, -2, -4, -1, 11, -1000, 22, 3, 0,
+	-1000, 14, -1000, -1000, -1000, -1000, -1000, -1000, -1000, -1000,
+	18, -1000, -13, -1000, 18, -1000,
 }
 var yyPgo = [...]int{
 
-	0, 3, 0, 4, 62, 61, 60, 59, 54, 46,
-	43,
+	0, 39, 38, 37, 0, 11, 5, 36, 34, 33,
+	32,
 }
 var yyR1 = [...]int{
 
-	0, 4, 4, 1, 1, 1, 1, 1, 2, 2,
-	3, 5, 5, 6, 6, 7, 7, 7, 7, 7,
-	7, 7, 7, 7, 7, 7, 8, 8, 9, 9,
-	9, 10, 10, 10, 10, 10,
+	0, 7, 7, 5, 5, 5, 5, 1, 1, 4,
+	2, 2, 2, 2, 2, 2, 3, 3, 6, 6,
+	8, 8, 9, 9, 10, 10,
 }
 var yyR2 = [...]int{
 
-	0, 0, 2, 1, 1, 1, 1, 0, 1, 1,
-	1, 1, 3, 1, 3, 0, 2, 4, 2, 1,
-	2, 2, 2, 2, 2, 2, 0, 3, 0, 2,
-	4, 0, 4, 4, 4, 4,
+	0, 0, 1, 1, 3, 3, 3, 1, 1, 1,
+	1, 2, 1, 2, 1, 2, 2, 2, 1, 3,
+	1, 3, 0, 1, 1, 3,
 }
 var yyChk = [...]int{
 
-	-1000, -4, -5, 9, -6, 7, 8, -7, 19, 21,
-	18, 20, -2, 14, 15, 6, 5, 9, 9, -1,
-	10, 11, 12, 13, 7, -2, -3, 4, -3, -1,
-	-2, -2, -2, -8, 8, -9, 19, 22, 9, -1,
-	7, -10, 8, -2, 14, -2, -3, -1, -2, 9,
-	9, 9, 9,
+	-1000, -7, -5, -1, -6, 5, 18, 19, -4, 22,
+	4, -3, 10, 11, -2, 8, 7, 9, -5, -8,
+	5, -5, 10, 11, -6, 7, 7, 8, 6, 6,
+	-9, 12, -10, -4, 17, -4,
 }
 var yyDef = [...]int{
 
-	1, -2, 2, 11, 15, 13, 0, 0, 7, 0,
-	0, 19, 7, 0, 0, 8, 9, 12, 14, 16,
-	3, 4, 5, 6, 26, 18, 20, 10, 21, 22,
-	24, 23, 25, 28, 17, 0, 7, 0, 27, 29,
-	31, 0, 30, 7, 0, 0, 0, 0, 0, 32,
-	33, 34, 35,
+	1, -2, 2, 3, 0, 0, 7, 8, 18, 0,
+	9, 0, 0, 0, 0, 10, 12, 14, 0, 22,
+	20, 5, 16, 17, 4, 11, 13, 15, 6, 19,
+	0, 23, 21, 24, 0, 25,
 }
 var yyTok1 = [...]int{
 
 	1, 3, 3, 3, 3, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+	3, 3, 3, 3, 3, 12, 3, 3, 10, 3,
+	5, 6, 15, 13, 17, 14, 3, 16, 3, 3,
+	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+	9, 7, 8, 3, 3, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-	3, 3, 3, 3, 3, 3, 3, 3, 3, 9,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-	3, 3, 3, 7, 3, 8,
+	3, 3, 3, 3, 11,
 }
 var yyTok2 = [...]int{
 
-	2, 3, 4, 5, 6, 10, 11, 12, 13, 14,
-	15, 16, 17, 18, 19, 20, 21, 22,
+	2, 3, 4, 18, 19, 20, 21, 22, 23, 24,
+	25, 26,
 }
 var yyTok3 = [...]int{
 	0,
@@ -498,166 +479,138 @@ yydefault:
 	// dummy call; replaced with literal code
 	switch yynt {
 
+	case 2:
+		yyDollar = yyS[yypt-1 : yypt+1]
+		//line parse.y:34
+		{
+			yy_trigger = yyDollar[1].expr
+		}
 	case 3:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line parse.y:43
+		//line parse.y:38
 		{
-			yyVAL.b = true
+			yyVAL.expr = &Expr{Type: EXPR_TYPE_RAW << 1, Objs: []interface{}{yyDollar[1].b}}
 		}
 	case 4:
-		yyDollar = yyS[yypt-1 : yypt+1]
-		//line parse.y:44
+		yyDollar = yyS[yypt-3 : yypt+1]
+		//line parse.y:39
 		{
-			yyVAL.b = true
+			yyVAL.expr = &Expr{Type: uint32(yyDollar[2].num), Objs: []interface{}{yyDollar[1].expr_obj, yyDollar[3].expr_obj}}
 		}
 	case 5:
-		yyDollar = yyS[yypt-1 : yypt+1]
-		//line parse.y:45
+		yyDollar = yyS[yypt-3 : yypt+1]
+		//line parse.y:40
 		{
-			yyVAL.b = false
+			yyVAL.expr = &Expr{Type: uint32(yyDollar[2].num), Objs: []interface{}{yyDollar[1].expr, yyDollar[3].expr}}
 		}
 	case 6:
-		yyDollar = yyS[yypt-1 : yypt+1]
-		//line parse.y:46
+		yyDollar = yyS[yypt-3 : yypt+1]
+		//line parse.y:41
 		{
-			yyVAL.b = false
+			yyVAL.expr = yyDollar[2].expr
 		}
 	case 7:
-		yyDollar = yyS[yypt-0 : yypt+1]
-		//line parse.y:47
+		yyDollar = yyS[yypt-1 : yypt+1]
+		//line parse.y:45
 		{
 			yyVAL.b = true
 		}
 	case 8:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line parse.y:51
+		//line parse.y:46
 		{
-			yyVAL.text = string(yy.t)
+			yyVAL.b = false
 		}
 	case 9:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line parse.y:52
+		//line parse.y:50
 		{
-			yyVAL.text = exprText(yy.t)
+			yyVAL.float = yy.f
 		}
 	case 10:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line parse.y:56
+		//line parse.y:54
 		{
-			yyVAL.num = yy.i
+			yyVAL.num = EXPR_TYPE_OP_GT
+		}
+	case 11:
+		yyDollar = yyS[yypt-2 : yypt+1]
+		//line parse.y:55
+		{
+			yyVAL.num = EXPR_TYPE_OP_GE
 		}
 	case 12:
-		yyDollar = yyS[yypt-3 : yypt+1]
-		//line parse.y:61
+		yyDollar = yyS[yypt-1 : yypt+1]
+		//line parse.y:56
 		{
-			// end
-			conf.Configer.Set(fconfig.APP_CONF_FILE, yy_ss)
-			yy_ss = make(map[string]string)
-
-			//conf.Name = fmt.Sprintf("service_%s", conf.Name)
-			if conf.Host == "" {
-				conf.Host, _ = os.Hostname()
-			}
+			yyVAL.num = EXPR_TYPE_OP_EQ
 		}
 	case 13:
-		yyDollar = yyS[yypt-1 : yypt+1]
-		//line parse.y:74
+		yyDollar = yyS[yypt-2 : yypt+1]
+		//line parse.y:57
 		{
-			// begin
-			conf = &config.Service{Name: "service"}
+			yyVAL.num = EXPR_TYPE_OP_LE
+		}
+	case 14:
+		yyDollar = yyS[yypt-1 : yypt+1]
+		//line parse.y:58
+		{
+			yyVAL.num = EXPR_TYPE_OP_LT
+		}
+	case 15:
+		yyDollar = yyS[yypt-2 : yypt+1]
+		//line parse.y:59
+		{
+			yyVAL.num = EXPR_TYPE_OP_NE
 		}
 	case 16:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line parse.y:81
+		//line parse.y:63
 		{
-			conf.Disabled = yyDollar[2].b
+			yyVAL.num = EXPR_TYPE_AND
+		}
+	case 17:
+		yyDollar = yyS[yypt-2 : yypt+1]
+		//line parse.y:64
+		{
+			yyVAL.num = EXPR_TYPE_OR
 		}
 	case 18:
-		yyDollar = yyS[yypt-2 : yypt+1]
-		//line parse.y:83
+		yyDollar = yyS[yypt-1 : yypt+1]
+		//line parse.y:67
 		{
-			conf.Host = yyDollar[2].text
+			yyVAL.expr_obj = &ExprObj{Type: EXPR_OBJ_TYPE_RAW, Args: []float64{yyDollar[1].float}}
 		}
 	case 19:
-		yyDollar = yyS[yypt-1 : yypt+1]
-		//line parse.y:84
+		yyDollar = yyS[yypt-3 : yypt+1]
+		//line parse.y:69
 		{
-			conf.Debug = 1
+			yy.err = yy_obj.reduce(EXPR_OBJ_TYPE_MIN, 2, 3)
+			yyVAL.expr_obj = yy_obj
 		}
 	case 20:
-		yyDollar = yyS[yypt-2 : yypt+1]
-		//line parse.y:85
+		yyDollar = yyS[yypt-1 : yypt+1]
+		//line parse.y:75
 		{
-			conf.Debug = yyDollar[2].num
-		}
-	case 21:
-		yyDollar = yyS[yypt-2 : yypt+1]
-		//line parse.y:86
-		{
-			yy_ss[yyDollar[1].text] = fmt.Sprintf("%d", yyDollar[2].num)
-		}
-	case 22:
-		yyDollar = yyS[yypt-2 : yypt+1]
-		//line parse.y:87
-		{
-			yy_ss[yyDollar[1].text] = fmt.Sprintf("%v", yyDollar[2].b)
+			yy_obj = &ExprObj{}
 		}
 	case 23:
-		yyDollar = yyS[yypt-2 : yypt+1]
-		//line parse.y:88
+		yyDollar = yyS[yypt-1 : yypt+1]
+		//line parse.y:82
 		{
-			yy.include(yyDollar[2].text)
+			yy_obj.Type = 1
 		}
 	case 24:
-		yyDollar = yyS[yypt-2 : yypt+1]
-		//line parse.y:89
+		yyDollar = yyS[yypt-1 : yypt+1]
+		//line parse.y:86
 		{
-			yy_ss[yyDollar[1].text] = yyDollar[2].text
+			yy_obj.Args = append(yy_obj.Args, yyDollar[1].float)
 		}
 	case 25:
-		yyDollar = yyS[yypt-2 : yypt+1]
-		//line parse.y:90
+		yyDollar = yyS[yypt-3 : yypt+1]
+		//line parse.y:88
 		{
-			if err := os.Chdir(yyDollar[2].text); err != nil {
-				yy.Error(err.Error())
-			}
-		}
-	case 29:
-		yyDollar = yyS[yypt-2 : yypt+1]
-		//line parse.y:100
-		{
-			conf.Migrate.Disabled = yyDollar[2].b
-		}
-	case 30:
-		yyDollar = yyS[yypt-4 : yypt+1]
-		//line parse.y:101
-		{
-			conf.Migrate.Upstream = yy_ss2
-			yy_ss2 = make(map[string]string)
-		}
-	case 32:
-		yyDollar = yyS[yypt-4 : yypt+1]
-		//line parse.y:108
-		{
-			yy_ss2[yyDollar[2].text] = yyDollar[3].text
-		}
-	case 33:
-		yyDollar = yyS[yypt-4 : yypt+1]
-		//line parse.y:109
-		{
-			yy_ss2[yyDollar[2].text] = fmt.Sprintf("%d", yyDollar[3].num)
-		}
-	case 34:
-		yyDollar = yyS[yypt-4 : yypt+1]
-		//line parse.y:110
-		{
-			yy_ss2[yyDollar[2].text] = fmt.Sprintf("%v", yyDollar[3].b)
-		}
-	case 35:
-		yyDollar = yyS[yypt-4 : yypt+1]
-		//line parse.y:111
-		{
-			yy.include(yyDollar[3].text)
+			yy_obj.Args = append(yy_obj.Args, yyDollar[3].float)
 		}
 	}
 	goto yystack /* stack new state and value */

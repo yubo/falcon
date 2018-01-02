@@ -11,9 +11,12 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"time"
+	"unsafe"
+
+	"github.com/yubo/gotool/list"
 )
 
+/*
 func falconTicker(t time.Duration, debug int) <-chan time.Time {
 	if debug > 1 {
 		return time.NewTicker(t / DEBUG_MULTIPLES).C
@@ -21,6 +24,7 @@ func falconTicker(t time.Duration, debug int) <-chan time.Time {
 		return time.NewTicker(t).C
 	}
 }
+*/
 
 func dictedTagstring(s string) map[string]string {
 	if s == "" {
@@ -65,4 +69,29 @@ func backtrace(i int) string {
 		return fmt.Sprintf("#%02d %s %s:%d\n", i, details.Name(), file, no)
 	}
 	return ""
+}
+
+func list_entry(l *list.ListHead) *itemEntry {
+	return (*itemEntry)(unsafe.Pointer((uintptr(unsafe.Pointer(l)) -
+		unsafe.Offsetof(((*itemEntry)(nil)).list))))
+}
+
+// tags must sorted order by tag key
+func tagsMatch(pattern, tags string) bool {
+	if len(pattern) == 0 {
+		return true
+	}
+
+	ts := strings.Split(pattern, ",")
+	i := 0
+	tags += ","
+
+	for _, t := range ts {
+		i = strings.Index(tags[i:], t+",")
+		if i < 0 {
+			return false
+		}
+
+	}
+	return true
 }

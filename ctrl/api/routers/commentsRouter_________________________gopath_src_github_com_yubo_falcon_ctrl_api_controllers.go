@@ -233,8 +233,8 @@ func init() {
 
 	beego.GlobalControllerRouter["github.com/yubo/falcon/cmd/vendor/github.com/yubo/falcon/ctrl/api/controllers:EventController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/cmd/vendor/github.com/yubo/falcon/ctrl/api/controllers:EventController"],
 		beego.ControllerComments{
-			Method: "CreateTagTrigger",
-			Router: `/tag/template`,
+			Method: "CreateEventTrigger",
+			Router: `/trigger`,
 			AllowHTTPMethods: []string{"post"},
 			MethodParams: param.Make(),
 			Params: nil})
@@ -252,14 +252,6 @@ func init() {
 			Method: "DeleteEventTrigger",
 			Router: `/trigger`,
 			AllowHTTPMethods: []string{"delete"},
-			MethodParams: param.Make(),
-			Params: nil})
-
-	beego.GlobalControllerRouter["github.com/yubo/falcon/cmd/vendor/github.com/yubo/falcon/ctrl/api/controllers:EventController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/cmd/vendor/github.com/yubo/falcon/ctrl/api/controllers:EventController"],
-		beego.ControllerComments{
-			Method: "CreateEventTrigger",
-			Router: `/trigger`,
-			AllowHTTPMethods: []string{"post"},
 			MethodParams: param.Make(),
 			Params: nil})
 
@@ -467,22 +459,6 @@ func init() {
 		beego.ControllerComments{
 			Method: "GetConfig",
 			Router: `/config/ctrl`,
-			AllowHTTPMethods: []string{"get"},
-			MethodParams: param.Make(),
-			Params: nil})
-
-	beego.GlobalControllerRouter["github.com/yubo/falcon/cmd/vendor/github.com/yubo/falcon/ctrl/api/controllers:PubController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/cmd/vendor/github.com/yubo/falcon/ctrl/api/controllers:PubController"],
-		beego.ControllerComments{
-			Method: "GetTagHostCnt",
-			Router: `/rel/tag/host/cnt`,
-			AllowHTTPMethods: []string{"get"},
-			MethodParams: param.Make(),
-			Params: nil})
-
-	beego.GlobalControllerRouter["github.com/yubo/falcon/cmd/vendor/github.com/yubo/falcon/ctrl/api/controllers:PubController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/cmd/vendor/github.com/yubo/falcon/ctrl/api/controllers:PubController"],
-		beego.ControllerComments{
-			Method: "GetTagHost",
-			Router: `/rel/tag/host/search`,
 			AllowHTTPMethods: []string{"get"},
 			MethodParams: param.Make(),
 			Params: nil})

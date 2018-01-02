@@ -43,19 +43,13 @@ type TagSchema struct {
 	nodes []TagNode
 }
 
-type zTreeNode struct {
-	Id   int64  `json:"id"`
-	Name string `json:"name"`
-}
-
 type TreeNode struct {
-	TagId    int64  `json:"id"`
-	SupTagId int64  `json:"-"`
-	Name     string `json:"name"`
-	Label    string `json:"label"`
-	Read     bool   `json:"read"`
-	//Operate  bool        `json:"operate"`
-	Child []*TreeNode `json:"children"`
+	TagId    int64       `json:"id"`
+	SupTagId int64       `json:"-"`
+	Name     string      `json:"name"`
+	Label    string      `json:"label"`
+	Read     bool        `json:"read"`
+	Child    []*TreeNode `json:"children"`
 }
 
 type tagNode struct {

@@ -7,9 +7,6 @@ package service
 
 import (
 	"os"
-	"sync/atomic"
-	"time"
-	"unsafe"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/golang/glog"
@@ -17,7 +14,6 @@ import (
 	fconfig "github.com/yubo/falcon/config"
 	"github.com/yubo/falcon/service/config"
 	"github.com/yubo/falcon/service/parse"
-	"github.com/yubo/gotool/list"
 )
 
 const (
@@ -30,8 +26,8 @@ const (
 	CACHE_SIZE_MASK         = CACHE_SIZE - 1
 	DATA_TIMESTAMP_REGULATE = false
 	INDEX_QPS               = 100
-	INDEX_UPDATE_CYCLE_TIME = 86400
-	INDEX_TIMEOUT           = 86400
+	INDEX_UPDATE_CYCLE_TIME = 3600 * 24
+	INDEX_TIMEOUT           = 3600 * 26
 	INDEX_TRASH_LOOPTIME    = 600
 	INDEX_MAX_OPEN_CONNS    = 4
 	DEBUG_MULTIPLES         = 20    // demo 时间倍数
@@ -51,6 +47,12 @@ const (
 	C_DB_MAX_IDLE     = "dbmaxidle"
 	C_DB_MAX_CONN     = "dbmaxconn"
 	C_DSN             = "dsn"
+	C_SYNC_DSN        = "syncdsn"
+	C_SYNC_INTERVAL   = "syncinterval"
+	C_SHARD_IDS       = "shardids"
+	C_JUDGE_INTERVAL  = "judgeinterval"
+	C_JUDGE_NUM       = "judgenum"
+	C_ALARM_NUM       = "alarmnum"
 	//C_WORKER_PROCESSES = "workerprocesses"
 	//C_SHMMAGIC         = "shmmagic"
 	//C_SHMKEY           = "shmkey"
@@ -67,6 +69,8 @@ var (
 		C_IDXINTERVAL:     "30",
 		C_IDXFULLINTERVAL: "86400",
 		C_DB_MAX_IDLE:     "4",
+		C_JUDGE_NUM:       "8",
+		C_ALARM_NUM:       "8",
 		//C_HTTP_ADDR:       "127.0.0.1:7021",
 		//C_API_ADDR:        "127.0.0.1:7020",
 		//C_WORKER_PROCESSES: "2",
@@ -76,7 +80,6 @@ var (
 	}
 )
 
-// module {{{
 type module interface {
 	prestart(*Service) error // alloc public data
 	start(*Service) error    // alloc private data, run private goroutine
@@ -88,9 +91,6 @@ func RegisterModule(m module) {
 	modules = append(modules, m)
 }
 
-// }}}
-
-// {{{ Service
 type Service struct {
 	Conf    *config.Service
 	oldConf *config.Service
@@ -98,14 +98,14 @@ type Service struct {
 	status uint32
 
 	//cacheModule
-	cache *serviceCache
+	shard *ShardModule
+
+	// event_trigger
 
 	//storageModule
 	//hdisk []string
 	//storageNetTaskCh map[string]chan *netTask
 	//storageIoTaskCh  []chan *ioTask
-
-	ts int64
 }
 
 func (p *Service) New(conf interface{}) falcon.Module {
@@ -133,10 +133,9 @@ func (p *Service) Prestart() (err error) {
 	p.status = falcon.APP_STATUS_INIT
 
 	for i := 0; i < len(modules); i++ {
-		if e := modules[i].prestart(p); e != nil {
-			//panic(err)
-			err = e
-			glog.Error(err)
+		if err = modules[i].prestart(p); err != nil {
+			panic(err)
+			//glog.Error(err)
 		}
 	}
 	return err
@@ -147,9 +146,9 @@ func (p *Service) Start() (err error) {
 	p.status = falcon.APP_STATUS_PENDING
 
 	for i := 0; i < len(modules); i++ {
-		if e := modules[i].start(p); e != nil {
-			err = e
-			glog.Error(err)
+		if err = modules[i].start(p); err != nil {
+			panic(err)
+			//glog.Error(err)
 		}
 	}
 
@@ -162,8 +161,8 @@ func (p *Service) Stop() (err error) {
 	p.status = falcon.APP_STATUS_EXIT
 
 	for n, i := len(modules), 0; i < n; i++ {
-		if e := modules[n-i-1].stop(p); e != nil {
-			err = e
+		if err = modules[n-i-1].stop(p); err != nil {
+			//panic(err)
 			glog.Error(err)
 		}
 	}
@@ -177,8 +176,7 @@ func (p *Service) Reload(c interface{}) (err error) {
 	p.Conf = c.(*config.Service)
 
 	for i := 0; i < len(modules); i++ {
-		if e := modules[i].reload(p); e != nil {
-			err = e
+		if err = modules[i].reload(p); err != nil {
 			glog.Error(err)
 		}
 	}
@@ -190,71 +188,9 @@ func (p *Service) Signal(sig os.Signal) (err error) {
 	return err
 }
 
-func (p *Service) timeNow() int64 {
-	if p.ts != 0 {
-		return atomic.LoadInt64(&p.ts)
-	} else {
-		return time.Now().Unix()
-	}
+// TODO fix me
+func addEntryHandle(e *itemEntry) {
 }
 
-//}}}
-
-// called by rpc
-func (p *Service) createEntry(key string, item *falcon.Item) (*cacheEntry, error) {
-	var (
-		e     *cacheEntry
-		ok    bool
-		cache *serviceCache
-	)
-
-	cache = p.cache
-
-	statsInc(ST_CACHE_CREATE, 1)
-	if e, ok = cache.data[key]; ok {
-		return e, falcon.ErrExist
-	}
-
-	e = &cacheEntry{
-		createTs:  p.timeNow(),
-		endpoint:  item.Endpoint,
-		metric:    item.Metric,
-		tags:      item.Tags,
-		typ:       item.Type,
-		hashkey:   key,
-		timestamp: make([]int64, CACHE_SIZE),
-		value:     make([]float64, CACHE_SIZE),
-		//heartbeat: item.Heartbeat,
-		//min:       []byte(item.Min)[0],
-		//max:       []byte(item.Max)[0],
-	}
-
-	cache.Lock()
-	cache.data[key] = e
-	cache.Unlock()
-
-	cache.idx0q.enqueue(&e.list_idx)
-
-	return e, nil
-}
-
-func (p *Service) getItems(key string) (ret []*falcon.Item) {
-	e := p.cache.get(key)
-	if e == nil {
-		return
-	}
-	return e.getItems(CACHE_SIZE)
-}
-
-func (p *Service) getLastItem(key string) (ret *falcon.Item) {
-	e := p.cache.get(key)
-	if e == nil {
-		return
-	}
-	return e.getItem()
-}
-
-func list_idx_entry(l *list.ListHead) *cacheEntry {
-	return (*cacheEntry)(unsafe.Pointer((uintptr(unsafe.Pointer(l)) -
-		unsafe.Offsetof(((*cacheEntry)(nil)).list_idx))))
+func delEntryHandle(e *itemEntry) {
 }

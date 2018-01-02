@@ -26,9 +26,6 @@ type ApiModule struct {
 
 func (p *ApiModule) Get(ctx context.Context,
 	in *falcon.GetRequest) (resp *falcon.GetResponse, err error) {
-	var (
-		e *cacheEntry
-	)
 
 	statsInc(ST_RPC_SERV_QUERY, 1)
 
@@ -38,24 +35,38 @@ func (p *ApiModule) Get(ctx context.Context,
 		Type:     in.Type,
 	}
 
-	if e = p.service.cache.get(in.Key()); e == nil {
-		err = falcon.ErrNoExits
-		return
-	}
-
-	// TODO: get tsdb, rrd ?
-	resp.Dps = e._getData(CACHE_SIZE)
-
+	resp.Dps, err = p.service.shard.get(in)
 	statsInc(ST_RPC_SERV_QUERY_ITEM, len(resp.Dps))
-
 	return
 }
 
 func (p *ApiModule) Put(ctx context.Context,
-	in *falcon.PutRequest) (*falcon.PutResponse, error) {
+	in *falcon.PutRequest) (resp *falcon.PutResponse, err error) {
 
-	total, errors := putItems(p.service, in.Items)
-	return &falcon.PutResponse{Total: int32(total), Errors: int32(errors)}, nil
+	resp = &falcon.PutResponse{}
+
+	if resp.Total = int32(len(in.Items)); resp.Total == 0 {
+		return
+	}
+
+	glog.V(4).Infof(MODULE_NAME+"recv %d", resp.Total)
+	statsInc(ST_RPC_SERV_RECV, 1)
+	statsInc(ST_RPC_SERV_RECV_ITEM, int(resp.Total))
+
+	for i := int32(0); i < resp.Total; i++ {
+		item := in.Items[i]
+		if item == nil {
+			resp.Errors++
+			continue
+		}
+
+		if _, err = p.service.shard.put(item); err != nil {
+			resp.Errors++
+			continue
+		}
+	}
+
+	return
 }
 
 func (p *ApiModule) prestart(service *Service) error {
@@ -113,40 +124,4 @@ func (p *ApiModule) reload(service *Service) error {
 	}
 	p.prestart(service)
 	return p.start(service)
-}
-
-func putItems(service *Service, items []*falcon.Item) (total, errors int) {
-	var (
-		err  error
-		e    *cacheEntry
-		item *falcon.Item
-	)
-
-	if total = len(items); total == 0 {
-		return
-	}
-
-	glog.V(4).Infof(MODULE_NAME+"recv %d", total)
-	statsInc(ST_RPC_SERV_RECV, 1)
-	statsInc(ST_RPC_SERV_RECV_ITEM, total)
-
-	for i := 0; i < total; i++ {
-		if item = items[i]; item == nil {
-			errors++
-			continue
-		}
-		key := item.Key()
-
-		e = service.cache.get(key)
-		if e == nil {
-			e, err = service.createEntry(key, item)
-			if err != nil {
-				errors++
-				continue
-			}
-		}
-
-		e.put(item)
-	}
-	return
 }

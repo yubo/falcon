@@ -510,25 +510,6 @@ paths:
             $ref: '#/definitions/models.APITmpGraph'
         "400":
           description: string error
-  /event/tag/template:
-    post:
-      tags:
-      - event
-      description: create tag/template relation
-      operationId: EventController.create tag trigger relation
-      parameters:
-      - in: body
-        name: body
-        description: "true"
-        schema:
-          $ref: '#/definitions/.RelTagTpl'
-      responses:
-        "200":
-          description: Id
-          schema:
-            $ref: '#/definitions/models.Id'
-        "400":
-          description: string error
   /event/trigger:
     put:
       tags:
@@ -1000,7 +981,7 @@ paths:
           schema:
             type: array
             items:
-              $ref: '#/definitions/.TagHost'
+              $ref: '#/definitions/models.TagHostApiGet'
         "400":
           description: string error
   /metric/cnt:
@@ -1164,70 +1145,6 @@ paths:
       responses:
         "200":
           description: map[string]interface{} ctrl server config
-        "400":
-          description: string error
-  /pub/rel/tag/host/cnt:
-    get:
-      tags:
-      - pub
-      description: get Tag-Host number
-      operationId: PubController.GetTagHostCnt
-      parameters:
-      - in: query
-        name: tag
-        description: tag string(cop.xiaomi_pdl.inf or cop=xiaomi,pdl=inf)
-        type: string
-      - in: query
-        name: query
-        description: host name
-        type: string
-      - in: query
-        name: deep
-        description: search sub tag
-        type: boolean
-      responses:
-        "200":
-          description: total number
-          schema:
-            $ref: '#/definitions/models.Total'
-        "400":
-          description: string error
-  /pub/rel/tag/host/search:
-    get:
-      tags:
-      - pub
-      description: get all Host
-      operationId: PubController.GetHost
-      parameters:
-      - in: query
-        name: tag
-        description: tag string(cop.xiaomi_pdl.inf or cop=xiaomi,pdl=inf)
-        type: string
-      - in: query
-        name: query
-        description: host name
-        type: string
-      - in: query
-        name: deep
-        description: search sub tag
-        type: boolean
-      - in: query
-        name: limit
-        description: limit page number
-        type: integer
-        format: int64
-      - in: query
-        name: offset
-        description: offset  number
-        type: integer
-        format: int64
-      responses:
-        "200":
-          description: tag host info
-          schema:
-            type: array
-            items:
-              $ref: '#/definitions/.RelTagHost'
         "400":
           description: string error
   /role/:
@@ -2284,12 +2201,6 @@ paths:
 definitions:
   .ActionTriggerApiAdd:
     type: object
-  .RelTagHost:
-    type: object
-  .RelTagTpl:
-    type: object
-  .TagHost:
-    type: object
   .Trigger:
     type: object
   .false:
@@ -2859,6 +2770,32 @@ definitions:
       tag_id:
         type: integer
         format: int64
+  models.TagHostApiGet:
+    title: TagHostApiGet
+    type: object
+    properties:
+      host_id:
+        type: integer
+        format: int64
+      host_name:
+        type: string
+      id:
+        type: integer
+        format: int64
+      maintain_begin:
+        type: integer
+        format: int64
+      maintain_end:
+        type: integer
+        format: int64
+      pause:
+        type: integer
+        format: int64
+      tag_id:
+        type: integer
+        format: int64
+      tag_name:
+        type: string
   models.TagHostsApiAdd:
     title: TagHostsApiAdd
     type: object
@@ -2929,7 +2866,7 @@ definitions:
       role_token:
         type: array
         items:
-          $ref: '#/definitions/38453.0xc420382cf0.false'
+          $ref: '#/definitions/38451.0xc4203727e0.false'
       tag_id:
         type: integer
         format: int64
@@ -2957,7 +2894,7 @@ definitions:
       role_user:
         type: array
         items:
-          $ref: '#/definitions/114922.0xc4204ae330.false'
+          $ref: '#/definitions/114354.0xc42048ba10.false'
       tag_id:
         type: integer
         format: int64
