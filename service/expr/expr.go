@@ -6,8 +6,10 @@
 package expr
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 )
 
 const (
@@ -16,7 +18,9 @@ const (
 )
 
 var (
-	EINVAL = errors.New("Invalid argument")
+	EINVAL    = errors.New("Invalid argument")
+	THRESHOLD = 0.000001
+	UNKNOWN   = math.NaN()
 )
 
 const (
@@ -78,6 +82,11 @@ func (p *Expr) String() string {
 	return ""
 }
 
+func (p *Expr) Json() string {
+	s, _ := json.Marshal(p)
+	return string(s)
+}
+
 const (
 	EXPR_OBJ_TYPE_RAW    = iota
 	EXPR_OBJ_TYPE_ALL    // all (sec|#num,<time_shift>)
@@ -120,6 +129,24 @@ func (p *ExprObj) reduce(typ uint32, argc0, argc1 int) error {
 	return nil
 }
 
+func (p *ExprObj) Exec(item ItemInf) float64 {
+	var isNum bool
+	typ := p.Type >> 1
+
+	if p.Type&0x01 == 0x01 {
+		isNum = true
+	}
+
+	switch typ {
+	case EXPR_OBJ_TYPE_RAW:
+		return p.Args[0]
+	case EXPR_OBJ_TYPE_MIN:
+		return item.Min(isNum, p.Args, item.Get)
+	default:
+		return 0
+	}
+}
+
 func floatArrayToString(in []float64) (out string) {
 	if len(in) == 0 {
 		return
@@ -144,42 +171,5 @@ func (p *ExprObj) String() string {
 	}
 	args = floatArrayToString(p.Args)
 
-	return fmt.Sprintf("%s(%s%s)", obj_type_name[typ>>1], isNum, args)
-}
-
-/*
-1	/	Division
-2	*	Multiplication
-3	-	Arithmetical minus
-4	+	Arithmetical plus
-5	<	Less than. The operator is defined as: A<B ⇔ (A<=B-0.000001)
-6	>	More than. The operator is defined as: A>B ⇔ (A>=B+0.000001)
-7	#	Not equal. The operator is defined as: A#B ⇔ (A<=B-0.000001) | (A>=B+0.000001)
-8	=	Is equal. The operator is defined as: A=B ⇔ (A>B-0.000001) & (A<B+0.000001)
-9	&	Logical AND
-10	|	Logical OR
-*/
-
-/*
-(sec|#num,mask,<time_shift>)
-count (sec|#num,<pattern>,<operator>,<time_shift>)
-*/
-
-/* eg.
- * min(#5) < 3
- */
-
-type ItemFuc interface {
-	//Abschange(args []int, isTime bool) float64
-	//Avg(args []int, isTime bool) float64
-	//Band(args []int, isTime bool) float64
-	//Change(args []int, isTime bool) float64
-	//Count(args []int, isTime bool) float64
-	//Delta(args []int, isTime bool) float64
-	//Diff(args []int, isTime bool) float64
-	//Last(args []int, isTime bool) float64
-	Min(args []int, isTime bool) float64
-	//Max(args []int, isTime bool) float64
-	//Nodata(args []int, isTime bool) float64
-	//Sum(args []int, isTime bool) float64
+	return fmt.Sprintf("%s(%s%s)", obj_type_name[typ], isNum, args)
 }

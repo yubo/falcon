@@ -67,7 +67,7 @@ expr_logic_op:
 expr_obj: float {
  	$$ = &ExprObj{Type: EXPR_OBJ_TYPE_RAW, Args: []float64{$1}}
 }| MIN obj_args ')' {
-	yy.err = yy_obj.reduce(EXPR_OBJ_TYPE_MIN, 2, 3)
+	yy.err = yy_obj.reduce(EXPR_OBJ_TYPE_MIN, 1, 2)
  	$$ = yy_obj
 }
 ;

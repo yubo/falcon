@@ -585,7 +585,7 @@ yydefault:
 		yyDollar = yyS[yypt-3 : yypt+1]
 		//line parse.y:69
 		{
-			yy.err = yy_obj.reduce(EXPR_OBJ_TYPE_MIN, 2, 3)
+			yy.err = yy_obj.reduce(EXPR_OBJ_TYPE_MIN, 1, 2)
 			yyVAL.expr_obj = yy_obj
 		}
 	case 20:
