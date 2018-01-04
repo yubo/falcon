@@ -39,13 +39,15 @@ func TestParse(t *testing.T) {
 		want error
 	}{
 		{"min(#1, 3) < 3", nil},
+		{"min(10m, 3) < 3", nil},
 		{"(min(#1, 3) < 3) && (min(3600, 4) < 4)", nil},
+		{"(count(#1, 12, >=, 1h) < 3)", nil},
 	}
 	for _, tc := range cases {
 		if expr, err := Parse([]byte(tc.text), 0); err != tc.want {
 			t.Errorf("Parse(%s) = %s %v; want %v", tc.text, expr, err, tc.want)
 		} /* else {
-			t.Logf("Parse(%s) = %s %v", tc.text, expr, err)
+			t.Logf("Parse(%s) \n>> %s", tc.text, expr)
 			t.Logf("json %s", expr.Json())
 		}*/
 	}
@@ -101,6 +103,8 @@ func TestExec(t *testing.T) {
 		{dps, "min(#9) < 3", true},
 		{dps, "min(#8) < 3 || min(#9) < 3", true},
 		{dps, "min(#8) < 3 && min(#9) < 3", false},
+		{dps, "count(#10, 5, >=) = 3", false},
+		{dps, "count(#10, 5, >=) = 6", true},
 	}
 	for _, tc := range cases {
 		expr, err := Parse([]byte(tc.expr), 0)

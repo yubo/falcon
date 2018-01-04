@@ -14,19 +14,22 @@ package expr
 	b bool
 	expr  *Expr
 	expr_obj *ExprObj
+	text string
 }
 
 %type <b> bool
-%type <num> expr_op expr_logic_op
+%type <text> text
+%type <num> expr_op expr_logic_op time
 %type <float> float
 %type <expr> expr
 %type <expr_obj> expr_obj
 
 %token <num> NUM
+%token <text> TEXT 
 
 %token '(' ')' '=' '>' '<' '&' '|' '#' '+' '-' '*' '/' ','
 %token TRUE FALSE
-%token ALL MAX MIN AVG SUM DIFF PDIFF
+%token COUNT
 
 %%
 
@@ -46,8 +49,12 @@ bool:
  | FALSE		{ $$ = false }
 ;
 
+
+text:
+  TEXT			{ $$ = string(yy.t) }
+
 float:
-   NUM { $$ = yy.f }
+   NUM			{ $$ = yy.f }
 ;
 
 expr_op:
@@ -66,26 +73,61 @@ expr_logic_op:
 
 expr_obj: float {
  	$$ = &ExprObj{Type: EXPR_OBJ_TYPE_RAW, Args: []float64{$1}}
-}| MIN obj_args ')' {
-	yy.err = yy_obj.reduce(EXPR_OBJ_TYPE_MIN, 1, 2)
- 	$$ = yy_obj
+}| COUNT count_args ')' {
+	yy.err = yy_obj.reduce("count")
+	$$ = yy_obj
+}| text obj_args ')' {
+	yy.err = yy_obj.reduce($1)
+	$$ = yy_obj
 }
+;
+
+// count(10m,12,gt,1d) → number of values for preceding 10 minutes up to 24 hours ago that were over '12'
+count_args: '(' {
+	yy_obj = &ExprObj{}
+}| count_args arg0 ',' float ',' expr_op ',' time {
+	yy_obj.Args = append(yy_obj.Args, $4, float64($6), float64($8))
+}| count_args arg0 ',' float ',' expr_op {
+	yy_obj.Args = append(yy_obj.Args, $4, float64($6))
+}| count_args arg0 ',' float {
+	yy_obj.Args = append(yy_obj.Args, $4)
+}| count_args arg0
 ;
 
 obj_args: '(' {
 	yy_obj = &ExprObj{}
-}| obj_args arg0_type func_args
+}| obj_args arg0 func_args
 ;
 
-
-arg0_type:
- | '#' { yy_obj.Type = 1 }
+arg0:
+   float {
+   yy_obj.Args = []float64{$1}
+}| '#' float {
+   yy_obj.Type = 1
+   yy_obj.Args = []float64{$2}
+}| time {
+   yy_obj.Args = []float64{float64($1)}
+}
 ;
+
+time:
+   float {
+   $$ = int($1)
+}| float text {
+   switch $2 {
+   case "m":
+   	$$ = int($1) * 60
+   case "h":
+   	$$ = int($1) * 60 * 60
+   case "d":
+   	$$ = int($1) * 60 * 60 * 24
+   default:
+   	yy.err = EINVAL
+   }
+}
 
 func_args: 
-   float {
-	yy_obj.Args = append(yy_obj.Args, $1)
-}| func_args ',' float {
+| func_args ',' float {
 	yy_obj.Args = append(yy_obj.Args, $3)
 }
 ;

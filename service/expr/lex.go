@@ -30,19 +30,13 @@ var (
 	yy_as      = make([]string, 0)
 	f_num      = regexp.MustCompile(`^(\+|-)?\d+(\.\d+)?`)
 	f_keyword  = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9-_]+`)
-	f_word     = regexp.MustCompile(`(^"[^"]+")|(^[^"\n \t;]+)`)
+	f_word     = regexp.MustCompile(`^[a-zA-Z]+[a-zA-Z0-9-_]?`)
 	keywords   = map[string]int{
 		// bool
 		"true":  TRUE,
 		"false": FALSE,
 		// func
-		"all":   ALL,
-		"min":   MIN,
-		"max":   MAX,
-		"avg":   AVG,
-		"sum":   SUM,
-		"diff":  DIFF,
-		"pdiff": PDIFF,
+		"count": COUNT,
 	}
 )
 
@@ -133,12 +127,24 @@ begin:
 		}
 
 		if bytes.IndexByte([]byte(`#={}:;,()+*/%<>~\[\]?!\|-&`), text[0]) != -1 {
-			if !prefix(text, []byte(`//`)) &&
-				!prefix(text, []byte(`/*`)) {
-				p.ctx.pos++
-				glog.V(5).Infof(MODULE_NAME+"return '%c'\n", int(text[0]))
-				return int(text[0])
+			p.ctx.pos++
+			glog.V(5).Infof(MODULE_NAME+"return '%c'\n", int(text[0]))
+			//fmt.Printf(MODULE_NAME+"return '%c'\n", int(text[0]))
+			return int(text[0])
+		}
+
+		// find text
+		f = f_word.Find(text)
+		if f != nil {
+			p.ctx.pos += len(f)
+			if f[0] == '"' {
+				p.t = f[1 : len(f)-1]
+			} else {
+				p.t = f[:]
 			}
+			glog.V(5).Infof(MODULE_NAME+"return TEXT(%s)", string(p.t))
+			//fmt.Printf(MODULE_NAME+"return TEXT(%s)\n", string(p.t))
+			return TEXT
 		}
 
 		//p.Error(fmt.Sprintf("unknown character %c", text[0]))
@@ -173,5 +179,9 @@ func Parse(text []byte, lino int) (*Expr, error) {
 
 	glog.V(5).Infof("trigger parse text %s", string(yy.ctx.text))
 	yyParse(yy)
+	if yy.err != nil {
+		yy.err = errors.New(fmt.Sprintf("%s %s:%d",
+			yy.err, yy.ctx.text, yy.ctx.pos))
+	}
 	return yy_trigger, yy.err
 }

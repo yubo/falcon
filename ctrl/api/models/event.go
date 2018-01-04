@@ -33,9 +33,7 @@ type EventTrigger struct {
 	Name     string `json:"name"`
 	Metric   string `json:"metric"`
 	Tags     string `json:"tags"`
-	Func     string `json:"func"`
-	Op       string `json:"op"`
-	Value    string `json:"value"`
+	Expr     string `json:"expr"`
 	Msg      string `json:"msg"`
 }
 
@@ -46,9 +44,7 @@ type EventTriggerApiAdd struct {
 	Name     string `json:"name"`
 	Metric   string `json:"metric"`
 	Tags     string `json:"tags"`
-	Func     string `json:"func"`
-	Op       string `json:"op"`
-	Value    string `json:"value"`
+	Expr     string `json:"expr"`
 	Msg      string `json:"msg"`
 }
 
@@ -76,9 +72,7 @@ type EventTriggerApiGet struct {
 	Name       string               `json:"name"`
 	Metric     string               `json:"metric"`
 	Tags       string               `json:"tags"`
-	Func       string               `json:"func"`
-	Op         string               `json:"op"`
-	Value      string               `json:"value"`
+	Expr       string               `json:"expr"`
 	Msg        string               `json:"msg"`
 	Children   []EventTriggerApiGet `json:"children"`
 }
@@ -91,9 +85,7 @@ type EventTriggerApiUpdate struct {
 	Name     string `json:"name"`
 	Metric   string `json:"metric"`
 	Tags     string `json:"tags"`
-	Func     string `json:"func"`
-	Op       string `json:"op"`
-	Value    string `json:"value"`
+	Expr     string `json:"expr"`
 	Msg      string `json:"msg"`
 }
 
@@ -105,9 +97,7 @@ type EventTriggerTagApiAdd struct {
 	Name     string `json:"name"`
 	Metric   string `json:"metric"`
 	Tags     string `json:"tags"`
-	Func     string `json:"func"`
-	Op       string `json:"op"`
-	Value    string `json:"value"`
+	Expr     string `json:"expr"`
 	Msg      string `json:"msg"`
 }
 
@@ -124,17 +114,15 @@ type EventTriggerTagApiGet struct {
 	Name     string `json:"name"`
 	Metric   string `json:"metric"`
 	Tags     string `json:"tags"`
-	Func     string `json:"func"`
-	Op       string `json:"op"`
-	Value    string `json:"value"`
+	Expr     string `json:"expr"`
 	Msg      string `json:"msg"`
 }
 
 func (op *Operator) CreateEventTrigger(e *EventTrigger) (id int64, err error) {
 
-	id, err = op.SqlInsert("insert event_trigger (parent_id, tpl_id, tag_id, priority, name, metric, tags, func, op, value, msg) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+	id, err = op.SqlInsert("insert event_trigger (parent_id, tpl_id, tag_id, priority, name, metric, tags, expr, msg) values (?, ?, ?, ?, ?, ?, ?, ?, ?)",
 		e.ParentId, e.TplId, e.TagId, e.Priority, iif(e.Name == "", nil, e.Name),
-		e.Metric, e.Tags, e.Func, e.Op, e.Value, e.Msg)
+		e.Metric, e.Tags, e.Expr, e.Msg)
 	if err != nil {
 		return
 	}
@@ -148,7 +136,7 @@ func (op *Operator) CreateEventTrigger(e *EventTrigger) (id int64, err error) {
 
 func (op *Operator) GetEventTrigger(id int64) (*EventTrigger, error) {
 	e := &EventTrigger{}
-	err := op.SqlRow(e, "select id, parent_id, tpl_id, tag_id, version, priority, name, metric, tags, func, op, value, msg from event_trigger where id = ?", id)
+	err := op.SqlRow(e, "select id, parent_id, tpl_id, tag_id, version, priority, name, metric, tags, expr, msg from event_trigger where id = ?", id)
 	return e, err
 }
 
@@ -195,7 +183,7 @@ func (op *Operator) GetEventTriggersCnt(tagId int64, query string, deep int) (cn
 
 func (op *Operator) GetEventTriggers(tagId int64, query string, deep, limit, offset int) (ret []EventTriggerApiGet, err error) {
 	sql, sql_args := sqlTrigger(tagId, query, deep)
-	sql = "SELECT a.id as id, a.parent_id as parent_id, a.tpl_id as tpl_id, a.tag_id as tag_id, a.version as version, a.refcnt as refcnt, a.priority as priority, a.name as name, a.metric as metric, a.tags as tags, a.func as func, a.op as op, a.value as value, a.msg as msg, b.name as grp_name, c.name as tpl_name, d.name as tag_name from event_trigger a LEFT JOIN event_trigger b ON a.parent_id = b.id LEFT JOIN event_trigger c ON a.tpl_id = c.id LEFT JOIN tag d ON a.tag_id = d.id " + sql + " ORDER BY a.name LIMIT ? OFFSET ?"
+	sql = "SELECT a.id as id, a.parent_id as parent_id, a.tpl_id as tpl_id, a.tag_id as tag_id, a.version as version, a.refcnt as refcnt, a.priority as priority, a.name as name, a.metric as metric, a.tags as tags, a.expr as expr, a.msg as msg, b.name as grp_name, c.name as tpl_name, d.name as tag_name from event_trigger a LEFT JOIN event_trigger b ON a.parent_id = b.id LEFT JOIN event_trigger c ON a.tpl_id = c.id LEFT JOIN tag d ON a.tag_id = d.id " + sql + " ORDER BY a.name LIMIT ? OFFSET ?"
 	sql_args = append(sql_args, limit, offset)
 
 	_, err = op.O.Raw(sql, sql_args...).QueryRows(&ret)
@@ -203,17 +191,17 @@ func (op *Operator) GetEventTriggers(tagId int64, query string, deep, limit, off
 }
 
 func (op *Operator) GetEventTriggerChilds(id int64) (ret []EventTriggerApiGet, err error) {
-	_, err = op.O.Raw("SELECT a.id as id, a.parent_id as parent_id, a.tpl_id as tpl_id, a.tag_id as tag_id, a.version as version, a.refcnt as refcnt, a.priority as priority, a.name as name, a.metric as metric, a.tags as tags, a.func as func, a.op as op, a.value as value, a.msg as msg, b.name as grp_name, c.name as tpl_name, d.name as tag_name from event_trigger a LEFT JOIN event_trigger b ON a.parent_id = b.id LEFT JOIN event_trigger c ON a.tpl_id = c.id LEFT JOIN tag d ON a.tag_id = d.id WHERE a.parent_id = ?  ORDER BY a.name", id).QueryRows(&ret)
+	_, err = op.O.Raw("SELECT a.id as id, a.parent_id as parent_id, a.tpl_id as tpl_id, a.tag_id as tag_id, a.version as version, a.refcnt as refcnt, a.priority as priority, a.name as name, a.metric as metric, a.tags as tags, a.expr as expr, a.msg as msg, b.name as grp_name, c.name as tpl_name, d.name as tag_name from event_trigger a LEFT JOIN event_trigger b ON a.parent_id = b.id LEFT JOIN event_trigger c ON a.tpl_id = c.id LEFT JOIN tag d ON a.tag_id = d.id WHERE a.parent_id = ?  ORDER BY a.name", id).QueryRows(&ret)
 	return
 }
 
 func (op *Operator) GetEventTriggersTpl(id int64) (ret []EventTriggerApiGet, err error) {
-	_, err = op.O.Raw("SELECT a.id as id, a.parent_id as parent_id, a.tpl_id as tpl_id, a.tag_id as tag_id, a.version as version, a.refcnt as refcnt, a.priority as priority, a.name as name, a.metric as metric, a.tags as tags, a.func as func, a.op as op, a.value as value, a.msg as msg, b.name as grp_name, c.name as tpl_name, d.name as tag_name from event_trigger a LEFT JOIN event_trigger b ON a.parent_id = b.id LEFT JOIN event_trigger c ON a.tpl_id = c.id LEFT JOIN tag d ON a.tag_id = d.id WHERE a.id = ? or a.parent_id = ?  ORDER BY a.name", id, id).QueryRows(&ret)
+	_, err = op.O.Raw("SELECT a.id as id, a.parent_id as parent_id, a.tpl_id as tpl_id, a.tag_id as tag_id, a.version as version, a.refcnt as refcnt, a.priority as priority, a.name as name, a.metric as metric, a.tags as tags, a.expr as expr, a.msg as msg, b.name as grp_name, c.name as tpl_name, d.name as tag_name from event_trigger a LEFT JOIN event_trigger b ON a.parent_id = b.id LEFT JOIN event_trigger c ON a.tpl_id = c.id LEFT JOIN tag d ON a.tag_id = d.id WHERE a.id = ? or a.parent_id = ?  ORDER BY a.name", id, id).QueryRows(&ret)
 	return
 }
 
 func (op *Operator) UpdateEventTrigger(e *EventTrigger) (ret *EventTrigger, err error) {
-	_, err = op.SqlExec("update event_trigger set parent_id = ?, tpl_id = ?, tag_id = ?, version = ?, priority = ?, name = ?, metric = ?, tags = ?, func = ?, op = ?, value = ?, msg = ? where id = ?", e.ParentId, e.TplId, e.TagId, e.Version, e.Priority, iif(e.Name == "", nil, e.Name), e.Metric, e.Tags, e.Func, e.Op, e.Value, e.Msg, e.Id)
+	_, err = op.SqlExec("update event_trigger set parent_id = ?, tpl_id = ?, tag_id = ?, version = ?, priority = ?, name = ?, metric = ?, tags = ?, expr = ?, msg = ? where id = ?", e.ParentId, e.TplId, e.TagId, e.Version, e.Priority, iif(e.Name == "", nil, e.Name), e.Metric, e.Tags, e.Expr, e.Msg, e.Id)
 	if err != nil {
 		return
 	}
@@ -263,7 +251,7 @@ func (op *Operator) CloneEventTrigger(srcEventTriggerId int64, dstTagId int64) (
 
 	id = e.Id
 
-	_, err = op.O.Raw("SELECT id, parent_id, tpl_id, tag_id, version, priority, name, metric, tags, func, op, value, msg from event_trigger WHERE parent_id = ?", srcEventTriggerId).QueryRows(&childs)
+	_, err = op.O.Raw("SELECT id, parent_id, tpl_id, tag_id, version, priority, name, metric, tags, expr, msg from event_trigger WHERE parent_id = ?", srcEventTriggerId).QueryRows(&childs)
 	if err != nil || len(childs) == 0 {
 		return
 	}

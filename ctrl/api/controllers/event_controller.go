@@ -66,9 +66,7 @@ func (c *EventController) CreateEventTrigger() {
 		Name:     input.Name,
 		Metric:   input.Metric,
 		Tags:     input.Tags,
-		Func:     input.Func,
-		Op:       input.Op,
-		Value:    input.Value,
+		Expr:     input.Expr,
 		Msg:      input.Msg,
 	}
 

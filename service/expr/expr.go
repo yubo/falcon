@@ -88,29 +88,69 @@ func (p *Expr) Json() string {
 }
 
 const (
-	EXPR_OBJ_TYPE_RAW    = iota
-	EXPR_OBJ_TYPE_ALL    // all (sec|#num,<time_shift>)
-	EXPR_OBJ_TYPE_AVG    // avg (sec|#num,<time_shift>)
-	EXPR_OBJ_TYPE_MAX    // max (sec|#num,<time_shift>)
-	EXPR_OBJ_TYPE_MIN    // min (sec|#num,<time_shift>)
-	EXPR_OBJ_TYPE_SUM    // sum (sec|#num,<time_shift>)
-	EXPR_OBJ_TYPE_NODATA // nodata (sec)
+	EXPR_OBJ_TYPE_RAW = iota
+	EXPR_OBJ_TYPE_ABSCHANGE
+	EXPR_OBJ_TYPE_AVG
+	EXPR_OBJ_TYPE_BAND
+	EXPR_OBJ_TYPE_CHANGE
+	EXPR_OBJ_TYPE_COUNT
+	EXPR_OBJ_TYPE_DELTA
 	EXPR_OBJ_TYPE_DIFF
-	EXPR_OBJ_TYPE_PDIFF
+	EXPR_OBJ_TYPE_LAST
+	EXPR_OBJ_TYPE_MIN
+	EXPR_OBJ_TYPE_MAX
+	EXPR_OBJ_TYPE_NODATA
+	EXPR_OBJ_TYPE_SUM
 	EXPR_OBJ_TYPE_SIZE
 )
 
 var (
 	obj_type_name = [EXPR_OBJ_TYPE_SIZE]string{
 		"raw",
-		"all",
+		"abschange",
 		"avg",
-		"max",
-		"min",
-		"sum",
-		"nodata",
+		"band",
+		"change",
+		"count",
+		"delta",
 		"diff",
-		"pdiff",
+		"last",
+		"min",
+		"max",
+		"nodata",
+		"sum",
+	}
+
+	obj_type_map = map[string]int{
+		"raw":       EXPR_OBJ_TYPE_RAW,
+		"abschange": EXPR_OBJ_TYPE_ABSCHANGE,
+		"avg":       EXPR_OBJ_TYPE_AVG,
+		"band":      EXPR_OBJ_TYPE_BAND,
+		"change":    EXPR_OBJ_TYPE_CHANGE,
+		"count":     EXPR_OBJ_TYPE_COUNT,
+		"delta":     EXPR_OBJ_TYPE_DELTA,
+		"diff":      EXPR_OBJ_TYPE_DIFF,
+		"last":      EXPR_OBJ_TYPE_LAST,
+		"min":       EXPR_OBJ_TYPE_MIN,
+		"max":       EXPR_OBJ_TYPE_MAX,
+		"nodata":    EXPR_OBJ_TYPE_NODATA,
+		"sum":       EXPR_OBJ_TYPE_SUM,
+	}
+
+	obj_argc_thresholds = [EXPR_OBJ_TYPE_SIZE][2]int{
+		{0, 0}, // "raw",
+		{1, 2}, // "abschange",
+		{1, 2}, // "avg",
+		{1, 2}, // "band",
+		{1, 2}, // "change",
+		{1, 4}, // "count",
+		{1, 2}, // "delta",
+		{1, 2}, // "diff",
+		{1, 2}, // "last",
+		{1, 2}, // "min",
+		{1, 2}, // "max",
+		{1, 2}, // "nodata",
+		{1, 2}, // "sum",
 	}
 )
 
@@ -120,12 +160,18 @@ type ExprObj struct {
 	Args []float64
 }
 
-func (p *ExprObj) reduce(typ uint32, argc0, argc1 int) error {
-	if len(p.Args) < argc0 || len(p.Args) > argc1 {
-		fmt.Printf("%s [%d, %d]\n", p, argc0, argc1)
+func (p *ExprObj) reduce(name string) error {
+
+	typ, ok := obj_type_map[name]
+	if !ok {
 		return EINVAL
 	}
-	p.Type |= typ << 1
+
+	if len(p.Args) < obj_argc_thresholds[typ][0] ||
+		len(p.Args) > obj_argc_thresholds[typ][1] {
+		return EINVAL
+	}
+	p.Type |= uint32(typ) << 1
 	return nil
 }
 
@@ -140,8 +186,30 @@ func (p *ExprObj) Exec(item ItemInf) float64 {
 	switch typ {
 	case EXPR_OBJ_TYPE_RAW:
 		return p.Args[0]
+	case EXPR_OBJ_TYPE_ABSCHANGE:
+		return item.Abschange(isNum, p.Args, item.Get)
+	case EXPR_OBJ_TYPE_AVG:
+		return item.Avg(isNum, p.Args, item.Get)
+	case EXPR_OBJ_TYPE_BAND:
+		return item.Band(isNum, p.Args, item.Get)
+	case EXPR_OBJ_TYPE_CHANGE:
+		return item.Change(isNum, p.Args, item.Get)
+	case EXPR_OBJ_TYPE_COUNT:
+		return item.Count(isNum, p.Args, item.Get)
+	case EXPR_OBJ_TYPE_DELTA:
+		return item.Delta(isNum, p.Args, item.Get)
+	case EXPR_OBJ_TYPE_DIFF:
+		return item.Diff(isNum, p.Args, item.Get)
+	case EXPR_OBJ_TYPE_LAST:
+		return item.Last(isNum, p.Args, item.Get)
 	case EXPR_OBJ_TYPE_MIN:
 		return item.Min(isNum, p.Args, item.Get)
+	case EXPR_OBJ_TYPE_MAX:
+		return item.Max(isNum, p.Args, item.Get)
+	case EXPR_OBJ_TYPE_NODATA:
+		return item.Nodata(isNum, p.Args, item.Get)
+	case EXPR_OBJ_TYPE_SUM:
+		return item.Sum(isNum, p.Args, item.Get)
 	default:
 		return 0
 	}

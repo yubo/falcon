@@ -2353,15 +2353,13 @@ definitions:
     title: EventTriggerApiAdd
     type: object
     properties:
-      func:
+      expr:
         type: string
       metric:
         type: string
       msg:
         type: string
       name:
-        type: string
-      op:
         type: string
       parent_id:
         type: integer
@@ -2373,8 +2371,6 @@ definitions:
         type: integer
         format: int64
       tags:
-        type: string
-      value:
         type: string
   models.EventTriggerApiClone:
     title: EventTriggerApiClone
@@ -2408,7 +2404,7 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/models.EventTriggerApiGet'
-      func:
+      expr:
         type: string
       id:
         type: integer
@@ -2418,8 +2414,6 @@ definitions:
       msg:
         type: string
       name:
-        type: string
-      op:
         type: string
       parent_id:
         type: integer
@@ -2444,8 +2438,6 @@ definitions:
         format: int64
       tpl_name:
         type: string
-      value:
-        type: string
       version:
         type: integer
         format: int64
@@ -2453,7 +2445,7 @@ definitions:
     title: EventTriggerApiUpdate
     type: object
     properties:
-      func:
+      expr:
         type: string
       id:
         type: integer
@@ -2463,8 +2455,6 @@ definitions:
       msg:
         type: string
       name:
-        type: string
-      op:
         type: string
       priority:
         type: integer
@@ -2477,8 +2467,6 @@ definitions:
       tpl_id:
         type: integer
         format: int64
-      value:
-        type: string
   models.ExpansionStatus:
     title: ExpansionStatus
     type: object
@@ -2866,7 +2854,7 @@ definitions:
       role_token:
         type: array
         items:
-          $ref: '#/definitions/38451.0xc4203727e0.false'
+          $ref: '#/definitions/37947.0xc420363e30.false'
       tag_id:
         type: integer
         format: int64
@@ -2894,7 +2882,7 @@ definitions:
       role_user:
         type: array
         items:
-          $ref: '#/definitions/114354.0xc42048ba10.false'
+          $ref: '#/definitions/112984.0xc420491950.false'
       tag_id:
         type: integer
         format: int64
