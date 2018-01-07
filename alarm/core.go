@@ -68,8 +68,8 @@ func (p *Transfer) Name() string {
 	return p.Conf.Name
 }
 
-func (p *Transfer) Parse(text []byte, filename string, lino int) fconfig.ModuleConf {
-	p.Conf = parse.Parse(text, filename, lino).(*config.Transfer)
+func (p *Transfer) Parse(text []byte, filename string, lino int, debug bool) fconfig.ModuleConf {
+	p.Conf = parse.Parse(text, filename, lino, debug).(*config.Transfer)
 	p.Conf.Configer.Set(fconfig.APP_CONF_DEFAULT, ConfDefault)
 	return p.Conf
 }

@@ -10,11 +10,13 @@ import (
 	"sync"
 
 	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/service/expr"
 	"github.com/yubo/gotool/list"
 )
 
 type itemEntry struct { // item_t
 	sync.RWMutex
+	expr.ExprItem
 	list      list.ListHead // point to newQueue or lruQueue
 	shardId   int32
 	flag      uint32
@@ -30,6 +32,21 @@ type itemEntry struct { // item_t
 	timestamp []int64
 	value     []float64
 	//tsdb hook
+}
+
+func itemEntryNew(item *falcon.Item) *itemEntry {
+	return &itemEntry{
+		createTs:  timer.now(),
+		shardId:   item.ShardId,
+		endpoint:  item.Endpoint,
+		metric:    item.Metric,
+		tags:      item.Tags,
+		typ:       item.Type,
+		dataId:    CACHE_SIZE,
+		timestamp: make([]int64, CACHE_SIZE),
+		value:     make([]float64, CACHE_SIZE),
+	}
+
 }
 
 /* used for share memory modle */
@@ -62,6 +79,53 @@ func (p *itemEntry) put(item *falcon.Item) error {
 	return nil
 }
 
+//TODO for expr.Item interface{}
+func (p *itemEntry) Get(isNum bool, num, shift_time_ int) (ret []float64) {
+	p.RLock()
+	defer p.RUnlock()
+
+	var i uint32
+
+	now := timer.now()
+	shift_time := int64(shift_time_)
+	id := p.dataId - 1
+
+	if isNum {
+		for i = 0; i < CACHE_SIZE; i++ {
+			if now-p.timestamp[(id-i)&CACHE_SIZE_MASK] >= shift_time {
+				break
+			}
+		}
+		for j := 0; i < CACHE_SIZE && j < num; i++ {
+			ret = append(ret, p.value[(id-i)&CACHE_SIZE_MASK])
+			j++
+		}
+		return
+	}
+
+	// isSec
+	sec := int64(num) + int64(shift_time)
+	for i = 0; i < CACHE_SIZE; i++ {
+		if now-p.timestamp[(id-i)&CACHE_SIZE_MASK] >= shift_time {
+			break
+		}
+	}
+	for ; i < CACHE_SIZE; i++ {
+		if now-p.timestamp[(id-i)&CACHE_SIZE_MASK] >= sec {
+			break
+		}
+		ret = append(ret, p.value[(id-i)&CACHE_SIZE_MASK])
+	}
+	return ret
+}
+
+func (p *itemEntry) Nodata(isNum bool, args []float64, get expr.GetHandle) float64 {
+	if timer.now()-p.lastTs <= int64(args[0]) {
+		return 1
+	}
+	return 0
+}
+
 // TODO
 func (p *itemEntry) getDps(begin, end int64) ([]*falcon.DataPoint, error) {
 	return nil, nil
@@ -73,11 +137,6 @@ func (p *itemEntry) _getData(n int) (ret []*falcon.DataPoint) {
 	if n == 0 {
 		return
 	}
-	/*
-		if n > p.dataId {
-			n = p.dataId
-		}
-	*/
 
 	if n > CACHE_SIZE {
 		n = CACHE_SIZE
@@ -86,10 +145,10 @@ func (p *itemEntry) _getData(n int) (ret []*falcon.DataPoint) {
 	ret = make([]*falcon.DataPoint, n)
 
 	//H := h & CACHE_SIZE_MASK
-	offset := (p.dataId - uint32(n)) & CACHE_SIZE_MASK
+	begin := (p.dataId - uint32(n))
 
 	for i := 0; i < n; i++ {
-		id := (uint32(i) + offset) & CACHE_SIZE_MASK
+		id := (uint32(i) + begin) & CACHE_SIZE_MASK
 		ret[i] = &falcon.DataPoint{
 			Timestamp: p.timestamp[id],
 			Value:     p.value[id],

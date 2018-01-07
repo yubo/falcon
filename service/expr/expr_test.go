@@ -3,17 +3,17 @@
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
+
+/*
+https://www.zabbix.com/documentation/4.0/manual/appendix/triggers/functions
+https://www.zabbix.com/documentation/4.0/manual/config/triggers/expression
+*/
 package expr
 
 import (
 	"regexp"
 	"testing"
 )
-
-/*
-min(#3) < 4
-min(360) < 4
-*/
 
 func TestRegexp(t *testing.T) {
 	cases := []struct {
@@ -42,14 +42,17 @@ func TestParse(t *testing.T) {
 		{"min(10m, 3) < 3", nil},
 		{"(min(#1, 3) < 3) && (min(3600, 4) < 4)", nil},
 		{"(count(#1, 12, >=, 1h) < 3)", nil},
+		{"nodata(30)=1", nil},
+		{"abschange()=1", nil},
+		{"test", EINVAL},
 	}
 	for _, tc := range cases {
-		if expr, err := Parse([]byte(tc.text), 0); err != tc.want {
+		expr, err := Parse(tc.text)
+		if tc.want == nil && err != nil {
 			t.Errorf("Parse(%s) = %s %v; want %v", tc.text, expr, err, tc.want)
-		} /* else {
-			t.Logf("Parse(%s) \n>> %s", tc.text, expr)
-			t.Logf("json %s", expr.Json())
-		}*/
+		} else if tc.want != nil && err == nil {
+			t.Errorf("Parse(%s) = %s %v; want %v", tc.text, expr, err, tc.want)
+		}
 	}
 }
 
@@ -70,14 +73,14 @@ func dpsToArr(in []dataPoint) (ret []float64) {
 	return
 }
 
-func (p *testItem) Get(isNum bool, last, shift_time int) []float64 {
+func (p *testItem) Get(isNum bool, num, shift_time int) []float64 {
 	if isNum {
 		if shift_time > 0 {
 			//skip
 		}
 		size := len(p.dps)
-		if size > last {
-			return dpsToArr(p.dps[size-last:])
+		if size > num {
+			return dpsToArr(p.dps[size-num:])
 		}
 		return dpsToArr(p.dps)
 	} else {
@@ -107,7 +110,7 @@ func TestExec(t *testing.T) {
 		{dps, "count(#10, 5, >=) = 6", true},
 	}
 	for _, tc := range cases {
-		expr, err := Parse([]byte(tc.expr), 0)
+		expr, err := Parse(tc.expr)
 		if err != nil {
 			t.Errorf("Parse(%s) err %v", tc.expr, err)
 		}
@@ -117,9 +120,3 @@ func TestExec(t *testing.T) {
 		}
 	}
 }
-
-/*
-## resource
-https://www.zabbix.com/documentation/4.0/manual/appendix/triggers/functions
-https://www.zabbix.com/documentation/4.0/manual/config/triggers/expression
-*/

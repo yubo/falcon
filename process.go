@@ -28,7 +28,7 @@ type Module interface {
 	Signal(os.Signal) error
 	String() string
 	Name() string
-	Parse(text []byte, filename string, lino int, debug bool) config.ModuleConf
+	Parse(text []byte, filename string, lino int) config.ModuleConf
 }
 
 // reload not support add/del/disable module

@@ -1,8 +1,18 @@
-pidFile ./ctrl.pid;
-log stdout 4;
-//root ${GOPATH}/src/github.com/open-falcon/falcon/ctrl;
+/*
+ * Copyright 2016,2017 falcon Author. All rights reserved.
+ * Use of this source code is governed by a BSD-style
+ * license that can be found in the LICENSE file.
+ */
+package parse
 
-agent	{
+import (
+	"testing"
+
+	"github.com/golang/glog"
+)
+
+var text = []byte(`
+{
 	debug;
 	leasekey	"/open-falcon/agent/online/test.falcon";
 	leasettl	20;
@@ -20,3 +30,9 @@ agent	{
 	emuTplDir	./var/tpl;	
 	plugins		"sys,emulator";
 };
+`)
+
+func TestParse(t *testing.T) {
+	ret := Parse(text, "test", 0)
+	glog.V(4).Infof("%s", ret)
+}

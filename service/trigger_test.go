@@ -6,11 +6,14 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/astaxie/beego/orm"
+	"github.com/golang/glog"
 	"github.com/yubo/falcon"
 )
 
@@ -102,20 +105,74 @@ func testGenerateShard(items []*testItem) *ShardModule {
 	shard := &ShardModule{
 		bucketMap: make(map[int32]*bucketEntry),
 	}
-	bucket := &bucketEntry{itemMap: make(map[string]*itemEntry)}
-
-	for _, v := range items {
-		item := &itemEntry{
-			endpoint: []byte(v.endpoint),
-			metric:   []byte(v.metric),
-			tags:     []byte(v.tags),
-			typ:      v.typ,
+	shard.newQueue.init()
+	shard.lruQueue.init()
+	shard.bucketMap[0] = &bucketEntry{itemMap: make(map[string]*itemEntry)}
+	/*
+		for _, v := range items {
+			item := &itemEntry{
+				endpoint: []byte(v.endpoint),
+				metric:   []byte(v.metric),
+				tags:     []byte(v.tags),
+				typ:      v.typ,
+			}
+			bucket.itemMap[item.key()] = item
 		}
-		bucket.itemMap[item.key()] = item
-	}
-	shard.bucketMap[0] = bucket
+		shard.bucketMap[0] = bucket
+	*/
 
 	return shard
+}
+
+func testFillDps(shard *ShardModule, items []*testItem, dps []*falcon.DataPoint, t *testing.T) {
+	for _, v := range items {
+		for _, dp := range dps {
+			item := &falcon.Item{
+				ShardId:   0,
+				Endpoint:  []byte(v.endpoint),
+				Metric:    []byte(v.metric),
+				Tags:      []byte(v.tags),
+				Type:      v.typ,
+				Value:     dp.Value,
+				Timestamp: dp.Timestamp,
+			}
+			if _, err := shard.put(item); err != nil {
+				t.Error(err)
+			}
+		}
+	}
+}
+
+func testTriggerExprProcess(trigger *Trigger) int {
+	var cnt int
+
+	ctx, cancel := context.WithCancel(context.Background())
+	eventCh := make(chan *event, 32)
+
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case e := <-eventCh:
+				glog.V(4).Infof("%s %s %s %s %d",
+					e.trigger.Metric, e.trigger.Tags,
+					e.trigger.Expr, e.trigger.Msg,
+					e.timestamp)
+				cnt++
+			}
+
+		}
+	}()
+
+	for _, node := range trigger.TnodeIds {
+		judgeTagNode(node, eventCh)
+	}
+
+	time.Sleep(time.Millisecond * 100)
+	cancel()
+
+	return cnt
 }
 
 func TestTrigger(t *testing.T) {
@@ -137,11 +194,11 @@ func TestTrigger(t *testing.T) {
 	}
 	eventTriggers := []*EventTrigger{
 		/*id, parent_id, tag_id, priority, name, metric, tags, func, op, vlue, msg */
-		{1, 0, 1, 1, "cpu", "cpu.busy", "", "all(#3)", ">", "90", "", "cpu busy over 90%", nil, nil},
-		{2, 1, 1, 2, "", "cpu.busy", "", "all(#3)", ">", "80", "", "cpu busy over 80%", nil, nil},
-		{3, 0, 5, 1, "cpu", "cpu.busy", "", "all(#3)", ">", "60", "", "cpu busy over 60%", nil, nil},
-		{4, 3, 5, 2, "", "cpu.busy", "", "all(#3)", ">", "50", "", "cpu busy over 50%", nil, nil},
-		{5, 0, 6, 1, "cpu", "cpu.busy", "", "all(#3)", ">", "99", "", "cpu busy over 99%", nil, nil},
+		{1, 0, 1, 8, "cpu", "cpu.busy", "", "count(#3,0,>)=3", "cpu busy over 0%", nil, nil, nil},
+		{2, 1, 1, 2, "", "cpu.busy", "", "count(#3,80,>)=3", "cpu busy over 80%", nil, nil, nil},
+		{3, 0, 5, 1, "cpu", "cpu.busy", "", "count(#3,60,>)=3", "cpu busy over 60%", nil, nil, nil},
+		{4, 3, 5, 2, "", "cpu.busy", "", "count(#3,50,>)=3", "cpu busy over 50%", nil, nil, nil},
+		{5, 0, 6, 1, "cpu", "cpu.busy", "", "count(#3,99,>)=3", "cpu busy over 99%", nil, nil, nil},
 	}
 
 	testItems := []*testItem{
@@ -153,9 +210,15 @@ func TestTrigger(t *testing.T) {
 		{"op_micloud.miliao.xiaomi.bj", "cpu.busy", "", falcon.ItemType_GAUGE},
 	}
 
+	testDps := []*falcon.DataPoint{
+		{0, 0}, {1, 1}, {2, 2}, {3, 3}, {4, 4}, {5, 5}, {6, 6}, {7, 7}, {8, 8}, {9, 9},
+	}
+
 	trigger := &Trigger{}
 
 	shard := testGenerateShard(testItems)
+
+	testFillDps(shard, testItems, testDps, t)
 
 	if err = setTreeNodes(treeNodes, trigger); err != nil {
 		t.Error(err)
@@ -170,30 +233,29 @@ func TestTrigger(t *testing.T) {
 		t.Error(err)
 	}
 
-	t.Logf("=== host tag\n")
+	glog.V(4).Infof("=== host tag\n")
 	for k, v := range trigger.HostTnodes {
-		t.Logf("%s\n", k)
+		glog.V(5).Infof("%s\n", k)
 		for _, v1 := range v {
-			t.Logf("    %s\n", v1.Name)
+			glog.V(5).Infof("    %s\n", v1.Name)
 		}
 	}
 
-	t.Logf("=== trigger item\n")
-
+	glog.V(4).Infof("=== trigger item\n")
 	cnt := [2]int{0, len(tagHosts)*2 - 2}
 	for _, node := range trigger.TnodeIds {
 		if len(node.ETriggerMetric) == 0 {
 			continue
 		}
-		t.Logf("tag[%s]\n", node.Name)
+		glog.V(5).Infof("tag[%s]\n", node.Name)
 		for _, triggers := range node.ETriggerMetric {
 			for _, trigger := range triggers {
-				t.Logf("    %s %s%s%s msg '%s' tags '%s'\n",
-					trigger.Metric, trigger.Func, trigger.Op, trigger.Value,
+				glog.V(5).Infof("    %s %s msg '%s' tags '%s'\n",
+					trigger.Metric, trigger.Expr,
 					trigger.Msg, trigger.Tags)
 				for _, item := range trigger.items {
 					cnt[0]++
-					t.Logf("        %s %s %s\n", item.endpoint, item.metric, item.tags)
+					glog.V(5).Infof("        %s %s %s\n", item.endpoint, item.metric, item.tags)
 				}
 			}
 		}
@@ -202,7 +264,7 @@ func TestTrigger(t *testing.T) {
 		t.Errorf("item trigger number got %d want %d\n", cnt[0], cnt[1])
 	}
 
-}
-
-func TestTriggerExprEval(t *testing.T) {
+	glog.V(4).Infof("=== trigger item expr exec\n")
+	eventNum := testTriggerExprProcess(trigger)
+	glog.V(4).Infof("=== trigger item expr exec event : %d\n", eventNum)
 }

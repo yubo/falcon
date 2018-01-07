@@ -137,8 +137,8 @@ func (p *Ctrl) Name() string {
 	return p.Conf.Name
 }
 
-func (p *Ctrl) Parse(text []byte, filename string, lino int, debug bool) fconfig.ModuleConf {
-	p.Conf = parse.Parse(text, filename, lino, debug).(*config.Ctrl)
+func (p *Ctrl) Parse(text []byte, filename string, lino int) fconfig.ModuleConf {
+	p.Conf = parse.Parse(text, filename, lino).(*config.Ctrl)
 	/* TODO: fill agent, transfer, backend, graph */
 	p.Conf.Ctrl.Set(fconfig.APP_CONF_DEFAULT, ConfDefault)
 	return p.Conf

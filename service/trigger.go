@@ -174,7 +174,7 @@ func reduceTriggerMetric(tag *TreeNode) {
 }
 
 func getEventTriggers(db orm.Ormer) (rows []*EventTrigger, err error) {
-	_, err = db.Raw("SELECT a.id AS id, a.parent_id AS parent_id, a.tag_id AS tag_id, a.priority AS priority, a.name AS name, a.metric AS metric, a.tags AS tags, a.func AS func, a.op AS op, a.value AS value, a.msg AS msg FROM event_trigger a LEFT JOIN event_trigger b ON a.parent_id = b.id where a.tag_id > 0 ORDER BY a.id").QueryRows(&rows)
+	_, err = db.Raw("SELECT a.id AS id, a.parent_id AS parent_id, a.tag_id AS tag_id, a.priority AS priority, a.name AS name, a.metric AS metric, a.tags AS tags, a.expr AS expr, a.msg AS msg FROM event_trigger a LEFT JOIN event_trigger b ON a.parent_id = b.id where a.tag_id > 0 ORDER BY a.id").QueryRows(&rows)
 	return
 }
 
@@ -182,6 +182,9 @@ func setEventTriggers(rows []*EventTrigger, trigger *Trigger) (err error) {
 	tags := trigger.TnodeIds
 	index := make(map[int64]*EventTrigger)
 	for _, row := range rows {
+		if err := row.exprPrepare(); err != nil {
+			continue
+		}
 		if row.ParentId > 0 {
 			if _, ok := index[row.ParentId]; ok {
 				index[row.ParentId].Child = append(index[row.ParentId].Child, row)
@@ -234,12 +237,14 @@ func setServiceItems(items map[string]*itemEntry, trigger *Trigger) error {
 func setServiceShards(shard *ShardModule, trigger *Trigger) error {
 	bucketMap := make(map[int32]*bucketEntry)
 
+	// copy it first
 	shard.RLock()
 	for k, v := range shard.bucketMap {
 		bucketMap[k] = v
 	}
 	shard.RUnlock()
 
+	// process
 	for _, v := range bucketMap {
 		items := make(map[string]*itemEntry)
 		v.RLock()

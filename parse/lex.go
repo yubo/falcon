@@ -28,14 +28,13 @@ type yyModule struct {
 	lino  int
 	pos   int
 	level int
-	debug bool
 }
 
 var (
 	conf            *config.FalconConfig
 	yy              *yyLex
 	yy_module       *yyModule
-	yy_module_parse func(text []byte, filename string, lino int, debug bool) config.ModuleConf
+	yy_module_parse func(text []byte, filename string, lino int) config.ModuleConf
 	yy_ss           = make(map[string]string)
 	yy_ss2          = make(map[string]string)
 	yy_as           = make([]string, 0)
@@ -78,7 +77,6 @@ type yyLex struct {
 	ctx     *yyCtx
 	t       []byte
 	i       int
-	debug   bool
 }
 
 func prefix(a, b []byte) bool {
@@ -295,14 +293,11 @@ func (p *yyLex) Error(s string) {
 	os.Exit(1)
 }
 
-func Parse(filename string, debug bool) *config.FalconConfig {
+func Parse(filename string) *config.FalconConfig {
 	var err error
 
 	conf = &config.FalconConfig{ConfigFile: filename}
-	yy = &yyLex{
-		ctxL:  0,
-		debug: debug,
-	}
+	yy = &yyLex{}
 	yy.ctx = &yy.ctxData[0]
 	yy.ctx.file = filename
 	yy.ctx.lino = 1

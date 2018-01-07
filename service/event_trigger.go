@@ -5,7 +5,14 @@
  */
 package service
 
+import (
+	"github.com/golang/glog"
+	"github.com/yubo/falcon/service/expr"
+)
+
 type event struct {
+	trigger   *EventTrigger
+	timestamp int64
 }
 
 type EventTrigger struct {
@@ -16,30 +23,24 @@ type EventTrigger struct {
 	Name     string
 	Metric   string
 	Tags     string
-	Func     string
-	Op       string
-	Value    string
 	Expr     string
 	Msg      string
 	Child    []*EventTrigger
 	items    []*itemEntry
+	expr     *expr.Expr
 }
 
 func (p *EventTrigger) Exec(item *itemEntry) *event {
+	glog.V(4).Infof("exec endpoint %s metric %s expr %s",
+		string(item.endpoint), string(item.metric), p.Expr)
+	if expr.Exec(item, p.expr) {
+		return &event{trigger: p, timestamp: timer.now()}
+	}
+
 	return nil
 }
 
-/*
-expr:
-true
-all(#3) > hj
-true && false
-
-// all(#3) > 3
-// min(#4) > 3
-// max(#5) > 3
-//
-func (p *EventTrigger) Parse() error {
-	return nil
+func (p *EventTrigger) exprPrepare() (err error) {
+	p.expr, err = expr.Parse(p.Expr)
+	return
 }
-*/

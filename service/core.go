@@ -37,7 +37,6 @@ const (
 	MODULE_NAME             = "\x1B[32m[SERVICE]\x1B[0m "
 	CTRL_STEP               = 360
 
-	C_CONN_TIMEOUT    = "conntimeout"
 	C_CALL_TIMEOUT    = "calltimeout"
 	C_API_ADDR        = "apiaddr"
 	C_HTTP_ADDR       = "httpaddr"
@@ -63,7 +62,6 @@ const (
 var (
 	modules     []module
 	ConfDefault = map[string]string{
-		C_CONN_TIMEOUT:    "1000",
 		C_CALL_TIMEOUT:    "5000",
 		C_IDX:             "true",
 		C_IDXINTERVAL:     "30",
@@ -71,12 +69,6 @@ var (
 		C_DB_MAX_IDLE:     "4",
 		C_JUDGE_NUM:       "8",
 		C_ALARM_NUM:       "8",
-		//C_HTTP_ADDR:       "127.0.0.1:7021",
-		//C_API_ADDR:        "127.0.0.1:7020",
-		//C_WORKER_PROCESSES: "2",
-		//C_SHMMAGIC:         "0x80386",
-		//C_SHMKEY:           "0x7020",
-		//C_SHMSIZE:          "0x10000000",
 	}
 )
 
@@ -118,8 +110,8 @@ func (p *Service) Name() string {
 	return p.Conf.Name
 }
 
-func (p *Service) Parse(text []byte, filename string, lino int, debug bool) fconfig.ModuleConf {
-	p.Conf = parse.Parse(text, filename, lino, debug).(*config.Service)
+func (p *Service) Parse(text []byte, filename string, lino int) fconfig.ModuleConf {
+	p.Conf = parse.Parse(text, filename, lino).(*config.Service)
 	p.Conf.Configer.Set(fconfig.APP_CONF_DEFAULT, ConfDefault)
 	return p.Conf
 }

@@ -20,17 +20,7 @@ func (p *bucketEntry) addItem(item *falcon.Item) (*itemEntry, error) {
 	p.Lock()
 	defer p.Unlock()
 
-	e := &itemEntry{
-		createTs:  timer.now(),
-		shardId:   item.ShardId,
-		endpoint:  item.Endpoint,
-		metric:    item.Metric,
-		tags:      item.Tags,
-		typ:       item.Type,
-		timestamp: make([]int64, CACHE_SIZE),
-		value:     make([]float64, CACHE_SIZE),
-	}
-
+	e := itemEntryNew(item)
 	p.itemMap[item.Key()] = e
 
 	return e, nil

@@ -80,14 +80,13 @@ conf: ';'
 
 		conf.Conf  = append(conf.Conf, yy_module_parse(
 		yy.ctx.text[yy_module.pos : yy.ctx.pos],
-		yy_module.file, yy_module.lino, yy_module.debug))
+		yy_module.file, yy_module.lino))
 	}
 ;
 
 module: text '{' {
 	 	yy_module = &yyModule {
 			level: 1,
-			debug: yy.debug,
 			file: yy.ctx.file,
 			lino: yy.ctx.lino,
 			pos: yy.ctx.pos - 1,

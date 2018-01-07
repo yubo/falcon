@@ -8,8 +8,6 @@ package models
 import (
 	"fmt"
 	"strings"
-
-	"github.com/golang/glog"
 )
 
 type Event struct {
@@ -231,7 +229,6 @@ func (op *Operator) DeleteEventTrigger(id int64, tagId int64) (n int64, err erro
 func (op *Operator) CloneEventTrigger(srcEventTriggerId int64, dstTagId int64) (id int64, err error) {
 	var e *EventTrigger
 	var childs []EventTrigger
-	glog.Infof("--- %d-%d", srcEventTriggerId, dstTagId)
 
 	e, err = op.GetEventTrigger(srcEventTriggerId)
 	if err != nil {

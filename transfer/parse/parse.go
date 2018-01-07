@@ -58,6 +58,7 @@ var yyToknames = [...]string{
 	"DISABLED",
 	"DEBUG",
 	"UPSTREAM",
+	"'='",
 }
 var yyStatenames = [...]string{}
 
@@ -65,7 +66,7 @@ const yyEofCode = 1
 const yyErrCode = 2
 const yyInitialStackSize = 16
 
-//line transfer/parse/parse.y:115
+//line transfer/parse/parse.y:120
 
 //line yacctab:1
 var yyExca = [...]int{
@@ -76,57 +77,58 @@ var yyExca = [...]int{
 
 const yyPrivate = 57344
 
-const yyLast = 50
+const yyLast = 52
 
 var yyAct = [...]int{
 
-	11, 38, 18, 25, 20, 21, 22, 23, 16, 15,
-	24, 6, 29, 30, 31, 27, 19, 12, 13, 17,
-	33, 9, 8, 10, 14, 26, 16, 15, 28, 16,
-	15, 20, 21, 22, 23, 26, 36, 39, 40, 34,
-	5, 26, 3, 35, 32, 37, 7, 4, 2, 1,
+	11, 26, 5, 25, 3, 36, 20, 21, 22, 23,
+	24, 39, 29, 31, 32, 27, 26, 16, 15, 40,
+	18, 34, 20, 21, 22, 23, 19, 17, 16, 15,
+	26, 35, 16, 15, 30, 6, 37, 38, 28, 41,
+	42, 12, 13, 33, 7, 9, 8, 10, 14, 4,
+	2, 1,
 }
 var yyPact = [...]int{
 
-	-1000, 33, -1000, -1000, 3, -1000, 10, -7, -6, 24,
-	37, 21, 24, 24, 13, -1000, -1000, -1000, -1000, -1000,
+	-1000, -5, -1000, -1000, 27, -1000, 18, 11, -4, 23,
+	26, 12, 23, 23, 14, -1000, -1000, -1000, -1000, -1000,
 	-1000, -1000, -1000, -1000, -1000, -1000, -1000, -1000, -1000, -1000,
-	-1000, -1000, 31, -1000, -1000, -8, 24, 24, -1000, -1000,
-	-1000,
+	23, -1000, -1000, -3, -1000, -1000, -1000, 10, 23, 23,
+	-1000, -1000, -1000,
 }
 var yyPgo = [...]int{
 
-	0, 16, 0, 3, 49, 48, 47, 46, 44, 43,
+	0, 26, 0, 3, 51, 50, 49, 44, 43, 36,
 }
 var yyR1 = [...]int{
 
 	0, 4, 4, 1, 1, 1, 1, 1, 2, 2,
 	3, 5, 5, 6, 6, 7, 7, 7, 7, 7,
-	7, 7, 7, 7, 7, 7, 8, 8, 9, 9,
-	9,
+	7, 7, 7, 7, 7, 7, 7, 8, 8, 9,
+	9, 9,
 }
 var yyR2 = [...]int{
 
 	0, 0, 2, 1, 1, 1, 1, 0, 1, 1,
 	1, 1, 3, 1, 3, 0, 2, 2, 1, 2,
-	2, 2, 2, 2, 2, 3, 1, 3, 0, 2,
-	2,
+	2, 2, 2, 2, 3, 2, 3, 1, 3, 0,
+	2, 2,
 }
 var yyChk = [...]int{
 
 	-1000, -4, -5, 9, -6, 7, 8, -7, 19, 18,
 	20, -2, 14, 15, 21, 6, 5, 9, 9, -1,
 	10, 11, 12, 13, -2, -3, 4, -3, -1, -2,
-	-2, -2, -8, 7, 8, -9, -3, 14, 9, -2,
-	-2,
+	22, -2, -2, -8, 7, -2, 8, -9, -3, 14,
+	9, -2, -2,
 }
 var yyDef = [...]int{
 
 	1, -2, 2, 11, 15, 13, 0, 0, 7, 0,
 	18, 7, 0, 0, 0, 8, 9, 12, 14, 16,
 	3, 4, 5, 6, 17, 19, 10, 20, 21, 23,
-	22, 24, 28, 26, 25, 0, 0, 0, 27, 29,
-	30,
+	0, 22, 25, 29, 27, 24, 26, 0, 0, 0,
+	28, 30, 31,
 }
 var yyTok1 = [...]int{
 
@@ -136,7 +138,7 @@ var yyTok1 = [...]int{
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 9,
-	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+	3, 22, 3, 3, 3, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
@@ -607,16 +609,24 @@ yydefault:
 			yy_ss[yyDollar[1].text] = yyDollar[2].text
 		}
 	case 24:
-		yyDollar = yyS[yypt-2 : yypt+1]
+		yyDollar = yyS[yypt-3 : yypt+1]
 		//line transfer/parse/parse.y:88
+		{
+			if err := os.Setenv(yyDollar[1].text, yyDollar[3].text); err != nil {
+				yy.Error(err.Error())
+			}
+		}
+	case 25:
+		yyDollar = yyS[yypt-2 : yypt+1]
+		//line transfer/parse/parse.y:93
 		{
 			if err := os.Chdir(yyDollar[2].text); err != nil {
 				yy.Error(err.Error())
 			}
 		}
-	case 25:
+	case 26:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line transfer/parse/parse.y:93
+		//line transfer/parse/parse.y:98
 		{
 			// check upstream
 			for i := 0; i < len(conf.Upstream); i++ {
@@ -625,21 +635,21 @@ yydefault:
 				}
 			}
 		}
-	case 26:
+	case 27:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line transfer/parse/parse.y:104
+		//line transfer/parse/parse.y:109
 		{
 			conf.Upstream = make(map[int]string)
 		}
-	case 29:
+	case 30:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line transfer/parse/parse.y:110
+		//line transfer/parse/parse.y:115
 		{
 			conf.Upstream[yyDollar[1].num] = yyDollar[2].text
 		}
-	case 30:
+	case 31:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line transfer/parse/parse.y:111
+		//line transfer/parse/parse.y:116
 		{
 			yy.include(yyDollar[2].text)
 		}

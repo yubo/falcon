@@ -90,6 +90,11 @@ ctrl_item:
 	| text bool	{ yy_ss[$1] = fmt.Sprintf("%v", $2) }
 	| INCLUDE text	{ yy.include($2) }
 	| text text	{ yy_ss[$1] = $2 }
+	| text '=' text {
+		if err := os.Setenv($1, $3); err != nil {
+	 		yy.Error(err.Error())
+		}
+	}
 	| METRIC '{' as '}' {
 	 	conf.Metrics = yy_as
 		yy_as = make([]string, 0)

@@ -43,6 +43,9 @@ type Expr struct {
 }
 
 func (p *Expr) String() string {
+	if len(p.Objs) == 0 {
+		return ""
+	}
 	switch p.Type {
 	case EXPR_TYPE_RAW:
 		return fmt.Sprintf("%s", p.Objs[0].(*bool))
@@ -139,17 +142,17 @@ var (
 
 	obj_argc_thresholds = [EXPR_OBJ_TYPE_SIZE][2]int{
 		{0, 0}, // "raw",
-		{1, 2}, // "abschange",
+		{0, 0}, // "abschange",
 		{1, 2}, // "avg",
 		{1, 2}, // "band",
-		{1, 2}, // "change",
+		{0, 0}, // "change",
 		{1, 4}, // "count",
 		{1, 2}, // "delta",
-		{1, 2}, // "diff",
+		{0, 0}, // "diff",
 		{1, 2}, // "last",
 		{1, 2}, // "min",
 		{1, 2}, // "max",
-		{1, 2}, // "nodata",
+		{1, 1}, // "nodata",
 		{1, 2}, // "sum",
 	}
 )
@@ -175,7 +178,7 @@ func (p *ExprObj) reduce(name string) error {
 	return nil
 }
 
-func (p *ExprObj) Exec(item ItemInf) float64 {
+func (p *ExprObj) Exec(item Item) float64 {
 	var isNum bool
 	typ := p.Type >> 1
 

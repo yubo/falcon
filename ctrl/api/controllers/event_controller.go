@@ -12,6 +12,7 @@ import (
 
 	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/ctrl/api/models"
+	"github.com/yubo/falcon/service/expr"
 )
 
 // Operations about event
@@ -68,6 +69,11 @@ func (c *EventController) CreateEventTrigger() {
 		Tags:     input.Tags,
 		Expr:     input.Expr,
 		Msg:      input.Msg,
+	}
+
+	if _, err := expr.Parse(input.Expr); err != nil {
+		c.SendMsg(400, fmt.Sprintf("expr parse failed: %s", err.Error()))
+		return
 	}
 
 	if id, err := op.CreateEventTrigger(&trigger); err != nil {
@@ -185,6 +191,11 @@ func (c *EventController) UpdateEventTrigger() {
 
 	event := *p
 	falcon.Override(&event, &input)
+
+	if _, err := expr.Parse(input.Expr); err != nil {
+		c.SendMsg(400, fmt.Sprintf("expr parse failed: %s", err.Error()))
+		return
+	}
 
 	if ret, err := op.UpdateEventTrigger(&event); err != nil {
 		c.SendMsg(400, err.Error())

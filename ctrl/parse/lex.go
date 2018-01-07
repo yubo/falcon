@@ -72,7 +72,6 @@ type yyLex struct {
 	ctx     *yyCtx
 	t       []byte
 	i       int
-	debug   bool
 }
 
 func prefix(a, b []byte) bool {
@@ -289,11 +288,8 @@ func (p *yyLex) Error(s string) {
 	os.Exit(1)
 }
 
-func Parse(text []byte, filename string, lino int, debug bool) fconfig.ModuleConf {
-	yy = &yyLex{
-		ctxL:  0,
-		debug: debug,
-	}
+func Parse(text []byte, filename string, lino int) fconfig.ModuleConf {
+	yy = &yyLex{}
 	yy.ctx = &yy.ctxData[0]
 	yy.ctx.file = filename
 	yy.ctx.lino = lino

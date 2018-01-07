@@ -147,41 +147,34 @@ begin:
 			return TEXT
 		}
 
-		//p.Error(fmt.Sprintf("unknown character %c", text[0]))
-		p.err = errors.New(fmt.Sprintf("unknown character %c", text[0]))
-		return -1
+		p.Error(fmt.Sprintf("unknown character %c", text[0]))
 	}
 }
 
 // The parser calls this method on a parse error.
 func (p *yyLex) Error(s string) {
 	p.ctx.pos--
-	out := fmt.Sprintf("\x1B[31m%c\x1B[0m", p.ctx.text[p.ctx.pos])
+	err := fmt.Sprintf("*%c*", p.ctx.text[p.ctx.pos])
 
 	for pos := p.ctx.pos - 1; pos >= 0; pos-- {
-		out = fmt.Sprintf("%c%s", p.ctx.text[pos], out)
+		err = fmt.Sprintf("%c%s", p.ctx.text[pos], err)
 	}
 
 	for pos := p.ctx.pos + 1; pos < len(p.ctx.text); pos++ {
-		out = fmt.Sprintf("%s%c", out, p.ctx.text[pos])
+		err = fmt.Sprintf("%s%c", err, p.ctx.text[pos])
 	}
-	fmt.Println(out)
+	glog.V(3).Infof("expr(%s) failed %s", yy.ctx.text, err)
+	p.err = errors.New(err)
 }
 
-func Parse(text []byte, lino int) (*Expr, error) {
-	yy = &yyLex{
-		ctxL: 0,
-	}
+func Parse(text string) (*Expr, error) {
+	yy_trigger = &Expr{}
+	yy = &yyLex{ctxL: 0}
 	yy.ctx = &yy.ctxData[0]
-	yy.ctx.lino = lino
 	yy.ctx.pos = 0
-	yy.ctx.text = text
+	yy.ctx.text = []byte(text)
 
 	glog.V(5).Infof("trigger parse text %s", string(yy.ctx.text))
 	yyParse(yy)
-	if yy.err != nil {
-		yy.err = errors.New(fmt.Sprintf("%s %s:%d",
-			yy.err, yy.ctx.text, yy.ctx.pos))
-	}
 	return yy_trigger, yy.err
 }

@@ -5,9 +5,11 @@
  */
 package expr
 
+import "math"
+
 type GetHandle func(isNum bool, num, shift_time int) []float64
 
-type ItemInf interface {
+type Item interface {
 	Get(isNum bool, num, shift_time int) []float64
 	Abschange(isNum bool, args []float64, get GetHandle) float64
 	Avg(isNum bool, args []float64, get GetHandle) float64
@@ -33,22 +35,57 @@ func (p *ExprItem) Get(isNum bool, num, shift_time int) []float64 {
 // TODO
 // (previous value;last value=abschange)
 func (p *ExprItem) Abschange(isNum bool, args []float64, get GetHandle) float64 {
-	return 0
+	vs := get(true, 2, 0)
+	if len(vs) == 2 {
+		return math.Abs(vs[1] - vs[0])
+	}
+	return UNKNOWN
 }
 
 // (sec|#num,<time_shift>)
 func (p *ExprItem) Avg(isNum bool, args []float64, get GetHandle) float64 {
-	return 0
+	shift_time := 0
+	sum := float64(0)
+
+	if len(args) == 2 {
+		shift_time = int(args[1])
+	}
+
+	vs := get(isNum, int(args[0]), shift_time)
+	if len(vs) == 0 {
+		return UNKNOWN
+	}
+
+	for _, v := range vs {
+		sum += v
+	}
+	return sum / float64(len(vs))
 }
 
 // (sec|#num,mask,<time_shift>)
+// float64 <-> int64 not safe
 func (p *ExprItem) Band(isNum bool, args []float64, get GetHandle) float64 {
-	return 0
+	shift_time := 0
+
+	if len(args) == 2 {
+		shift_time = int(args[1])
+	}
+
+	vs := get(isNum, int(args[0]), shift_time)
+	if len(vs) == 0 {
+		return UNKNOWN
+	}
+
+	return float64(uint64(vs[0]) & uint64(args[0]))
 }
 
 // (previous value;last value=change)
 func (p *ExprItem) Change(isNum bool, args []float64, get GetHandle) float64 {
-	return 0
+	vs := get(true, 2, 0)
+	if len(vs) == 2 {
+		return vs[1] - vs[0]
+	}
+	return UNKNOWN
 }
 
 // (sec|#num,<pattern>,<operator>,<time_shift>)
@@ -143,8 +180,30 @@ func (p *ExprItem) Count(isNum bool, args []float64, get GetHandle) float64 {
 }
 
 // (sec|#num,<time_shift>)
+// Difference between the maximum and minimum values within the defined evaluation period ('max()' minus 'min()').
 func (p *ExprItem) Delta(isNum bool, args []float64, get GetHandle) float64 {
-	return 0
+	shift_time := 0
+	min := math.MaxFloat64
+	max := float64(0)
+
+	if len(args) == 2 {
+		shift_time = int(args[1])
+	}
+
+	vs := get(isNum, int(args[0]), shift_time)
+	if len(vs) == 0 {
+		return UNKNOWN
+	}
+
+	for _, v := range vs {
+		if min > v {
+			min = v
+		}
+		if max < v {
+			max = v
+		}
+	}
+	return max - min
 }
 
 // Checking if last and previous values differ.
@@ -152,35 +211,46 @@ func (p *ExprItem) Delta(isNum bool, args []float64, get GetHandle) float64 {
 // 1 - last and previous values differ
 // 0 - otherwise
 func (p *ExprItem) Diff(isNum bool, args []float64, get GetHandle) float64 {
-	return 0
+	vs := get(true, 2, 0)
+	if len(vs) == 2 && vs[0] >= vs[1]-THRESHOLD && vs[0] <= vs[1]+THRESHOLD {
+		return 0
+	}
+	return 1
 }
 
 // (sec|#num,<time_shift>)
 func (p *ExprItem) Last(isNum bool, args []float64, get GetHandle) float64 {
-	return 0
-}
-
-//min (sec|#num,<time_shift>)
-func (p *ExprItem) Min(isNum bool, args []float64, get GetHandle) float64 {
-	var (
-		ret                float64
-		i, num, shift_time int
-	)
-
-	num = int(args[0])
+	shift_time := 0
 
 	if len(args) == 2 {
 		shift_time = int(args[1])
 	}
 
-	vs := get(isNum, num, shift_time)
+	vs := get(isNum, int(args[0]), shift_time)
 	if len(vs) == 0 {
 		return UNKNOWN
 	}
 
-	for ret, i = vs[0], 1; i < len(vs); i++ {
-		if ret > vs[i] {
-			ret = vs[i]
+	return vs[0]
+}
+
+//min (sec|#num,<time_shift>)
+func (p *ExprItem) Min(isNum bool, args []float64, get GetHandle) float64 {
+	shift_time := 0
+	ret := math.MaxFloat64
+
+	if len(args) == 2 {
+		shift_time = int(args[1])
+	}
+
+	vs := get(isNum, int(args[0]), shift_time)
+	if len(vs) == 0 {
+		return UNKNOWN
+	}
+
+	for _, v := range vs {
+		if ret > v {
+			ret = v
 		}
 	}
 	return ret
@@ -188,20 +258,50 @@ func (p *ExprItem) Min(isNum bool, args []float64, get GetHandle) float64 {
 
 // (sec|#num,<time_shift>)
 func (p *ExprItem) Max(isNum bool, args []float64, get GetHandle) float64 {
-	return 0
+	shift_time := 0
+	ret := float64(0)
+
+	if len(args) == 2 {
+		shift_time = int(args[1])
+	}
+
+	vs := get(isNum, int(args[0]), shift_time)
+
+	for _, v := range vs {
+		if ret < v {
+			ret = v
+		}
+	}
+	return ret
 }
 
 // (sec)
 func (p *ExprItem) Nodata(isNum bool, args []float64, get GetHandle) float64 {
+	vs := get(false, int(args[0]), 0)
+	if len(vs) > 0 {
+		return 1
+	}
 	return 0
 }
 
 // (sec|#num,<time_shift>)
 func (p *ExprItem) Sum(isNum bool, args []float64, get GetHandle) float64 {
-	return 0
+	shift_time := 0
+	ret := float64(0)
+
+	if len(args) == 2 {
+		shift_time = int(args[1])
+	}
+
+	vs := get(isNum, int(args[0]), shift_time)
+
+	for _, v := range vs {
+		ret += v
+	}
+	return ret
 }
 
-func Exec(p ItemInf, e *Expr) bool {
+func Exec(p Item, e *Expr) bool {
 	switch e.Type {
 	case EXPR_TYPE_RAW:
 		return e.Objs[0].(bool)

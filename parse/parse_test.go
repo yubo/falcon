@@ -10,6 +10,11 @@ import (
 	"fmt"
 	"os"
 	"testing"
+
+	_ "github.com/yubo/falcon/agent/modules"
+	_ "github.com/yubo/falcon/ctrl/modules"
+	_ "github.com/yubo/falcon/service/modules"
+	_ "github.com/yubo/falcon/transfer/modules"
 )
 
 type Test struct {
@@ -42,6 +47,6 @@ func TestExprText(t *testing.T) {
 }
 
 func TestParse(t *testing.T) {
-	conf := Parse("./etc/falcon.conf", true)
+	conf := Parse("../docs/etc/falcon.example.conf")
 	fmt.Printf("conf:\n%s\n", conf)
 }

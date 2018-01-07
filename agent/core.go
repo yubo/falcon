@@ -21,7 +21,6 @@ const (
 	DEBUG_STAT_STEP = 60
 
 	C_UPSTREAM     = "upstream"
-	C_CONN_TIMEOUT = "conntimeout"
 	C_CALL_TIMEOUT = "calltimeout"
 	C_API_ADDR     = "apiaddr"
 	C_HTTP_ADDR    = "httpaddr"
@@ -31,28 +30,15 @@ const (
 	C_PLUGINS      = "plugins"
 	C_EMU_ENABLE   = "emuenable"
 	C_EMU_TPL_DIR  = "emutpldir"
-	//C_RPC_ADDR     = "rpcaddr"
-	//C_WORKER_PROCESSES = "workerprocesses"
-	//C_HTTP_ENABLE  = "http_enable"
-	//C_GRPC_ENABLE  = "grpc_enable"
-	//C_RPC_ENABLE   = "rpc_enable"
 )
 
 var (
 	modules     []module
 	ConfDefault = map[string]string{
-		C_CONN_TIMEOUT: "1000",
 		C_CALL_TIMEOUT: "5000",
 		C_INTERVAL:     "60",
 		C_BURST_SIZE:   "16",
 		C_IFACE_PREFIX: "eth,em",
-		//C_WORKER_PROCESSES: "2",
-		//C_HTTP_ENABLE:  "true",
-		//C_HTTP_ADDR:    "127.0.0.1:1988",
-		//C_RPC_ENABLE:   "true",
-		//C_RPC_ADDR:     "127.0.0.1:1989",
-		//C_GRPC_ENABLE:  "true",
-		//C_GRPC_ADDR:    "127.0.0.1:1990",
 	}
 )
 
@@ -92,8 +78,8 @@ func (p *Agent) Name() string {
 	return p.Conf.Name
 }
 
-func (p *Agent) Parse(text []byte, filename string, lino int, debug bool) fconfig.ModuleConf {
-	p.Conf = parse.Parse(text, filename, lino, debug).(*config.Agent)
+func (p *Agent) Parse(text []byte, filename string, lino int) fconfig.ModuleConf {
+	p.Conf = parse.Parse(text, filename, lino).(*config.Agent)
 	p.Conf.Configer.Set(fconfig.APP_CONF_DEFAULT, ConfDefault)
 	return p.Conf
 }

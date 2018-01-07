@@ -1,9 +1,9 @@
-//line parse/parse.y:7
+//line parse.y:7
 package parse
 
 import __yyfmt__ "fmt"
 
-//line parse/parse.y:8
+//line parse.y:8
 import (
 	"fmt"
 	"os"
@@ -11,7 +11,7 @@ import (
 	"github.com/yubo/falcon"
 )
 
-//line parse/parse.y:20
+//line parse.y:20
 type yySymType struct {
 	yys  int
 	num  int
@@ -65,7 +65,7 @@ const yyEofCode = 1
 const yyErrCode = 2
 const yyInitialStackSize = 16
 
-//line parse/parse.y:124
+//line parse.y:123
 
 //line yacctab:1
 var yyExca = [...]int{
@@ -492,61 +492,61 @@ yydefault:
 
 	case 3:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line parse/parse.y:44
+		//line parse.y:44
 		{
 			yyVAL.b = true
 		}
 	case 4:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line parse/parse.y:45
+		//line parse.y:45
 		{
 			yyVAL.b = true
 		}
 	case 5:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line parse/parse.y:46
+		//line parse.y:46
 		{
 			yyVAL.b = false
 		}
 	case 6:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line parse/parse.y:47
+		//line parse.y:47
 		{
 			yyVAL.b = false
 		}
 	case 7:
 		yyDollar = yyS[yypt-0 : yypt+1]
-		//line parse/parse.y:48
+		//line parse.y:48
 		{
 			yyVAL.b = true
 		}
 	case 8:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line parse/parse.y:52
+		//line parse.y:52
 		{
 			yyVAL.text = string(yy.t)
 		}
 	case 9:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line parse/parse.y:53
+		//line parse.y:53
 		{
 			yyVAL.text = exprText(yy.t)
 		}
 	case 10:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line parse/parse.y:57
+		//line parse.y:57
 		{
 			yyVAL.num = yy.i
 		}
 	case 12:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line parse/parse.y:61
+		//line parse.y:61
 		{
 			conf.PidFile = yyDollar[2].text
 		}
 	case 13:
 		yyDollar = yyS[yypt-4 : yypt+1]
-		//line parse/parse.y:62
+		//line parse.y:62
 		{
 			if err := os.Setenv(yyDollar[1].text, yyDollar[3].text); err != nil {
 				yy.Error(err.Error())
@@ -554,20 +554,20 @@ yydefault:
 		}
 	case 14:
 		yyDollar = yyS[yypt-4 : yypt+1]
-		//line parse/parse.y:67
+		//line parse.y:67
 		{
 			conf.Log = yyDollar[2].text
 			conf.Logv = yyDollar[3].num
 		}
 	case 15:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line parse/parse.y:71
+		//line parse.y:71
 		{
 			yy.include(yyDollar[2].text)
 		}
 	case 16:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line parse/parse.y:72
+		//line parse.y:72
 		{
 			if err := os.Chdir(yyDollar[2].text); err != nil {
 				yy.Error(err.Error())
@@ -575,22 +575,21 @@ yydefault:
 		}
 	case 17:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line parse/parse.y:77
+		//line parse.y:77
 		{
 			p1, _ := falcon.PreByte(yy.ctx.text, yy.ctx.pos)
 			yy.ctx.text[p1] = ';'
 
 			conf.Conf = append(conf.Conf, yy_module_parse(
 				yy.ctx.text[yy_module.pos:yy.ctx.pos],
-				yy_module.file, yy_module.lino, yy_module.debug))
+				yy_module.file, yy_module.lino))
 		}
 	case 18:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line parse/parse.y:87
+		//line parse.y:87
 		{
 			yy_module = &yyModule{
 				level: 1,
-				debug: yy.debug,
 				file:  yy.ctx.file,
 				lino:  yy.ctx.lino,
 				pos:   yy.ctx.pos - 1,
@@ -604,7 +603,7 @@ yydefault:
 		}
 	case 19:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line parse/parse.y:102
+		//line parse.y:101
 		{
 			if yy_module.level == 0 {
 				p1, c1 := falcon.PreByte(yy.ctx.text, yy.ctx.pos)
@@ -617,13 +616,13 @@ yydefault:
 		}
 	case 20:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line parse/parse.y:112
+		//line parse.y:111
 		{
 			yy_module.level++
 		}
 	case 21:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line parse/parse.y:113
+		//line parse.y:112
 		{
 			yy_module.level--
 		}
