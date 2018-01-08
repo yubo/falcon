@@ -37,7 +37,7 @@ func (op *Operator) AddDashboardTmpGraph(inputs *APITmpGraph) (id int64, err err
 
 	es_string := strings.Join(es, TMP_GRAPH_FILED_DELIMITER)
 	cs_string := strings.Join(cs, TMP_GRAPH_FILED_DELIMITER)
-	ck := falcon.Md5sum(es_string + ":" + cs_string)
+	ck := falcon.Md5sum([]byte(es_string + ":" + cs_string))
 
 	res, err := op.O.Raw("insert ignore into `tmp_graph` (endpoints, counters, ck) values(?, ?, ?) on duplicate key update time_=?", es_string, cs_string, ck, time.Now()).Exec()
 	if err != nil {

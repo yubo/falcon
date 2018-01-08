@@ -29,7 +29,7 @@ var text = []byte(`
 	syncDsn		${FALCON_DSN};
 	syncInterval	600;	// 同步配置间隔时间
 	judgeInterval	60;	// 事件触发器扫描间隔时间
-	shareIds	"0,1,2,3,4,5,6,7,8,9";
+	shardIds	"0,1,2,3,4,5,6,7,8,9";
 	migrate {
 		disabled;
 		upstream {

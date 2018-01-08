@@ -50,7 +50,6 @@ var (
 		"host":     HOST,
 		"disabled": DISABLED,
 		"debug":    DEBUG,
-		"upstream": UPSTREAM,
 	}
 )
 

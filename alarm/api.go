@@ -3,7 +3,7 @@
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
-package transfer
+package alarm
 
 import (
 	"net"
@@ -11,7 +11,6 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/yubo/falcon"
-	"github.com/yubo/falcon/service"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -22,54 +21,26 @@ type ApiModule struct {
 	ctx     context.Context
 	cancel  context.CancelFunc
 	address string
-	putChan chan []*falcon.Item
-}
-
-func (p *ApiModule) Get(ctx context.Context,
-	in *falcon.GetRequest) (*falcon.GetResponse, error) {
-	return &falcon.GetResponse{}, nil
+	putChan chan *Event
 }
 
 func (p *ApiModule) Put(ctx context.Context,
-	in *falcon.PutRequest) (*falcon.PutResponse, error) {
+	in *Event) (*Response, error) {
 
-	glog.V(3).Infof("%s RX PUT %d", MODULE_NAME, len(in.Items))
+	glog.V(3).Infof("%s RX PUT %s", MODULE_NAME, in)
 
-	res := &falcon.PutResponse{Total: int32(len(in.Items))}
-	items := []*falcon.Item{}
-	now := time.Now().Unix()
-
-	for _, item := range in.Items {
-		if err := item.Adjust(now); err != nil {
-			res.Errors += 1
-			continue
-		}
-		items = append(items, item)
-	}
-
-	select {
-	case p.putChan <- items:
-	default:
-		glog.V(4).Infof("%s RX PUT %d FAIL", MODULE_NAME, len(in.Items))
-		res.Errors = res.Total
-	}
-
-	statsInc(ST_RX_PUT_ITERS, 1)
-	statsInc(ST_RX_PUT_ITEMS, int(res.Total))
-	statsInc(ST_RX_PUT_ERR_ITEMS, int(res.Errors))
-
-	return res, nil
+	return &Response{N: 1}, nil
 }
 
-func (p *ApiModule) prestart(transfer *Transfer) error {
-	p.address = transfer.Conf.Configer.Str(C_API_ADDR)
+func (p *ApiModule) prestart(alarm *Alarm) error {
+	p.address = alarm.Conf.Configer.Str(C_API_ADDR)
 	p.disable = falcon.AddrIsDisable(p.address)
-	p.putChan = transfer.appPutChan
+	p.putChan = alarm.appPutChan
 
 	return nil
 }
 
-func (p *ApiModule) start(transfer *Transfer) (err error) {
+func (p *ApiModule) start(alarm *Alarm) (err error) {
 
 	if p.disable {
 		glog.Info(MODULE_NAME + "api disable")
@@ -84,7 +55,7 @@ func (p *ApiModule) start(transfer *Transfer) (err error) {
 	}
 
 	server := grpc.NewServer()
-	service.RegisterServiceServer(server, p)
+	RegisterAlarmServer(server, p)
 
 	// Register reflection service on gRPC server.
 	reflection.Register(server)
@@ -102,7 +73,7 @@ func (p *ApiModule) start(transfer *Transfer) (err error) {
 	return nil
 }
 
-func (p *ApiModule) stop(transfer *Transfer) error {
+func (p *ApiModule) stop(alarm *Alarm) error {
 	if p.disable {
 		return nil
 	}
@@ -110,11 +81,11 @@ func (p *ApiModule) stop(transfer *Transfer) error {
 	return nil
 }
 
-func (p *ApiModule) reload(transfer *Transfer) error {
+func (p *ApiModule) reload(alarm *Alarm) error {
 	if !p.disable {
-		p.stop(transfer)
+		p.stop(alarm)
 		time.Sleep(time.Second)
 	}
-	p.prestart(transfer)
-	return p.start(transfer)
+	p.prestart(alarm)
+	return p.start(alarm)
 }

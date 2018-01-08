@@ -11,6 +11,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/yubo/falcon"
 	fconfig "github.com/yubo/falcon/config"
+	"github.com/yubo/falcon/service"
 	"github.com/yubo/falcon/transfer/config"
 	"github.com/yubo/falcon/transfer/parse"
 )
@@ -54,13 +55,13 @@ type Transfer struct {
 	oldConf *config.Transfer
 	// runtime
 	status     uint32
-	appPutChan chan []*falcon.Item // upstreams
+	appPutChan chan []*service.Item // upstreams
 }
 
 func (p *Transfer) New(conf interface{}) falcon.Module {
 	return &Transfer{
 		Conf:       conf.(*config.Transfer),
-		appPutChan: make(chan []*falcon.Item, 16),
+		appPutChan: make(chan []*service.Item, 16),
 	}
 }
 

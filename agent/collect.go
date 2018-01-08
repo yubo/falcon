@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/yubo/falcon"
 	"golang.org/x/net/context"
 )
 
@@ -23,7 +22,7 @@ type Collector interface {
 	Name() string
 	Start(*Agent) error
 	Reset()
-	Collect() ([]*falcon.Item, error)
+	Collect() ([]*Item, error)
 }
 
 func init() {
@@ -92,7 +91,7 @@ func (p *CollectModule) start(agent *Agent) error {
 			case <-ticker:
 				for _, c := range p.a {
 					if items, err := c.Collect(); err == nil {
-						agent.appPutChan <- items
+						agent.appPutChan <- &putContext{items: items}
 					}
 				}
 			}

@@ -3,7 +3,7 @@
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
-package transfer
+package alarm
 
 import (
 	"net/http"
@@ -23,14 +23,14 @@ type ApiGwModule struct {
 	address  string
 }
 
-func (p *ApiGwModule) prestart(transfer *Transfer) error {
+func (p *ApiGwModule) prestart(transfer *Alarm) error {
 	p.upstream = transfer.Conf.Configer.Str(C_API_ADDR)
 	p.address = transfer.Conf.Configer.Str(C_HTTP_ADDR)
 	p.disable = falcon.AddrIsDisable(p.address)
 	return nil
 }
 
-func (p *ApiGwModule) start(transfer *Transfer) error {
+func (p *ApiGwModule) start(transfer *Alarm) error {
 	if p.disable {
 		glog.Info(MODULE_NAME + "http disable")
 		return nil
@@ -62,7 +62,7 @@ func (p *ApiGwModule) start(transfer *Transfer) error {
 	return nil
 }
 
-func (p *ApiGwModule) stop(transfer *Transfer) error {
+func (p *ApiGwModule) stop(transfer *Alarm) error {
 	if p.disable {
 		return nil
 	}
@@ -70,7 +70,7 @@ func (p *ApiGwModule) stop(transfer *Transfer) error {
 	return nil
 }
 
-func (p *ApiGwModule) reload(transfer *Transfer) error {
+func (p *ApiGwModule) reload(transfer *Alarm) error {
 	if !p.disable {
 		p.stop(transfer)
 		time.Sleep(time.Second)

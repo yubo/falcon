@@ -4,19 +4,3 @@
  * license that can be found in the LICENSE file.
  */
 package transfer
-
-import (
-	"sort"
-	"strings"
-)
-
-func sortTags(s []byte) []byte {
-	str := strings.Replace(string(s), " ", "", -1)
-	if str == "" {
-		return []byte{}
-	}
-
-	tags := strings.Split(str, ",")
-	sort.Strings(tags)
-	return []byte(strings.Join(tags, ","))
-}

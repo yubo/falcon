@@ -1,0 +1,28 @@
+syntax = "proto3";
+option go_package = "github.com/yubo/falcon/alarm";
+package alarm;
+
+import "google/api/annotations.proto";
+
+message Event {
+	int64 tagId	= 1;
+	bytes key	= 2;
+	bytes expr	= 3;
+	bytes msg	= 4;
+	bytes teimstamp	= 5;
+	double value	= 6;
+}
+
+message Response {
+	int32  n = 1; // Actual number of objects success process
+}
+
+service Alarm {
+	rpc Put(Event) returns (Response) {
+		option (google.api.http) = {
+			post: "/v1/alarm/put"
+			body: "*"
+		};
+	}
+}
+

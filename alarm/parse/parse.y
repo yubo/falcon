@@ -31,7 +31,6 @@ import (
 
 %token '{' '}' ';'
 %token ON YES OFF NO INCLUDE ROOT PID_FILE LOG HOST DISABLED DEBUG
-%token UPSTREAM
 
 %%
 
@@ -95,27 +94,7 @@ transfer_item:
 			yy.Error(err.Error())
 		}
 	}
-	| UPSTREAM upstream '}' {
-		// check upstream
-		for i := 0; i < len(conf.Upstream); i++ {
-			if _, ok := conf.Upstream[i]; !ok {
-				yy.Error(fmt.Sprintf("miss Upstream[%d]\n", i))
-			}
-		}
-	}
 ;
-
-upstream:
-	'{' {
-		conf.Upstream = make(map[int]string)
-	}| upstream upstream_item ';'
-;
-
-upstream_item:
-	| num text	{ conf.Upstream[$1] = $2 }
-	| INCLUDE text	{ yy.include($2) }
-;
-
 
 %%
 

@@ -6,6 +6,7 @@
 package transfer
 
 import (
+	"errors"
 	"net"
 	"time"
 
@@ -22,43 +23,43 @@ type ApiModule struct {
 	ctx     context.Context
 	cancel  context.CancelFunc
 	address string
-	putChan chan []*falcon.Item
+	putChan chan []*service.Item
 }
 
 func (p *ApiModule) Get(ctx context.Context,
-	in *falcon.GetRequest) (*falcon.GetResponse, error) {
-	return &falcon.GetResponse{}, nil
+	in *service.GetRequest) (*service.GetResponse, error) {
+	return &service.GetResponse{}, nil
 }
 
 func (p *ApiModule) Put(ctx context.Context,
-	in *falcon.PutRequest) (*falcon.PutResponse, error) {
+	in *service.PutRequest) (res *service.PutResponse, err error) {
 
 	glog.V(3).Infof("%s RX PUT %d", MODULE_NAME, len(in.Items))
 
-	res := &falcon.PutResponse{Total: int32(len(in.Items))}
-	items := []*falcon.Item{}
-	now := time.Now().Unix()
+	items := []*service.Item{}
+	res = &service.PutResponse{}
 
 	for _, item := range in.Items {
-		if err := item.Adjust(now); err != nil {
-			res.Errors += 1
-			continue
+		if err = item.Adjust(); err != nil {
+			return
 		}
 		items = append(items, item)
+		res.N++
 	}
 
 	select {
 	case p.putChan <- items:
 	default:
 		glog.V(4).Infof("%s RX PUT %d FAIL", MODULE_NAME, len(in.Items))
-		res.Errors = res.Total
+		res.N = 0
+		err = errors.New("chan is busy")
 	}
 
 	statsInc(ST_RX_PUT_ITERS, 1)
-	statsInc(ST_RX_PUT_ITEMS, int(res.Total))
-	statsInc(ST_RX_PUT_ERR_ITEMS, int(res.Errors))
+	statsInc(ST_RX_PUT_ITEMS, int(res.N))
+	statsInc(ST_RX_PUT_ERR_ITEMS, len(in.Items)-int(res.N))
 
-	return res, nil
+	return
 }
 
 func (p *ApiModule) prestart(transfer *Transfer) error {

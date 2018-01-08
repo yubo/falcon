@@ -11,9 +11,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/agent"
-	"github.com/yubo/falcon/agent/utils"
 )
 
 func init() {
@@ -109,15 +107,15 @@ func (p *emulator) Start(ag *agent.Agent) (err error) {
 	return nil
 }
 
-func (p *emulator) Collect() (ret []*falcon.Item, err error) {
+func (p *emulator) Collect() (ret []*agent.Item, err error) {
 
 	now := time.Now().Unix()
-	ret = make([]*falcon.Item, len(p.tpl))
+	ret = make([]*agent.Item, len(p.tpl))
 
 	n := 0
 	for metric, _ := range p.tpl {
 		tpl := p.tpl[metric]
-		ret[n] = utils.GaugeValue(metric, tpl.emuValue(now))
+		ret[n] = agent.GaugeValue(metric, tpl.emuValue(now))
 		n++
 	}
 

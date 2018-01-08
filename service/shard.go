@@ -25,13 +25,13 @@ type ShardModule struct {
 	shardTotal int
 }
 
-func (p *ShardModule) put(item *falcon.Item) (*itemEntry, error) {
+func (p *ShardModule) put(item *Item) (*itemEntry, error) {
 	bucket, err := p.getBucket(item.ShardId)
 	if err != nil {
 		return nil, err
 	}
 
-	ie, err := bucket.getItem(item.Key())
+	ie, err := bucket.getItem(string(item.Key))
 	if err != nil {
 		ie, err = bucket.addItem(item)
 		if err != nil {
@@ -43,18 +43,18 @@ func (p *ShardModule) put(item *falcon.Item) (*itemEntry, error) {
 	return ie, ie.put(item)
 }
 
-func (p *ShardModule) get(req *falcon.GetRequest) ([]*falcon.DataPoint, error) {
+func (p *ShardModule) get(req *GetRequest) ([]*DataPoint, error) {
 	bucket, err := p.getBucket(req.ShardId)
 	if err != nil {
 		return nil, err
 	}
 
-	item, err := bucket.getItem(req.Key())
+	ie, err := bucket.getItem(string(req.Key))
 	if err != nil {
 		return nil, err
 	}
 
-	return item.getDps(req.Start, req.End)
+	return ie.getDps(req.Start, req.End)
 }
 
 func (p *ShardModule) getBucket(shardId int32) (*bucketEntry, error) {

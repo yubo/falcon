@@ -64,13 +64,13 @@ type Agent struct {
 	oldConf *config.Agent
 	// runtime
 	status     uint32
-	appPutChan chan []*falcon.Item
+	appPutChan chan *putContext
 }
 
 func (p *Agent) New(conf interface{}) falcon.Module {
 	return &Agent{
 		Conf:       conf.(*config.Agent),
-		appPutChan: make(chan []*falcon.Item, 64),
+		appPutChan: make(chan *putContext, 64),
 	}
 }
 

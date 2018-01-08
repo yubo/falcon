@@ -24,18 +24,18 @@ type ClientModule struct {
 	cancel context.CancelFunc
 }
 
-func (p *ClientModule) put(items []*falcon.Item, timeout int) {
+func (p *ClientModule) put(items []*service.Item, timeout int) {
 
 	statsInc(ST_TX_PUT_ITERS, 1)
 	statsInc(ST_TX_PUT_ITEMS, len(items))
 
 	ctx, _ := context.WithTimeout(context.Background(),
 		time.Duration(timeout)*time.Millisecond)
-	resp, err := p.client.Put(ctx, &falcon.PutRequest{Items: items})
+	resp, err := p.client.Put(ctx, &service.PutRequest{Items: items})
 	if err != nil {
 		statsInc(ST_TX_PUT_ERR_ITERS, 1)
 	}
-	statsInc(ST_TX_PUT_ERR_ITEMS, int(resp.Errors))
+	statsInc(ST_TX_PUT_ERR_ITEMS, int(len(items)-int(resp.N)))
 }
 
 func (client *ClientModule) mainLoop(agent *Agent) error {
@@ -46,11 +46,15 @@ func (client *ClientModule) mainLoop(agent *Agent) error {
 				select {
 				case <-client.ctx.Done():
 					return
-				case get_items := <-agent.appPutChan:
-					for _, item := range get_items {
-						fmt.Printf("%s TX PUT %d %15s %10.4f %s\n",
-							MODULE_NAME, item.Timestamp, item.Metric,
-							item.Value, item.Tags)
+				case put := <-agent.appPutChan:
+
+					for _, item := range put.items {
+						fmt.Printf("%s TX PUT %10.4f %s %s\n",
+							MODULE_NAME, item.Value,
+							item.Metric, item.Tags)
+					}
+					if put.done != nil {
+						put.done <- &PutResponse{N: int32(len(put.items))}
 					}
 				}
 			}
@@ -69,30 +73,39 @@ func (client *ClientModule) mainLoop(agent *Agent) error {
 		callTimeout, _ := agent.Conf.Configer.Int(C_CALL_TIMEOUT)
 		burstSize, _ := agent.Conf.Configer.Int(C_BURST_SIZE)
 		host := []byte(agent.Conf.Host)
-		items := make([]*falcon.Item, burstSize)
+		items := make([]*service.Item, burstSize)
 		i := 0
 
 		for {
 			select {
 			case <-client.ctx.Done():
 				return
-			case get_items := <-agent.appPutChan:
-				glog.V(4).Infof("%s TX PUT %d\n", MODULE_NAME, len(get_items))
-				for _, item := range get_items {
+			case put := <-agent.appPutChan:
+				glog.V(4).Infof("%s TX PUT %d\n", MODULE_NAME, len(put.items))
+				n := 0
+				for _, item_ := range put.items {
 
-					glog.V(5).Infof("%s TX PUT %d %15s %10.4f %s\n",
-						MODULE_NAME, item.Timestamp, item.Metric,
-						item.Value, item.Tags)
+					// TODO check
 
-					item.Endpoint = host
+					item, err := item_.toServiceItem(host)
+					if err != nil {
+						break
+					}
+
+					glog.V(5).Infof("%s TX PUT %d %10.4f %s\n",
+						MODULE_NAME, item.Timestamp,
+						item.Value, item.Key)
+
 					items[i] = item
 					i++
+					n++
+
 					if i == burstSize {
 						client.put(items[:i], callTimeout)
 						i = 0
 					}
-
 				}
+				put.done <- &PutResponse{N: int32(n)}
 			case <-time.After(time.Second):
 				if i > 0 {
 					client.put(items[:i], callTimeout)

@@ -1,0 +1,68 @@
+/*
+ * Copyright 2016,2017 falcon Author. All rights reserved.
+ * Use of this source code is governed by a BSD-style
+ * license that can be found in the LICENSE file.
+ */
+package service
+
+import (
+	"fmt"
+	"sort"
+	"strings"
+
+	"github.com/yubo/falcon"
+)
+
+func (p *GetRequest) Csum() string {
+	return falcon.Md5sum(p.Key)
+}
+
+func (p *GetRequest) Sum64() uint64 {
+	return falcon.Sum64(p.Key)
+}
+
+func (p *GetRequest) Sum32() uint32 {
+	return falcon.Sum32(p.Key)
+}
+
+func (p *Item) Sum64() uint64 {
+	return falcon.Sum64(p.Key)
+}
+
+func (p *Item) Sum32() uint32 {
+	return falcon.Sum32(p.Key)
+}
+
+func (p *Item) Csum() string {
+	return falcon.Md5sum(p.Key)
+}
+
+// call before use item.Key
+func (p *Item) Adjust() error {
+	endpoint, metric, tags, typ, err := p.Attr()
+	if err != nil {
+		return err
+	}
+
+	if len(tags) > 0 {
+		tags_ := strings.Split(tags, ",")
+		sort.Strings(tags_)
+		tags = strings.Join(tags_, ",")
+		p.Key = []byte(fmt.Sprintf("%s/%s/%s/%s", endpoint, metric, tags, typ))
+	}
+
+	return nil
+}
+
+func (p *Item) Attr() (endpoint, metric, tags string, typ string, err error) {
+	var n int
+	n, err = fmt.Sscanf(string(p.Key), "%s/%s/%s/%s", &endpoint, &metric, &tags, &typ)
+	if n != 4 {
+		err = falcon.EINVAL
+	}
+
+	if _, ok := ItemType_value[typ]; !ok {
+		err = falcon.EINVAL
+	}
+	return
+}

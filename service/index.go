@@ -26,14 +26,14 @@ type IndexModule struct {
 	db            orm.Ormer
 }
 
-func indexUpdateEndpoint(e *itemEntry, db orm.Ormer) (id int64, err error) {
+func indexUpdateEndpoint(endpoint string, lastTs int64, db orm.Ormer) (id int64, err error) {
 	if err = db.Raw("SELECT id FROM endpoint WHERE endpoint = ?",
-		e.endpoint).QueryRow(&id); err == nil || err != sql.ErrNoRows {
+		endpoint).QueryRow(&id); err == nil || err != sql.ErrNoRows {
 		return
 	}
 
 	statsInc(ST_INDEX_HOST_INSERT, 1)
-	res, err := db.Raw("INSERT INTO endpoint(endpoint, ts, t_create) VALUES (?, ?, now()) ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id), ts=VALUES(ts)", e.endpoint, e.lastTs).Exec()
+	res, err := db.Raw("INSERT INTO endpoint(endpoint, ts, t_create) VALUES (?, ?, now()) ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id), ts=VALUES(ts)", endpoint, lastTs).Exec()
 	if err != nil {
 		statsInc(ST_INDEX_HOST_INSERT_ERR, 1)
 		return
@@ -42,10 +42,10 @@ func indexUpdateEndpoint(e *itemEntry, db orm.Ormer) (id int64, err error) {
 	return res.LastInsertId()
 }
 
-func indexUpdateTagEndpoint(e *itemEntry, db orm.Ormer, hid int64) (err error) {
+func indexUpdateTagEndpoint(tags_ string, lastTs int64, db orm.Ormer, hid int64) (err error) {
 	var tid int64
 
-	tags := strings.Split(string(e.tags), ",")
+	tags := strings.Split(tags_, ",")
 	for _, tag := range tags {
 
 		if err = db.Raw("SELECT id FROM tag_endpoint WHERE tag = ? and endpoint_id = ?",
@@ -57,7 +57,7 @@ func indexUpdateTagEndpoint(e *itemEntry, db orm.Ormer, hid int64) (err error) {
 		}
 
 		statsInc(ST_INDEX_TAG_INSERT, 1)
-		_, err = db.Raw("INSERT INTO tag_endpoint(tag, endpoint_id, ts, t_create) VALUES (?, ?, ?, now()) ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id), ts=VALUES(ts)", tag, hid, e.lastTs).Exec()
+		_, err = db.Raw("INSERT INTO tag_endpoint(tag, endpoint_id, ts, t_create) VALUES (?, ?, ?, now()) ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id), ts=VALUES(ts)", tag, hid, lastTs).Exec()
 		if err != nil {
 			statsInc(ST_INDEX_TAG_INSERT_ERR, 1)
 			return
@@ -66,18 +66,17 @@ func indexUpdateTagEndpoint(e *itemEntry, db orm.Ormer, hid int64) (err error) {
 	return
 }
 
-func indexUpdateEndpointCounter(e *itemEntry, db orm.Ormer, hid int64) (err error) {
+func indexUpdateEndpointCounter(key string, lastTs int64, db orm.Ormer, hid int64) (err error) {
 	var id int64
 
-	counter := e.key()
 	err = db.Raw("SELECT id FROM counter WHERE endpoint_id = ? and counter = ?",
-		hid, counter).QueryRow(&id)
+		hid, key).QueryRow(&id)
 	if err == nil || err != sql.ErrNoRows {
 		return
 	}
 
 	statsInc(ST_INDEX_COUNTER_INSERT, 1)
-	_, err = db.Raw("INSERT INTO endpoint_counter(endpoint_id,counter,type,ts,t_create) VALUES (?,?,?,?,now()) ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id),ts=VALUES(ts),type=VALUES(type)", hid, counter, e.typ, e.lastTs).Exec()
+	_, err = db.Raw("INSERT INTO endpoint_counter(endpoint_id,counter,ts,t_create) VALUES (?,?,?,?,now()) ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id),ts=VALUES(ts)", hid, key, lastTs).Exec()
 	if err != nil {
 		statsInc(ST_INDEX_COUNTER_INSERT_ERR, 1)
 		return
@@ -89,16 +88,16 @@ func indexUpdate(e *itemEntry, db orm.Ormer) {
 
 	statsInc(ST_INDEX_UPDATE, 1)
 
-	hid, err := indexUpdateEndpoint(e, db)
+	hid, err := indexUpdateEndpoint(e.endpoint, e.lastTs, db)
 	if err != nil {
 		return
 	}
 
-	if err = indexUpdateTagEndpoint(e, db, hid); err != nil {
+	if err = indexUpdateTagEndpoint(e.tags, e.lastTs, db, hid); err != nil {
 		return
 	}
 
-	if err = indexUpdateEndpointCounter(e, db, hid); err != nil {
+	if err = indexUpdateEndpointCounter(e.key, e.lastTs, db, hid); err != nil {
 		return
 	}
 
@@ -155,7 +154,7 @@ func (p *IndexModule) indexWorker(b *Service) {
 				// DEL_HOOK
 				delEntryHandle(e)
 				bucket, _ := b.shard.getBucket(e.shardId)
-				bucket.unlink(e.key())
+				bucket.unlink(e.key)
 				continue
 			}
 

@@ -17,9 +17,7 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
-	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/agent"
-	"github.com/yubo/falcon/agent/utils"
 )
 
 const (
@@ -125,7 +123,7 @@ func (p *cpuCollector) Start(agent *agent.Agent) error {
 	return nil
 }
 
-func (p *cpuCollector) Collect() (ret []*falcon.Item, err error) {
+func (p *cpuCollector) Collect() (ret []*agent.Item, err error) {
 	p.last = p.cur
 	p.cur, err = p.collect()
 	if err != nil {
@@ -158,7 +156,7 @@ func (p *cpuCollector) collect() (*cpuStatSample, error) {
 	return ps, nil
 }
 
-func (p *cpuCollector) stat() (ret []*falcon.Item, err error) {
+func (p *cpuCollector) stat() (ret []*agent.Item, err error) {
 	var n float64
 	if p.last == nil {
 		return nil, errors.New("no data")
@@ -172,14 +170,14 @@ func (p *cpuCollector) stat() (ret []*falcon.Item, err error) {
 	}
 
 	for i := 1; i < PROC_STAT_TOTAL; i++ {
-		ret = append(ret, utils.GaugeValue(procStatName[i],
+		ret = append(ret, agent.GaugeValue(procStatName[i],
 			float64(p.cur.cpu.data[i]-p.last.cpu.data[i])*n))
 	}
-	ret = append(ret, utils.GaugeValue("cpu.busy",
+	ret = append(ret, agent.GaugeValue("cpu.busy",
 		float64(100.0-float64(p.cur.cpu.data[PROC_STAT_IDLE]-
 			p.last.cpu.data[PROC_STAT_IDLE])*n)))
 
-	ret = append(ret, utils.GaugeValue("cpu.switches",
+	ret = append(ret, agent.GaugeValue("cpu.switches",
 		float64(p.cur.ctxt-p.last.ctxt)))
 
 	return ret, nil

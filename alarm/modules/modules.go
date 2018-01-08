@@ -7,16 +7,16 @@ package modules
 
 import (
 	"github.com/yubo/falcon"
-	"github.com/yubo/falcon/transfer"
-	"github.com/yubo/falcon/transfer/config"
+	"github.com/yubo/falcon/alarm"
+	"github.com/yubo/falcon/alarm/config"
 )
 
 func init() {
-	falcon.RegisterModule(&transfer.Transfer{}, "transfer",
-		falcon.GetType(config.Transfer{}))
-	transfer.RegisterModule(&transfer.StatsModule{})
-	transfer.RegisterModule(&transfer.ApiModule{})
-	transfer.RegisterModule(&transfer.ApiGwModule{})
-	transfer.RegisterModule(&transfer.ClientModule{})
+	falcon.RegisterModule(&alarm.Alarm{}, "alarm",
+		falcon.GetType(config.Alarm{}))
+	alarm.RegisterModule(&alarm.StatsModule{})
+	alarm.RegisterModule(&alarm.ApiModule{})
+	alarm.RegisterModule(&alarm.ApiGwModule{})
+	alarm.RegisterModule(&alarm.ClientModule{})
 
 }

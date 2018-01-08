@@ -26,7 +26,7 @@ const (
 	ETCD_CLIENT_REQUEST_TIMEOUT = 3 * time.Second
 )
 
-// just for falcon-plus(graph/transfer)
+// just for falcon-lite(graph/transfer)
 type EtcdCliConfig struct {
 	Endpoints  string `json:"endpoints"`
 	Username   string `json:"username"`

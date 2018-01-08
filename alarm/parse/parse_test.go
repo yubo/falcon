@@ -21,18 +21,7 @@ var text = []byte(`
 	workerProcesses	2;	// upstream 的并发连接数
 	burstSize	2;	// client put burst size to remote service
 	callTimeout	5000;	// 请求超时时间
-	upstream {	// 后端服务类型，支持tsdb、falcon
-		0 "unix:./var/service.rpc";
-		1 "unix:./var/service.rpc";
-		2 "unix:./var/service.rpc";
-		3 "unix:./var/service.rpc";
-		4 "unix:./var/service.rpc";
-		5 "unix:./var/service.rpc";
-		6 "unix:./var/service.rpc";
-		7 "unix:./var/service.rpc";
-		8 "unix:./var/service.rpc";
-		9 "unix:./var/service.rpc";
-	};
+	upstream	stdout;
 };
 `)
 

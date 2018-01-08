@@ -11,7 +11,7 @@ import (
 	"github.com/yubo/falcon/config"
 )
 
-type Transfer struct {
+type Alarm struct {
 	Debug    int
 	Disabled bool
 	Name     string
@@ -20,11 +20,11 @@ type Transfer struct {
 	Configer config.Configer
 }
 
-func (p Transfer) GetName() string {
+func (p Alarm) GetName() string {
 	return p.Name
 }
 
-func (p Transfer) String() string {
+func (p Alarm) String() string {
 	var s1 string
 	for k, v := range p.Upstream {
 		s1 += fmt.Sprintf("%d %s\n", k, v)

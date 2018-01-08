@@ -1,9 +1,9 @@
-//line alarm/parse/parse.y:7
+//line parse.y:7
 package parse
 
 import __yyfmt__ "fmt"
 
-//line alarm/parse/parse.y:7
+//line parse.y:7
 import (
 	"fmt"
 	"os"
@@ -12,7 +12,7 @@ import (
 	"github.com/yubo/falcon/transfer/config"
 )
 
-//line alarm/parse/parse.y:19
+//line parse.y:19
 type yySymType struct {
 	yys  int
 	num  int
@@ -34,7 +34,6 @@ const LOG = 57356
 const HOST = 57357
 const DISABLED = 57358
 const DEBUG = 57359
-const UPSTREAM = 57360
 
 var yyToknames = [...]string{
 	"$end",
@@ -57,7 +56,6 @@ var yyToknames = [...]string{
 	"HOST",
 	"DISABLED",
 	"DEBUG",
-	"UPSTREAM",
 	"'='",
 }
 var yyStatenames = [...]string{}
@@ -66,7 +64,7 @@ const yyEofCode = 1
 const yyErrCode = 2
 const yyInitialStackSize = 16
 
-//line alarm/parse/parse.y:120
+//line parse.y:99
 
 //line yacctab:1
 var yyExca = [...]int{
@@ -77,58 +75,52 @@ var yyExca = [...]int{
 
 const yyPrivate = 57344
 
-const yyLast = 52
+const yyLast = 41
 
 var yyAct = [...]int{
 
-	11, 26, 5, 25, 3, 36, 20, 21, 22, 23,
-	24, 39, 29, 31, 32, 27, 26, 16, 15, 40,
-	18, 34, 20, 21, 22, 23, 19, 17, 16, 15,
-	26, 35, 16, 15, 30, 6, 37, 38, 28, 41,
-	42, 12, 13, 33, 7, 9, 8, 10, 14, 4,
-	2, 1,
+	11, 19, 20, 21, 22, 17, 24, 18, 16, 5,
+	23, 3, 28, 30, 31, 25, 15, 14, 26, 27,
+	25, 19, 20, 21, 22, 15, 14, 7, 6, 4,
+	32, 2, 29, 1, 12, 13, 15, 14, 9, 8,
+	10,
 }
 var yyPact = [...]int{
 
-	-1000, -5, -1000, -1000, 27, -1000, 18, 11, -4, 23,
-	26, 12, 23, 23, 14, -1000, -1000, -1000, -1000, -1000,
-	-1000, -1000, -1000, -1000, -1000, -1000, -1000, -1000, -1000, -1000,
-	23, -1000, -1000, -3, -1000, -1000, -1000, 10, 23, 23,
+	-1000, 2, -1000, -1000, 20, -1000, -1, -4, -9, 31,
+	16, 11, 31, 31, -1000, -1000, -1000, -1000, -1000, -1000,
+	-1000, -1000, -1000, -1000, -1000, -1000, -1000, -1000, -1000, 31,
 	-1000, -1000, -1000,
 }
 var yyPgo = [...]int{
 
-	0, 26, 0, 3, 51, 50, 49, 44, 43, 36,
+	0, 7, 0, 6, 33, 31, 29, 27,
 }
 var yyR1 = [...]int{
 
 	0, 4, 4, 1, 1, 1, 1, 1, 2, 2,
 	3, 5, 5, 6, 6, 7, 7, 7, 7, 7,
-	7, 7, 7, 7, 7, 7, 7, 8, 8, 9,
-	9, 9,
+	7, 7, 7, 7, 7, 7,
 }
 var yyR2 = [...]int{
 
 	0, 0, 2, 1, 1, 1, 1, 0, 1, 1,
 	1, 1, 3, 1, 3, 0, 2, 2, 1, 2,
-	2, 2, 2, 2, 3, 2, 3, 1, 3, 0,
-	2, 2,
+	2, 2, 2, 2, 3, 2,
 }
 var yyChk = [...]int{
 
 	-1000, -4, -5, 9, -6, 7, 8, -7, 19, 18,
-	20, -2, 14, 15, 21, 6, 5, 9, 9, -1,
-	10, 11, 12, 13, -2, -3, 4, -3, -1, -2,
-	22, -2, -2, -8, 7, -2, 8, -9, -3, 14,
-	9, -2, -2,
+	20, -2, 14, 15, 6, 5, 9, 9, -1, 10,
+	11, 12, 13, -2, -3, 4, -3, -1, -2, 21,
+	-2, -2, -2,
 }
 var yyDef = [...]int{
 
 	1, -2, 2, 11, 15, 13, 0, 0, 7, 0,
-	18, 7, 0, 0, 0, 8, 9, 12, 14, 16,
-	3, 4, 5, 6, 17, 19, 10, 20, 21, 23,
-	0, 22, 25, 29, 27, 24, 26, 0, 0, 0,
-	28, 30, 31,
+	18, 7, 0, 0, 8, 9, 12, 14, 16, 3,
+	4, 5, 6, 17, 19, 10, 20, 21, 23, 0,
+	22, 25, 24,
 }
 var yyTok1 = [...]int{
 
@@ -138,7 +130,7 @@ var yyTok1 = [...]int{
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 9,
-	3, 22, 3, 3, 3, 3, 3, 3, 3, 3,
+	3, 21, 3, 3, 3, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
@@ -149,7 +141,7 @@ var yyTok1 = [...]int{
 var yyTok2 = [...]int{
 
 	2, 3, 4, 5, 6, 10, 11, 12, 13, 14,
-	15, 16, 17, 18, 19, 20, 21,
+	15, 16, 17, 18, 19, 20,
 }
 var yyTok3 = [...]int{
 	0,
@@ -494,55 +486,55 @@ yydefault:
 
 	case 3:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line alarm/parse/parse.y:43
+		//line parse.y:42
 		{
 			yyVAL.b = true
 		}
 	case 4:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line alarm/parse/parse.y:44
+		//line parse.y:43
 		{
 			yyVAL.b = true
 		}
 	case 5:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line alarm/parse/parse.y:45
+		//line parse.y:44
 		{
 			yyVAL.b = false
 		}
 	case 6:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line alarm/parse/parse.y:46
+		//line parse.y:45
 		{
 			yyVAL.b = false
 		}
 	case 7:
 		yyDollar = yyS[yypt-0 : yypt+1]
-		//line alarm/parse/parse.y:47
+		//line parse.y:46
 		{
 			yyVAL.b = true
 		}
 	case 8:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line alarm/parse/parse.y:51
+		//line parse.y:50
 		{
 			yyVAL.text = string(yy.t)
 		}
 	case 9:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line alarm/parse/parse.y:52
+		//line parse.y:51
 		{
 			yyVAL.text = exprText(yy.t)
 		}
 	case 10:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line alarm/parse/parse.y:56
+		//line parse.y:55
 		{
 			yyVAL.num = yy.i
 		}
 	case 12:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line alarm/parse/parse.y:60
+		//line parse.y:59
 		{
 			// end
 			conf.Configer.Set(fconfig.APP_CONF_FILE, yy_ss)
@@ -555,62 +547,62 @@ yydefault:
 		}
 	case 13:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line alarm/parse/parse.y:73
+		//line parse.y:72
 		{
 			// begin
 			conf = &config.Transfer{Name: "transfer"}
 		}
 	case 16:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line alarm/parse/parse.y:80
+		//line parse.y:79
 		{
 			conf.Disabled = yyDollar[2].b
 		}
 	case 17:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line alarm/parse/parse.y:81
+		//line parse.y:80
 		{
 			conf.Host = yyDollar[2].text
 		}
 	case 18:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line alarm/parse/parse.y:82
+		//line parse.y:81
 		{
 			conf.Debug = 1
 		}
 	case 19:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line alarm/parse/parse.y:83
+		//line parse.y:82
 		{
 			conf.Debug = yyDollar[2].num
 		}
 	case 20:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line alarm/parse/parse.y:84
+		//line parse.y:83
 		{
 			yy_ss[yyDollar[1].text] = fmt.Sprintf("%d", yyDollar[2].num)
 		}
 	case 21:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line alarm/parse/parse.y:85
+		//line parse.y:84
 		{
 			yy_ss[yyDollar[1].text] = fmt.Sprintf("%v", yyDollar[2].b)
 		}
 	case 22:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line alarm/parse/parse.y:86
+		//line parse.y:85
 		{
 			yy.include(yyDollar[2].text)
 		}
 	case 23:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line alarm/parse/parse.y:87
+		//line parse.y:86
 		{
 			yy_ss[yyDollar[1].text] = yyDollar[2].text
 		}
 	case 24:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line alarm/parse/parse.y:88
+		//line parse.y:87
 		{
 			if err := os.Setenv(yyDollar[1].text, yyDollar[3].text); err != nil {
 				yy.Error(err.Error())
@@ -618,40 +610,11 @@ yydefault:
 		}
 	case 25:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line alarm/parse/parse.y:93
+		//line parse.y:92
 		{
 			if err := os.Chdir(yyDollar[2].text); err != nil {
 				yy.Error(err.Error())
 			}
-		}
-	case 26:
-		yyDollar = yyS[yypt-3 : yypt+1]
-		//line alarm/parse/parse.y:98
-		{
-			// check upstream
-			for i := 0; i < len(conf.Upstream); i++ {
-				if _, ok := conf.Upstream[i]; !ok {
-					yy.Error(fmt.Sprintf("miss Upstream[%d]\n", i))
-				}
-			}
-		}
-	case 27:
-		yyDollar = yyS[yypt-1 : yypt+1]
-		//line alarm/parse/parse.y:109
-		{
-			conf.Upstream = make(map[int]string)
-		}
-	case 30:
-		yyDollar = yyS[yypt-2 : yypt+1]
-		//line alarm/parse/parse.y:115
-		{
-			conf.Upstream[yyDollar[1].num] = yyDollar[2].text
-		}
-	case 31:
-		yyDollar = yyS[yypt-2 : yypt+1]
-		//line alarm/parse/parse.y:116
-		{
-			yy.include(yyDollar[2].text)
 		}
 	}
 	goto yystack /* stack new state and value */

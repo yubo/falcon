@@ -25,15 +25,11 @@ type ApiModule struct {
 }
 
 func (p *ApiModule) Get(ctx context.Context,
-	in *falcon.GetRequest) (resp *falcon.GetResponse, err error) {
+	in *GetRequest) (resp *GetResponse, err error) {
 
 	statsInc(ST_RPC_SERV_QUERY, 1)
 
-	resp = &falcon.GetResponse{
-		Endpoint: in.Endpoint,
-		Metric:   in.Metric,
-		Type:     in.Type,
-	}
+	resp = &GetResponse{Key: in.Key}
 
 	resp.Dps, err = p.service.shard.get(in)
 	statsInc(ST_RPC_SERV_QUERY_ITEM, len(resp.Dps))
@@ -41,32 +37,28 @@ func (p *ApiModule) Get(ctx context.Context,
 }
 
 func (p *ApiModule) Put(ctx context.Context,
-	in *falcon.PutRequest) (resp *falcon.PutResponse, err error) {
+	in *PutRequest) (resp *PutResponse, err error) {
 
-	resp = &falcon.PutResponse{}
+	n := 0
+	size := len(in.Items)
 
-	if resp.Total = int32(len(in.Items)); resp.Total == 0 {
-		return
-	}
-
-	glog.V(4).Infof(MODULE_NAME+"recv %d", resp.Total)
+	glog.V(4).Infof(MODULE_NAME+"recv %d", size)
 	statsInc(ST_RPC_SERV_RECV, 1)
-	statsInc(ST_RPC_SERV_RECV_ITEM, int(resp.Total))
+	statsInc(ST_RPC_SERV_RECV_ITEM, size)
 
-	for i := int32(0); i < resp.Total; i++ {
+	for i := 0; i < size; i++ {
 		item := in.Items[i]
 		if item == nil {
-			resp.Errors++
 			continue
 		}
 
 		if _, err = p.service.shard.put(item); err != nil {
-			resp.Errors++
+			n++
 			continue
 		}
 	}
 
-	return
+	return &PutResponse{N: int32(n)}, nil
 }
 
 func (p *ApiModule) prestart(service *Service) error {

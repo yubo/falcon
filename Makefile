@@ -9,10 +9,13 @@ DOCFILES=dist/etc/falcon.example.conf \
 	dist/etc/metric_names \
 	dist/html/ctrl.swagger.json \
 	dist/html/service.swagger.json \
+	dist/html/agent.swagger.json \
+	dist/html/alarm.swagger.json \
 	dist/html/api_reference.md
 GOFILES=$(shell find . -name "*.go" -type f -not -path "./cmd*") \
+	agent/agent.pb.go agent/agent.pb.gw.go \
 	service/service.pb.go service/service.pb.gw.go \
-	falcon.pb.go \
+	alarm/alarm.pb.go alarm/alarm.pb.gw.go \
 	parse/parse.go $(SUBMODULES:%=%/parse/parse.go) \
 	gitlog.go
 DEPENDS=dist $(GOFILES) $(DOCFILES)
@@ -28,6 +31,12 @@ dist/html/transfer.swagger.json: service/service.swagger.json
 	cp -f $< $@
 
 dist/html/service.swagger.json: service/service.swagger.json
+	cp -f $< $@
+
+dist/html/agent.swagger.json: agent/agent.swagger.json
+	cp -f $< $@
+
+dist/html/alarm.swagger.json: alarm/alarm.swagger.json
 	cp -f $< $@
 
 dist/html/api_reference.md: docs/api_reference.md

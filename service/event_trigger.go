@@ -11,8 +11,12 @@ import (
 )
 
 type event struct {
-	trigger   *EventTrigger
-	timestamp int64
+	TagId     int64
+	Key       string
+	Expr      string
+	Msg       string
+	Timestamp int64
+	Value     float64
 }
 
 type EventTrigger struct {
@@ -31,13 +35,24 @@ type EventTrigger struct {
 }
 
 func (p *EventTrigger) Exec(item *itemEntry) *event {
-	glog.V(4).Infof("exec endpoint %s metric %s expr %s",
-		string(item.endpoint), string(item.metric), p.Expr)
-	if expr.Exec(item, p.expr) {
-		return &event{trigger: p, timestamp: timer.now()}
+	glog.V(4).Infof("exec %s expr %s", item.key, p.Expr)
+
+	if !expr.Exec(item, p.expr) {
+		return nil
 	}
 
-	return nil
+	item.RLock()
+	defer item.RUnlock()
+	id := (item.dataId - 1) & CACHE_SIZE_MASK
+	return &event{
+		TagId:     p.TagId,
+		Key:       item.key,
+		Expr:      p.Expr,
+		Msg:       p.Msg,
+		Timestamp: item.timestamp[id],
+		Value:     item.value[id],
+	}
+
 }
 
 func (p *EventTrigger) exprPrepare() (err error) {

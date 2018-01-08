@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"hash/crc32"
 	"hash/crc64"
-	"io"
 	"io/ioutil"
 	"net"
 	"reflect"
@@ -31,21 +30,23 @@ var (
 	crc32_table = crc32.MakeTable(0xD5828281)
 )
 
-func Md5sum(raw string) string {
+func Md5sum(raw []byte) string {
 	h := md5.New()
-	io.WriteString(h, raw)
+	h.Write(raw)
+	//io.WriteString(h, raw)
 
 	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
-func Sum64(raw string) uint64 {
+func Sum64(raw []byte) uint64 {
 	h := crc64.New(crc64_table)
-	io.WriteString(h, raw)
+	h.Write(raw)
+	//io.WriteString(h, raw)
 	return h.Sum64()
 }
 
-func Sum32(raw string) uint32 {
-	return crc32.Checksum([]byte(raw), crc32_table)
+func Sum32(raw []byte) uint32 {
+	return crc32.Checksum(raw, crc32_table)
 }
 
 func FmtTs(ts int64) string {

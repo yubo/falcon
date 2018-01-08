@@ -3,7 +3,7 @@
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
-package transfer
+package alarm
 
 import (
 	"fmt"
@@ -63,11 +63,11 @@ type StatsModule struct {
 	cancel context.CancelFunc
 }
 
-func (p *StatsModule) prestart(t *Transfer) error {
+func (p *StatsModule) prestart(t *Alarm) error {
 	return nil
 }
 
-func (p *StatsModule) start(t *Transfer) error {
+func (p *StatsModule) start(t *Alarm) error {
 	p.ctx, p.cancel = context.WithCancel(context.Background())
 	if t.Conf.Debug > 0 {
 		statsTicker := time.NewTicker(time.Second * DEBUG_STAT_STEP).C
@@ -85,12 +85,12 @@ func (p *StatsModule) start(t *Transfer) error {
 	return nil
 }
 
-func (p *StatsModule) stop(t *Transfer) error {
+func (p *StatsModule) stop(t *Alarm) error {
 	p.cancel()
 	return nil
 }
 
-func (p *StatsModule) reload(t *Transfer) error {
+func (p *StatsModule) reload(t *Alarm) error {
 	p.stop(t)
 	time.Sleep(time.Second)
 	p.prestart(t)

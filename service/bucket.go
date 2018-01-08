@@ -16,14 +16,17 @@ type bucketEntry struct { // bucket_t
 	itemMap map[string]*itemEntry
 }
 
-func (p *bucketEntry) addItem(item *falcon.Item) (*itemEntry, error) {
+func (p *bucketEntry) addItem(item *Item) (ie *itemEntry, err error) {
 	p.Lock()
 	defer p.Unlock()
 
-	e := itemEntryNew(item)
-	p.itemMap[item.Key()] = e
+	if ie, err = itemEntryNew(item); err != nil {
+		return
+	}
 
-	return e, nil
+	p.itemMap[string(item.Key)] = ie
+
+	return ie, nil
 }
 
 func (p *bucketEntry) getItem(key string) (*itemEntry, error) {

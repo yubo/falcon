@@ -12,31 +12,35 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/yubo/falcon"
-	"github.com/yubo/falcon/service"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
+
+type putContext struct {
+	items []*Item
+	done  chan *PutResponse
+}
 
 type ApiModule struct {
 	disable bool
 	ctx     context.Context
 	cancel  context.CancelFunc
 	address string
-	putChan chan []*falcon.Item
-}
-
-func (p *ApiModule) Get(ctx context.Context,
-	in *falcon.GetRequest) (*falcon.GetResponse, error) {
-
-	return &falcon.GetResponse{}, nil
+	putChan chan *putContext
 }
 
 func (p *ApiModule) Put(ctx context.Context,
-	in *falcon.PutRequest) (*falcon.PutResponse, error) {
+	in *PutRequest) (*PutResponse, error) {
 
-	p.putChan <- in.Items
-	return &falcon.PutResponse{int32(len(in.Items)), 0}, nil
+	put := &putContext{
+		items: in.Items,
+		done:  make(chan *PutResponse),
+	}
+
+	p.putChan <- put
+	resp := <-put.done
+	return resp, nil
 }
 
 func (p *ApiModule) prestart(agent *Agent) error {
@@ -62,7 +66,7 @@ func (p *ApiModule) start(agent *Agent) error {
 	}
 
 	server := grpc.NewServer()
-	service.RegisterServiceServer(server, p)
+	RegisterAgentServer(server, p)
 
 	// Register reflection service on gRPC server.
 	reflection.Register(server)
