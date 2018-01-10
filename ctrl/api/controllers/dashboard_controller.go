@@ -78,30 +78,29 @@ func (c *DashboardController) CreateGraph() {
 // @Description update graph, .endpoints and .counters is []string
 // @Param	body	body 	models.APIGraphs	true	"body for graph content"
 // @Success 200 {object}  models.Stats DashboardGraph
-// @Failure 400 string error
+// @Failure 400 {object}  models.Stats DashboardGraph
 // @router /graphs [put]
 func (c *DashboardController) UpdateGraphs() {
 	var (
-		gs               []models.APIGraph
-		success, failure int64
+		gs      []models.APIGraph
+		success int64
 	)
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
 	err := json.Unmarshal(c.Ctx.Input.RequestBody, &gs)
 	if err != nil {
-		c.SendMsg(400, err.Error())
+		c.SendMsg(400, statsObj(success, err))
 		return
 	}
 
 	for _, g := range gs {
 		if _, err = op.UpdateDashboardGraph(&g); err != nil {
-			failure++
-		} else {
-			success++
+			c.SendMsg(400, statsObj(success, err))
+			return
 		}
+		success++
 	}
-
-	c.SendMsg(200, statsObj(success, failure, nil))
+	c.SendMsg(200, statsObj(success, nil))
 }
 
 // @Title update Graph

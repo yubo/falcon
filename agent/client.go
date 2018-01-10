@@ -7,7 +7,6 @@ package agent
 
 import (
 	"fmt"
-	"math/rand"
 	"time"
 
 	"github.com/golang/glog"
@@ -119,7 +118,6 @@ func (client *ClientModule) mainLoop(agent *Agent) error {
 }
 
 func (p *ClientModule) prestart(agent *Agent) error {
-	rand.Seed(time.Now().Unix())
 	return nil
 }
 

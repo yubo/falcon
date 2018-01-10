@@ -3,7 +3,6 @@ option go_package = "github.com/yubo/falcon/agent";
 package agent;
 
 import "google/api/annotations.proto";
-import "service/service.proto";
 
 message Item {
 	bytes	metric		= 1;

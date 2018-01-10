@@ -7,14 +7,8 @@ package service
 
 import (
 	"net/http"
-	"path"
-	"strings"
 	"time"
 
-	"google.golang.org/grpc"
-
-	"github.com/golang/glog"
-	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/yubo/falcon"
 
 	"golang.org/x/net/context"
@@ -44,7 +38,7 @@ func (p *ApiGwModule) start(service *Service) error {
 
 	mux := http.NewServeMux()
 
-	err := Gateway(p.ctx, mux, p.upstream)
+	err := falcon.Gateway(RegisterServiceHandlerFromEndpoint, p.ctx, mux, p.upstream)
 	if err != nil {
 		return nil
 	}
@@ -81,52 +75,4 @@ func (p *ApiGwModule) reload(service *Service) error {
 	}
 	p.prestart(service)
 	return p.start(service)
-}
-
-// ############################################################################3
-
-// newGateway returns a new gateway server which translates HTTP into gRPC.
-func newGateway(ctx context.Context, address string,
-	opts ...runtime.ServeMuxOption) (http.Handler, error) {
-
-	mux := runtime.NewServeMux(opts...)
-
-	dialOpts := []grpc.DialOption{
-		grpc.WithInsecure(),
-		grpc.WithDialer(falcon.Dialer),
-		grpc.WithBlock(),
-	}
-
-	err := RegisterServiceHandlerFromEndpoint(ctx, mux, address, dialOpts)
-	if err != nil {
-		return nil, err
-	}
-	return mux, nil
-}
-
-func Gateway(ctx context.Context, mux *http.ServeMux, upstream string,
-	opts ...runtime.ServeMuxOption) error {
-
-	mux.HandleFunc("/swagger/", serveSwagger)
-
-	gw, err := newGateway(ctx, upstream, opts...)
-	if err != nil {
-		return err
-	}
-	mux.Handle("/", gw)
-
-	return nil
-}
-
-func serveSwagger(w http.ResponseWriter, r *http.Request) {
-	if !strings.HasSuffix(r.URL.Path, ".swagger.json") {
-		glog.Errorf("Not Found: %s", r.URL.Path)
-		http.NotFound(w, r)
-		return
-	}
-
-	glog.Infof("Serving %s", r.URL.Path)
-	p := strings.TrimPrefix(r.URL.Path, "/swagger/")
-	p = path.Join("service", p)
-	http.ServeFile(w, r, p)
 }

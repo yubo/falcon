@@ -20,10 +20,21 @@ const (
 	CONN_RETRY      = 2
 	DEBUG_STAT_STEP = 60
 	CTRL_STEP       = 360
+
 	C_API_ADDR      = "apiaddr"
 	C_HTTP_ADDR     = "httpaddr"
 	C_CALL_TIMEOUT  = "calltimeout"
 	C_BURST_SIZE    = "burstsize"
+	C_DB_MAX_IDLE   = "dbmaxidle"
+	C_DB_MAX_CONN   = "dbmaxconn"
+	C_SYNC_INTERVAL = "syncinterval"
+	C_SYNC_DSN      = "syncdsn"
+)
+
+const (
+	ACTION_F_EMAIL = 1 << iota
+	ACTION_F_SMS
+	ACTION_F_SCRIPT
 )
 
 var (
@@ -31,6 +42,8 @@ var (
 	ConfDefault = map[string]string{
 		C_CALL_TIMEOUT: "5000",
 		C_BURST_SIZE:   "16",
+		C_DB_MAX_IDLE:  "4",
+		C_DB_MAX_CONN:  "4",
 	}
 )
 

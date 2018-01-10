@@ -11,7 +11,6 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/yubo/falcon"
-	"github.com/yubo/falcon/service"
 	"golang.org/x/net/context"
 )
 
@@ -40,7 +39,7 @@ func (p *ApiGwModule) start(agent *Agent) error {
 
 	mux := http.NewServeMux()
 
-	err := service.Gateway(p.ctx, mux, p.upstream)
+	err := falcon.Gateway(RegisterAgentHandlerFromEndpoint, p.ctx, mux, p.upstream)
 	if err != nil {
 		return nil
 	}

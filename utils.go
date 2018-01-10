@@ -14,6 +14,8 @@ import (
 	"hash/crc64"
 	"io/ioutil"
 	"net"
+	"net/http"
+	"path"
 	"reflect"
 	"regexp"
 	"sort"
@@ -22,6 +24,10 @@ import (
 	"time"
 
 	"github.com/astaxie/beego/orm"
+	"github.com/golang/glog"
+	"github.com/grpc-ecosystem/grpc-gateway/runtime"
+	"golang.org/x/net/context"
+	"google.golang.org/grpc"
 )
 
 var (
@@ -179,4 +185,54 @@ func NewOrm(name, dsn string, maxIdleConns, maxOpenConns int) (o orm.Ormer, err 
 	}
 
 	return orm.NewOrmWithDB("mysql", name, db)
+}
+
+// ############################################################################3
+
+type RegisterServer func(ctx context.Context, mux *runtime.ServeMux, endpoint string, opts []grpc.DialOption) (err error)
+
+// newGateway returns a new gateway server which translates HTTP into gRPC.
+func newGateway(registerServer RegisterServer,
+	ctx context.Context, address string, opts ...runtime.ServeMuxOption) (http.Handler, error) {
+
+	mux := runtime.NewServeMux(opts...)
+
+	dialOpts := []grpc.DialOption{
+		grpc.WithInsecure(),
+		grpc.WithDialer(Dialer),
+		grpc.WithBlock(),
+	}
+
+	err := registerServer(ctx, mux, address, dialOpts)
+	if err != nil {
+		return nil, err
+	}
+	return mux, nil
+}
+
+func Gateway(registerServer RegisterServer, ctx context.Context, mux *http.ServeMux, upstream string,
+	opts ...runtime.ServeMuxOption) error {
+
+	mux.HandleFunc("/swagger/", serveSwagger)
+
+	gw, err := newGateway(registerServer, ctx, upstream, opts...)
+	if err != nil {
+		return err
+	}
+	mux.Handle("/", gw)
+
+	return nil
+}
+
+func serveSwagger(w http.ResponseWriter, r *http.Request) {
+	if !strings.HasSuffix(r.URL.Path, ".swagger.json") {
+		glog.Errorf("Not Found: %s", r.URL.Path)
+		http.NotFound(w, r)
+		return
+	}
+
+	glog.Infof("Serving %s", r.URL.Path)
+	p := strings.TrimPrefix(r.URL.Path, "/swagger/")
+	p = path.Join("service", p)
+	http.ServeFile(w, r, p)
 }

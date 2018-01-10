@@ -294,29 +294,6 @@ CREATE TABLE `tpl_rel` (
 COLLATE = utf8_unicode_ci COMMENT = '节点上的模板关联(tag,tpl,sub_meta)';
 
 --
--- Table structure for table `action`
---
-
-DROP TABLE IF EXISTS `action`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `action` (
-  `id`			bigint unsigned			NOT NULL AUTO_INCREMENT,
-  `uic`			varchar(255)	DEFAULT ''	NOT NULL ,
-  `url`			varchar(255)	DEFAULT ''	NOT NULL ,
-  `send_sms`		integer		DEFAULT '0'	NOT NULL ,
-  `send_mail`		integer		DEFAULT '0'	NOT NULL ,
-  `callback`		integer		DEFAULT '0'	NOT NULL ,
-  `before_callback_sms`	integer		DEFAULT '0'	NOT NULL ,
-  `before_callback_mail` integer	DEFAULT '0'	NOT NULL ,
-  `after_callback_sms`	integer		DEFAULT '0'	NOT NULL ,
-  `after_callback_mail`	integer		DEFAULT '0'	NOT NULL ,
-  PRIMARY KEY (`id`)
-) ENGINE = InnoDB DEFAULT CHARACTER SET = utf8 COLLATE = utf8_unicode_ci
-COMMENT='事件行为';
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
 -- Table structure for table `event_trigger`
 --
 
@@ -343,6 +320,30 @@ CREATE TABLE `event_trigger` (
   UNIQUE INDEX `index_event_trigger_tag_name` (`tag_id`, `name`)
 ) ENGINE = InnoDB AUTO_INCREMENT=10000 DEFAULT CHARACTER SET=utf8 COLLATE=utf8_unicode_ci
 COMMENT='事件策略';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+
+--
+-- Table structure for table `action_trigger`
+--
+
+DROP TABLE IF EXISTS `action_trigger`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `action_trigger` (
+  `id`			bigint unsigned			NOT NULL AUTO_INCREMENT,
+  `tag_id`		bigint unsigned	DEFAULT '0'	NOT NULL COMMENT '绑定的 tag id',
+  `token_id`		bigint unsigned	DEFAULT '0'	NOT NULL COMMENT '绑定的 token id',
+  `action_flag`		bigint unsigned	DEFAULT '0'	NOT NULL,
+  `order_id`		integer		DEFAULT '100'	NOT NULL,
+  `expr`		varchar(512)	DEFAULT ''	NOT NULL COMMENT 'eg. index(key, cop=xiaomi)>=0',
+  `action_script`	BLOB				NOT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `index_tag_id` (`tag_id`),
+  INDEX `index_token_id` (`token_id`),
+  INDEX `index_order_id` (`order_id`)
+) ENGINE = InnoDB AUTO_INCREMENT=10000 DEFAULT CHARACTER SET=utf8 COLLATE=utf8_unicode_ci
+COMMENT='动作策略';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 

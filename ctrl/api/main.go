@@ -98,7 +98,7 @@ func signalNotify(p *falcon.Process) {
 
 			// reparse config, get new config
 			// newConfig := parse.Parse(p.Config.ConfigFile, false)
-			newConfig := parse.Parse(p.Config.ConfigFile, false)
+			newConfig := parse.Parse(p.Config.ConfigFile)
 
 			// check config diff
 			if len(newConfig.Conf) != len(p.Config.Conf) {
@@ -140,7 +140,7 @@ func signalNotify(p *falcon.Process) {
 
 func start(arg interface{}) {
 	opts := arg.(*falcon.CmdOpts)
-	c := parse.Parse(opts.ConfigFile, false)
+	c := parse.Parse(opts.ConfigFile)
 	app := falcon.NewProcess(c)
 
 	if err := app.Check(); err != nil {
@@ -162,7 +162,7 @@ func start(arg interface{}) {
 
 func stop(arg interface{}) {
 	opts := arg.(*falcon.CmdOpts)
-	c := parse.Parse(opts.ConfigFile, false)
+	c := parse.Parse(opts.ConfigFile)
 	app := falcon.NewProcess(c)
 
 	if err := app.Kill(syscall.SIGTERM); err != nil {
@@ -172,7 +172,7 @@ func stop(arg interface{}) {
 
 func reload(arg interface{}) {
 	opts := arg.(*falcon.CmdOpts)
-	c := parse.Parse(opts.ConfigFile, false)
+	c := parse.Parse(opts.ConfigFile)
 	app := falcon.NewProcess(c)
 
 	if err := app.Kill(syscall.SIGUSR1); err != nil {
@@ -182,7 +182,7 @@ func reload(arg interface{}) {
 
 func parseHandle(arg interface{}) {
 	opts := arg.(*falcon.CmdOpts)
-	c := parse.Parse(opts.ConfigFile, true)
+	c := parse.Parse(opts.ConfigFile)
 	dir, _ := os.Getwd()
 	glog.Infof("work dir :%s", dir)
 	glog.Infof("\n%s", c)

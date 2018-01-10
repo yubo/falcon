@@ -25,22 +25,22 @@ type ApiModule struct {
 }
 
 func (p *ApiModule) Put(ctx context.Context,
-	in *Event) (*Response, error) {
+	in *PutRequest) (*PutResponse, error) {
 
 	glog.V(3).Infof("%s RX PUT %s", MODULE_NAME, in)
 
-	return &Response{N: 1}, nil
+	return &PutResponse{N: int32(len(in.Events))}, nil
 }
 
-func (p *ApiModule) prestart(alarm *Alarm) error {
-	p.address = alarm.Conf.Configer.Str(C_API_ADDR)
+func (p *ApiModule) prestart(a *Alarm) error {
+	p.address = a.Conf.Configer.Str(C_API_ADDR)
 	p.disable = falcon.AddrIsDisable(p.address)
-	p.putChan = alarm.appPutChan
+	p.putChan = a.appPutChan
 
 	return nil
 }
 
-func (p *ApiModule) start(alarm *Alarm) (err error) {
+func (p *ApiModule) start(a *Alarm) (err error) {
 
 	if p.disable {
 		glog.Info(MODULE_NAME + "api disable")
@@ -73,7 +73,7 @@ func (p *ApiModule) start(alarm *Alarm) (err error) {
 	return nil
 }
 
-func (p *ApiModule) stop(alarm *Alarm) error {
+func (p *ApiModule) stop(a *Alarm) error {
 	if p.disable {
 		return nil
 	}
@@ -81,11 +81,11 @@ func (p *ApiModule) stop(alarm *Alarm) error {
 	return nil
 }
 
-func (p *ApiModule) reload(alarm *Alarm) error {
+func (p *ApiModule) reload(a *Alarm) error {
 	if !p.disable {
-		p.stop(alarm)
+		p.stop(a)
 		time.Sleep(time.Second)
 	}
-	p.prestart(alarm)
-	return p.start(alarm)
+	p.prestart(a)
+	return p.start(a)
 }

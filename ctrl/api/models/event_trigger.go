@@ -87,35 +87,6 @@ type EventTriggerApiUpdate struct {
 	Msg      string `json:"msg"`
 }
 
-type EventTriggerTagApiAdd struct {
-	ParentId int64  `json:"parent_id"`
-	TplId    int64  `json:"tpl_id"`
-	TagId    int64  `json:"tag_id"`
-	Priority int    `json:"priority"`
-	Name     string `json:"name"`
-	Metric   string `json:"metric"`
-	Tags     string `json:"tags"`
-	Expr     string `json:"expr"`
-	Msg      string `json:"msg"`
-}
-
-type EventTriggerTagApiGet struct {
-	Id       int64  `json:"id"`
-	ParentId int64  `json:"parent_id"`
-	TplId    int64  `json:"tpl_id"`
-	TagId    int64  `json:"tag_id"`
-	GrpName  string `json:"grp_name"`
-	TplName  string `json:"tpl_name"`
-	TagName  string `json:"tag_name"`
-	Version  int    `json:"version"`
-	Priority int    `json:"priority"`
-	Name     string `json:"name"`
-	Metric   string `json:"metric"`
-	Tags     string `json:"tags"`
-	Expr     string `json:"expr"`
-	Msg      string `json:"msg"`
-}
-
 func (op *Operator) CreateEventTrigger(e *EventTrigger) (id int64, err error) {
 
 	id, err = op.SqlInsert("insert event_trigger (parent_id, tpl_id, tag_id, priority, name, metric, tags, expr, msg) values (?, ?, ?, ?, ?, ?, ?, ?, ?)",

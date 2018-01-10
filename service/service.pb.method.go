@@ -54,15 +54,15 @@ func (p *Item) Adjust() error {
 	return nil
 }
 
-func (p *Item) Attr() (endpoint, metric, tags string, typ string, err error) {
-	var n int
-	n, err = fmt.Sscanf(string(p.Key), "%s/%s/%s/%s", &endpoint, &metric, &tags, &typ)
-	if n != 4 {
+func (p *Item) Attr() (string, string, string, string, error) {
+	var err error
+	s := strings.Split(string(p.Key), "/")
+	if len(s) != 4 {
 		err = falcon.EINVAL
 	}
 
-	if _, ok := ItemType_value[typ]; !ok {
+	if _, ok := ItemType_value[s[3]]; !ok {
 		err = falcon.EINVAL
 	}
-	return
+	return s[0], s[1], s[2], s[3], err
 }

@@ -11,6 +11,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/golang/glog"
 	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/alarm"
 	fconfig "github.com/yubo/falcon/config"
 	"github.com/yubo/falcon/service/config"
 	"github.com/yubo/falcon/service/parse"
@@ -52,6 +53,8 @@ const (
 	C_JUDGE_INTERVAL  = "judgeinterval"
 	C_JUDGE_NUM       = "judgenum"
 	C_ALARM_NUM       = "alarmnum"
+	C_UPSTREAM        = "upstream"
+	C_BURST_SIZE      = "burstsize"
 	//C_WORKER_PROCESSES = "workerprocesses"
 	//C_SHMMAGIC         = "shmmagic"
 	//C_SHMKEY           = "shmkey"
@@ -67,8 +70,10 @@ var (
 		C_IDXINTERVAL:     "30",
 		C_IDXFULLINTERVAL: "86400",
 		C_DB_MAX_IDLE:     "4",
+		C_DB_MAX_CONN:     "4",
 		C_JUDGE_NUM:       "8",
 		C_ALARM_NUM:       "8",
+		C_BURST_SIZE:      "32",
 	}
 )
 
@@ -93,6 +98,7 @@ type Service struct {
 	shard *ShardModule
 
 	// event_trigger
+	appEventChan chan *alarm.Event
 
 	//storageModule
 	//hdisk []string
@@ -102,7 +108,8 @@ type Service struct {
 
 func (p *Service) New(conf interface{}) falcon.Module {
 	return &Service{
-		Conf: conf.(*config.Service),
+		Conf:         conf.(*config.Service),
+		appEventChan: make(chan *alarm.Event, 144),
 	}
 }
 

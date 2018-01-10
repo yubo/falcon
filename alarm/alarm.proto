@@ -5,20 +5,25 @@ package alarm;
 import "google/api/annotations.proto";
 
 message Event {
-	int64 tagId	= 1;
-	bytes key	= 2;
-	bytes expr	= 3;
-	bytes msg	= 4;
-	bytes teimstamp	= 5;
-	double value	= 6;
+	int64	tagId		= 1;
+	bytes	key		= 2;
+	bytes	expr		= 3;
+	bytes	msg		= 4;
+	int64	timestamp	= 5;
+	double	value		= 6;
+	int32	Priority	= 7;
 }
 
-message Response {
+message PutRequest {
+	repeated Event events = 1;
+}
+
+message PutResponse {
 	int32  n = 1; // Actual number of objects success process
 }
 
 service Alarm {
-	rpc Put(Event) returns (Response) {
+	rpc Put(PutRequest) returns (PutResponse) {
 		option (google.api.http) = {
 			post: "/v1/alarm/put"
 			body: "*"

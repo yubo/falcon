@@ -195,27 +195,25 @@ func (c *UserController) DeleteUser() {
 // @router / [delete]
 func (c *UserController) DeleteUsers() {
 	var (
-		ids              []int64
-		errs             []string
-		success, failure int64
+		ids     []int64
+		success int64
 	)
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
 	err := json.Unmarshal(c.Ctx.Input.RequestBody, &ids)
 	if err != nil {
-		c.SendMsg(400, err.Error())
+		c.SendMsg(400, statsObj(success, err))
 		return
 	}
 
 	for _, id := range ids {
 		if err := op.DeleteUser(id); err != nil {
-			errs = append(errs, err.Error())
-			failure++
-		} else {
-			success++
+			c.SendMsg(400, statsObj(success, err))
+			return
 		}
+		success++
 	}
-	c.SendMsg(200, statsObj(success, failure, errs))
+	c.SendMsg(200, statsObj(success, nil))
 }
 
 /*******************************************************************************
@@ -237,7 +235,7 @@ func (c *UserController) GetTagRoleUserCnt() {
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
 	if err := op.Access(models.SYS_R_TOKEN, tagId); err != nil {
-		c.SendMsg(403, err.Error())
+		c.SendMsg(400, err.Error())
 		return
 	}
 
@@ -268,7 +266,7 @@ func (c *UserController) GetTagRoleUser() {
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
 	if err := op.Access(models.SYS_R_TOKEN, tagId); err != nil {
-		c.SendMsg(403, err.Error())
+		c.SendMsg(400, err.Error())
 		return
 	}
 
@@ -298,7 +296,7 @@ func (c *UserController) CreateTagRolesUsers() {
 	}
 
 	if err := op.Access(models.SYS_O_TOKEN, rel.TagId); err != nil {
-		c.SendMsg(403, err.Error())
+		c.SendMsg(400, err.Error())
 		return
 	}
 
@@ -337,7 +335,7 @@ func (c *UserController) DelTagRolesUsers() {
 	}
 
 	if err := op.Access(models.SYS_O_TOKEN, rel.TagId); err != nil {
-		c.SendMsg(403, err.Error())
+		c.SendMsg(400, err.Error())
 		return
 	}
 

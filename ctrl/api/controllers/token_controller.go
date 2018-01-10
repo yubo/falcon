@@ -176,7 +176,7 @@ func (c *TokenController) GetTagRoleTokenCnt() {
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
 	if err := op.Access(models.SYS_R_TOKEN, tagId); err != nil {
-		c.SendMsg(403, err.Error())
+		c.SendMsg(400, err.Error())
 		return
 	}
 
@@ -207,7 +207,7 @@ func (c *TokenController) GetTagRoleToken() {
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
 	if err := op.Access(models.SYS_R_TOKEN, tagId); err != nil {
-		c.SendMsg(403, err.Error())
+		c.SendMsg(400, err.Error())
 		return
 	}
 
@@ -237,7 +237,7 @@ func (c *TokenController) CreateTagRolesTokens() {
 	}
 
 	if err := op.Access(models.SYS_O_TOKEN, rel.TagId); err != nil {
-		c.SendMsg(403, err.Error())
+		c.SendMsg(400, err.Error())
 		return
 	}
 
@@ -278,7 +278,7 @@ func (c *TokenController) DelTagRoleToken() {
 	}
 
 	if err := op.Access(models.SYS_O_TOKEN, rel.TagId); err != nil {
-		c.SendMsg(403, err.Error())
+		c.SendMsg(400, err.Error())
 		return
 	}
 

@@ -13,16 +13,17 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/golang/glog"
 	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/alarm"
 	"golang.org/x/net/context"
 )
 
 type TreeNode struct {
-	Id             int64
-	Name           string
-	ParentId       int64
-	Child          []*TreeNode
-	ETrigger       map[string]*EventTrigger   // map[EventTrigger.Name]
-	ETriggerMetric map[string][]*EventTrigger // map[EventTrigger.Metric]
+	Id                  int64
+	Name                string
+	ParentId            int64
+	childs              []*TreeNode
+	eventTriggers       map[string]*EventTrigger   // map[EventTrigger.Name]
+	eventTriggerMetrics map[string][]*EventTrigger // map[EventTrigger.Metric]
 }
 
 type TagHost struct {
@@ -31,9 +32,9 @@ type TagHost struct {
 }
 
 type Trigger struct {
-	TnodeIds   map[int64]*TreeNode
-	Tnodes     map[string]*TreeNode
-	HostTnodes map[string][]*TreeNode // map[hostname]
+	nodes map[int64]*TreeNode
+	//nodeNames map[string]*TreeNode
+	hostNodes map[string][]*TreeNode // map[hostname]
 }
 
 type TriggerModule struct {
@@ -43,16 +44,12 @@ type TriggerModule struct {
 	judgeInterval int
 	judgeNum      int
 	alarmNum      int
-	eventCh       chan *event
-
-	ctx     context.Context
-	cancel  context.CancelFunc
-	trigger *Trigger
-	service *Service
-	db      orm.Ormer
-}
-
-type action struct {
+	eventCh       chan *alarm.Event
+	ctx           context.Context
+	cancel        context.CancelFunc
+	trigger       *Trigger
+	service       *Service
+	db            orm.Ormer
 }
 
 func (p *TriggerModule) prestart(s *Service) error {
@@ -68,7 +65,7 @@ func (p *TriggerModule) start(s *Service) (err error) {
 	p.judgeInterval, _ = s.Conf.Configer.Int(C_JUDGE_INTERVAL)
 	p.judgeNum, _ = s.Conf.Configer.Int(C_JUDGE_NUM)
 	p.alarmNum, _ = s.Conf.Configer.Int(C_ALARM_NUM)
-	p.eventCh = make(chan *event, 32)
+	p.eventCh = s.appEventChan
 
 	p.db, err = falcon.NewOrm("service_sync",
 		s.Conf.Configer.Str(C_SYNC_DSN), dbmaxidle, dbmaxconn)
@@ -78,7 +75,6 @@ func (p *TriggerModule) start(s *Service) (err error) {
 
 	go p.syncWorker()
 	go p.judgeWorker()
-	go p.alarmWorker()
 
 	return nil
 }
@@ -89,33 +85,30 @@ func getTreeNodes(db orm.Ormer) (rows []*TreeNode, err error) {
 }
 
 func setTreeNodes(rows []*TreeNode, trigger *Trigger) (err error) {
-	tagIds := make(map[int64]*TreeNode)
-	tags := make(map[string]*TreeNode)
-	tags[""] = &TreeNode{
-		Id:             1,
-		Name:           "",
-		ETrigger:       make(map[string]*EventTrigger),
-		ETriggerMetric: make(map[string][]*EventTrigger),
+	nodes := make(map[int64]*TreeNode)
+	nodes[1] = &TreeNode{
+		Id:                  1,
+		Name:                "",
+		eventTriggers:       make(map[string]*EventTrigger),
+		eventTriggerMetrics: make(map[string][]*EventTrigger),
 	}
-	tagIds[1] = tags[""]
 
 	for _, row := range rows {
 
-		row.ETrigger = make(map[string]*EventTrigger)
-		row.ETriggerMetric = make(map[string][]*EventTrigger)
+		row.eventTriggers = make(map[string]*EventTrigger)
+		row.eventTriggerMetrics = make(map[string][]*EventTrigger)
 
-		tags[row.Name] = row
-		tagIds[row.Id] = row
-		if _, ok := tagIds[row.ParentId]; ok {
-			tagIds[row.ParentId].Child = append(tagIds[row.ParentId].Child, row)
+		//nodes[row.Name] = row
+		nodes[row.Id] = row
+		if _, ok := nodes[row.ParentId]; ok {
+			nodes[row.ParentId].childs = append(nodes[row.ParentId].childs, row)
 		} else {
 			glog.V(4).Infof(MODULE_NAME+"%s miss parent %d",
 				row.Name, row.ParentId)
 		}
 	}
 
-	trigger.Tnodes = tags
-	trigger.TnodeIds = tagIds
+	trigger.nodes = nodes
 	return
 }
 
@@ -125,19 +118,19 @@ func getTagHosts(db orm.Ormer) (rows []*TagHost, err error) {
 }
 
 func setTagHosts(rows []*TagHost, trigger *Trigger) (err error) {
-	tags := trigger.TnodeIds
+	nodes := trigger.nodes
 
-	hostTags := make(map[string][]*TreeNode)
+	hostNodes := make(map[string][]*TreeNode)
 	for _, row := range rows {
-		if _, ok := tags[row.TagId]; ok {
-			hostTags[row.HostName] = append(hostTags[row.HostName],
-				tags[row.TagId])
+		if _, ok := nodes[row.TagId]; ok {
+			hostNodes[row.HostName] = append(hostNodes[row.HostName],
+				nodes[row.TagId])
 		} else {
 			glog.V(4).Infof(MODULE_NAME+"miss tag %d\n", row.TagId)
 		}
 	}
 
-	trigger.HostTnodes = hostTags
+	trigger.hostNodes = hostNodes
 	return
 }
 
@@ -152,24 +145,24 @@ func triggerOverride(cover, base map[string]*EventTrigger) map[string]*EventTrig
 	return ret
 }
 
-func reduceTrigger(tag *TreeNode, base map[string]*EventTrigger) {
-	tag.ETrigger = triggerOverride(tag.ETrigger, base)
-	for _, child := range tag.Child {
-		reduceTrigger(child, tag.ETrigger)
+func adjustTrigger(tag *TreeNode, base map[string]*EventTrigger) {
+	tag.eventTriggers = triggerOverride(tag.eventTriggers, base)
+	for _, child := range tag.childs {
+		adjustTrigger(child, tag.eventTriggers)
 	}
 }
 
-func reduceTriggerMetric(tag *TreeNode) {
-	for _, v := range tag.ETrigger {
+func adjustTriggerMetric(tag *TreeNode) {
+	for _, v := range tag.eventTriggers {
 		tmp := *v
-		tag.ETriggerMetric[v.Metric] = append(tag.ETriggerMetric[v.Metric], &tmp)
+		tag.eventTriggerMetrics[v.Metric] = append(tag.eventTriggerMetrics[v.Metric], &tmp)
 		for _, v1 := range v.Child {
 			tmp := *v1
-			tag.ETriggerMetric[v1.Metric] = append(tag.ETriggerMetric[v1.Metric], &tmp)
+			tag.eventTriggerMetrics[v1.Metric] = append(tag.eventTriggerMetrics[v1.Metric], &tmp)
 		}
 	}
-	for _, child := range tag.Child {
-		reduceTriggerMetric(child)
+	for _, child := range tag.childs {
+		adjustTriggerMetric(child)
 	}
 }
 
@@ -179,7 +172,7 @@ func getEventTriggers(db orm.Ormer) (rows []*EventTrigger, err error) {
 }
 
 func setEventTriggers(rows []*EventTrigger, trigger *Trigger) (err error) {
-	tags := trigger.TnodeIds
+	nodes := trigger.nodes
 	index := make(map[int64]*EventTrigger)
 	for _, row := range rows {
 		if err := row.exprPrepare(); err != nil {
@@ -194,12 +187,12 @@ func setEventTriggers(rows []*EventTrigger, trigger *Trigger) (err error) {
 			}
 		} else {
 			index[row.Id] = row
-			tags[row.TagId].ETrigger[row.Name] = row
+			nodes[row.TagId].eventTriggers[row.Name] = row
 		}
 	}
 
-	reduceTrigger(tags[1], nil)
-	reduceTriggerMetric(tags[1])
+	adjustTrigger(nodes[1], nil)
+	adjustTriggerMetric(nodes[1])
 
 	return nil
 }
@@ -207,14 +200,14 @@ func setEventTriggers(rows []*EventTrigger, trigger *Trigger) (err error) {
 func setServiceItems(items map[string]*itemEntry, trigger *Trigger) error {
 	for _, item := range items {
 		// endpoint ?
-		nodes, ok := trigger.HostTnodes[string(item.endpoint)]
+		nodes, ok := trigger.hostNodes[string(item.endpoint)]
 		if !ok {
 			continue
 		}
 
 		for _, node := range nodes {
 			// metric ?
-			ets, ok := node.ETriggerMetric[string(item.metric)]
+			ets, ok := node.eventTriggerMetrics[string(item.metric)]
 			if !ok {
 				continue
 			}
@@ -314,8 +307,8 @@ func (p *TriggerModule) syncWorker() {
 
 }
 
-func judgeTagNode(node *TreeNode, eventCh chan *event) {
-	for _, triggers := range node.ETriggerMetric {
+func judgeTagNode(node *TreeNode, eventCh chan *alarm.Event) {
+	for _, triggers := range node.eventTriggerMetrics {
 		for _, trigger := range triggers {
 			for _, item := range trigger.items {
 				event := trigger.Exec(item)
@@ -356,25 +349,13 @@ func (p *TriggerModule) judgeWorker() {
 			trigger := p.trigger
 			p.RUnlock()
 
-			for _, node := range trigger.TnodeIds {
+			for _, node := range trigger.nodes {
 				taskCh <- node
 			}
 
 		}
 	}
 
-}
-
-func (p *TriggerModule) alarmWorker() {
-	for {
-		select {
-		case <-p.ctx.Done():
-			return
-		case e := <-p.eventCh:
-			glog.V(3).Info("%s recv event %#v", MODULE_NAME, e)
-		}
-
-	}
 }
 
 func (p *TriggerModule) stop(s *Service) error {

@@ -154,34 +154,31 @@ func (c *HostController) DeleteHost() {
 // @Title DeleteHosts
 // @Description delete the hosts
 // @Param body	body	[]int	true	"The []id you want to delete"
-// @Success 200 {string} "delete success!"
 // @Success 200 {object} models.Stats api call result
-// @Failure 400 string error
+// @Failure 400 {object} models.Stats api call result
 // @router / [delete]
 func (c *HostController) DeleteHosts() {
 	var (
-		ids              []int64
-		errs             []string
-		success, failure int64
+		ids     []int64
+		success int64
 	)
 
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
 	err := json.Unmarshal(c.Ctx.Input.RequestBody, &ids)
 	if err != nil {
-		c.SendMsg(400, err.Error())
+		c.SendMsg(400, statsObj(success, err))
 		return
 	}
 
 	for _, id := range ids {
 		if err := op.DeleteHost(id); err != nil {
-			errs = append(errs, err.Error())
-			failure++
-		} else {
-			success++
+			c.SendMsg(400, statsObj(success, err))
+			return
 		}
+		success++
 	}
-	c.SendMsg(200, statsObj(success, failure, errs))
+	c.SendMsg(200, statsObj(success, nil))
 }
 
 /*******************************************************************************
@@ -203,7 +200,7 @@ func (c *HostController) GetTagHostCnt() {
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
 	if err := op.Access(models.SYS_R_TOKEN, tagId); err != nil {
-		c.SendMsg(403, err.Error())
+		c.SendMsg(400, err.Error())
 		return
 	}
 
@@ -234,7 +231,7 @@ func (c *HostController) GetTagHost() {
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
 	if err := op.Access(models.SYS_R_TOKEN, tagId); err != nil {
-		c.SendMsg(403, err.Error())
+		c.SendMsg(400, err.Error())
 		return
 	}
 
@@ -261,19 +258,19 @@ func (c *HostController) CreateTagHost() {
 	if !op.IsAdmin() {
 		if err := op.Access(models.SYS_O_TOKEN,
 			rel.TagId); err != nil {
-			c.SendMsg(403, err.Error())
+			c.SendMsg(400, err.Error())
 			return
 		}
 
 		if err := op.Access(models.SYS_O_TOKEN,
 			rel.SrcTagId); err != nil {
-			c.SendMsg(403, err.Error())
+			c.SendMsg(400, err.Error())
 			return
 		}
 
 		if cnt, err := op.ChkTagHostCnt(rel.SrcTagId,
 			[]int64{rel.HostId}); err != nil || cnt != 1 {
-			c.SendMsg(403, falcon.EPERM)
+			c.SendMsg(400, falcon.EPERM)
 			return
 		}
 	}
@@ -304,19 +301,19 @@ func (c *HostController) CreateTagHosts() {
 	if !op.IsAdmin() {
 		if err := op.Access(models.SYS_O_TOKEN,
 			rel.TagId); err != nil {
-			c.SendMsg(403, err.Error())
+			c.SendMsg(400, err.Error())
 			return
 		}
 
 		if err := op.Access(models.SYS_O_TOKEN,
 			rel.SrcTagId); err != nil {
-			c.SendMsg(403, err.Error())
+			c.SendMsg(400, err.Error())
 			return
 		}
 
 		if cnt, err := op.ChkTagHostCnt(rel.SrcTagId,
 			rel.HostIds); err != nil || cnt != int64(len(rel.HostIds)) {
-			c.SendMsg(403, falcon.EPERM)
+			c.SendMsg(400, falcon.EPERM)
 			return
 		}
 
@@ -342,7 +339,7 @@ func (c *HostController) DelTagHost() {
 	json.Unmarshal(c.Ctx.Input.RequestBody, &rel)
 
 	if err := op.Access(models.SYS_O_TOKEN, rel.TagId); err != nil {
-		c.SendMsg(403, err.Error())
+		c.SendMsg(400, err.Error())
 		return
 	}
 
@@ -367,7 +364,7 @@ func (c *HostController) DelTagHosts() {
 	json.Unmarshal(c.Ctx.Input.RequestBody, &rel)
 
 	if err := op.Access(models.SYS_O_TOKEN, rel.TagId); err != nil {
-		c.SendMsg(403, err.Error())
+		c.SendMsg(400, err.Error())
 		return
 	}
 

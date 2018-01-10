@@ -34,6 +34,9 @@ func idObj(n int64) models.Id {
 	return models.Id{Id: n}
 }
 
-func statsObj(success, failure int64, errs []string) models.Stats {
-	return models.Stats{Success: success, Failure: failure, Errs: errs}
+func statsObj(success int64, err error) models.Stats {
+	if err == nil {
+		return models.Stats{Success: success, Err: ""}
+	}
+	return models.Stats{Success: success, Err: err.Error()}
 }

@@ -15,6 +15,38 @@ func init() {
 			MethodParams: param.Make(),
 			Params: nil})
 
+	beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/api/controllers:ActionController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/api/controllers:ActionController"],
+		beego.ControllerComments{
+			Method: "UpdateActionTrigger",
+			Router: `/trigger`,
+			AllowHTTPMethods: []string{"put"},
+			MethodParams: param.Make(),
+			Params: nil})
+
+	beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/api/controllers:ActionController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/api/controllers:ActionController"],
+		beego.ControllerComments{
+			Method: "DeleteActionTrigger",
+			Router: `/trigger`,
+			AllowHTTPMethods: []string{"delete"},
+			MethodParams: param.Make(),
+			Params: nil})
+
+	beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/api/controllers:ActionController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/api/controllers:ActionController"],
+		beego.ControllerComments{
+			Method: "GetActionTriggersCnt",
+			Router: `/trigger/cnt`,
+			AllowHTTPMethods: []string{"get"},
+			MethodParams: param.Make(),
+			Params: nil})
+
+	beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/api/controllers:ActionController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/api/controllers:ActionController"],
+		beego.ControllerComments{
+			Method: "GetActionTriggers",
+			Router: `/trigger/search`,
+			AllowHTTPMethods: []string{"get"},
+			MethodParams: param.Make(),
+			Params: nil})
+
 	beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/api/controllers:AdminController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/ctrl/api/controllers:AdminController"],
 		beego.ControllerComments{
 			Method: "GetConfig",

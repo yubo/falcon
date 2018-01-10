@@ -28,7 +28,7 @@ func (c *PluginController) GetTagPluginCnt() {
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
 	if err := op.Access(models.SYS_F_R_TOKEN, tagId); err != nil {
-		c.SendMsg(403, err.Error())
+		c.SendMsg(400, err.Error())
 		return
 	}
 
@@ -57,7 +57,7 @@ func (c *PluginController) GetPluginDir() {
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
 	if err := op.Access(models.SYS_F_R_TOKEN, tagId); err != nil {
-		c.SendMsg(403, err.Error())
+		c.SendMsg(400, err.Error())
 		return
 	}
 
@@ -82,7 +82,7 @@ func (c *PluginController) CreatePluginDir() {
 	json.Unmarshal(c.Ctx.Input.RequestBody, &input)
 
 	if err := op.Access(models.SYS_F_O_TOKEN, input.TagId); err != nil {
-		c.SendMsg(403, err.Error())
+		c.SendMsg(400, err.Error())
 		return
 	}
 
@@ -107,7 +107,7 @@ func (c *PluginController) DeletePluginDir() {
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
 	if err := op.Access(models.SYS_F_O_TOKEN, tagId); err != nil {
-		c.SendMsg(403, err.Error())
+		c.SendMsg(400, err.Error())
 		return
 	}
 

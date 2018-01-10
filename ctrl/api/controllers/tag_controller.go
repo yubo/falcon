@@ -32,7 +32,7 @@ func (c *TagController) CreateTag() {
 	// TODO: check parent exist/acl
 	if _, err := op.AccessByStr(models.SYS_O_TOKEN, models.TagParent(tag.Name),
 		false); err != nil {
-		c.SendMsg(403, err.Error())
+		c.SendMsg(400, err.Error())
 		return
 	}
 
@@ -126,7 +126,7 @@ func (c *TagController) UpdateTag() {
 
 	if _, err = op.AccessByStr(models.SYS_O_TOKEN, models.TagParent(tag.Name),
 		true); err != nil {
-		c.SendMsg(403, err.Error())
+		c.SendMsg(400, err.Error())
 		return
 	}
 
@@ -167,7 +167,7 @@ func (c *TagController) DeleteTag() {
 
 	if _, err = op.AccessByStr(models.SYS_O_TOKEN,
 		models.TagParent(tag.Name), false); err != nil {
-		c.SendMsg(403, err.Error())
+		c.SendMsg(400, err.Error())
 		return
 	}
 

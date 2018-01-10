@@ -43,7 +43,7 @@ func (c *EventController) CreateEventTrigger() {
 	json.Unmarshal(c.Ctx.Input.RequestBody, &input)
 
 	if err := accessEventTriggerOp(op, input.TagId); err != nil {
-		c.SendMsg(403, err.Error())
+		c.SendMsg(400, err.Error())
 		return
 	}
 
@@ -87,32 +87,30 @@ func (c *EventController) CreateEventTrigger() {
 // @Description clone event triggers to tag node
 // @Param	body	body 	models.EventTriggerApiClone	true	"body for clone event trigger content"
 // @Success 200 {object} models.Stats api call result
-// @Failure 403 string error
+// @Success 400 {object} models.Stats api call result
 // @router /trigger/clone [post]
 func (c *EventController) CloneEventTrigger() {
 	var (
-		errs             []string
-		success, failure int64
-		input            models.EventTriggerApiClone
+		success int64
+		input   models.EventTriggerApiClone
 	)
 
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	json.Unmarshal(c.Ctx.Input.RequestBody, &input)
 
 	if err := accessEventTriggerOp(op, input.TagId); err != nil {
-		c.SendMsg(403, err.Error())
+		c.SendMsg(400, statsObj(success, err))
 		return
 	}
 
 	for _, id := range input.EventTriggerIds {
 		if _, err := op.CloneEventTrigger(id, input.TagId); err != nil {
-			errs = append(errs, err.Error())
-			failure++
-		} else {
-			success++
+			c.SendMsg(400, statsObj(success, err))
+			return
 		}
+		success++
 	}
-	c.SendMsg(200, statsObj(success, failure, errs))
+	c.SendMsg(200, statsObj(success, nil))
 }
 
 // @Title Get event triggers Cnt
@@ -212,9 +210,8 @@ func (c *EventController) UpdateEventTrigger() {
 // @router /trigger [delete]
 func (c *EventController) DeleteEventTrigger() {
 	var (
-		errs             []string
-		success, failure int64
-		input            models.EventTriggerApiDel
+		success int64
+		input   models.EventTriggerApiDel
 	)
 
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
@@ -222,12 +219,11 @@ func (c *EventController) DeleteEventTrigger() {
 
 	for _, id := range input.EventTriggerIds {
 		if _, err := op.DeleteEventTrigger(id, input.TagId); err != nil {
-			errs = append(errs, err.Error())
-			failure++
-		} else {
-			success++
+			c.SendMsg(400, statsObj(success, err))
+			return
 		}
+		success++
 	}
 
-	c.SendMsg(200, statsObj(success, failure, errs))
+	c.SendMsg(200, statsObj(success, nil))
 }

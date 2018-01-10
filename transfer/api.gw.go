@@ -40,7 +40,7 @@ func (p *ApiGwModule) start(transfer *Transfer) error {
 
 	mux := http.NewServeMux()
 
-	err := service.Gateway(p.ctx, mux, p.upstream)
+	err := falcon.Gateway(service.RegisterServiceHandlerFromEndpoint, p.ctx, mux, p.upstream)
 	if err != nil {
 		return nil
 	}

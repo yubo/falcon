@@ -148,9 +148,8 @@ type Total struct {
 }
 
 type Stats struct {
-	Success int64    `json:"success"`
-	Failure int64    `json:"failure"`
-	Errs    []string `json:"errs"`
+	Success int64  `json:"success"`
+	Err     string `json:"err"`
 }
 
 type KeyValue struct {

@@ -7,17 +7,9 @@ package service
 
 import (
 	"github.com/golang/glog"
+	"github.com/yubo/falcon/alarm"
 	"github.com/yubo/falcon/service/expr"
 )
-
-type event struct {
-	TagId     int64
-	Key       string
-	Expr      string
-	Msg       string
-	Timestamp int64
-	Value     float64
-}
 
 type EventTrigger struct {
 	Id       int64
@@ -34,7 +26,7 @@ type EventTrigger struct {
 	expr     *expr.Expr
 }
 
-func (p *EventTrigger) Exec(item *itemEntry) *event {
+func (p *EventTrigger) Exec(item *itemEntry) *alarm.Event {
 	glog.V(4).Infof("exec %s expr %s", item.key, p.Expr)
 
 	if !expr.Exec(item, p.expr) {
@@ -44,11 +36,11 @@ func (p *EventTrigger) Exec(item *itemEntry) *event {
 	item.RLock()
 	defer item.RUnlock()
 	id := (item.dataId - 1) & CACHE_SIZE_MASK
-	return &event{
+	return &alarm.Event{
 		TagId:     p.TagId,
-		Key:       item.key,
-		Expr:      p.Expr,
-		Msg:       p.Msg,
+		Key:       []byte(item.key),
+		Expr:      []byte(p.Expr),
+		Msg:       []byte(p.Msg),
 		Timestamp: item.timestamp[id],
 		Value:     item.value[id],
 	}

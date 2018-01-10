@@ -10,7 +10,6 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/yubo/falcon"
 	fconfig "github.com/yubo/falcon/config"
 	"github.com/yubo/falcon/service/config"
 )
@@ -21,14 +20,12 @@ var (
 	err      error
 )
 
-func newItem(i int) *falcon.Item {
-	return &falcon.Item{
-		Endpoint:  []byte(fmt.Sprintf("host_%d", i)),
-		Metric:    []byte(fmt.Sprintf("key_%d", i)),
+func newItem(i int) *Item {
+	return &Item{
+		Key:       []byte(fmt.Sprintf("host_%d/metric_%d//GAUGE", i, i)),
+		ShardId:   0,
 		Value:     float64(i),
 		Timestamp: int64(i) * DEBUG_STEP,
-		Type:      falcon.ItemType_GAUGE,
-		Tags:      []byte{},
 	}
 }
 
@@ -67,9 +64,9 @@ func TestCache(t *testing.T) {
 		t.Error(err)
 	}
 
-	ie, err := bucket.getItem(item1.Key())
+	ie, err := bucket.getItem(string(item1.Key))
 	if err != nil || tie != ie {
-		t.Errorf("bucket.getItem(%s) error", item1.Key())
+		t.Errorf("bucket.getItem(%s) error", string(item1.Key))
 	}
 	fmt.Printf("bucket.getItem success\n")
 
@@ -83,7 +80,7 @@ func TestCache(t *testing.T) {
 	}
 
 	// unlink
-	bucket.unlink(item1.Key())
+	bucket.unlink(string(item1.Key))
 	if len(bucket.itemMap) != 1 {
 		t.Errorf(" size error size %d want 1", len(bucket.itemMap))
 	}
@@ -101,7 +98,7 @@ func TestCacheQueue(t *testing.T) {
 	item := newItem(0)
 	ie, err := cacheApp.shard.put(item)
 	if err != nil {
-		t.Errorf("%s:%s", "testCacheQueue", err)
+		t.Errorf("%s:%s", "testCacheQueue", err.Error())
 	}
 
 	//fmt.Printf("cacheEtnry filename: %s\n", entry.filename())

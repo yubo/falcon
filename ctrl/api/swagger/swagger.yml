@@ -363,7 +363,7 @@ paths:
           schema:
             $ref: '#/definitions/models.Stats'
         "400":
-          description: string error
+          description: '{object}  models.Stats DashboardGraph'
   /dashboard/screen:
     post:
       tags:
@@ -586,8 +586,10 @@ paths:
           description: api call result
           schema:
             $ref: '#/definitions/models.Stats'
-        "403":
-          description: string error
+        "400":
+          description: api call result
+          schema:
+            $ref: '#/definitions/models.Stats'
   /event/trigger/cnt:
     get:
       tags:
@@ -795,7 +797,7 @@ paths:
           schema:
             $ref: '#/definitions/models.Stats'
         "400":
-          description: string error
+          description: '{object} models.Stats api call result'
   /host/{id}:
     get:
       tags:
@@ -2199,8 +2201,6 @@ paths:
         "400":
           description: string error
 definitions:
-  .ActionTriggerApiAdd:
-    type: object
   .Trigger:
     type: object
   .false:
@@ -2280,6 +2280,97 @@ definitions:
         type: array
         items:
           type: string
+  models.ActionTriggerApiAdd:
+    title: ActionTriggerApiAdd
+    type: object
+    properties:
+      action_script:
+        type: string
+      email:
+        type: boolean
+      expr:
+        type: string
+      order_id:
+        type: integer
+        format: int64
+      script:
+        type: boolean
+      sms:
+        type: boolean
+      tag_id:
+        type: integer
+        format: int64
+      token_id:
+        type: integer
+        format: int64
+  models.ActionTriggerApiDel:
+    title: ActionTriggerApiDel
+    type: object
+    properties:
+      action_trigger_ids:
+        type: array
+        items:
+          type: integer
+          format: int64
+      tag_id:
+        type: integer
+        format: int64
+  models.ActionTriggerApiGet:
+    title: ActionTriggerApiGet
+    type: object
+    properties:
+      action_script:
+        type: string
+      email:
+        type: boolean
+      expr:
+        type: string
+      id:
+        type: integer
+        format: int64
+      order_id:
+        type: integer
+        format: int64
+      script:
+        type: boolean
+      sms:
+        type: boolean
+      tag_id:
+        type: integer
+        format: int64
+      tag_name:
+        type: string
+      token_id:
+        type: integer
+        format: int64
+      token_name:
+        type: string
+  models.ActionTriggerApiUpdate:
+    title: ActionTriggerApiUpdate
+    type: object
+    properties:
+      action_script:
+        type: string
+      email:
+        type: boolean
+      expr:
+        type: string
+      id:
+        type: integer
+        format: int64
+      order_id:
+        type: integer
+        format: int64
+      script:
+        type: boolean
+      sms:
+        type: boolean
+      tag_id:
+        type: integer
+        format: int64
+      token_id:
+        type: integer
+        format: int64
   models.AddDashboardScreen:
     title: AddDashboardScreen
     type: object
@@ -2707,13 +2798,8 @@ definitions:
     title: Stats
     type: object
     properties:
-      errs:
-        type: array
-        items:
-          type: string
-      failure:
-        type: integer
-        format: int64
+      err:
+        type: string
       success:
         type: integer
         format: int64
@@ -2854,7 +2940,7 @@ definitions:
       role_token:
         type: array
         items:
-          $ref: '#/definitions/37866.0xc420379530.false'
+          $ref: '#/definitions/37034.0xc42037f500.false'
       tag_id:
         type: integer
         format: int64
@@ -2882,7 +2968,7 @@ definitions:
       role_user:
         type: array
         items:
-          $ref: '#/definitions/112941.0xc420497080.false'
+          $ref: '#/definitions/116960.0xc4204b8300.false'
       tag_id:
         type: integer
         format: int64
