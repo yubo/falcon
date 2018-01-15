@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	"github.com/yubo/falcon"
 )
 
 var (
@@ -198,7 +199,7 @@ func miFetchHosts(filename string) (ctx *miSyncContent, err error) {
 		host: make(map[string]*miHost),
 	}
 	if filename == "" {
-		if err = getJson(miNornsUrl, &hosts, 2*time.Minute); err != nil {
+		if err = falcon.GetJson(miNornsUrl, &hosts, 2*time.Minute); err != nil {
 			glog.Error(MODULE_NAME, err)
 			return
 		}
@@ -249,7 +250,7 @@ func miFetchHosts(filename string) (ctx *miSyncContent, err error) {
 		ctx.h[idx] = host
 	}
 
-	glog.V(4).Infof(MODULE_NAME+"get %d node from norns", len(ctx.host))
+	glog.V(4).Infof("%s get %d node from norns", MODULE_NAME, len(ctx.host))
 	return
 }
 
@@ -268,7 +269,7 @@ func getLocalHosts() (hm map[string]*Host) {
 		}
 	}
 
-	glog.V(4).Infof(MODULE_NAME+"get %d hosts from lcoal db", len(hm))
+	glog.V(4).Infof("%s get %d hosts from lcoal db", MODULE_NAME, len(hm))
 	return
 }
 
@@ -314,7 +315,8 @@ func syncHosts(src map[string]*miHost, dst map[string]*Host) {
 			}
 		}
 	}
-	glog.V(4).Infof(MODULE_NAME+"syncHosts(): insert %d/%d del %d/%d", add_err, add, del_err, del)
+	glog.V(4).Infof("%s syncHosts(): insert %d/%d del %d/%d",
+		MODULE_NAME, add_err, add, del_err, del)
 
 }
 

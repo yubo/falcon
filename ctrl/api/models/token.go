@@ -36,7 +36,7 @@ func (op *Operator) CreateToken(o *TokenCreate) (id int64, err error) {
 	if err != nil {
 		return
 	}
-	DbLog(op.O, op.User.Id, CTL_M_TOKEN, id, CTL_A_ADD, jsonStr(o))
+	op.log(CTL_M_TOKEN, id, CTL_A_ADD, jsonStr(o))
 	return
 }
 
@@ -94,7 +94,7 @@ func (op *Operator) UpdateToken(t *Token) (ret *Token, err error) {
 		return
 	}
 
-	DbLog(op.O, op.User.Id, CTL_M_TOKEN, t.Id, CTL_A_SET, jsonStr(t))
+	op.log(CTL_M_TOKEN, t.Id, CTL_A_SET, jsonStr(t))
 	return ret, err
 }
 
@@ -108,7 +108,7 @@ func (op *Operator) DeleteToken(id int64) error {
 		return err
 	}
 	moduleCache[CTL_M_TOKEN].del(id)
-	DbLog(op.O, op.User.Id, CTL_M_TOKEN, id, CTL_A_DEL, "")
+	op.log(CTL_M_TOKEN, id, CTL_A_DEL, "")
 
 	return nil
 }
@@ -189,11 +189,9 @@ func (op *Operator) GetTagRoleToken(tagId int64, query string, deep bool,
 }
 
 func (op *Operator) CreateTagRoleToken(rel *TagRoleTokenApi) (int64, error) {
-	return addTplRel(op.O, op.User.Id, rel.TagId, rel.RoleId,
-		rel.TokenId, TPL_REL_T_ACL_TOKEN)
+	return op.addTplRel(rel.TagId, rel.RoleId, rel.TokenId, TPL_REL_T_ACL_TOKEN)
 }
 
 func (op *Operator) DeleteTagRoleToken(rel *TagRoleTokenApi) (int64, error) {
-	return delTplRel(op.O, op.User.Id, rel.TagId, rel.RoleId,
-		rel.TokenId, TPL_REL_T_ACL_TOKEN)
+	return op.delTplRel(rel.TagId, rel.RoleId, rel.TokenId, TPL_REL_T_ACL_TOKEN)
 }

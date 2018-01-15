@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	"github.com/yubo/falcon"
 	"golang.org/x/net/context"
 )
 
@@ -30,7 +31,6 @@ func init() {
 }
 
 func RegisterCollector(c Collector) {
-	glog.V(4).Infof(MODULE_NAME+"register collector %s", c.Name())
 	if _, ok := collectorGroups[c.GName()]; !ok {
 		collectorGroups[c.GName()] = make(map[string]Collector)
 	}
@@ -60,6 +60,7 @@ func (p *CollectModule) prestart(agent *Agent) error {
 				continue
 			}
 			for _, c := range group {
+				glog.V(4).Infof("%s add plugin %s", MODULE_NAME, plugin)
 				p.a = append(p.a, c)
 			}
 			keys[plugin] = true
@@ -78,7 +79,9 @@ func (p *CollectModule) start(agent *Agent) error {
 	ticker := time.NewTicker(time.Second * time.Duration(interval)).C
 
 	for _, c := range p.a {
+		glog.V(4).Infof("%s plugins %s.Start()", MODULE_NAME, falcon.GetType(c))
 		if err := c.Start(agent); err != nil {
+			glog.V(4).Infof("%s plugins %s.Start() err %v", MODULE_NAME, falcon.GetType(c), err)
 			return err
 		}
 	}

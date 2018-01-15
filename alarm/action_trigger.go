@@ -22,15 +22,9 @@ type ActionTrigger struct {
 	expr         *expr.Expr
 }
 
-func (p *ActionTrigger) Exec(item *eventEntry) error {
-	glog.V(4).Infof("exec %s expr %s", item.key, p.Expr)
-
-	if !expr.Exec(item, p.expr) {
-		return nil
-	}
-
-	return nil
-
+func (p *ActionTrigger) Dispatch(item *eventEntry) bool {
+	glog.V(5).Infof("dispatch %s expr %s", item.key, p.Expr)
+	return expr.Exec(item, p.expr)
 }
 
 func (p *ActionTrigger) exprPrepare() (err error) {

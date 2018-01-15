@@ -307,7 +307,7 @@ func WeappLogin(code, encrypt_data, iv string) (*WeappSession, error) {
 	now := time.Now().Unix()
 
 	s := &WeappSession{
-		Key:       RandString(32),
+		Key:       falcon.RandString(32),
 		Expires:   now + 3600,
 		AppUser:   &appuser,
 		Wxsession: session.Session,
@@ -339,7 +339,7 @@ func GetWeappSession(code string) (*WxSession, error) {
 	var session WxSession
 	url := fmt.Sprintf("https://api.weixin.qq.com/sns/jscode2session?appid=%s&secret=%s&js_code=%s&grant_type=authorization_code", wxappid, wxappsecret, code)
 
-	err := getJson(url, &session, 30*time.Second)
+	err := falcon.GetJson(url, &session, 30*time.Second)
 
 	return &session, err
 }
@@ -360,7 +360,7 @@ type QrTask struct {
 
 func WeappAuthQr() (*QrTask, error) {
 	task := &WeappTask{
-		Key:     RandString(64),
+		Key:     falcon.RandString(64),
 		Action:  WEAPP_TASK_LOGIN,
 		States:  WEAPP_TASK_PENDING,
 		Expires: time.Now().Unix() + 60,
@@ -376,7 +376,7 @@ func WeappAuthQr() (*QrTask, error) {
 
 func WeappBindQr(uid int64) (*QrTask, error) {
 	task := &WeappTask{
-		Key:     RandString(64),
+		Key:     falcon.RandString(64),
 		Action:  WEAPP_TASK_BIND_USER,
 		States:  WEAPP_TASK_PENDING,
 		Data:    uid,

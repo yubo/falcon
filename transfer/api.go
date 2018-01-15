@@ -6,7 +6,6 @@
 package transfer
 
 import (
-	"errors"
 	"net"
 	"time"
 
@@ -23,36 +22,44 @@ type ApiModule struct {
 	ctx     context.Context
 	cancel  context.CancelFunc
 	address string
-	putChan chan []*service.Item
+	//putChan chan []*service.Item
+	reqChan chan *reqPayload
 }
 
 func (p *ApiModule) Get(ctx context.Context,
-	in *service.GetRequest) (*service.GetResponse, error) {
-	return &service.GetResponse{}, nil
+	in *service.GetRequest) (res *service.GetResponse, err error) {
+
+	req := &reqPayload{
+		action: RPC_ACTION_GET,
+		data:   in,
+		done:   make(chan interface{}),
+	}
+	p.reqChan <- req
+	res = (<-req.done).(*service.GetResponse)
+
+	// directly forward
+	statsInc(ST_RX_GET_ITERS, 1)
+	statsInc(ST_RX_GET_ITEMS, len(res.Dps))
+	return
 }
 
 func (p *ApiModule) Put(ctx context.Context,
 	in *service.PutRequest) (res *service.PutResponse, err error) {
 
-	glog.V(3).Infof("%s RX PUT %d", MODULE_NAME, len(in.Items))
+	glog.V(5).Infof("%s rx put %v", MODULE_NAME, len(in.Items))
 
-	items := []*service.Item{}
 	res = &service.PutResponse{}
 
 	for _, item := range in.Items {
 		if err = item.Adjust(); err != nil {
 			return
 		}
-		items = append(items, item)
-		res.N++
-	}
 
-	select {
-	case p.putChan <- items:
-	default:
-		glog.V(4).Infof("%s RX PUT %d FAIL", MODULE_NAME, len(in.Items))
-		res.N = 0
-		err = errors.New("chan is busy")
+		p.reqChan <- &reqPayload{
+			action: RPC_ACTION_PUT,
+			data:   item,
+		}
+		res.N++
 	}
 
 	statsInc(ST_RX_PUT_ITERS, 1)
@@ -62,10 +69,18 @@ func (p *ApiModule) Put(ctx context.Context,
 	return
 }
 
+func (p *ApiModule) GetStats(ctx context.Context, in *service.Empty) (*service.Stats, error) {
+	return &service.Stats{Counter: statsCounter}, nil
+}
+
+func (p *ApiModule) GetStatsName(ctx context.Context, in *service.Empty) (*service.StatsName, error) {
+	return &service.StatsName{CounterName: statsCounterName}, nil
+}
+
 func (p *ApiModule) prestart(transfer *Transfer) error {
 	p.address = transfer.Conf.Configer.Str(C_API_ADDR)
 	p.disable = falcon.AddrIsDisable(p.address)
-	p.putChan = transfer.appPutChan
+	p.reqChan = transfer.reqChan
 
 	return nil
 }
@@ -112,6 +127,8 @@ func (p *ApiModule) stop(transfer *Transfer) error {
 }
 
 func (p *ApiModule) reload(transfer *Transfer) error {
+	return nil
+
 	if !p.disable {
 		p.stop(transfer)
 		time.Sleep(time.Second)

@@ -5,18 +5,22 @@
  */
 package alarm
 
-/*
+import (
+	"fmt"
+	"os"
+	"sync"
+	"testing"
+	"time"
+
+	"github.com/astaxie/beego/orm"
+	"github.com/golang/glog"
+	"github.com/yubo/falcon"
+)
+
 var (
 	test_db_init bool
 	test_db      orm.Ormer
 )
-
-type testItem struct {
-	endpoint string
-	metric   string
-	tags     string
-	typ      falcon.ItemType
-}
 
 func init() {
 	var err error
@@ -35,7 +39,7 @@ func init() {
 	netAddr := fmt.Sprintf("%s(%s)", prot, addr)
 	dsn := fmt.Sprintf("%s:%s@%s/%s?timeout=30s&strict=true", user, pass, netAddr, dbname)
 
-	test_db, err = falcon.NewOrm("test_service_sync", dsn, 10, 10)
+	test_db, err = falcon.NewOrm("test_action_sync", dsn, 10, 10)
 	if err != nil {
 		return
 	}
@@ -43,191 +47,184 @@ func init() {
 }
 
 func testTirggerDb(t *testing.T) {
-	var (
-		err           error
-		shard         *ShardModule
-		trigger       *Trigger
-		treeNodes     []*TreeNode
-		tagHosts      []*TagHost
-		eventTriggers []*EventTrigger
-	)
 
 	if !test_db_init {
 		t.Logf("test db not inited, skip test sync\n")
 		return
 	}
 
-	shard = &ShardModule{
-		bucketMap: make(map[int32]*bucketEntry),
-	}
-
-	trigger = &Trigger{}
-
-	if treeNodes, err = getTreeNodes(test_db); err != nil {
+	trigger := &Trigger{db: test_db}
+	if err := trigger.updateNode(); err != nil {
 		t.Error(err)
 	}
-	if err = setTreeNodes(treeNodes, trigger); err != nil {
+	if err := trigger.updateUser(); err != nil {
 		t.Error(err)
 	}
-
-	if tagHosts, err = getTagHosts(test_db); err != nil {
+	if err := trigger.updateTagRoleUser(); err != nil {
 		t.Error(err)
 	}
-	if err = setTagHosts(tagHosts, trigger); err != nil {
+	if err := trigger.updateTagRoleToken(); err != nil {
 		t.Error(err)
 	}
 
-	if eventTriggers, err = getEventTriggers(test_db); err != nil {
-		t.Error(err)
-	}
-	if err = setEventTriggers(eventTriggers, trigger); err != nil {
+	if err := trigger.updateTagTokenUser(); err != nil {
 		t.Error(err)
 	}
 
-	if err = setServiceShards(shard, trigger); err != nil {
+	if err := trigger.updateActionTrigger(); err != nil {
 		t.Error(err)
 	}
 }
 
-func testFillDps(shard *ShardModule, items []*testItem, dps []*falcon.DataPoint, t *testing.T) {
-	for _, v := range items {
-		for _, dp := range dps {
-			item := &falcon.Item{
-				ShardId:   0,
-				Endpoint:  []byte(v.endpoint),
-				Metric:    []byte(v.metric),
-				Tags:      []byte(v.tags),
-				Type:      v.typ,
-				Value:     dp.Value,
-				Timestamp: dp.Timestamp,
-			}
-			if _, err := shard.put(item); err != nil {
-				t.Error(err)
-			}
-		}
-	}
-}
-
-func testTriggerExprProcess(trigger *Trigger) int {
-	var cnt int
-
-	ctx, cancel := context.WithCancel(context.Background())
-	eventCh := make(chan *event, 32)
-
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case e := <-eventCh:
-				glog.V(4).Infof("%s %s %s %s %d",
-					e.trigger.Metric, e.trigger.Tags,
-					e.trigger.Expr, e.trigger.Msg,
-					e.timestamp)
-				cnt++
-			}
-
-		}
-	}()
-
-	for _, node := range trigger.TnodeIds {
-		judgeTagNode(node, eventCh)
-	}
-
-	time.Sleep(time.Millisecond * 100)
-	cancel()
-
-	return cnt
-}
+const (
+	USER1   = 1 // user
+	USER2   = 2
+	USER3   = 3
+	ADMIN   = 1 // role
+	DEV     = 2
+	SRE     = 3
+	WRITE   = 1 // token
+	READ    = 2
+	ROOT    = 1 // node id
+	XIAOMI  = 2
+	INF     = 3
+	MILIAO  = 4
+	OP      = 5
+	MICLOUD = 6
+)
 
 func TestTrigger(t *testing.T) {
-	treeNodes := []*TreeNode{
-		{2, "cap=xiaomi", 1, nil, nil, nil},
-		{3, "cap=xiaomi,owt=inf", 2, nil, nil, nil},
-		{4, "cap=xiaomi,owt=miliao", 2, nil, nil, nil},
-		{5, "cap=xiaomi,owt=miliao,pdl=op", 4, nil, nil, nil},
-		{6, "cap=xiaomi,owt=miliao,pdl=micloud", 4, nil, nil, nil},
+	nodes := []*Node{
+		{sync.RWMutex{}, "cap=xiaomi", XIAOMI, ROOT, nil, nil, nil, nil, nil},
+		{sync.RWMutex{}, "cap=xiaomi,owt=inf", INF, XIAOMI, nil, nil, nil, nil, nil},
+		{sync.RWMutex{}, "cap=xiaomi,owt=miliao", MILIAO, XIAOMI, nil, nil, nil, nil, nil},
+		{sync.RWMutex{}, "cap=xiaomi,owt=miliao,pdl=op", OP, MILIAO, nil, nil, nil, nil, nil},
+		{sync.RWMutex{}, "cap=xiaomi,owt=miliao,pdl=micloud", MICLOUD, MILIAO, nil, nil, nil, nil, nil},
 	}
+	users := []*User{
+		{USER1, "user1", "user1", "user1@example.com", "111111111"},
+		{USER2, "user2", "user2", "user2@example.com", "222222222"},
+		{USER3, "user3", "user3", "user3@example.com", "333333333"},
+	}
+	tagRoleUsers := []*TagRoleUser{
+		{XIAOMI, ADMIN, USER1},
+		{XIAOMI, SRE, USER2},
+		{OP, ADMIN, USER2},
+		{MILIAO, DEV, USER3},
+	}
+	tagRoleTokens := []*TagRoleToken{
+		{XIAOMI, ADMIN, WRITE},
+		{XIAOMI, ADMIN, READ},
+		{XIAOMI, DEV, READ},
+		{XIAOMI, SRE, READ},
+		{OP, DEV, WRITE},
+		{OP, DEV, READ},
+	}
+
 	actionTriggers := []*ActionTrigger{
-		{1, 0, 1, 8, "cpu", "cpu.busy", "", "count(#3,0,>)=3", "cpu busy over 0%", nil, nil, nil},
-		{2, 1, 1, 2, "", "cpu.busy", "", "count(#3,80,>)=3", "cpu busy over 80%", nil, nil, nil},
-		{3, 0, 5, 1, "cpu", "cpu.busy", "", "count(#3,60,>)=3", "cpu busy over 60%", nil, nil, nil},
-		{4, 3, 5, 2, "", "cpu.busy", "", "count(#3,50,>)=3", "cpu busy over 50%", nil, nil, nil},
-		{5, 0, 6, 1, "cpu", "cpu.busy", "", "count(#3,99,>)=3", "cpu busy over 99%", nil, nil, nil},
-	}
-
-	testItems := []*testItem{
-		{"xiaomi.bj", "cpu.busy", "", falcon.ItemType_GAUGE},
-		{"inf.xiaomi.bj", "cpu.busy", "", falcon.ItemType_GAUGE},
-		{"miliao.xiaomi.bj", "cpu.busy", "", falcon.ItemType_GAUGE},
-		{"op.miliao.xiaomi.bj", "cpu.busy", "", falcon.ItemType_GAUGE},
-		{"micloud.miliao.xiaomi.bj", "cpu.busy", "", falcon.ItemType_GAUGE},
-		{"op_micloud.miliao.xiaomi.bj", "cpu.busy", "", falcon.ItemType_GAUGE},
-	}
-	testEvent := []*Event{
-		{2, "xiaomi.bj/cpu.busy//GUAGE", "kh"},
-		{3, "inf.xiaomi.bj/cpu.busy//GUAGE"},
-		{4, "miliao.xiaomi.bj/cpu.busy//GUAGE"},
-		{5, "op.miliao.xiaomi.bj/cpu.busy//GUAGE"},
-		{6, "micloud.miliao.xiaomi.bj/cpu.busy//GUAGE"},
-		{5, "op_micloud.miliao.xiaomi.bj/cpu.busy//GUAGE"},
-		{6, "op_micloud.miliao.xiaomi.bj/cpu.busy//GUAGE"},
-	}
-
-	testDps := []*falcon.DataPoint{
-		{0, 0}, {1, 1}, {2, 2}, {3, 3}, {4, 4}, {5, 5}, {6, 6}, {7, 7}, {8, 8}, {9, 9},
+		// 优先级为 0,1　的事件，给具有　WRITE 权限的人发送邮件和短信
+		{1, XIAOMI, WRITE, 100, "value(priority)<2", ACTION_F_EMAIL | ACTION_F_SMS, "", nil, nil},
+		{2, MILIAO, WRITE, 100, "value(priority)=0", ACTION_F_EMAIL | ACTION_F_SMS | ACTION_F_SCRIPT, "curl http://alarm.example.com/?key=${key}&msg=${msg}", nil, nil},
+		{3, MILIAO, WRITE, 100, "value(priority)=1", ACTION_F_EMAIL | ACTION_F_SMS, "", nil, nil},
+		{2, MILIAO, WRITE, 100, "value(priority)<4", ACTION_F_EMAIL, "", nil, nil},
 	}
 
 	trigger := &Trigger{}
 
-	testFillDps(shard, testItems, testDps, t)
-
-	if err = setTreeNodes(treeNodes, trigger); err != nil {
-		t.Error(err)
-	}
-	if err = setTagHosts(tagHosts, trigger); err != nil {
-		t.Error(err)
-	}
-	if err = setEventTriggers(eventTriggers, trigger); err != nil {
-		t.Error(err)
-	}
-	if err = setServiceShards(shard, trigger); err != nil {
-		t.Error(err)
+	if setNodes(nodes, trigger) != nil ||
+		setUsers(users, trigger) != nil ||
+		setTagRoleUser(tagRoleUsers, trigger) != nil ||
+		setTagRoleToken(tagRoleTokens, trigger) != nil ||
+		trigger.updateTagTokenUser() != nil ||
+		setActionTriggers(actionTriggers, trigger) != nil {
+		t.Error("env init failed")
 	}
 
-	glog.V(4).Infof("=== host tag\n")
-	for k, v := range trigger.HostTnodes {
-		glog.V(5).Infof("%s\n", k)
-		for _, v1 := range v {
-			glog.V(5).Infof("    %s\n", v1.Name)
+	glog.V(4).Infof("=== tag token user\n")
+
+	cases := []struct {
+		tag   int64
+		token int64
+		user  int64
+		want  bool
+	}{
+		{XIAOMI, READ, USER1, true},
+		{XIAOMI, READ, USER2, true},
+		{XIAOMI, READ, USER3, false},
+		{XIAOMI, WRITE, USER1, true},
+		{XIAOMI, WRITE, USER2, false},
+		{XIAOMI, WRITE, USER3, false},
+
+		{INF, READ, USER1, true},
+		{INF, READ, USER2, true},
+		{INF, READ, USER3, false},
+		{INF, WRITE, USER1, true},
+		{INF, WRITE, USER2, false},
+		{INF, WRITE, USER3, false},
+
+		{MILIAO, READ, USER1, true},
+		{MILIAO, READ, USER2, true},
+		{MILIAO, READ, USER3, true},
+		{MILIAO, WRITE, USER1, true},
+		{MILIAO, WRITE, USER2, false},
+		{MILIAO, WRITE, USER3, false},
+
+		{OP, READ, USER1, true},
+		{OP, READ, USER2, true},
+		{OP, READ, USER3, true},
+		{OP, WRITE, USER1, true},
+		{OP, WRITE, USER2, true},
+		{OP, WRITE, USER3, true},
+
+		{MICLOUD, READ, USER1, true},
+		{MICLOUD, READ, USER2, true},
+		{MICLOUD, READ, USER3, true},
+		{MICLOUD, WRITE, USER1, true},
+		{MICLOUD, WRITE, USER2, false},
+		{MICLOUD, WRITE, USER3, false},
+	}
+
+	glog.V(5).Infof("%s", trigger.nodes[1])
+
+	for _, tc := range cases {
+		if got := trigger.nodes[tc.tag].tokenUser[tc.token][tc.user]; got != tc.want {
+			t.Errorf("tag %d token %d user %d = %v; want %v", tc.tag, tc.token, tc.user, got, tc.want)
 		}
 	}
 
-	glog.V(4).Infof("=== trigger item\n")
-	cnt := [2]int{0, len(tagHosts)*2 - 2}
-	for _, node := range trigger.TnodeIds {
-		if len(node.ETriggerMetric) == 0 {
-			continue
-		}
-		glog.V(5).Infof("tag[%s]\n", node.Name)
-		for _, triggers := range node.ETriggerMetric {
-			for _, trigger := range triggers {
-				glog.V(5).Infof("    %s %s msg '%s' tags '%s'\n",
-					trigger.Metric, trigger.Expr,
-					trigger.Msg, trigger.Tags)
-				for _, item := range trigger.items {
-					cnt[0]++
-					glog.V(5).Infof("        %s %s %s\n", item.endpoint, item.metric, item.tags)
-				}
-			}
-		}
-	}
-	if cnt[0] != cnt[1] {
-		t.Errorf("item trigger number got %d want %d\n", cnt[0], cnt[1])
+	eventCases := []struct {
+		tag       int64
+		key       string
+		expr      string
+		msg       string
+		timestamp int64
+		value     float64
+		priority  int
+		want      int
+	}{
+		{XIAOMI, "xiaomi.bj/cpu.busy//GUAGE", "count(#3,0,>)=3", "cpu busy over 0%", 0, 0, 0, 1},
+		{INF, "inf.xiaomi.bj/cpu.busy//GUAGE", "count(#3,0,>)=3", "cpu busy over 0%", 0, 0, 0, 1},
+		{MILIAO, "miliao.xiaomi.bj/cpu.busy//GUAGE", "count(#3,0,>)=3", "cpu busy over 0%", 0, 0, 0, 1},
+		{OP, "op.miliao.xiaomi.bj/cpu.busy//GUAGE", "count(#3,0,>)=3", "cpu busy over 0%", 0, 0, 0, 3},
+		{MICLOUD, "micloud.miliao.xiaomi.bj/cpu.busy//GUAGE", "count(#3,0,>)=3", "cpu busy over 0%", 0, 0, 0, 1},
+		{MICLOUD, "micloud.miliao.xiaomi.bj/cpu.busy//GUAGE", "count(#3,0,>)=3", "cpu busy over 0%", 0, 0, 3, 1},
 	}
 
-	glog.V(4).Infof("=== trigger item expr exec\n")
-	eventNum := testTriggerExprProcess(trigger)
-	glog.V(4).Infof("=== trigger item expr exec event : %d\n", eventNum)
+	for _, tc := range eventCases {
+		e := &eventEntry{
+			lastTs:    time.Now().Unix(),
+			tagId:     tc.tag,
+			key:       tc.key,
+			expr:      tc.expr,
+			msg:       tc.msg,
+			timestamp: tc.timestamp,
+			value:     tc.value,
+			priority:  tc.priority,
+		}
+		node := trigger.nodes[tc.tag]
+		if got := actionGenerate(node.processEvent(e), node, e, trigger.users); len(got.users) != tc.want {
+			t.Errorf("actionGenerate tag %d key %s user num got %d; want %d", tc.tag, tc.key, len(got.users), tc.want)
+		}
+	}
+
 }
-*/

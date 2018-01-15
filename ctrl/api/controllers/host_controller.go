@@ -248,7 +248,7 @@ func (c *HostController) GetTagHost() {
 // @Param	body	body	models.TagHostApiAdd	true	""
 // @Success 200 {object} models.Total affected number
 // @Failure 400 string error
-// @router /tag [post]
+// @router /tag/s [post]
 func (c *HostController) CreateTagHost() {
 	var rel models.TagHostApiAdd
 
@@ -331,7 +331,7 @@ func (c *HostController) CreateTagHosts() {
 // @Param	body	body	models.TagHostApiDel	true	"unbind tag_id host_id relation"
 // @Success 200 {object} models.Total affected number
 // @Failure 400 string error
-// @router /tag [delete]
+// @router /tag/s [delete]
 func (c *HostController) DelTagHost() {
 	var rel models.TagHostApiDel
 

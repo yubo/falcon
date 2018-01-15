@@ -56,7 +56,7 @@ func TestTirggerDb(t *testing.T) {
 		err           error
 		shard         *ShardModule
 		trigger       *Trigger
-		treeNodes     []*TreeNode
+		treeNodes     []*Node
 		tagHosts      []*TagHost
 		eventTriggers []*EventTrigger
 	)
@@ -72,10 +72,10 @@ func TestTirggerDb(t *testing.T) {
 
 	trigger = &Trigger{}
 
-	if treeNodes, err = getTreeNodes(test_db); err != nil {
+	if treeNodes, err = getNodes(test_db); err != nil {
 		t.Error(err)
 	}
-	if err = setTreeNodes(treeNodes, trigger); err != nil {
+	if err = setNodes(treeNodes, trigger); err != nil {
 		t.Error(err)
 	}
 
@@ -106,18 +106,6 @@ func testGenerateShard(items []*testItem) *ShardModule {
 	shard.newQueue.init()
 	shard.lruQueue.init()
 	shard.bucketMap[0] = &bucketEntry{itemMap: make(map[string]*itemEntry)}
-	/*
-		for _, v := range items {
-			item := &itemEntry{
-				endpoint: []byte(v.endpoint),
-				metric:   []byte(v.metric),
-				tags:     []byte(v.tags),
-				typ:      v.typ,
-			}
-			bucket.itemMap[item.key()] = item
-		}
-		shard.bucketMap[0] = bucket
-	*/
 
 	return shard
 }
@@ -170,7 +158,7 @@ func testTriggerExprProcess(trigger *Trigger) int {
 }
 
 func TestTrigger(t *testing.T) {
-	treeNodes := []*TreeNode{
+	treeNodes := []*Node{
 		{2, "cop=xiaomi", 1, nil, nil, nil},
 		{3, "cop=xiaomi,owt=inf", 2, nil, nil, nil},
 		{4, "cop=xiaomi,owt=miliao", 2, nil, nil, nil},
@@ -214,7 +202,7 @@ func TestTrigger(t *testing.T) {
 
 	testFillDps(shard, testItems, testDps, t)
 
-	if err = setTreeNodes(treeNodes, trigger); err != nil {
+	if err = setNodes(treeNodes, trigger); err != nil {
 		t.Error(err)
 	}
 	if err = setTagHosts(tagHosts, trigger); err != nil {

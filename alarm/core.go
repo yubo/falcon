@@ -16,19 +16,21 @@ import (
 )
 
 const (
-	MODULE_NAME     = "\x1B[32m[ALARM]\x1B[0m "
+	MODULE_NAME     = "\x1B[31m[ALARM]\x1B[0m"
 	CONN_RETRY      = 2
 	DEBUG_STAT_STEP = 60
 	CTRL_STEP       = 360
+	EVENT_TIMEOUT   = 180
 
-	C_API_ADDR      = "apiaddr"
-	C_HTTP_ADDR     = "httpaddr"
-	C_CALL_TIMEOUT  = "calltimeout"
-	C_BURST_SIZE    = "burstsize"
-	C_DB_MAX_IDLE   = "dbmaxidle"
-	C_DB_MAX_CONN   = "dbmaxconn"
-	C_SYNC_INTERVAL = "syncinterval"
-	C_SYNC_DSN      = "syncdsn"
+	C_API_ADDR         = "apiaddr"
+	C_HTTP_ADDR        = "httpaddr"
+	C_CALL_TIMEOUT     = "calltimeout"
+	C_BURST_SIZE       = "burstsize"
+	C_DB_MAX_IDLE      = "dbmaxidle"
+	C_DB_MAX_CONN      = "dbmaxconn"
+	C_SYNC_INTERVAL    = "syncinterval"
+	C_SYNC_DSN         = "syncdsn"
+	C_WORKER_PROCESSES = "worker_processes"
 )
 
 const (
@@ -40,10 +42,12 @@ const (
 var (
 	modules     []module
 	ConfDefault = map[string]string{
-		C_CALL_TIMEOUT: "5000",
-		C_BURST_SIZE:   "16",
-		C_DB_MAX_IDLE:  "4",
-		C_DB_MAX_CONN:  "4",
+		C_CALL_TIMEOUT:     "5000",
+		C_BURST_SIZE:       "16",
+		C_DB_MAX_IDLE:      "4",
+		C_DB_MAX_CONN:      "4",
+		C_WORKER_PROCESSES: "4",
+		C_SYNC_INTERVAL:    "600",
 	}
 )
 
@@ -62,14 +66,20 @@ type Alarm struct {
 	Conf    *config.Alarm
 	oldConf *config.Alarm
 	// runtime
-	status     uint32
-	appPutChan chan *Event // upstreams
+	status            uint32
+	putEventChan      chan *Event      // api put
+	actionChan        chan *Action     // upstreams
+	delEventEntryChan chan *eventEntry // time out entry
+	lru               queue            //lru queue
+
 }
 
 func (p *Alarm) New(conf interface{}) falcon.Module {
 	return &Alarm{
-		Conf:       conf.(*config.Alarm),
-		appPutChan: make(chan *Event, 144),
+		Conf:              conf.(*config.Alarm),
+		putEventChan:      make(chan *Event, 1024),
+		actionChan:        make(chan *Action, 144),
+		delEventEntryChan: make(chan *eventEntry, 144),
 	}
 }
 
@@ -88,10 +98,12 @@ func (p *Alarm) String() string {
 }
 
 func (p *Alarm) Prestart() (err error) {
-	glog.V(3).Infof(MODULE_NAME+"%s Prestart()", p.Conf.Name)
+	glog.V(3).Infof("%s Prestart()", MODULE_NAME)
 	p.status = falcon.APP_STATUS_INIT
+	p.lru.init()
 
 	for i := 0; i < len(modules); i++ {
+		glog.V(4).Infof("%s %s.prestart()", MODULE_NAME, falcon.GetType(modules[i]))
 		if e := modules[i].prestart(p); e != nil {
 			err = e
 			glog.Error(err)
@@ -101,10 +113,11 @@ func (p *Alarm) Prestart() (err error) {
 }
 
 func (p *Alarm) Start() (err error) {
-	glog.V(3).Infof(MODULE_NAME+"%s Start()", p.Conf.Name)
+	glog.V(3).Infof("%s Start()", MODULE_NAME)
 	p.status = falcon.APP_STATUS_PENDING
 
 	for i := 0; i < len(modules); i++ {
+		glog.V(4).Infof("%s %s.start()", MODULE_NAME, falcon.GetType(modules[i]))
 		if e := modules[i].start(p); e != nil {
 			err = e
 			glog.Error(err)
@@ -116,10 +129,11 @@ func (p *Alarm) Start() (err error) {
 }
 
 func (p *Alarm) Stop() (err error) {
-	glog.V(3).Infof(MODULE_NAME+"%s Stop()", p.Conf.Name)
+	glog.V(3).Infof("%s Stop()", MODULE_NAME)
 	p.status = falcon.APP_STATUS_EXIT
 
 	for n, i := len(modules), 0; i < n; i++ {
+		glog.V(4).Infof("%s %s.stop()", MODULE_NAME, falcon.GetType(modules[n-i-1]))
 		if e := modules[n-i-1].stop(p); e != nil {
 			err = e
 			glog.Error(err)
@@ -130,12 +144,13 @@ func (p *Alarm) Stop() (err error) {
 }
 
 func (p *Alarm) Reload(c interface{}) (err error) {
-	glog.V(3).Infof(MODULE_NAME+"%s Reload()", p.Conf.Name)
+	glog.V(3).Infof("%s Reload()", MODULE_NAME)
 
 	p.oldConf = p.Conf
 	p.Conf = c.(*config.Alarm)
 
 	for i := 0; i < len(modules); i++ {
+		glog.V(4).Infof("%s %s.reload()", MODULE_NAME, falcon.GetType(modules[i]))
 		if e := modules[i].reload(p); e != nil {
 			err = e
 			glog.Error(err)
@@ -146,6 +161,6 @@ func (p *Alarm) Reload(c interface{}) (err error) {
 }
 
 func (p *Alarm) Signal(sig os.Signal) (err error) {
-	glog.V(3).Infof(MODULE_NAME+"%s signal %v", p.Conf.Name, sig)
+	glog.Infof("%s recv signal %#v", MODULE_NAME, sig)
 	return err
 }

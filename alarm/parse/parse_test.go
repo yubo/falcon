@@ -18,7 +18,7 @@ var text = []byte(`
 	leasettl	20;
 	apiAddr		"unix:./var/alarm.rpc";
 	httpAddr	"unix:./var/alarm.rpc.gw";
-	workerProcesses	2;	// upstream 的并发连接数
+	workerProcesses	2;	// 处理 event 的并发数
 	burstSize	2;	// client put burst size to remote service
 	callTimeout	5000;	// 请求超时时间
 	upstream	stdout;

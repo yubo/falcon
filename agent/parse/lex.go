@@ -21,7 +21,7 @@ import (
 const (
 	eof           = 0
 	MAX_CTX_LEVEL = 16
-	MODULE_NAME   = "\x1B[32m[AGENT_PARSE]\x1B[0m "
+	MODULE_NAME   = "\x1B[37m[AGENT_PARSE]\x1B[0m "
 )
 
 var (
@@ -108,10 +108,10 @@ func (p *yyLex) include(filename string) (err error) {
 	p.ctx.file = filename
 	if p.ctx.text, err = ioutil.ReadFile(filename); err != nil {
 		dir, _ := os.Getwd()
-		glog.Errorf(MODULE_NAME+"%s(curdir:%s)", err.Error(), dir)
+		glog.Errorf("%s %s(curdir:%s)", MODULE_NAME, err.Error(), dir)
 		os.Exit(1)
 	}
-	glog.V(5).Infof(MODULE_NAME+"ctx level %d", p.ctxL)
+	glog.V(6).Infof("%s ctx level %d", MODULE_NAME, p.ctxL)
 	return nil
 }
 
@@ -136,7 +136,7 @@ begin:
 		for text[0] == ' ' || text[0] == '\t' || text[0] == '\n' {
 			p.ctx.pos += 1
 			if p.ctx.pos == len(p.ctx.text) {
-				glog.V(5).Infof(MODULE_NAME+"ctx level %d", p.ctxL)
+				glog.V(6).Infof("%s ctx level %d", MODULE_NAME, p.ctxL)
 				if p.ctxL > 0 {
 					p.ctxL--
 					p.ctx = &p.ctxData[p.ctxL]
@@ -171,7 +171,7 @@ begin:
 			p.t = s[:]
 			i64, _ := strconv.ParseInt(string(s), 0, 0)
 			p.i = int(i64)
-			glog.V(5).Infof(MODULE_NAME+"return NUM %d\n", p.i)
+			glog.V(6).Infof("%s return NUM %d\n", MODULE_NAME, p.i)
 			return NUM
 		}
 
@@ -181,7 +181,7 @@ begin:
 			s := f[:len(f)-1]
 			if val, ok := keywords[string(s)]; ok {
 				p.ctx.pos += len(s)
-				glog.V(5).Infof(MODULE_NAME+"find %s return %d\n", string(s), val)
+				glog.V(6).Infof("%s find %s return %d\n", MODULE_NAME, string(s), val)
 				return val
 			}
 		}
@@ -190,7 +190,7 @@ begin:
 			if !prefix(text, []byte(`//`)) &&
 				!prefix(text, []byte(`/*`)) {
 				p.ctx.pos++
-				glog.V(5).Infof(MODULE_NAME+"return '%c'\n", int(text[0]))
+				glog.V(6).Infof("%s return '%c'\n", MODULE_NAME, int(text[0]))
 				return int(text[0])
 			}
 		}
@@ -198,7 +198,7 @@ begin:
 		// comm
 		if text[0] == '#' || prefix(text, []byte(`//`)) {
 			for p.ctx.pos < len(p.ctx.text) {
-				//glog.Infof(MODULE_NAME+"%c", p.ctx.text[p.ctx.pos])
+				//glog.Infof("%s %c", MODULE_NAME, p.ctx.text[p.ctx.pos])
 				if p.ctx.text[p.ctx.pos] == '\n' {
 					p.ctx.pos++
 					p.ctx.lino++
@@ -238,7 +238,7 @@ begin:
 			} else {
 				p.t = f[:]
 			}
-			glog.V(5).Infof(MODULE_NAME+"return TEXT(%s)", string(p.t))
+			glog.V(6).Infof("%s return TEXT(%s)", MODULE_NAME, string(p.t))
 			return TEXT
 		}
 		p.Error(fmt.Sprintf("unknown character %c", text[0]))
@@ -279,7 +279,7 @@ func (p *yyLex) Error(s string) {
 		}
 	}
 
-	glog.Errorf(MODULE_NAME+"parse file(%s) error: %s\n%s",
+	glog.Errorf("%s parse file(%s) error: %s\n%s", MODULE_NAME,
 		p.ctx.file, s, out)
 	os.Exit(1)
 }
@@ -292,7 +292,7 @@ func Parse(text []byte, filename string, lino int) fconfig.ModuleConf {
 	yy.ctx.pos = 0
 	yy.ctx.text = text
 
-	glog.V(5).Infof("agent parse text %s", string(yy.ctx.text))
+	glog.V(6).Infof("agent parse text %s", string(yy.ctx.text))
 	yyParse(yy)
 	return conf
 }

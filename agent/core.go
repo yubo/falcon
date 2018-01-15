@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	MODULE_NAME     = "\x1B[32m[AGENT]\x1B[0m "
+	MODULE_NAME     = "\x1B[32m[AGENT]\x1B[0m"
 	CONN_RETRY      = 2
 	DEBUG_STAT_STEP = 60
 
@@ -42,8 +42,6 @@ var (
 	}
 )
 
-// module {{{
-
 type module interface {
 	prestart(*Agent) error // alloc public data
 	start(*Agent) error    // alloc private data, run private goroutine
@@ -52,13 +50,9 @@ type module interface {
 }
 
 func RegisterModule(m module) {
-	glog.Infof("%s RegisterModule %s", MODULE_NAME, falcon.GetType(m))
 	modules = append(modules, m)
 }
 
-// }}}
-
-// Agent {{{
 type Agent struct {
 	Conf    *config.Agent
 	oldConf *config.Agent
@@ -70,7 +64,7 @@ type Agent struct {
 func (p *Agent) New(conf interface{}) falcon.Module {
 	return &Agent{
 		Conf:       conf.(*config.Agent),
-		appPutChan: make(chan *putContext, 64),
+		appPutChan: make(chan *putContext, 144),
 	}
 }
 
@@ -89,27 +83,26 @@ func (p *Agent) String() string {
 }
 
 func (p *Agent) Prestart() (err error) {
-	glog.V(3).Infof(MODULE_NAME+"%s Prestart()", p.Conf.Name)
+	glog.V(3).Infof("%s Prestart()", MODULE_NAME)
 	p.status = falcon.APP_STATUS_INIT
 
 	for i := 0; i < len(modules); i++ {
+		glog.V(4).Infof("%s %s.prestart()", MODULE_NAME, falcon.GetType(modules[i]))
 		if err = modules[i].prestart(p); err != nil {
-			panic(err)
-			//glog.Error(err)
+			glog.Fatal(err)
 		}
 	}
 	return err
 }
 
 func (p *Agent) Start() (err error) {
-	glog.V(3).Infof(MODULE_NAME+"%s Start()", p.Conf.Name)
+	glog.V(3).Infof("%s Start()", MODULE_NAME)
 	p.status = falcon.APP_STATUS_PENDING
 
 	for i := 0; i < len(modules); i++ {
-		if e := modules[i].start(p); e != nil {
-			panic(err)
-			err = e
-			glog.Error(err)
+		glog.V(4).Infof("%s %s.start()", MODULE_NAME, falcon.GetType(modules[i]))
+		if err = modules[i].start(p); err != nil {
+			glog.Fatal(err)
 		}
 	}
 	p.status = falcon.APP_STATUS_RUNNING
@@ -118,13 +111,12 @@ func (p *Agent) Start() (err error) {
 }
 
 func (p *Agent) Stop() (err error) {
-	glog.V(3).Infof(MODULE_NAME+"%s Stop()", p.Conf.Name)
+	glog.V(3).Infof("%s Stop()", MODULE_NAME)
 	p.status = falcon.APP_STATUS_EXIT
 	for n, i := len(modules), 0; i < n; i++ {
-		if e := modules[n-i-1].stop(p); e != nil {
-			panic(err)
-			err = e
-			glog.Error(err)
+		glog.V(4).Infof("%s %s.stop()", MODULE_NAME, falcon.GetType(modules[n-i-1]))
+		if err = modules[n-i-1].stop(p); err != nil {
+			glog.Fatal(err)
 		}
 	}
 
@@ -132,14 +124,14 @@ func (p *Agent) Stop() (err error) {
 }
 
 func (p *Agent) Reload(c interface{}) (err error) {
-	glog.V(3).Infof(MODULE_NAME+"%s Reload()", p.Conf.Name)
+	glog.V(3).Infof("%s Reload()", MODULE_NAME)
 
 	p.oldConf = p.Conf
 	p.Conf = c.(*config.Agent)
 
 	for i := 0; i < len(modules); i++ {
-		if e := modules[i].reload(p); e != nil {
-			err = e
+		glog.V(4).Infof("%s %s.reload()", MODULE_NAME, falcon.GetType(modules[i]))
+		if err = modules[i].reload(p); err != nil {
 			glog.Error(err)
 		}
 	}
@@ -148,8 +140,6 @@ func (p *Agent) Reload(c interface{}) (err error) {
 }
 
 func (p *Agent) Signal(sig os.Signal) (err error) {
-	glog.V(3).Infof(MODULE_NAME+"%s signal %v", p.Conf.Name, sig)
+	glog.Infof("%s recv signal %#v", MODULE_NAME, sig)
 	return err
 }
-
-// }}}

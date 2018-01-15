@@ -57,7 +57,7 @@ func (p *githubAuth) AuthorizeUrl(c interface{}) string {
 
 	conf := p.config
 	conf.RedirectURL = fmt.Sprintf("%s?%s", conf.RedirectURL, v.Encode())
-	return conf.AuthCodeURL(models.RandString(8))
+	return conf.AuthCodeURL(falcon.RandString(8))
 }
 
 func (p *githubAuth) LoginCb(c interface{}) (uuid string, err error) {

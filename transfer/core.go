@@ -11,13 +11,12 @@ import (
 	"github.com/golang/glog"
 	"github.com/yubo/falcon"
 	fconfig "github.com/yubo/falcon/config"
-	"github.com/yubo/falcon/service"
 	"github.com/yubo/falcon/transfer/config"
 	"github.com/yubo/falcon/transfer/parse"
 )
 
 const (
-	MODULE_NAME     = "\x1B[32m[TRANSFER]\x1B[0m "
+	MODULE_NAME     = "\x1B[35m[TRANSFER]\x1B[0m"
 	CONN_RETRY      = 2
 	DEBUG_STAT_STEP = 60
 	CTRL_STEP       = 360
@@ -35,7 +34,6 @@ var (
 	}
 )
 
-// module {{{
 type module interface {
 	prestart(*Transfer) error // alloc public data
 	start(*Transfer) error    // alloc private data, run private goroutine
@@ -47,21 +45,25 @@ func RegisterModule(m module) {
 	modules = append(modules, m)
 }
 
-// }}}
+type reqPayload struct {
+	action int
+	data   interface{}
+	done   chan interface{}
+}
 
-// Transfer {{{
 type Transfer struct {
 	Conf    *config.Transfer
 	oldConf *config.Transfer
 	// runtime
-	status     uint32
-	appPutChan chan []*service.Item // upstreams
+	status uint32
+	//appPutChan chan *service.Item // upstreams
+	reqChan chan *reqPayload
 }
 
 func (p *Transfer) New(conf interface{}) falcon.Module {
 	return &Transfer{
-		Conf:       conf.(*config.Transfer),
-		appPutChan: make(chan []*service.Item, 16),
+		Conf:    conf.(*config.Transfer),
+		reqChan: make(chan *reqPayload, 1024),
 	}
 }
 
@@ -80,10 +82,11 @@ func (p *Transfer) String() string {
 }
 
 func (p *Transfer) Prestart() (err error) {
-	glog.V(3).Infof(MODULE_NAME+"%s Prestart()", p.Conf.Name)
+	glog.V(3).Infof("%s Prestart()", MODULE_NAME)
 	p.status = falcon.APP_STATUS_INIT
 
 	for i := 0; i < len(modules); i++ {
+		glog.V(4).Infof("%s %s.prestart()", MODULE_NAME, falcon.GetType(modules[i]))
 		if e := modules[i].prestart(p); e != nil {
 			err = e
 			glog.Error(err)
@@ -93,10 +96,11 @@ func (p *Transfer) Prestart() (err error) {
 }
 
 func (p *Transfer) Start() (err error) {
-	glog.V(3).Infof(MODULE_NAME+"%s Start()", p.Conf.Name)
+	glog.V(3).Infof("%s Start()", MODULE_NAME)
 	p.status = falcon.APP_STATUS_PENDING
 
 	for i := 0; i < len(modules); i++ {
+		glog.V(4).Infof("%s %s.start()", MODULE_NAME, falcon.GetType(modules[i]))
 		if e := modules[i].start(p); e != nil {
 			err = e
 			glog.Error(err)
@@ -108,10 +112,11 @@ func (p *Transfer) Start() (err error) {
 }
 
 func (p *Transfer) Stop() (err error) {
-	glog.V(3).Infof(MODULE_NAME+"%s Stop()", p.Conf.Name)
+	glog.V(3).Infof("%s Stop()", MODULE_NAME)
 	p.status = falcon.APP_STATUS_EXIT
 
 	for n, i := len(modules), 0; i < n; i++ {
+		glog.V(4).Infof("%s %s.stop()", MODULE_NAME, falcon.GetType(modules[n-i-1]))
 		if e := modules[n-i-1].stop(p); e != nil {
 			err = e
 			glog.Error(err)
@@ -122,12 +127,13 @@ func (p *Transfer) Stop() (err error) {
 }
 
 func (p *Transfer) Reload(c interface{}) (err error) {
-	glog.V(3).Infof(MODULE_NAME+"%s Reload()", p.Conf.Name)
+	glog.V(3).Infof("%s Reload()", MODULE_NAME)
 
 	p.oldConf = p.Conf
 	p.Conf = c.(*config.Transfer)
 
 	for i := 0; i < len(modules); i++ {
+		glog.V(4).Infof("%s %s.reload()", MODULE_NAME, falcon.GetType(modules[i]))
 		if e := modules[i].reload(p); e != nil {
 			err = e
 			glog.Error(err)
@@ -138,8 +144,6 @@ func (p *Transfer) Reload(c interface{}) (err error) {
 }
 
 func (p *Transfer) Signal(sig os.Signal) (err error) {
-	glog.V(3).Infof(MODULE_NAME+"%s signal %v", p.Conf.Name, sig)
+	glog.Infof("%s recv signal %#v", MODULE_NAME, sig)
 	return err
 }
-
-// }}}

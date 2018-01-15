@@ -25,40 +25,46 @@ type ApiModule struct {
 }
 
 func (p *ApiModule) Get(ctx context.Context,
-	in *GetRequest) (resp *GetResponse, err error) {
+	in *GetRequest) (res *GetResponse, err error) {
 
-	statsInc(ST_RPC_SERV_QUERY, 1)
+	res = &GetResponse{Key: in.Key}
+	res.Dps, err = p.service.shard.get(in)
 
-	resp = &GetResponse{Key: in.Key}
-
-	resp.Dps, err = p.service.shard.get(in)
-	statsInc(ST_RPC_SERV_QUERY_ITEM, len(resp.Dps))
+	statsInc(ST_RX_GET_ITERS, 1)
+	statsInc(ST_RX_GET_ITEMS, len(res.Dps))
 	return
 }
 
 func (p *ApiModule) Put(ctx context.Context,
-	in *PutRequest) (resp *PutResponse, err error) {
+	in *PutRequest) (res *PutResponse, err error) {
 
-	n := 0
-	size := len(in.Items)
+	glog.V(5).Infof("%s rx put %v", MODULE_NAME, len(in.Items))
 
-	glog.V(4).Infof(MODULE_NAME+"recv %d", size)
-	statsInc(ST_RPC_SERV_RECV, 1)
-	statsInc(ST_RPC_SERV_RECV_ITEM, size)
-
-	for i := 0; i < size; i++ {
+	res = &PutResponse{}
+	for i := 0; i < len(in.Items); i++ {
 		item := in.Items[i]
 		if item == nil {
 			continue
 		}
 
 		if _, err = p.service.shard.put(item); err != nil {
-			n++
+			res.N++
 			continue
 		}
 	}
 
-	return &PutResponse{N: int32(n)}, nil
+	statsInc(ST_RX_PUT_ITERS, 1)
+	statsInc(ST_RX_PUT_ITEMS, int(res.N))
+	statsInc(ST_RX_PUT_ERR_ITEMS, len(in.Items)-int(res.N))
+	return
+}
+
+func (p *ApiModule) GetStats(ctx context.Context, in *Empty) (*Stats, error) {
+	return &Stats{Counter: statsCounter}, nil
+}
+
+func (p *ApiModule) GetStatsName(ctx context.Context, in *Empty) (*StatsName, error) {
+	return &StatsName{CounterName: statsCounterName}, nil
 }
 
 func (p *ApiModule) prestart(service *Service) error {
@@ -110,6 +116,8 @@ func (p *ApiModule) stop(service *Service) error {
 }
 
 func (p *ApiModule) reload(service *Service) error {
+	return nil
+
 	if !p.disable {
 		p.stop(service)
 		time.Sleep(time.Second)

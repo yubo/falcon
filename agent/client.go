@@ -28,13 +28,16 @@ func (p *ClientModule) put(items []*service.Item, timeout int) {
 	statsInc(ST_TX_PUT_ITERS, 1)
 	statsInc(ST_TX_PUT_ITEMS, len(items))
 
+	glog.V(6).Infof("%s tx put %v", MODULE_NAME, items)
+
 	ctx, _ := context.WithTimeout(context.Background(),
 		time.Duration(timeout)*time.Millisecond)
 	resp, err := p.client.Put(ctx, &service.PutRequest{Items: items})
 	if err != nil {
 		statsInc(ST_TX_PUT_ERR_ITERS, 1)
+	} else {
+		statsInc(ST_TX_PUT_ERR_ITEMS, int(len(items)-int(resp.N)))
 	}
-	statsInc(ST_TX_PUT_ERR_ITEMS, int(len(items)-int(resp.N)))
 }
 
 func (client *ClientModule) mainLoop(agent *Agent) error {
@@ -80,7 +83,7 @@ func (client *ClientModule) mainLoop(agent *Agent) error {
 			case <-client.ctx.Done():
 				return
 			case put := <-agent.appPutChan:
-				glog.V(4).Infof("%s TX PUT %d\n", MODULE_NAME, len(put.items))
+				glog.V(5).Infof("%s tx put %d\n", MODULE_NAME, len(put.items))
 				n := 0
 				for _, item_ := range put.items {
 
@@ -91,7 +94,7 @@ func (client *ClientModule) mainLoop(agent *Agent) error {
 						break
 					}
 
-					glog.V(5).Infof("%s TX PUT %d %10.4f %s\n",
+					glog.V(6).Infof("%s TX PUT %d %10.4f %s\n",
 						MODULE_NAME, item.Timestamp,
 						item.Value, item.Key)
 
@@ -104,7 +107,9 @@ func (client *ClientModule) mainLoop(agent *Agent) error {
 						i = 0
 					}
 				}
-				put.done <- &PutResponse{N: int32(n)}
+				if put.done != nil {
+					put.done <- &PutResponse{N: int32(n)}
+				}
 			case <-time.After(time.Second):
 				if i > 0 {
 					client.put(items[:i], callTimeout)

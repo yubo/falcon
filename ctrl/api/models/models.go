@@ -6,6 +6,7 @@
 package models
 
 import (
+	"encoding/json"
 	"strconv"
 	"strings"
 	"time"
@@ -26,7 +27,7 @@ import (
 const (
 	DB_PREFIX   = ""
 	PAGE_LIMIT  = 10
-	MODULE_NAME = "\x1B[32m[CTRL_MODELS]\x1B[0m "
+	MODULE_NAME = "\x1B[33m[CTRL_MODELS]\x1B[0m "
 )
 
 const (
@@ -254,7 +255,7 @@ func initConfigAdmin(c *fconfig.Configer) map[string]bool {
 func initConfig(conf *config.Ctrl) error {
 	var err error
 
-	glog.V(5).Infof(MODULE_NAME+"%s Init()", conf.Name)
+	glog.V(5).Infof("%s %s Init()", MODULE_NAME, conf.Name)
 
 	orm.RegisterDriver("mysql", orm.DRMySQL)
 
@@ -276,7 +277,7 @@ func initConfig(conf *config.Ctrl) error {
 	if c, err := GetDbConfig(Db.Ctrl, "ctrl"); err == nil {
 		conf.Ctrl.Set(fconfig.APP_CONF_DB, c)
 	}
-	glog.V(5).Infof(MODULE_NAME+"initConfig get config %s", cf.String())
+	glog.V(5).Infof("%s initConfig get config %s", MODULE_NAME, cf.String())
 
 	// ctrl config
 	if Db.Idx, err = falcon.NewOrm("ctrl_index",
@@ -347,4 +348,13 @@ func initConfig(conf *config.Ctrl) error {
 	wxappsecret = cf.Str(ctrl.C_WEIXIN_APP_SECRET)
 
 	return err
+}
+
+func (op *Operator) log(module, module_id, action int64, data_ interface{}) {
+	data, ok := data_.(string)
+	if !ok {
+		b, _ := json.Marshal(data_)
+		data = string(b)
+	}
+	op.O.Raw("insert log (user_id, module, module_id, action, data) values (?, ?, ?, ?, ?)", op.User.Id, module, module_id, action, data).Exec()
 }

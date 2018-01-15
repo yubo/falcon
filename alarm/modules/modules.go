@@ -14,9 +14,11 @@ import (
 func init() {
 	falcon.RegisterModule(&alarm.Alarm{}, "alarm",
 		falcon.GetType(config.Alarm{}))
-	alarm.RegisterModule(&alarm.StatsModule{})
+
 	alarm.RegisterModule(&alarm.ApiModule{})
 	alarm.RegisterModule(&alarm.ApiGwModule{})
 	alarm.RegisterModule(&alarm.ClientModule{})
+	alarm.RegisterModule(&alarm.TriggerModule{})
+	alarm.RegisterModule(&alarm.TaskModule{})
 
 }

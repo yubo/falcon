@@ -17,11 +17,11 @@ import (
 	"golang.org/x/net/context"
 )
 
-type TreeNode struct {
+type Node struct {
 	Id                  int64
 	Name                string
 	ParentId            int64
-	childs              []*TreeNode
+	childs              []*Node
 	eventTriggers       map[string]*EventTrigger   // map[EventTrigger.Name]
 	eventTriggerMetrics map[string][]*EventTrigger // map[EventTrigger.Metric]
 }
@@ -32,9 +32,9 @@ type TagHost struct {
 }
 
 type Trigger struct {
-	nodes map[int64]*TreeNode
-	//nodeNames map[string]*TreeNode
-	hostNodes map[string][]*TreeNode // map[hostname]
+	db        orm.Ormer
+	nodes     map[int64]*Node
+	hostNodes map[string][]*Node // map[hostname]
 }
 
 type TriggerModule struct {
@@ -44,7 +44,7 @@ type TriggerModule struct {
 	judgeInterval int
 	judgeNum      int
 	alarmNum      int
-	eventCh       chan *alarm.Event
+	eventChan     chan *alarm.Event
 	ctx           context.Context
 	cancel        context.CancelFunc
 	trigger       *Trigger
@@ -65,7 +65,8 @@ func (p *TriggerModule) start(s *Service) (err error) {
 	p.judgeInterval, _ = s.Conf.Configer.Int(C_JUDGE_INTERVAL)
 	p.judgeNum, _ = s.Conf.Configer.Int(C_JUDGE_NUM)
 	p.alarmNum, _ = s.Conf.Configer.Int(C_ALARM_NUM)
-	p.eventCh = s.appEventChan
+	p.eventChan = s.eventChan
+	p.trigger = &Trigger{}
 
 	p.db, err = falcon.NewOrm("service_sync",
 		s.Conf.Configer.Str(C_SYNC_DSN), dbmaxidle, dbmaxconn)
@@ -79,14 +80,14 @@ func (p *TriggerModule) start(s *Service) (err error) {
 	return nil
 }
 
-func getTreeNodes(db orm.Ormer) (rows []*TreeNode, err error) {
+func getNodes(db orm.Ormer) (rows []*Node, err error) {
 	_, err = db.Raw("SELECT b.id, b.name, c.id as parent_id FROM tag_rel a JOIN tag b ON a.tag_id = b.id LEFT JOIN tag c ON a.sup_tag_id = c.id WHERE a.offset = 1 and b.type = 0 and c.type = 0 ORDER BY tag_id").QueryRows(&rows)
 	return
 }
 
-func setTreeNodes(rows []*TreeNode, trigger *Trigger) (err error) {
-	nodes := make(map[int64]*TreeNode)
-	nodes[1] = &TreeNode{
+func setNodes(rows []*Node, trigger *Trigger) (err error) {
+	nodes := make(map[int64]*Node)
+	nodes[1] = &Node{
 		Id:                  1,
 		Name:                "",
 		eventTriggers:       make(map[string]*EventTrigger),
@@ -103,7 +104,7 @@ func setTreeNodes(rows []*TreeNode, trigger *Trigger) (err error) {
 		if _, ok := nodes[row.ParentId]; ok {
 			nodes[row.ParentId].childs = append(nodes[row.ParentId].childs, row)
 		} else {
-			glog.V(4).Infof(MODULE_NAME+"%s miss parent %d",
+			glog.V(4).Infof("%s %s miss parent %d", MODULE_NAME,
 				row.Name, row.ParentId)
 		}
 	}
@@ -120,13 +121,13 @@ func getTagHosts(db orm.Ormer) (rows []*TagHost, err error) {
 func setTagHosts(rows []*TagHost, trigger *Trigger) (err error) {
 	nodes := trigger.nodes
 
-	hostNodes := make(map[string][]*TreeNode)
+	hostNodes := make(map[string][]*Node)
 	for _, row := range rows {
 		if _, ok := nodes[row.TagId]; ok {
 			hostNodes[row.HostName] = append(hostNodes[row.HostName],
 				nodes[row.TagId])
 		} else {
-			glog.V(4).Infof(MODULE_NAME+"miss tag %d\n", row.TagId)
+			glog.V(4).Infof("%s miss tag %d\n", MODULE_NAME, row.TagId)
 		}
 	}
 
@@ -145,14 +146,14 @@ func triggerOverride(cover, base map[string]*EventTrigger) map[string]*EventTrig
 	return ret
 }
 
-func adjustTrigger(tag *TreeNode, base map[string]*EventTrigger) {
+func adjustTrigger(tag *Node, base map[string]*EventTrigger) {
 	tag.eventTriggers = triggerOverride(tag.eventTriggers, base)
 	for _, child := range tag.childs {
 		adjustTrigger(child, tag.eventTriggers)
 	}
 }
 
-func adjustTriggerMetric(tag *TreeNode) {
+func adjustTriggerMetric(tag *Node) {
 	for _, v := range tag.eventTriggers {
 		tmp := *v
 		tag.eventTriggerMetrics[v.Metric] = append(tag.eventTriggerMetrics[v.Metric], &tmp)
@@ -182,7 +183,7 @@ func setEventTriggers(rows []*EventTrigger, trigger *Trigger) (err error) {
 			if _, ok := index[row.ParentId]; ok {
 				index[row.ParentId].Child = append(index[row.ParentId].Child, row)
 			} else {
-				glog.V(4).Infof(MODULE_NAME+"%s %d miss parent %d",
+				glog.V(4).Infof("%s %s %d miss parent %d", MODULE_NAME,
 					row.Metric, row.Id, row.ParentId)
 			}
 		} else {
@@ -251,69 +252,76 @@ func setServiceShards(shard *ShardModule, trigger *Trigger) error {
 	return nil
 }
 
+func (p *Trigger) updateNode() error {
+	if nodes, err := getNodes(p.db); err != nil {
+		glog.V(5).Infof("%v", err)
+		return err
+	} else {
+		return setNodes(nodes, p)
+	}
+}
+
+func (p *Trigger) updateTagHost() error {
+	if tagHosts, err := getTagHosts(p.db); err != nil {
+		glog.V(5).Infof("%v", err)
+		return err
+	} else {
+		return setTagHosts(tagHosts, p)
+	}
+}
+
+func (p *Trigger) updateEventTrigger() error {
+	if eventTriggers, err := getEventTriggers(p.db); err != nil {
+		glog.V(5).Infof("%v", err)
+		return err
+	} else {
+		return setEventTriggers(eventTriggers, p)
+	}
+}
+
+func (p *TriggerModule) triggerSync() {
+	glog.V(3).Infof("%s sync", MODULE_NAME)
+	// nodes
+	t := &Trigger{db: p.db}
+	if t.updateNode() == nil &&
+		t.updateTagHost() == nil &&
+		t.updateEventTrigger() == nil &&
+		setServiceShards(p.service.shard, t) == nil {
+
+		p.Lock()
+		p.trigger = t
+		p.Unlock()
+	}
+
+}
+
 func (p *TriggerModule) syncWorker() {
-	var (
-		err           error
-		trigger       *Trigger
-		treeNodes     []*TreeNode
-		tagHosts      []*TagHost
-		eventTriggers []*EventTrigger
-	)
 	ticker := time.NewTicker(time.Second * time.Duration(p.syncInterval)).C
+	p.triggerSync()
+
 	for {
 		select {
 		case <-p.ctx.Done():
 			return
 		case <-ticker:
-			glog.V(3).Info(MODULE_NAME + "sync")
-			// tree nodes
-			trigger = &Trigger{}
-
-			if treeNodes, err = getTreeNodes(p.db); err != nil {
-				continue
-			}
-			if err = setTreeNodes(treeNodes, trigger); err != nil {
-				glog.V(4).Info("%s set treeNodes error %s", MODULE_NAME, err)
-				continue
-			}
-
-			if tagHosts, err = getTagHosts(p.db); err != nil {
-				continue
-			}
-			if err = setTagHosts(tagHosts, trigger); err != nil {
-				glog.V(3).Info("%s set tagHosts error %s", MODULE_NAME, err)
-				continue
-			}
-
-			if eventTriggers, err = getEventTriggers(p.db); err != nil {
-				continue
-			}
-			if err = setEventTriggers(eventTriggers, trigger); err != nil {
-				glog.V(3).Info("%s set eventTriggers error %s", MODULE_NAME, err)
-				continue
-			}
-
-			if err = setServiceShards(p.service.shard, trigger); err != nil {
-				glog.V(3).Info("%s mount item error %s", MODULE_NAME, err)
-				continue
-			}
-
-			p.Lock()
-			p.trigger = trigger
-			p.Unlock()
-
+			p.triggerSync()
 		}
 	}
-
 }
 
-func judgeTagNode(node *TreeNode, eventCh chan *alarm.Event) {
-	for _, triggers := range node.eventTriggerMetrics {
-		for _, trigger := range triggers {
-			for _, item := range trigger.items {
-				event := trigger.Exec(item)
+func judgeTagNode(node *Node, eventChan chan *alarm.Event) {
+	for _, eventTriggers := range node.eventTriggerMetrics {
+		for _, eventTrigger := range eventTriggers {
+			statsInc(ST_JUDGE_CNT, len(eventTrigger.items))
+			for _, item := range eventTrigger.items {
+				event := eventTrigger.Dispatch(item)
 				if event != nil {
-					eventCh <- event
+					select {
+					case eventChan <- event:
+						statsInc(ST_EVENT_CNT, 1)
+					default:
+						statsInc(ST_EVENT_DROP_CNT, 1)
+					}
 				}
 			}
 		}
@@ -322,7 +330,7 @@ func judgeTagNode(node *TreeNode, eventCh chan *alarm.Event) {
 
 func (p *TriggerModule) judgeWorker() {
 	ticker := time.NewTicker(time.Second * time.Duration(p.judgeInterval)).C
-	taskCh := make(chan *TreeNode, p.judgeNum)
+	taskCh := make(chan *Node, p.judgeNum)
 
 	for i := 0; i < p.judgeNum; i++ {
 		go func() {
@@ -331,7 +339,7 @@ func (p *TriggerModule) judgeWorker() {
 				case <-p.ctx.Done():
 					return
 				case node := <-taskCh:
-					judgeTagNode(node, p.eventCh)
+					judgeTagNode(node, p.eventChan)
 				}
 			}
 
@@ -343,13 +351,13 @@ func (p *TriggerModule) judgeWorker() {
 		case <-p.ctx.Done():
 			return
 		case <-ticker:
-			glog.V(3).Info("%s trigger judege worker entering", MODULE_NAME)
+			glog.V(3).Infof("%s trigger judege worker entering", MODULE_NAME)
 
 			p.RLock()
-			trigger := p.trigger
+			t := p.trigger
 			p.RUnlock()
 
-			for _, node := range trigger.nodes {
+			for _, node := range t.nodes {
 				taskCh <- node
 			}
 

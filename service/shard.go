@@ -19,8 +19,8 @@ import (
 type ShardModule struct {
 	sync.RWMutex
 	service    *Service
-	newQueue   cacheq //immediate queue
-	lruQueue   cacheq //lru queue
+	newQueue   queue //immediate queue
+	lruQueue   queue //lru queue
 	bucketMap  map[int32]*bucketEntry
 	shardTotal int
 }
@@ -68,7 +68,7 @@ func (p *ShardModule) getBucket(shardId int32) (*bucketEntry, error) {
 }
 
 func (p *ShardModule) prestart(s *Service) (err error) {
-	glog.V(3).Infof(MODULE_NAME + " cache prestart \n")
+	glog.V(3).Infof(MODULE_NAME + " shard prestart \n")
 	p.bucketMap = make(map[int32]*bucketEntry)
 
 	ids_ := strings.Split(s.Conf.Configer.Str(C_SHARD_IDS), ",")
@@ -93,7 +93,7 @@ func (p *ShardModule) prestart(s *Service) (err error) {
 }
 
 func (p *ShardModule) start(s *Service) error {
-	glog.V(3).Infof(MODULE_NAME + " cache start \n")
+	glog.V(3).Infof(MODULE_NAME + " shard start \n")
 	return nil
 }
 

@@ -79,7 +79,7 @@ func (c *cache) del(id int64, keys ...string) {
 func (tree *cacheTreeT) get(id int64) *TreeNode {
 	tree.Lock()
 	defer tree.Unlock()
-	glog.V(4).Infof(MODULE_NAME+"get cache tree %d/%d", id, len(tree.m))
+	glog.V(4).Infof("%s get cache tree %d/%d", MODULE_NAME, id, len(tree.m))
 	return tree.m[id]
 }
 
@@ -93,7 +93,7 @@ func (tree *cacheTreeT) build() {
 func (tree *cacheTreeT) _build() {
 	var ns []TreeNode
 
-	glog.V(10).Infof(MODULE_NAME + "cacheTree build entering")
+	glog.V(10).Infof("%s cacheTree build entering", MODULE_NAME)
 
 	_, err := Db.Ctrl.Raw("SELECT a.tag_id, a.sup_tag_id, b.name FROM tag_rel a JOIN tag b ON a.tag_id = b.id WHERE a.offset = 1 and b.type = 0 ORDER BY tag_id").QueryRows(&ns)
 	if err != nil {
@@ -121,8 +121,8 @@ func (tree *cacheTreeT) _build() {
 		if _, ok := tree.m[n.SupTagId]; ok {
 			tree.m[n.SupTagId].Child = append(tree.m[n.SupTagId].Child, n)
 		} else {
-			glog.V(4).Infof(MODULE_NAME+"%s(%d) miss suptagid %d",
-				n.Name, n.TagId, n.SupTagId)
+			glog.V(5).Infof("%s %s(%d) miss suptagid %d",
+				MODULE_NAME, n.Name, n.TagId, n.SupTagId)
 		}
 	}
 

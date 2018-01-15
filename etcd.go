@@ -108,7 +108,7 @@ func (p *EtcdCli) Prestart() {
 		}
 		tlsConfig, err := tlsInfo.ClientConfig()
 		if err != nil {
-			glog.Infof("etcd ClientConfig() error %s", err.Error())
+			glog.Infof("%s etcd ClientConfig() error %s", MODULE_NAME, err.Error())
 			return
 		}
 		p.config.TLS = tlsConfig
@@ -125,7 +125,7 @@ func (p *EtcdCli) Prestart() {
 func (p *EtcdCli) connection() (err error) {
 	p.client, err = clientv3.New(p.config)
 	if err != nil {
-		glog.Infof("etcd New() error %s", err.Error())
+		glog.Infof("%s etcd New() error %s", MODULE_NAME, err.Error())
 	}
 	return
 }
@@ -158,7 +158,7 @@ func (p *EtcdCli) Get(key string) (string, error) {
 			}
 			return "", ErrEmpty
 		}
-		glog.Infof("etcd Get(%s) error %s", key, err.Error())
+		glog.Infof("%s etcd Get(%s) error %s", MODULE_NAME, key, err.Error())
 
 		p.reconnection()
 	}
@@ -231,14 +231,14 @@ func (p *EtcdCli) Start() error {
 	var ctx context.Context
 
 	if !p.enable {
-		glog.V(3).Infof("etcd client disabled")
+		glog.V(3).Infof("%s etcd client disabled", MODULE_NAME)
 		return nil
 	}
 	ctx, p.cancel = context.WithCancel(context.Background())
 
 	resp, err := p.client.Grant(ctx, p.leasettl)
 	if err != nil {
-		glog.Infof("etcd Grant() error %s", err.Error())
+		glog.Infof("%s etcd Grant() error %s", MODULE_NAME, err.Error())
 		p.enable = false
 		return err
 	}
@@ -248,7 +248,7 @@ func (p *EtcdCli) Start() error {
 	_, err = p.client.Put(ctx, p.leasekey, p.leasevalue,
 		clientv3.WithLease(p.leaseid))
 	if err != nil {
-		glog.Infof("etcd put with lease error %s", err.Error())
+		glog.Infof("%s etcd put with lease error %s", MODULE_NAME, err.Error())
 		p.enable = false
 		return err
 	}
@@ -256,11 +256,11 @@ func (p *EtcdCli) Start() error {
 	// the key will be kept forever
 	_, err = p.client.KeepAlive(ctx, p.leaseid)
 	if err != nil {
-		glog.Infof("etcd keepalive error %s", err.Error())
+		glog.Infof("%s etcd keepalive error %s", MODULE_NAME, err.Error())
 		p.enable = false
 		return err
 	}
-	glog.V(3).Infof("etcd keepalive success")
+	glog.V(3).Infof("%s etcd keepalive success", MODULE_NAME)
 	return nil
 }
 

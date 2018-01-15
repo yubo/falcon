@@ -99,7 +99,7 @@ func (op *Operator) CreateEventTrigger(e *EventTrigger) (id int64, err error) {
 	if e.ParentId > 0 {
 		op.syncEventTriggerRefcnt(e.ParentId)
 	}
-	DbLog(op.O, op.User.Id, CTL_M_EVENT_TRIGGER, id, CTL_A_ADD, jsonStr(e))
+	op.log(CTL_M_EVENT_TRIGGER, id, CTL_A_ADD, jsonStr(e))
 	return
 }
 
@@ -175,7 +175,7 @@ func (op *Operator) UpdateEventTrigger(e *EventTrigger) (ret *EventTrigger, err 
 		return
 	}
 
-	DbLog(op.O, op.User.Id, CTL_M_EVENT_TRIGGER, e.Id, CTL_A_SET, jsonStr(e))
+	op.log(CTL_M_EVENT_TRIGGER, e.Id, CTL_A_SET, jsonStr(e))
 	return ret, err
 
 }
@@ -193,7 +193,7 @@ func (op *Operator) DeleteEventTrigger(id int64, tagId int64) (n int64, err erro
 		op.syncEventTriggerRefcnt(t.ParentId)
 	}
 
-	DbLog(op.O, op.User.Id, CTL_M_EVENT_TRIGGER, id, CTL_A_DEL, fmt.Sprintf("RowsAffected %d", n))
+	op.log(CTL_M_EVENT_TRIGGER, id, CTL_A_DEL, fmt.Sprintf("RowsAffected %d", n))
 	return
 }
 
@@ -234,6 +234,6 @@ func (op *Operator) CloneEventTrigger(srcEventTriggerId int64, dstTagId int64) (
 			return
 		}
 	}
-	DbLog(op.O, op.User.Id, CTL_M_EVENT_TRIGGER, id, CTL_A_ADD, fmt.Sprintf("clone from %d", srcEventTriggerId))
+	op.log(CTL_M_EVENT_TRIGGER, id, CTL_A_ADD, fmt.Sprintf("clone from %d", srcEventTriggerId))
 	return
 }

@@ -38,7 +38,7 @@ func (op *Operator) CreateRole(r *RoleCreate) (id int64, err error) {
 	if err != nil {
 		return
 	}
-	DbLog(op.O, op.User.Id, CTL_M_ROLE, id, CTL_A_ADD, jsonStr(r))
+	op.log(CTL_M_ROLE, id, CTL_A_ADD, jsonStr(r))
 	return
 }
 
@@ -81,7 +81,7 @@ func (op *Operator) UpdateRole(role *Role) (ret *Role, err error) {
 		return
 	}
 
-	DbLog(op.O, op.User.Id, CTL_M_ROLE, role.Id, CTL_A_SET, "")
+	op.log(CTL_M_ROLE, role.Id, CTL_A_SET, "")
 	return ret, err
 }
 
@@ -101,7 +101,7 @@ func (op *Operator) DeleteRole(id int64) error {
 		return err
 	}
 	moduleCache[CTL_M_ROLE].del(id)
-	DbLog(op.O, op.User.Id, CTL_M_ROLE, id, CTL_A_DEL, "")
+	op.log(CTL_M_ROLE, id, CTL_A_DEL, "")
 
 	return nil
 }
@@ -207,30 +207,26 @@ func access(o orm.Ormer, userId, tokenId, tagId int64) (tid int64, err error) {
 	return
 }
 
-func addTplRel(o orm.Ormer, userId, tagId, tplId, subId, typeId int64) (id int64, err error) {
+func (op *Operator) addTplRel(tagId, tplId, subId, typeId int64) (id int64, err error) {
 	var res sql.Result
 
-	res, err = o.Raw("insert tpl_rel (tpl_id, tag_id, sub_id, creator, type_id) values (?, ?, ?, ?, ?)", tplId, tagId, subId, userId, typeId).Exec()
+	res, err = op.O.Raw("insert tpl_rel (tpl_id, tag_id, sub_id, creator, type_id) values (?, ?, ?, ?, ?)", tplId, tagId, subId, op.User.Id, typeId).Exec()
 	if err != nil {
 		return
 	}
 
 	id, err = res.LastInsertId()
 
-	DbLog(o, userId, CTL_M_TPL, id, CTL_A_ADD, jsonStr(Tpl_rel{TplId: tplId, TagId: tagId, SubId: subId, Creator: userId, TypeId: typeId}))
+	op.log(CTL_M_TPL, id, CTL_A_ADD, &Tpl_rel{TplId: tplId, TagId: tagId, SubId: subId, Creator: op.User.Id, TypeId: typeId})
 	return
 }
 
-func delTplRel(o orm.Ormer, userId, tagId, tplId, subId, typeId int64) (int64, error) {
-	t := &Tpl_rel{TplId: tplId, TagId: tagId, SubId: subId,
-		TypeId: typeId}
-
-	res, err := o.Raw("DELETE FROM `tpl_rel` "+
-		"WHERE tpl_id = ? AND tag_id = ? and sub_id = ? and type_id = ?", tplId, tagId, subId, typeId).Exec()
+func (op *Operator) delTplRel(tagId, tplId, subId, typeId int64) (int64, error) {
+	res, err := op.O.Raw("DELETE FROM `tpl_rel` WHERE tpl_id = ? AND tag_id = ? and sub_id = ? and type_id = ?", tplId, tagId, subId, typeId).Exec()
 	if err != nil {
 		return 0, err
 	}
 
-	DbLog(o, userId, CTL_M_TPL, 0, CTL_A_DEL, jsonStr(t))
+	op.log(CTL_M_TPL, 0, CTL_A_DEL, &Tpl_rel{TplId: tplId, TagId: tagId, SubId: subId, TypeId: typeId})
 	return res.RowsAffected()
 }

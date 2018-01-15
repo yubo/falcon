@@ -153,7 +153,7 @@ func (op *Operator) CreateUser(user *UserApiAdd) (id int64, err error) {
 		return
 	}
 
-	DbLog(op.O, op.User.Id, CTL_M_USER, id, CTL_A_ADD, jsonStr(user))
+	op.log(CTL_M_USER, id, CTL_A_ADD, jsonStr(user))
 	return
 }
 
@@ -229,7 +229,7 @@ func (op *Operator) UpdateUser(user *User) (ret *User, err error) {
 		return
 	}
 
-	DbLog(op.O, op.User.Id, CTL_M_USER, user.Id, CTL_A_SET, "")
+	op.log(CTL_M_USER, user.Id, CTL_A_SET, "")
 	return
 }
 
@@ -238,7 +238,7 @@ func (op *Operator) UnBindUser(id int64) (err error) {
 	if err != nil {
 		return
 	}
-	DbLog(op.O, op.User.Id, CTL_M_USER, id, CTL_A_SET, fmt.Sprintf("unbind %d ", id))
+	op.log(CTL_M_USER, id, CTL_A_SET, fmt.Sprintf("unbind %d ", id))
 	return
 }
 
@@ -248,7 +248,7 @@ func (op *Operator) BindUser(src, dst int64) (err error) {
 		return
 	}
 	moduleCache[CTL_M_USER].del(src)
-	DbLog(op.O, op.User.Id, CTL_M_USER, src, CTL_A_SET, fmt.Sprintf("bind %d to %d", src, dst))
+	op.log(CTL_M_USER, src, CTL_A_SET, fmt.Sprintf("bind %d to %d", src, dst))
 	return
 }
 
@@ -262,7 +262,7 @@ func (op *Operator) DeleteUser(id int64) error {
 		return err
 	}
 	moduleCache[CTL_M_USER].del(id)
-	DbLog(op.O, op.User.Id, CTL_M_USER, id, CTL_A_DEL, "")
+	op.log(CTL_M_USER, id, CTL_A_DEL, "")
 
 	return nil
 }
@@ -345,11 +345,9 @@ func (op *Operator) GetTagRoleUser(tagId int64, query string, deep bool,
 }
 
 func (op *Operator) CreateTagRoleUser(rel *TagRoleUserApi) (int64, error) {
-	return addTplRel(op.O, op.User.Id, rel.TagId, rel.RoleId,
-		rel.UserId, TPL_REL_T_ACL_USER)
+	return op.addTplRel(rel.TagId, rel.RoleId, rel.UserId, TPL_REL_T_ACL_USER)
 }
 
 func (op *Operator) DeleteTagRoleUser(rel *TagRoleUserApi) (int64, error) {
-	return delTplRel(op.O, op.User.Id, rel.TagId, rel.RoleId,
-		rel.UserId, TPL_REL_T_ACL_USER)
+	return op.delTplRel(rel.TagId, rel.RoleId, rel.UserId, TPL_REL_T_ACL_USER)
 }

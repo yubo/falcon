@@ -1,18 +1,18 @@
-//line parse.y:7
+//line alarm/parse/parse.y:7
 package parse
 
 import __yyfmt__ "fmt"
 
-//line parse.y:7
+//line alarm/parse/parse.y:7
 import (
 	"fmt"
 	"os"
 
+	"github.com/yubo/falcon/alarm/config"
 	fconfig "github.com/yubo/falcon/config"
-	"github.com/yubo/falcon/transfer/config"
 )
 
-//line parse.y:19
+//line alarm/parse/parse.y:19
 type yySymType struct {
 	yys  int
 	num  int
@@ -64,7 +64,7 @@ const yyEofCode = 1
 const yyErrCode = 2
 const yyInitialStackSize = 16
 
-//line parse.y:99
+//line alarm/parse/parse.y:99
 
 //line yacctab:1
 var yyExca = [...]int{
@@ -486,123 +486,123 @@ yydefault:
 
 	case 3:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line parse.y:42
+		//line alarm/parse/parse.y:42
 		{
 			yyVAL.b = true
 		}
 	case 4:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line parse.y:43
+		//line alarm/parse/parse.y:43
 		{
 			yyVAL.b = true
 		}
 	case 5:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line parse.y:44
+		//line alarm/parse/parse.y:44
 		{
 			yyVAL.b = false
 		}
 	case 6:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line parse.y:45
+		//line alarm/parse/parse.y:45
 		{
 			yyVAL.b = false
 		}
 	case 7:
 		yyDollar = yyS[yypt-0 : yypt+1]
-		//line parse.y:46
+		//line alarm/parse/parse.y:46
 		{
 			yyVAL.b = true
 		}
 	case 8:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line parse.y:50
+		//line alarm/parse/parse.y:50
 		{
 			yyVAL.text = string(yy.t)
 		}
 	case 9:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line parse.y:51
+		//line alarm/parse/parse.y:51
 		{
 			yyVAL.text = exprText(yy.t)
 		}
 	case 10:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line parse.y:55
+		//line alarm/parse/parse.y:55
 		{
 			yyVAL.num = yy.i
 		}
 	case 12:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line parse.y:59
+		//line alarm/parse/parse.y:59
 		{
 			// end
 			conf.Configer.Set(fconfig.APP_CONF_FILE, yy_ss)
 			yy_ss = make(map[string]string)
 
-			//conf.Name = fmt.Sprintf("transfer_%s", conf.Name)
+			//conf.Name = fmt.Sprintf("alarm_%s", conf.Name)
 			if conf.Host == "" {
 				conf.Host, _ = os.Hostname()
 			}
 		}
 	case 13:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line parse.y:72
+		//line alarm/parse/parse.y:72
 		{
 			// begin
-			conf = &config.Transfer{Name: "transfer"}
+			conf = &config.Alarm{Name: "alarm"}
 		}
 	case 16:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line parse.y:79
+		//line alarm/parse/parse.y:79
 		{
 			conf.Disabled = yyDollar[2].b
 		}
 	case 17:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line parse.y:80
+		//line alarm/parse/parse.y:80
 		{
 			conf.Host = yyDollar[2].text
 		}
 	case 18:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line parse.y:81
+		//line alarm/parse/parse.y:81
 		{
 			conf.Debug = 1
 		}
 	case 19:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line parse.y:82
+		//line alarm/parse/parse.y:82
 		{
 			conf.Debug = yyDollar[2].num
 		}
 	case 20:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line parse.y:83
+		//line alarm/parse/parse.y:83
 		{
 			yy_ss[yyDollar[1].text] = fmt.Sprintf("%d", yyDollar[2].num)
 		}
 	case 21:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line parse.y:84
+		//line alarm/parse/parse.y:84
 		{
 			yy_ss[yyDollar[1].text] = fmt.Sprintf("%v", yyDollar[2].b)
 		}
 	case 22:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line parse.y:85
+		//line alarm/parse/parse.y:85
 		{
 			yy.include(yyDollar[2].text)
 		}
 	case 23:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line parse.y:86
+		//line alarm/parse/parse.y:86
 		{
 			yy_ss[yyDollar[1].text] = yyDollar[2].text
 		}
 	case 24:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line parse.y:87
+		//line alarm/parse/parse.y:87
 		{
 			if err := os.Setenv(yyDollar[1].text, yyDollar[3].text); err != nil {
 				yy.Error(err.Error())
@@ -610,7 +610,7 @@ yydefault:
 		}
 	case 25:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line parse.y:92
+		//line alarm/parse/parse.y:92
 		{
 			if err := os.Chdir(yyDollar[2].text); err != nil {
 				yy.Error(err.Error())

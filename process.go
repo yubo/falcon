@@ -29,6 +29,7 @@ type Module interface {
 	String() string
 	Name() string
 	Parse(text []byte, filename string, lino int) config.ModuleConf
+	Stats(config interface{}) string
 }
 
 // reload not support add/del/disable module
@@ -114,6 +115,24 @@ func (p *Process) Start() {
 	}
 }
 
+func (p *Process) Stats(module string) {
+	for i := 0; i < len(p.Config.Conf); i++ {
+		m, ok := ModuleTpls[GetType(p.Config.Conf[i])]
+		if !ok {
+			glog.Exitf("%s's module not support", GetType(p.Config.Conf[i]))
+		}
+		p.Module[i] = m.New(p.Config.Conf[i])
+	}
+
+	for i := 0; i < len(p.Module); i++ {
+		m := p.Module[i]
+		if module == "all" || module == "" || module == m.Name() {
+			fmt.Printf("%s\n", m.Name())
+			fmt.Printf("%s\n", m.Stats(p.Config.Conf[i]))
+		}
+	}
+}
+
 func RegisterModule(m Module, name, tpl string) error {
 	if _, ok := Modules[name]; ok {
 		return ErrExist
@@ -129,7 +148,7 @@ func RegisterModule(m Module, name, tpl string) error {
 }
 
 func SetGlog(c *config.FalconConfig) {
-	glog.V(3).Infof(MODULE_NAME+"set glog %s, %d", c.Log, c.Logv)
+	glog.V(3).Infof("%s set glog %s, %d", MODULE_NAME, c.Log, c.Logv)
 	flag.Lookup("v").Value.Set(fmt.Sprintf("%d", c.Logv))
 
 	if strings.ToLower(c.Log) == "stdout" {

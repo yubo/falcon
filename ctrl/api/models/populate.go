@@ -291,7 +291,7 @@ func (op *Operator) populate() (interface{}, error) {
 	}
 	for _, s := range binds {
 		glog.Infof("bind tag(%s) user(%s) role(%s)\n", s[0], s[1], s[2])
-		if _, err := addTplRel(op.O, op.User.Id, tag_idx[s[0]], role_idx[s[2]],
+		if _, err := op.addTplRel(tag_idx[s[0]], role_idx[s[2]],
 			user_idx[s[1]], TPL_REL_T_ACL_USER); err != nil {
 			glog.Error(err.Error())
 			return nil, err
@@ -314,7 +314,7 @@ func (op *Operator) populate() (interface{}, error) {
 	}
 	for _, s := range binds {
 		glog.Infof("bind tag(%s) token(%s) role(%s)\n", s[2], s[0], s[1])
-		if _, err := addTplRel(op.O, op.User.Id, tag_idx[s[2]], role_idx[s[1]],
+		if _, err := op.addTplRel(tag_idx[s[2]], role_idx[s[1]],
 			token_idx[s[0]], TPL_REL_T_ACL_TOKEN); err != nil {
 			glog.Error(err.Error())
 			return nil, err

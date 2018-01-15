@@ -29,33 +29,32 @@ import (
 var opts falcon.CmdOpts
 
 const (
-	MODULE_NAME = "\x1B[32m[MAIN]\x1B[0m "
+	MODULE_NAME = "\x1B[34m[MAIN]\x1B[0m"
 )
 
 func init() {
-	flag.StringVar(&opts.ConfigFile, "config",
-		"/etc/falcon/falcon.conf", "falcon config file")
+	flags.CommandLine.Usage = fmt.Sprintf("Usage: %s COMMAND start|stop|reload|stats\n", os.Args[0])
 
-	flags.CommandLine.Usage = fmt.Sprintf("Usage: %s [OPTIONS] COMMAND "+
-		"start|stop|reload\n", os.Args[0])
+	cmd := flags.NewCommand("start", "start falcon", start, flag.ExitOnError)
+	cmd.StringVar(&opts.ConfigFile, "config", "/etc/falcon/falcon.conf", "falcon config file")
+
+	cmd = flags.NewCommand("parse", "just parse falcon ConfigFile", parseHandle, flag.ExitOnError)
+	cmd.StringVar(&opts.ConfigFile, "config", "/etc/falcon/falcon.conf", "falcon config file")
+
+	cmd = flags.NewCommand("reload", "reload falcon", reload, flag.ExitOnError)
+	cmd.StringVar(&opts.ConfigFile, "config", "/etc/falcon/falcon.conf", "falcon config file")
+
+	cmd = flags.NewCommand("stats", "show falcon modules stats", stats, flag.ExitOnError)
+	cmd.StringVar(&opts.ConfigFile, "config", "/etc/falcon/falcon.conf", "falcon config file")
+	cmd.StringVar(&opts.Module, "m", "all", "module name")
+
 	flags.NewCommand("help", "show help information", helpHandle, flag.ExitOnError)
-	flags.NewCommand("start", "start falcon", start, flag.ExitOnError)
 	flags.NewCommand("stop", "stop falcon", stop, flag.ExitOnError)
-	flags.NewCommand("parse", "just parse falcon ConfigFile", parseHandle,
-		flag.ExitOnError)
-	flags.NewCommand("reload", "reload falcon", reload, flag.ExitOnError)
+	flags.NewCommand("version", "show falcon version information", version, flag.ExitOnError)
+	flags.NewCommand("git", "show falcon git version information", git, flag.ExitOnError)
+	flags.NewCommand("changelog", "show falcon changelog information", changelog, flag.ExitOnError)
+	flags.NewCommand("modules", "show falcon modules information", modules, flag.ExitOnError)
 
-	flags.NewCommand("version", "show falcon version information",
-		version, flag.ExitOnError)
-
-	flags.NewCommand("git", "show falcon git version information",
-		git, flag.ExitOnError)
-
-	flags.NewCommand("changelog", "show falcon changelog information",
-		changelog, flag.ExitOnError)
-
-	flags.NewCommand("modules", "show falcon modules information",
-		modules, flag.ExitOnError)
 }
 
 func helpHandle(arg interface{}) {
@@ -65,21 +64,26 @@ func helpHandle(arg interface{}) {
 func signalNotify(p *falcon.Process) {
 	sigs := make(chan os.Signal, 1)
 
-	glog.Infof(MODULE_NAME+"[%d] register signal notify", p.Pid)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT,
-		syscall.SIGUSR1)
+	glog.Infof("%s [%d] register signal notify", MODULE_NAME, p.Pid)
+	signal.Notify(sigs,
+		syscall.SIGINT,
+		syscall.SIGTERM,
+		syscall.SIGQUIT,
+		syscall.SIGUSR1,
+		syscall.SIGUSR2,
+	)
 	atomic.StoreUint32(&p.Status, falcon.APP_STATUS_RUNNING)
 
-	glog.Infof(MODULE_NAME+"[%d] register signal notify", p.Pid)
+	glog.Infof("%s [%d] register signal notify", MODULE_NAME, p.Pid)
 
 	for {
 		s := <-sigs
-		glog.Infof(MODULE_NAME+"recv %v", s)
+		glog.Infof("%s recv %v", MODULE_NAME, s)
 
 		switch s {
 		case syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
 			pidfile := fmt.Sprintf("%s.%d", p.Config.PidFile, p.Pid)
-			glog.Info(MODULE_NAME + "exiting")
+			glog.Infof("%s exiting", MODULE_NAME)
 			atomic.StoreUint32(&p.Status, falcon.APP_STATUS_EXIT)
 			os.Rename(p.Config.PidFile, pidfile)
 
@@ -87,11 +91,11 @@ func signalNotify(p *falcon.Process) {
 				p.Module[n-i-1].Stop()
 			}
 
-			glog.Infof(MODULE_NAME+"pid:%d exit", p.Pid)
+			glog.Infof("%s pid:%d exit", MODULE_NAME, p.Pid)
 			os.Remove(pidfile)
 			os.Exit(0)
 		case syscall.SIGUSR1:
-			glog.Info(MODULE_NAME + "reload")
+			glog.Infof("%s reload", MODULE_NAME)
 
 			// reparse config, get new config
 			// newConfig := parse.Parse(p.Config.ConfigFile, false)
@@ -136,7 +140,6 @@ func signalNotify(p *falcon.Process) {
 }
 
 func start(arg interface{}) {
-	opts := arg.(*falcon.CmdOpts)
 	c := parse.Parse(opts.ConfigFile)
 	app := falcon.NewProcess(c)
 
@@ -154,7 +157,6 @@ func start(arg interface{}) {
 }
 
 func stop(arg interface{}) {
-	opts := arg.(*falcon.CmdOpts)
 	c := parse.Parse(opts.ConfigFile)
 	app := falcon.NewProcess(c)
 
@@ -164,7 +166,6 @@ func stop(arg interface{}) {
 }
 
 func reload(arg interface{}) {
-	opts := arg.(*falcon.CmdOpts)
 	c := parse.Parse(opts.ConfigFile)
 	app := falcon.NewProcess(c)
 
@@ -174,7 +175,6 @@ func reload(arg interface{}) {
 }
 
 func parseHandle(arg interface{}) {
-	opts := arg.(*falcon.CmdOpts)
 	c := parse.Parse(opts.ConfigFile)
 	dir, _ := os.Getwd()
 	glog.Infof("work dir :%s", dir)
@@ -199,15 +199,12 @@ func modules(arg interface{}) {
 	}
 }
 
+func stats(arg interface{}) {
+	c := parse.Parse(opts.ConfigFile)
+	falcon.NewProcess(c).Stats(opts.Module)
+}
+
 func main() {
 	flags.Parse()
-	cmd := flags.CommandLine.Cmd
-
-	if cmd != nil && cmd.Action != nil {
-		opts.Args = cmd.Flag.Args()
-		cmd.Action(&opts)
-	} else {
-		opts.Args = flag.Args()
-		start(&opts)
-	}
+	flags.Exec()
 }

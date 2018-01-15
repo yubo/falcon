@@ -26,10 +26,15 @@ type rpcClient struct {
 	cli  service.ServiceClient
 }
 
+const (
+	RPC_ACTION_PUT = iota
+	RPC_ACTION_GET
+)
+
 type ClientModule struct {
-	putChan      chan []*service.Item
-	shardmap     []chan *service.Item
-	serviceChans map[string]chan *service.Item
+	reqChan      chan *reqPayload
+	shardmap     []chan *reqPayload
+	serviceChans map[string]chan *reqPayload
 	clients      map[string]*rpcClient
 	callTimeout  int
 	burstSize    int
@@ -39,29 +44,27 @@ type ClientModule struct {
 
 func (p *ClientModule) prestart(transfer *Transfer) error {
 
-	p.putChan = transfer.appPutChan
-	p.shardmap = make([]chan *service.Item, len(transfer.Conf.Upstream))
-	p.serviceChans = make(map[string]chan *service.Item)
+	p.reqChan = transfer.reqChan
+	p.shardmap = make([]chan *reqPayload, len(transfer.Conf.Upstream))
+	p.serviceChans = make(map[string]chan *reqPayload)
 	p.clients = make(map[string]*rpcClient)
 	p.callTimeout, _ = transfer.Conf.Configer.Int(C_CALL_TIMEOUT)
 	p.burstSize, _ = transfer.Conf.Configer.Int(C_BURST_SIZE)
 
-	for k, v := range transfer.Conf.Upstream {
-		ch, ok := p.serviceChans[v]
-		if !ok {
-			ch = make(chan *service.Item)
-			p.serviceChans[v] = ch
-			p.clients[v] = &rpcClient{addr: v}
+	for shardId, addr := range transfer.Conf.Upstream {
+		ch := p.serviceChans[addr]
+		if ch == nil {
+			ch = make(chan *reqPayload, 144)
+			p.serviceChans[addr] = ch
+			p.clients[addr] = &rpcClient{addr: addr}
 		}
-		p.shardmap[k] = ch
+		p.shardmap[shardId] = ch
 	}
 
 	return nil
 }
 
 func (p *ClientModule) start(transfer *Transfer) (err error) {
-
-	glog.V(3).Infof(MODULE_NAME+"%s len(shardMap) %d", transfer.Conf.Name, len(p.shardmap))
 
 	p.ctx, p.cancel = context.WithCancel(context.Background())
 
@@ -76,10 +79,10 @@ func (p *ClientModule) start(transfer *Transfer) (err error) {
 		c.cli = service.NewServiceClient(c.conn)
 	}
 
-	go putWorker(p.ctx, p.putChan, p.shardmap)
+	go putWorker(p.ctx, p.reqChan, p.shardmap)
 
-	for k, v := range p.serviceChans {
-		go clientWorker(p.ctx, v, p.clients[k],
+	for addr, ch := range p.serviceChans {
+		go clientWorker(p.ctx, ch, p.clients[addr],
 			p.burstSize, p.callTimeout)
 	}
 
@@ -98,31 +101,34 @@ func (p *ClientModule) reload(transfer *Transfer) error {
 	return p.start(transfer)
 }
 
-func putWorker(ctx context.Context, in chan []*service.Item, out []chan *service.Item) {
+func putWorker(ctx context.Context, in chan *reqPayload, out []chan *reqPayload) {
 	n := uint64(len(out))
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		case items := <-in:
-			for _, item := range items {
+		case req := <-in:
+			switch req.action {
+			case RPC_ACTION_PUT:
+				item := req.data.(*service.Item)
 				item.ShardId = int32(item.Sum64() % n)
-				select {
-				case out[item.ShardId] <- item:
-				default:
-				}
+				out[item.ShardId] <- req
+			case RPC_ACTION_GET:
+				r := req.data.(*service.GetRequest)
+				r.ShardId = int32(falcon.Sum64(r.Key) % n)
+				out[r.ShardId] <- req
 			}
 		}
 	}
-
 }
 
 func clientPut(client service.ServiceClient, items []*service.Item,
-	timeout int) {
+	timeout int) *service.PutResponse {
 
 	statsInc(ST_TX_PUT_ITERS, 1)
 	statsInc(ST_TX_PUT_ITEMS, len(items))
 
+	glog.V(5).Infof("%s tx put %v", MODULE_NAME, len(items))
 	ctx, _ := context.WithTimeout(context.Background(),
 		time.Duration(timeout)*time.Millisecond)
 	res, err := client.Put(ctx,
@@ -131,10 +137,27 @@ func clientPut(client service.ServiceClient, items []*service.Item,
 		statsInc(ST_TX_PUT_ERR_ITERS, 1)
 	}
 	statsInc(ST_TX_PUT_ERR_ITEMS, int(len(items)-int(res.N)))
+	return res
+}
+
+func clientGet(client service.ServiceClient, req *service.GetRequest,
+	timeout int) *service.GetResponse {
+
+	statsInc(ST_TX_GET_ITERS, 1)
+
+	glog.V(5).Infof("%s tx get %v", MODULE_NAME, req)
+	ctx, _ := context.WithTimeout(context.Background(),
+		time.Duration(timeout)*time.Millisecond)
+	res, err := client.Get(ctx, req)
+	if err != nil {
+		statsInc(ST_TX_GET_ERR_ITERS, 1)
+	}
+	statsInc(ST_TX_GET_ITEMS, int(len(res.Dps)))
+	return res
 }
 
 func clientWorker(ctx context.Context,
-	ch chan *service.Item, c *rpcClient, burstSize, timeout int) {
+	ch chan *reqPayload, c *rpcClient, burstSize, timeout int) {
 
 	var i int
 
@@ -144,16 +167,31 @@ func clientWorker(ctx context.Context,
 		case <-ctx.Done():
 			c.conn.Close()
 			return
-		case item := <-ch:
-			items[i] = item
-			i++
-			if i == burstSize {
+		case req := <-ch:
+			switch req.action {
+			case RPC_ACTION_PUT:
+				if req.done != nil {
+					req.done <- clientPut(c.cli, []*service.Item{
+						req.data.(*service.Item)}, timeout)
+					continue
+				}
+				items[i] = req.data.(*service.Item)
+				i++
+				if i == burstSize {
+					clientPut(c.cli, items[:i], timeout)
+					i = 0
+				}
+			case RPC_ACTION_GET:
+				res := clientGet(c.cli, req.data.(*service.GetRequest), timeout)
+				if req.done != nil {
+					req.done <- res
+				}
+			}
+		case <-time.After(time.Second):
+			if i > 0 {
 				clientPut(c.cli, items[:i], timeout)
 				i = 0
 			}
-		case <-time.After(time.Second):
-			clientPut(c.cli, items[:i], timeout)
-			i = 0
 		}
 	}
 }

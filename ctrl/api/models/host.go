@@ -58,7 +58,7 @@ func (op *Operator) CreateHost(h *HostCreate) (id int64, err error) {
 		return
 	}
 
-	DbLog(op.O, op.User.Id, CTL_M_HOST, id, CTL_A_ADD, jsonStr(h))
+	op.log(CTL_M_HOST, id, CTL_A_ADD, jsonStr(h))
 	return
 }
 
@@ -101,7 +101,7 @@ func (op *Operator) UpdateHost(h *Host) (ret *Host, err error) {
 		return
 	}
 
-	DbLog(op.O, op.User.Id, CTL_M_HOST, h.Id, CTL_A_SET, jsonStr(h))
+	op.log(CTL_M_HOST, h.Id, CTL_A_SET, jsonStr(h))
 	return ret, err
 }
 
@@ -116,7 +116,7 @@ func (op *Operator) DeleteHost(id int64) error {
 	if h, ok := moduleCache[CTL_M_HOST].get(id).(*Host); ok {
 		moduleCache[CTL_M_HOST].del(id, h.Name)
 	}
-	DbLog(op.O, op.User.Id, CTL_M_HOST, id, CTL_A_DEL, "")
+	op.log(CTL_M_HOST, id, CTL_A_DEL, "")
 
 	return nil
 }
@@ -227,7 +227,7 @@ func (op *Operator) CreateTagHost(rel *TagHostApiAdd) (id int64, err error) {
 	id, err = op.SqlInsert("insert tag_host (tag_id, host_id) values (?, ?)",
 		rel.TagId, rel.HostId)
 	if err == nil {
-		DbLog(op.O, op.User.Id, CTL_M_TAG_HOST, id, CTL_A_ADD, jsonStr(rel))
+		op.log(CTL_M_TAG_HOST, id, CTL_A_ADD, jsonStr(rel))
 	}
 	return
 }
@@ -243,7 +243,7 @@ func (op *Operator) CreateTagHosts(rel *TagHostsApiAdd) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	DbLog(op.O, op.User.Id, CTL_M_TAG_HOST, 0, CTL_A_ADD, strings.Join(vs, ", "))
+	op.log(CTL_M_TAG_HOST, 0, CTL_A_ADD, strings.Join(vs, ", "))
 	return res.RowsAffected()
 }
 
@@ -253,7 +253,7 @@ func (op *Operator) DeleteTagHost(rel *TagHostApiDel) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	DbLog(op.O, op.User.Id, CTL_M_TAG_HOST, rel.TagId, CTL_A_DEL, jsonStr(rel))
+	op.log(CTL_M_TAG_HOST, rel.TagId, CTL_A_DEL, jsonStr(rel))
 	return res.RowsAffected()
 }
 
@@ -267,6 +267,6 @@ func (op *Operator) DeleteTagHosts(rel *TagHostsApiDel) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	DbLog(op.O, op.User.Id, CTL_M_TAG_HOST, 0, CTL_A_DEL, ids)
+	op.log(CTL_M_TAG_HOST, 0, CTL_A_DEL, ids)
 	return res.RowsAffected()
 }

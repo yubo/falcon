@@ -26,8 +26,8 @@ type EventTrigger struct {
 	expr     *expr.Expr
 }
 
-func (p *EventTrigger) Exec(item *itemEntry) *alarm.Event {
-	glog.V(4).Infof("exec %s expr %s", item.key, p.Expr)
+func (p *EventTrigger) Dispatch(item *itemEntry) *alarm.Event {
+	glog.V(4).Infof("%s dispatch %s expr %s", MODULE_NAME, item.key, p.Expr)
 
 	if !expr.Exec(item, p.expr) {
 		return nil

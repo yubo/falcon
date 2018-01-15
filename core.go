@@ -14,7 +14,7 @@ const (
 	//GAUGE       = "GAUGE"
 	//DERIVE      = "DERIVE"
 	//COUNTER     = "COUNTER"
-	MODULE_NAME = "\x1B[32m[FALCON]\x1B[0m "
+	MODULE_NAME = "\x1B[30m[FALCON]\x1B[0m"
 
 	C_ETCD_ENDPOINTS = "etcdendpoints"
 	C_ETCD_USERNAME  = "etcdusername"
@@ -29,7 +29,7 @@ const (
 
 type CmdOpts struct {
 	ConfigFile string
-	Args       []string
+	Module     string
 }
 
 var (

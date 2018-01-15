@@ -49,7 +49,7 @@ func (p *googleAuth) AuthorizeUrl(c interface{}) string {
 	// not support cb param
 
 	conf := p.config
-	return conf.AuthCodeURL(models.RandString(8))
+	return conf.AuthCodeURL(falcon.RandString(8))
 }
 
 func (p *googleAuth) LoginCb(c interface{}) (uuid string, err error) {

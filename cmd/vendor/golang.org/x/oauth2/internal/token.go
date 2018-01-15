@@ -91,9 +91,7 @@ func (e *expirationTime) UnmarshalJSON(b []byte) error {
 
 var brokenAuthHeaderProviders = []string{
 	"https://accounts.google.com/",
-	"https://api.codeswholesale.com/oauth/token",
 	"https://api.dropbox.com/",
-	"https://api.dropboxapi.com/",
 	"https://api.instagram.com/",
 	"https://api.netatmo.net/",
 	"https://api.odnoklassniki.ru/",
@@ -102,28 +100,17 @@ var brokenAuthHeaderProviders = []string{
 	"https://api.twitch.tv/",
 	"https://app.box.com/",
 	"https://connect.stripe.com/",
-	"https://graph.facebook.com", // see https://github.com/golang/oauth2/issues/214
 	"https://login.microsoftonline.com/",
-	"https://login.salesforce.com/",
 	"https://oauth.sandbox.trainingpeaks.com/",
 	"https://oauth.trainingpeaks.com/",
 	"https://oauth.vk.com/",
-	"https://openapi.baidu.com/",
 	"https://slack.com/",
 	"https://test-sandbox.auth.corp.google.com",
-	"https://test.salesforce.com/",
 	"https://user.gini.net/",
 	"https://www.douban.com/",
 	"https://www.googleapis.com/",
 	"https://www.linkedin.com/",
 	"https://www.strava.com/oauth/",
-	"https://www.wunderlist.com/oauth/",
-	"https://api.patreon.com/",
-	"https://sandbox.codeswholesale.com/oauth/token",
-}
-
-func RegisterBrokenAuthHeaderProvider(tokenURL string) {
-	brokenAuthHeaderProviders = append(brokenAuthHeaderProviders, tokenURL)
 }
 
 // providerAuthHeaderWorks reports whether the OAuth2 server identified by the tokenURL
@@ -149,23 +136,23 @@ func providerAuthHeaderWorks(tokenURL string) bool {
 	return true
 }
 
-func RetrieveToken(ctx context.Context, clientID, clientSecret, tokenURL string, v url.Values) (*Token, error) {
+func RetrieveToken(ctx context.Context, ClientID, ClientSecret, TokenURL string, v url.Values) (*Token, error) {
 	hc, err := ContextClient(ctx)
 	if err != nil {
 		return nil, err
 	}
-	bustedAuth := !providerAuthHeaderWorks(tokenURL)
-	if bustedAuth && clientSecret != "" {
-		v.Set("client_id", clientID)
-		v.Set("client_secret", clientSecret)
+	v.Set("client_id", ClientID)
+	bustedAuth := !providerAuthHeaderWorks(TokenURL)
+	if bustedAuth && ClientSecret != "" {
+		v.Set("client_secret", ClientSecret)
 	}
-	req, err := http.NewRequest("POST", tokenURL, strings.NewReader(v.Encode()))
+	req, err := http.NewRequest("POST", TokenURL, strings.NewReader(v.Encode()))
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	if !bustedAuth {
-		req.SetBasicAuth(clientID, clientSecret)
+		req.SetBasicAuth(ClientID, ClientSecret)
 	}
 	r, err := hc.Do(req)
 	if err != nil {

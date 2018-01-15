@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	MODULE_NAME = "\x1B[32m[CTRL_PLUGIN_DEMO]\x1B[0m "
+	MODULE_NAME = "\x1B[33m[CTRL_PLUGIN_DEMO]\x1B[0m"
 )
 
 func init() {
@@ -28,12 +28,12 @@ type Demo struct {
 }
 
 func (p *Demo) PreStart(c *config.Ctrl) error {
-	glog.Info(MODULE_NAME + "prestart")
+	glog.Info(MODULE_NAME + " prestart")
 	return nil
 }
 
 func (p *Demo) Start(c *config.Ctrl) error {
-	glog.Info(MODULE_NAME + "start")
+	glog.Info(MODULE_NAME + " start")
 	p.ctx, p.cancel = context.WithCancel(context.Background())
 
 	ticker := time.NewTicker(time.Second * 60)
@@ -43,7 +43,7 @@ func (p *Demo) Start(c *config.Ctrl) error {
 			case <-p.ctx.Done():
 				return
 			case <-ticker.C:
-				glog.Info(MODULE_NAME + ".")
+				glog.Info(MODULE_NAME + " .")
 			}
 		}
 	}()
@@ -52,13 +52,13 @@ func (p *Demo) Start(c *config.Ctrl) error {
 }
 
 func (p *Demo) Stop(c *config.Ctrl) error {
-	glog.Info(MODULE_NAME + "stop")
+	glog.Info(MODULE_NAME + " stop")
 	p.cancel()
 	return nil
 }
 
 func (p *Demo) Reload(old, c *config.Ctrl) error {
-	glog.Info(MODULE_NAME + "reload")
+	glog.Info(MODULE_NAME + " reload")
 	p.Stop(c)
 	time.Sleep(time.Second)
 	p.PreStart(c)

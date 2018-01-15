@@ -56,7 +56,7 @@ func PreStart() error {
 		beego.NSNamespace("/weapp", beego.NSInclude(&controllers.WeappController{})),
 		beego.NSNamespace("/plugin", beego.NSInclude(&controllers.PluginController{})),
 		beego.NSNamespace("/event", beego.NSInclude(&controllers.EventController{})),
-		//beego.NSNamespace("/action", beego.NSInclude(&controllers.ActionController{})),
+		beego.NSNamespace("/action", beego.NSInclude(&controllers.ActionController{})),
 	)
 	beego.AddNamespace(ns)
 

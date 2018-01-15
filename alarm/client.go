@@ -12,57 +12,59 @@ import (
 	"golang.org/x/net/context"
 )
 
-// ClientModule: transfer's module for banckend
+// ClientModule: alarm's module for sms/email gateway
 // servicegroup: upstream container
 // upstream: connection to the
 
 type ClientModule struct {
-	putChan     chan *Event
-	callTimeout int
-	burstSize   int
-	ctx         context.Context
-	cancel      context.CancelFunc
+	actionChan      chan *Action
+	workerProcesses int
+	callTimeout     int
+	burstSize       int
+	ctx             context.Context
+	cancel          context.CancelFunc
 }
 
-func (p *ClientModule) prestart(transfer *Alarm) error {
-
-	p.putChan = transfer.appPutChan
-	p.callTimeout, _ = transfer.Conf.Configer.Int(C_CALL_TIMEOUT)
-
+func (p *ClientModule) prestart(alarm *Alarm) error {
 	return nil
 }
 
-func (p *ClientModule) start(transfer *Alarm) (err error) {
+func (p *ClientModule) start(alarm *Alarm) (err error) {
 
-	glog.V(3).Infof(MODULE_NAME+"%s", transfer.Conf.Name)
+	p.callTimeout, _ = alarm.Conf.Configer.Int(C_CALL_TIMEOUT)
+	p.workerProcesses, _ = alarm.Conf.Configer.Int(C_WORKER_PROCESSES)
+	p.actionChan = alarm.actionChan
 
 	p.ctx, p.cancel = context.WithCancel(context.Background())
 
-	go putWorker(p.ctx, p.putChan)
+	go actionWorker(p.ctx, p.actionChan, p.workerProcesses)
 
 	return nil
 }
 
-func (p *ClientModule) stop(transfer *Alarm) error {
+func (p *ClientModule) stop(alarm *Alarm) error {
 	p.cancel()
 	return nil
 }
 
-func (p *ClientModule) reload(transfer *Alarm) error {
-	p.stop(transfer)
+func (p *ClientModule) reload(alarm *Alarm) error {
+	p.stop(alarm)
 	time.Sleep(time.Second)
-	p.prestart(transfer)
-	return p.start(transfer)
+	p.prestart(alarm)
+	return p.start(alarm)
 }
 
-func putWorker(ctx context.Context, ch chan *Event) {
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case event := <-ch:
-			glog.V(3).Infof("%v", event)
-		}
+func actionWorker(ctx context.Context, ch chan *Action, n int) {
+	for i := 0; i < n; i++ {
+		go func() {
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case action := <-ch:
+					glog.V(3).Infof("%s >>action<< %v", MODULE_NAME, action)
+				}
+			}
+		}()
 	}
-
 }

@@ -87,7 +87,11 @@ func (p *itemEntry) Get(isNum bool, num, shift_time_ int) (ret []float64) {
 			}
 		}
 		for j := 0; i < CACHE_SIZE && j < num; i++ {
-			ret = append(ret, p.value[(id-i)&CACHE_SIZE_MASK])
+			k := (id - i) & CACHE_SIZE_MASK
+			if p.timestamp[k] == 0 {
+				break
+			}
+			ret = append(ret, p.value[k])
 			j++
 		}
 		return
@@ -101,10 +105,11 @@ func (p *itemEntry) Get(isNum bool, num, shift_time_ int) (ret []float64) {
 		}
 	}
 	for ; i < CACHE_SIZE; i++ {
-		if now-p.timestamp[(id-i)&CACHE_SIZE_MASK] >= sec {
+		k := (id - i) & CACHE_SIZE_MASK
+		if now-p.timestamp[k] >= sec || p.timestamp[k] == 0 {
 			break
 		}
-		ret = append(ret, p.value[(id-i)&CACHE_SIZE_MASK])
+		ret = append(ret, p.value[k])
 	}
 	return ret
 }

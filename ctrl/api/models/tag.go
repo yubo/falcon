@@ -242,7 +242,7 @@ func (op *Operator) createTag(t *TagCreate, schema *TagSchema) (id int64, err er
 	if err != nil {
 		return
 	}
-	glog.V(4).Infof(MODULE_NAME+"id: %d tag: %s\n", id, t.Name)
+	glog.V(4).Infof("%s id: %d tag: %s\n", MODULE_NAME, id, t.Name)
 
 	if rels := TagRelation(t.Name); len(rels) > 0 {
 		var (
@@ -271,7 +271,7 @@ func (op *Operator) createTag(t *TagCreate, schema *TagSchema) (id int64, err er
 
 	moduleCache[CTL_M_TAG].set(id,
 		&Tag{Id: id, Name: t.Name, Type: t.Type}, t.Name)
-	DbLog(op.O, op.User.Id, CTL_M_TAG, id, CTL_A_ADD, "")
+	op.log(CTL_M_TAG, id, CTL_A_ADD, "")
 
 	return id, err
 }
@@ -349,7 +349,7 @@ func (op *Operator) UpdateTag(id int64, t *Tag) (ret *Tag, err error) {
 	}
 
 	moduleCache[CTL_M_TAG].set(id, ret, ret.Name)
-	DbLog(op.O, op.User.Id, CTL_M_TAG, id, CTL_A_SET, "")
+	op.log(CTL_M_TAG, id, CTL_A_SET, "")
 	return ret, err
 }
 */
@@ -391,7 +391,7 @@ func (op *Operator) DeleteTag(id int64) (err error) {
 	if t, ok := moduleCache[CTL_M_TAG].get(id).(*Tag); ok {
 		moduleCache[CTL_M_TAG].del(id, t.Name)
 	}
-	DbLog(op.O, op.User.Id, CTL_M_TAG, id, CTL_A_DEL, "")
+	op.log(CTL_M_TAG, id, CTL_A_DEL, "")
 
 	return nil
 }

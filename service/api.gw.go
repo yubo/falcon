@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/golang/glog"
 	"github.com/yubo/falcon"
 
 	"golang.org/x/net/context"
@@ -47,6 +48,7 @@ func (p *ApiGwModule) start(service *Service) error {
 
 	go func() {
 		if err := server.ListenAndServe(); err != nil {
+			glog.Errorf("%s ListenAndServ %s err %v", MODULE_NAME, p.address, err)
 			p.cancel()
 		}
 		return
@@ -69,6 +71,8 @@ func (p *ApiGwModule) stop(service *Service) error {
 }
 
 func (p *ApiGwModule) reload(service *Service) error {
+	return nil
+
 	if !p.disable {
 		p.stop(service)
 		time.Sleep(time.Second)

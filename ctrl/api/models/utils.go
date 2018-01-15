@@ -6,12 +6,9 @@
 package models
 
 import (
-	"bytes"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"math/rand"
 	"net"
 	"net/http"
 	"reflect"
@@ -19,7 +16,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/astaxie/beego/orm"
 	"github.com/golang/glog"
 	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/ctrl"
@@ -33,37 +29,6 @@ type Log struct {
 	Action   int64
 	Data     string
 	Time     time.Time
-}
-
-var src = rand.NewSource(time.Now().UnixNano())
-
-const (
-	letterIdxBits = 6                    // 6 bits to represent a letter index
-	letterIdxMask = 1<<letterIdxBits - 1 // All 1-bits, as many as letterIdxBits
-	letterIdxMax  = 63 / letterIdxBits   // # of letter indices fitting in 63 bits
-	letterBytes   = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-)
-
-func RandString(n int) string {
-	b := make([]byte, n)
-	// A src.Int63() generates 63 random bits, enough for letterIdxMax characters!
-	for i, cache, remain := n-1, src.Int63(), letterIdxMax; i >= 0; {
-		if remain == 0 {
-			cache, remain = src.Int63(), letterIdxMax
-		}
-		if idx := int(cache & letterIdxMask); idx < len(letterBytes) {
-			b[i] = letterBytes[idx]
-			i--
-		}
-		cache >>= letterIdxBits
-		remain--
-	}
-
-	return string(b)
-}
-
-func DbLog(o orm.Ormer, uid, module, module_id, action int64, data string) {
-	o.Raw("insert log (user_id, module, module_id, action, data) values (?, ?, ?, ?, ?)", uid, module, module_id, action, data).Exec()
 }
 
 func array2sql(array []int64) string {
@@ -335,65 +300,6 @@ func sqlName(query string) (where string, args []interface{}) {
 	return
 }
 
-// http client
-func getJson(url string, resp interface{}, timeout time.Duration) error {
-	var cli *http.Client
-
-	if strings.HasPrefix(url, "https://") {
-		cli = &http.Client{
-			Timeout:   timeout,
-			Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}},
-		}
-
-	} else {
-		cli = &http.Client{Timeout: timeout}
-	}
-
-	r, err := cli.Get(url)
-	if err != nil {
-		return err
-	}
-	defer r.Body.Close()
-
-	b, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		return nil
-	}
-	glog.V(4).Infof("getJson %s \n-> %s", url, string(b))
-	return json.Unmarshal(b, resp)
-}
-
-func postJson(url string, param interface{}, resp interface{}) error {
-	cli := &http.Client{Timeout: 60 * time.Second}
-	r, err := cli.Post(
-		url,
-		"application/json",
-		bytes.NewBuffer([]byte(jsonStr(param))),
-	)
-	if err != nil {
-		return err
-	}
-	defer r.Body.Close()
-	return json.NewDecoder(r.Body).Decode(resp)
-}
-
-func getByteTls(url string, timeout time.Duration) ([]byte, error) {
-	cli := &http.Client{
-		Timeout: timeout,
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true,
-			},
-		},
-	}
-	r, err := cli.Get(url)
-	if err != nil {
-		return nil, err
-	}
-	defer r.Body.Close()
-	return ioutil.ReadAll(r.Body)
-}
-
 func (op *Operator) resetDb(file string) (interface{}, error) {
 	var cmds []string
 	buf, err := ioutil.ReadFile(file)
@@ -435,7 +341,7 @@ func (op *Operator) resetDb(file string) (interface{}, error) {
 	for i := 0; i < len(cmds); i++ {
 		_, err := op.O.Raw(cmds[i]).Exec()
 		if err != nil {
-			glog.Errorf(MODULE_NAME+" sql %s\nerr %s", cmds[i], err.Error())
+			glog.Errorf("%s sql %s\nerr %s", MODULE_NAME, cmds[i], err.Error())
 		}
 	}
 	return "", nil

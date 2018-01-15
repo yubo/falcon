@@ -15,13 +15,12 @@ func init() {
 	falcon.RegisterModule(&service.Service{}, "service",
 		falcon.GetType(config.Service{}))
 
-	// cache should early register(init cache data)
-	// service.RegisterModule(&service.StorageModule{})
 	service.RegisterModule(&service.ShardModule{})
 	service.RegisterModule(&service.ApiModule{})
-	// service.RegisterModule(&service.HttpModule{})
+	service.RegisterModule(&service.ApiGwModule{})
 	service.RegisterModule(&service.IndexModule{})
-	service.RegisterModule(&service.StatsModule{})
 	service.RegisterModule(&service.TimerModule{})
+	service.RegisterModule(&service.TriggerModule{})
+	service.RegisterModule(&service.ClientModule{})
 
 }

@@ -30,9 +30,10 @@ type ApiModule struct {
 	putChan chan *putContext
 }
 
-func (p *ApiModule) Put(ctx context.Context,
-	in *PutRequest) (*PutResponse, error) {
+func (p *ApiModule) Put(ctx context.Context, in *PutRequest) (*PutResponse,
+	error) {
 
+	glog.V(5).Infof("%s rx put %v", MODULE_NAME, in)
 	put := &putContext{
 		items: in.Items,
 		done:  make(chan *PutResponse),
@@ -43,20 +44,27 @@ func (p *ApiModule) Put(ctx context.Context,
 	return resp, nil
 }
 
+func (p *ApiModule) GetStats(ctx context.Context, in *Empty) (*Stats,
+	error) {
+	return &Stats{Counter: statsCounter}, nil
+}
+
+func (p *ApiModule) GetStatsName(ctx context.Context, in *Empty) (*StatsName,
+	error) {
+	return &StatsName{CounterName: statsCounterName}, nil
+}
+
 func (p *ApiModule) prestart(agent *Agent) error {
 	p.address = agent.Conf.Configer.Str(C_API_ADDR)
-	glog.Info(MODULE_NAME + "address " + p.address)
 	p.disable = falcon.AddrIsDisable(p.address)
 	p.putChan = agent.appPutChan
 	return nil
 }
 
 func (p *ApiModule) start(agent *Agent) error {
-	glog.V(3).Info(MODULE_NAME + "api start")
 	if p.disable {
 		return nil
 	}
-	glog.V(3).Info(MODULE_NAME + "api start")
 
 	p.ctx, p.cancel = context.WithCancel(context.Background())
 
@@ -93,6 +101,8 @@ func (p *ApiModule) stop(agent *Agent) error {
 }
 
 func (p *ApiModule) reload(agent *Agent) error {
+	return nil
+
 	if !p.disable {
 		p.stop(agent)
 		time.Sleep(time.Second)

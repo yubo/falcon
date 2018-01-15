@@ -48,6 +48,7 @@ func (p *ApiGwModule) start(transfer *Alarm) error {
 
 	go func() {
 		if err := server.ListenAndServe(); err != nil {
+			glog.Errorf("%s ListenAndServ %s err %v", MODULE_NAME, p.address, err)
 			p.cancel()
 		}
 		return

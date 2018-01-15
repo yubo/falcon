@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	MODULE_NAME     = "\x1B[32m[CTRL]\x1B[0m "
+	MODULE_NAME     = "\x1B[33m[CTRL]\x1B[0m"
 	CONN_RETRY      = 2
 	DEBUG_STAT_STEP = 60
 
@@ -151,11 +151,12 @@ func (p *Ctrl) String() string {
 // ugly hack
 // should called by main package
 func (p *Ctrl) Prestart() (err error) {
-	glog.V(3).Infof(MODULE_NAME+"%s Prestart()", p.Conf.Name)
+	glog.V(3).Infof("%s Prestart()", MODULE_NAME)
 	Configure = p.Conf
 	p.status = falcon.APP_STATUS_INIT
 
 	for i := 0; i < len(modules); i++ {
+		glog.V(4).Infof("%s %s.prestart()", MODULE_NAME, falcon.GetType(modules[i]))
 		if e := modules[i].PreStart(p.Conf); e != nil {
 			err = e
 			glog.Error(err)
@@ -165,10 +166,11 @@ func (p *Ctrl) Prestart() (err error) {
 }
 
 func (p *Ctrl) Start() (err error) {
-	glog.V(3).Infof(MODULE_NAME+"%s Start()", p.Conf.Name)
+	glog.V(3).Infof("%s Start()", MODULE_NAME)
 	p.status = falcon.APP_STATUS_PENDING
 
 	for i := 0; i < len(modules); i++ {
+		glog.V(4).Infof("%s %s.start()", MODULE_NAME, falcon.GetType(modules[i]))
 		if e := modules[i].Start(p.Conf); e != nil {
 			err = e
 			glog.Error(err)
@@ -180,11 +182,12 @@ func (p *Ctrl) Start() (err error) {
 }
 
 func (p *Ctrl) Stop() (err error) {
-	glog.V(3).Infof(MODULE_NAME+"%s Stop()", p.Conf.Name)
+	glog.V(3).Infof("%s Stop()", MODULE_NAME)
 	p.status = falcon.APP_STATUS_EXIT
 
-	for i := len(modules) - 1; i >= 0; i-- {
-		if e := modules[i].Stop(p.Conf); e != nil {
+	for n, i := len(modules), 0; i < n; i++ {
+		glog.V(4).Infof("%s %s.stop()", MODULE_NAME, falcon.GetType(modules[n-i-1]))
+		if e := modules[n-i-1].Stop(p.Conf); e != nil {
 			err = e
 			glog.Error(err)
 		}
@@ -195,11 +198,12 @@ func (p *Ctrl) Stop() (err error) {
 
 // TODO: reload is not yet implemented
 func (p *Ctrl) Reload(c interface{}) (err error) {
-	glog.V(3).Infof(MODULE_NAME+"%s Reload()", p.Conf.Name)
+	glog.V(3).Infof("%s Reload()", MODULE_NAME)
 	p.oldConf = p.Conf
 	p.Conf = c.(*config.Ctrl)
 
 	for i := 0; i < len(modules); i++ {
+		glog.V(4).Infof("%s %s.reload()", MODULE_NAME, falcon.GetType(modules[i]))
 		if e := modules[i].Reload(p.oldConf, p.Conf); e != nil {
 			err = e
 			glog.Error(err)
@@ -209,7 +213,7 @@ func (p *Ctrl) Reload(c interface{}) (err error) {
 }
 
 func (p *Ctrl) Signal(sig os.Signal) error {
-	glog.V(3).Infof(MODULE_NAME+"%s signal %v", p.Conf.Name, sig)
+	glog.Infof("%s recv signal %#v", MODULE_NAME, sig)
 	return nil
 }
 

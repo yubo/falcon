@@ -41,3 +41,12 @@ func (c *PubController) GetConfig() {
 
 	c.SendMsg(200, ret)
 }
+
+// @Title Get stats
+// @Description get ctrl modules config
+// @Success 200  map[string]interface{} ctrl server config
+// @Failure 400 string error
+// @router /stats [get]
+func (c *PubController) GetStats() {
+	c.SendMsg(200, ctrl.StatsHandle())
+}

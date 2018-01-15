@@ -6,13 +6,11 @@
 package service
 
 import (
-	"database/sql"
 	"strings"
 	"time"
 
 	"github.com/astaxie/beego/orm"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/golang/glog"
 	"github.com/yubo/falcon"
 	"github.com/yubo/gotool/list"
 	"golang.org/x/net/context"
@@ -27,37 +25,20 @@ type IndexModule struct {
 }
 
 func indexUpdateEndpoint(endpoint string, lastTs int64, db orm.Ormer) (id int64, err error) {
-	if err = db.Raw("SELECT id FROM endpoint WHERE endpoint = ?",
-		endpoint).QueryRow(&id); err == nil || err != sql.ErrNoRows {
-		return
-	}
-
-	statsInc(ST_INDEX_HOST_INSERT, 1)
-	res, err := db.Raw("INSERT INTO endpoint(endpoint, ts, t_create) VALUES (?, ?, now()) ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id), ts=VALUES(ts)", endpoint, lastTs).Exec()
+	_, err = db.Raw("INSERT INTO endpoint(endpoint, ts, t_create) VALUES (?, ?, now()) ON DUPLICATE KEY UPDATE ts=?, t_modify=now()", endpoint, lastTs, lastTs).Exec()
 	if err != nil {
 		statsInc(ST_INDEX_HOST_INSERT_ERR, 1)
 		return
 	}
 
-	return res.LastInsertId()
+	err = db.Raw("SELECT id FROM endpoint WHERE endpoint = ?", endpoint).QueryRow(&id)
+	return
 }
 
 func indexUpdateTagEndpoint(tags_ string, lastTs int64, db orm.Ormer, hid int64) (err error) {
-	var tid int64
-
 	tags := strings.Split(tags_, ",")
 	for _, tag := range tags {
-
-		if err = db.Raw("SELECT id FROM tag_endpoint WHERE tag = ? and endpoint_id = ?",
-			tag, hid).QueryRow(&tid); err == nil {
-			continue
-		}
-		if err != sql.ErrNoRows {
-			return
-		}
-
-		statsInc(ST_INDEX_TAG_INSERT, 1)
-		_, err = db.Raw("INSERT INTO tag_endpoint(tag, endpoint_id, ts, t_create) VALUES (?, ?, ?, now()) ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id), ts=VALUES(ts)", tag, hid, lastTs).Exec()
+		_, err = db.Raw("INSERT INTO tag_endpoint(tag, endpoint_id, ts, t_create) VALUES (?, ?, ?, now()) ON DUPLICATE KEY UPDATE ts=?, t_modify=now()", tag, hid, lastTs, lastTs).Exec()
 		if err != nil {
 			statsInc(ST_INDEX_TAG_INSERT_ERR, 1)
 			return
@@ -66,20 +47,14 @@ func indexUpdateTagEndpoint(tags_ string, lastTs int64, db orm.Ormer, hid int64)
 	return
 }
 
-func indexUpdateEndpointCounter(key string, lastTs int64, db orm.Ormer, hid int64) (err error) {
-	var id int64
-
-	err = db.Raw("SELECT id FROM counter WHERE endpoint_id = ? and counter = ?",
-		hid, key).QueryRow(&id)
-	if err == nil || err != sql.ErrNoRows {
-		return
+func indexUpdateEndpointCounter(counter, tags, typ string, ts int64, db orm.Ormer, hid int64) (err error) {
+	if len(tags) > 0 {
+		counter += "/" + tags
 	}
 
-	statsInc(ST_INDEX_COUNTER_INSERT, 1)
-	_, err = db.Raw("INSERT INTO endpoint_counter(endpoint_id,counter,ts,t_create) VALUES (?,?,?,?,now()) ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id),ts=VALUES(ts)", hid, key, lastTs).Exec()
+	_, err = db.Raw("INSERT INTO endpoint_counter(endpoint_id,counter,type,ts,t_create) VALUES (?,?,?,?,now()) ON DUPLICATE KEY UPDATE ts=?, type=?,t_modify=now()", hid, counter, typ, ts, ts, typ).Exec()
 	if err != nil {
 		statsInc(ST_INDEX_COUNTER_INSERT_ERR, 1)
-		return
 	}
 	return
 }
@@ -97,7 +72,7 @@ func indexUpdate(e *itemEntry, db orm.Ormer) {
 		return
 	}
 
-	if err = indexUpdateEndpointCounter(e.key, e.lastTs, db, hid); err != nil {
+	if err = indexUpdateEndpointCounter(e.metric, e.tags, e.typ, e.lastTs, db, hid); err != nil {
 		return
 	}
 
@@ -140,12 +115,14 @@ func (p *IndexModule) indexWorker(b *Service) {
 			}
 
 			if l = lruQueue.dequeue(); l == nil {
+				time.Sleep(time.Second)
 				continue
 			}
 
 			e = list_entry(l)
 			if now-e.idxTs < INDEX_UPDATE_CYCLE_TIME {
 				lruQueue.addHead(l)
+				time.Sleep(time.Second)
 				continue
 			}
 
@@ -198,7 +175,6 @@ func (p *IndexModule) start(b *Service) error {
 	go p.indexWorker(b)
 	go p.updateWorker()
 
-	glog.Info(MODULE_NAME, "indexStart ok")
 	return nil
 }
 

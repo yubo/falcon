@@ -15,6 +15,196 @@
     },
     "basePath": "/v1.0",
     "paths": {
+        "/action/trigger": {
+            "put": {
+                "tags": [
+                    "action"
+                ],
+                "description": "update the trigger",
+                "operationId": "ActionController.update action trigger",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for action trigger content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.ActionTriggerApiUpdate"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "trigger info",
+                        "schema": {
+                            "$ref": "#/definitions/.Trigger"
+                        }
+                    },
+                    "400": {
+                        "description": "string error"
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "action"
+                ],
+                "description": "create action trigger",
+                "operationId": "ActionController.Create action trigger",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for trigger content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.ActionTriggerApiAdd"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Id",
+                        "schema": {
+                            "$ref": "#/definitions/models.Id"
+                        }
+                    },
+                    "400": {
+                        "description": "string error"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "action"
+                ],
+                "description": "delete the action trigger",
+                "operationId": "ActionController.delete action trigger",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for delete action trigger content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.ActionTriggerApiDel"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "api call result",
+                        "schema": {
+                            "$ref": "#/definitions/models.Stats"
+                        }
+                    },
+                    "400": {
+                        "description": "{object} models.Stats api call result"
+                    }
+                }
+            }
+        },
+        "/action/trigger/cnt": {
+            "get": {
+                "tags": [
+                    "action"
+                ],
+                "description": "get action triggers number",
+                "operationId": "ActionController.Get action triggers Cnt",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "tag_id",
+                        "description": "tag id",
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    {
+                        "in": "query",
+                        "name": "deep",
+                        "description": "0: cur tag, 1: include parent , 2: include child",
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    {
+                        "in": "query",
+                        "name": "query",
+                        "description": "trigger name",
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "total number",
+                        "schema": {
+                            "$ref": "#/definitions/models.Total"
+                        }
+                    },
+                    "400": {
+                        "description": "string error"
+                    }
+                }
+            }
+        },
+        "/action/trigger/search": {
+            "get": {
+                "tags": [
+                    "action"
+                ],
+                "description": "get all action triggers",
+                "operationId": "ActionController.Get action triggers",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "tag_id",
+                        "description": "tag id",
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    {
+                        "in": "query",
+                        "name": "deep",
+                        "description": "0: cur tag, 1: include parent , 2: include child",
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    {
+                        "in": "query",
+                        "name": "query",
+                        "description": "trigger name",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "limit",
+                        "description": "limit page number",
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    {
+                        "in": "query",
+                        "name": "offset",
+                        "description": "offset  number",
+                        "type": "integer",
+                        "format": "int64"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "triggers ui info",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.ActionTriggerApiGet"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "string error"
+                    }
+                }
+            }
+        },
         "/admin/config/list/etcd": {
             "get": {
                 "tags": [
@@ -1384,6 +1574,65 @@
                 }
             }
         },
+        "/host/tag/s": {
+            "post": {
+                "tags": [
+                    "host"
+                ],
+                "description": "create tag/host relation",
+                "operationId": "HostController.create tag host relation",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "true",
+                        "schema": {
+                            "$ref": "#/definitions/models.TagHostApiAdd"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "affected number",
+                        "schema": {
+                            "$ref": "#/definitions/models.Total"
+                        }
+                    },
+                    "400": {
+                        "description": "string error"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "host"
+                ],
+                "description": "delete tag/host relation",
+                "operationId": "HostController.delete tag host relation",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "unbind tag_id host_id relation",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.TagHostApiDel"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "affected number",
+                        "schema": {
+                            "$ref": "#/definitions/models.Total"
+                        }
+                    },
+                    "400": {
+                        "description": "string error"
+                    }
+                }
+            }
+        },
         "/host/tag/search": {
             "get": {
                 "tags": [
@@ -1731,6 +1980,23 @@
                 ],
                 "description": "get ctrl modules config",
                 "operationId": "PubController.Get config",
+                "responses": {
+                    "200": {
+                        "description": "map[string]interface{} ctrl server config"
+                    },
+                    "400": {
+                        "description": "string error"
+                    }
+                }
+            }
+        },
+        "/pub/stats": {
+            "get": {
+                "tags": [
+                    "pub"
+                ],
+                "description": "get ctrl modules config",
+                "operationId": "PubController.Get stats",
                 "responses": {
                     "200": {
                         "description": "map[string]interface{} ctrl server config"
@@ -4394,7 +4660,7 @@
                 "role_token": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/37034.0xc42037f500.false"
+                        "$ref": "#/definitions/36840.0xc42035fd40.false"
                     }
                 },
                 "tag_id": {
@@ -4434,7 +4700,7 @@
                 "role_user": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/116960.0xc4204b8300.false"
+                        "$ref": "#/definitions/114454.0xc42048baa0.false"
                     }
                 },
                 "tag_id": {
@@ -4722,6 +4988,10 @@
         {
             "name": "event",
             "description": "Operations about event\n"
+        },
+        {
+            "name": "action",
+            "description": "Operations about action (trigger/filter)\n"
         }
     ]
 }

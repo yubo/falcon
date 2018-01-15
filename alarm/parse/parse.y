@@ -10,7 +10,7 @@ import (
 	"os"
 	"fmt"
 
-	"github.com/yubo/falcon/transfer/config"
+	"github.com/yubo/falcon/alarm/config"
 	fconfig "github.com/yubo/falcon/config"
 )
 
@@ -56,26 +56,26 @@ num:
 ;
 
 conf: ';'
-	| transfer '}' ';'      {
+	| alarm '}' ';'      {
 		// end
 	 	conf.Configer.Set(fconfig.APP_CONF_FILE, yy_ss)
 		yy_ss = make(map[string]string)
 	
-		//conf.Name = fmt.Sprintf("transfer_%s", conf.Name)
+		//conf.Name = fmt.Sprintf("alarm_%s", conf.Name)
 		if conf.Host == "" {
 			conf.Host, _ = os.Hostname()
 		}
 	}
 ;
 
-transfer:
+alarm:
 	'{' {
 	 	// begin
-		conf = &config.Transfer{Name: "transfer"}
-	}| transfer transfer_item ';'
+		conf = &config.Alarm{Name: "alarm"}
+	}| alarm alarm_item ';'
 ;
 
-transfer_item:
+alarm_item:
 	| DISABLED bool	{ conf.Disabled = $2 }
 	| HOST text	{ conf.Host = $2 }
 	| DEBUG		{ conf.Debug = 1 }

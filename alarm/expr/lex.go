@@ -18,7 +18,7 @@ import (
 const (
 	eof           = 0
 	MAX_CTX_LEVEL = 16
-	MODULE_NAME   = "\x1B[32m[EXPR_PARSE]\x1B[0m "
+	MODULE_NAME   = "\x1B[37m[ALARM_EXPR_PARSE]\x1B[0m "
 )
 
 var (
@@ -93,7 +93,7 @@ begin:
 		for text[0] == ' ' || text[0] == '\t' || text[0] == '\n' {
 			p.ctx.pos += 1
 			if p.ctx.pos == len(p.ctx.text) {
-				glog.V(5).Infof(MODULE_NAME+"ctx level %d", p.ctxL)
+				glog.V(6).Infof("%s ctx level %d", MODULE_NAME, p.ctxL)
 				if p.ctxL > 0 {
 					p.ctxL--
 					p.ctx = &p.ctxData[p.ctxL]
@@ -113,7 +113,7 @@ begin:
 			p.ctx.pos += len(f)
 			i64, _ := strconv.ParseInt(string(f), 0, 0)
 			p.i = int(i64)
-			glog.V(5).Infof(MODULE_NAME+"return NUM %d\n", p.i)
+			glog.V(6).Infof("%s return NUM %d\n", MODULE_NAME, p.i)
 			return NUM
 		}
 
@@ -122,15 +122,15 @@ begin:
 		if f != nil {
 			if val, ok := keywords[string(f)]; ok {
 				p.ctx.pos += len(f)
-				glog.V(5).Infof(MODULE_NAME+"find %s return %d\n", string(f), val)
+				glog.V(6).Infof("%s find %s return %d\n", MODULE_NAME, string(f), val)
 				return val
 			}
 		}
 
 		if bytes.IndexByte([]byte(`#={}:;,()+*/%<>~\[\]?!\|-&`), text[0]) != -1 {
 			p.ctx.pos++
-			glog.V(5).Infof(MODULE_NAME+"return '%c'\n", int(text[0]))
-			//fmt.Printf(MODULE_NAME+"return '%c'\n", int(text[0]))
+			glog.V(6).Infof("%s return '%c'\n", MODULE_NAME, int(text[0]))
+			//fmt.Printf("%s return '%c'\n", MODULE_NAME, int(text[0]))
 			return int(text[0])
 		}
 
@@ -143,8 +143,7 @@ begin:
 			} else {
 				p.t = f[:]
 			}
-			glog.V(5).Infof(MODULE_NAME+"return TEXT(%s)", string(p.t))
-			//fmt.Printf(MODULE_NAME+"return TEXT(%s)\n", string(p.t))
+			glog.V(6).Infof("%s return TEXT(%s)", MODULE_NAME, string(p.t))
 			return TEXT
 		}
 
@@ -175,7 +174,7 @@ func Parse(text string) (*Expr, error) {
 	yy.ctx.pos = 0
 	yy.ctx.text = []byte(text)
 
-	glog.V(5).Infof("trigger parse text %s", string(yy.ctx.text))
+	glog.V(6).Infof("%s trigger parse text %s", MODULE_NAME, string(yy.ctx.text))
 	yyParse(yy)
 	return yy_trigger, yy.err
 }

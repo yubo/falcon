@@ -70,6 +70,8 @@ func (p *DevModule) Stop(c *config.Ctrl) error {
 }
 
 func (p *DevModule) Reload(old, c *config.Ctrl) error {
+	return nil
+
 	p.Stop(c)
 	time.Sleep(time.Second)
 	p.PreStart(c)

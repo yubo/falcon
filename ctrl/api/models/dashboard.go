@@ -46,7 +46,7 @@ func (op *Operator) AddDashboardTmpGraph(inputs *APITmpGraph) (id int64, err err
 
 	id, err = res.LastInsertId()
 
-	DbLog(op.O, op.User.Id, CTL_M_TMP_GRAPH, id, CTL_A_ADD, jsonStr(inputs))
+	op.log(CTL_M_TMP_GRAPH, id, CTL_A_ADD, jsonStr(inputs))
 	return id, nil
 }
 
@@ -119,7 +119,7 @@ func (op *Operator) AddDashboardGraph(in *APIGraph) (id int64, err error) {
 		return
 	}
 
-	DbLog(op.O, op.User.Id, CTL_M_DASHBOARD_GRAPH, id, CTL_A_ADD, jsonStr(in))
+	op.log(CTL_M_DASHBOARD_GRAPH, id, CTL_A_ADD, jsonStr(in))
 	return
 }
 
@@ -166,7 +166,7 @@ func (op *Operator) UpdateDashboardGraph(inputs *APIGraph) (ret *DashboardGraph,
 
 	_, err = op.SqlExec("update dashboard_graph set title = ?, hosts = ?, counters = ?, screen_id = ?, timespan = ?, graph_type = ?, method = ?, position = ?, falcon_tags = ? where id = ?", ret.Title, ret.Hosts, ret.Counters, ret.ScreenId, ret.Timespan, ret.GraphType, ret.Method, ret.Position, ret.FalconTags, ret.Id)
 
-	DbLog(op.O, op.User.Id, CTL_M_DASHBOARD_GRAPH, ret.Id, CTL_A_SET, jsonStr(ret))
+	op.log(CTL_M_DASHBOARD_GRAPH, ret.Id, CTL_A_SET, jsonStr(ret))
 	return
 }
 
@@ -180,7 +180,7 @@ func (op *Operator) DeleteDashboardGraph(id int64) (err error) {
 	if _, err = op.SqlExec("delete from dashboard_graph where id = ?", id); err != nil {
 		return err
 	}
-	DbLog(op.O, op.User.Id, CTL_M_DASHBOARD_GRAPH, id, CTL_A_DEL, "")
+	op.log(CTL_M_DASHBOARD_GRAPH, id, CTL_A_DEL, "")
 	return nil
 }
 
@@ -230,7 +230,7 @@ func (op *Operator) AddDashboardScreen(in *DashboardScreen) (id int64, err error
 	if err != nil {
 		return
 	}
-	DbLog(op.O, op.User.Id, CTL_M_DASHBOARD_SCREEN, id, CTL_A_ADD, jsonStr(in))
+	op.log(CTL_M_DASHBOARD_SCREEN, id, CTL_A_ADD, jsonStr(in))
 	return
 }
 
@@ -254,7 +254,7 @@ func (op *Operator) DeleteDashboardScreen(id int64) (err error) {
 	if _, err = op.SqlExec("delete from dashboard_screen where id = ?", id); err != nil {
 		return err
 	}
-	DbLog(op.O, op.User.Id, CTL_M_DASHBOARD_SCREEN, id, CTL_A_DEL, "")
+	op.log(CTL_M_DASHBOARD_SCREEN, id, CTL_A_DEL, "")
 	return
 }
 

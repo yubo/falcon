@@ -129,7 +129,6 @@ func (p *cpuCollector) Collect() (ret []*agent.Item, err error) {
 	if err != nil {
 		return nil, err
 	}
-	glog.V(5).Infof("%v", p.cur)
 	return p.stat()
 }
 

@@ -6,12 +6,13 @@
 package alarm
 
 import (
+	"context"
 	"fmt"
 	"sync/atomic"
 	"time"
 
-	"github.com/golang/glog"
-	"golang.org/x/net/context"
+	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/alarm/config"
 )
 
 const (
@@ -26,8 +27,9 @@ const (
 )
 
 var (
-	counter     [ST_ARRAY_SIZE]uint64
-	counterName [ST_ARRAY_SIZE]string = [ST_ARRAY_SIZE]string{
+	statsCounter      []uint64
+	statsCounterName  [][]byte
+	statsCounterName_ [ST_ARRAY_SIZE]string = [ST_ARRAY_SIZE]string{
 		"st_rx_put_iters",
 		"st_rx_put_items",
 		"st_rx_put_err_items",
@@ -38,61 +40,42 @@ var (
 	}
 )
 
+func init() {
+	statsCounter = make([]uint64, ST_ARRAY_SIZE)
+	statsCounterName = make([][]byte, ST_ARRAY_SIZE)
+	for i := 0; i < ST_ARRAY_SIZE; i++ {
+		statsCounterName[i] = []byte(statsCounterName_[i])
+	}
+}
+
 func statsInc(idx, n int) {
-	atomic.AddUint64(&counter[idx], uint64(n))
+	atomic.AddUint64(&statsCounter[idx], uint64(n))
 }
 
 func statsSet(idx, n int) {
-	atomic.StoreUint64(&counter[idx], uint64(n))
+	atomic.StoreUint64(&statsCounter[idx], uint64(n))
 }
 
 func statsGet(idx int) uint64 {
-	return atomic.LoadUint64(&counter[idx])
+	return atomic.LoadUint64(&statsCounter[idx])
 }
 
-func statsHandle() (ret string) {
+func (p *Alarm) Stats(conf interface{}) (s string) {
+	ctx, _ := context.WithTimeout(context.Background(), time.Duration(200)*time.Millisecond)
+	conn, _, err := falcon.DialRr(ctx, conf.(*config.Alarm).Configer.Str(C_API_ADDR), false)
+	if err != nil {
+		return ""
+	}
+	defer conn.Close()
+
+	client := NewAlarmClient(conn)
+	stats, err := client.GetStats(context.Background(), &Empty{})
+	if err != nil {
+		return ""
+	}
+
 	for i := 0; i < ST_ARRAY_SIZE; i++ {
-		ret += fmt.Sprintf("%s %d\n", counterName[i],
-			atomic.LoadUint64(&counter[i]))
+		s += fmt.Sprintf("%-30s %d\n", statsCounterName_[i], stats.Counter[i])
 	}
-	return ret
-}
-
-type StatsModule struct {
-	ctx    context.Context
-	cancel context.CancelFunc
-}
-
-func (p *StatsModule) prestart(t *Alarm) error {
-	return nil
-}
-
-func (p *StatsModule) start(t *Alarm) error {
-	p.ctx, p.cancel = context.WithCancel(context.Background())
-	if t.Conf.Debug > 0 {
-		statsTicker := time.NewTicker(time.Second * DEBUG_STAT_STEP).C
-		go func() {
-			for {
-				select {
-				case <-p.ctx.Done():
-					return
-				case <-statsTicker:
-					glog.V(3).Info(MODULE_NAME + statsHandle())
-				}
-			}
-		}()
-	}
-	return nil
-}
-
-func (p *StatsModule) stop(t *Alarm) error {
-	p.cancel()
-	return nil
-}
-
-func (p *StatsModule) reload(t *Alarm) error {
-	p.stop(t)
-	time.Sleep(time.Second)
-	p.prestart(t)
-	return p.start(t)
+	return
 }

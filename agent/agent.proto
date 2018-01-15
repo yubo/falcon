@@ -20,12 +20,36 @@ message PutResponse {
 	int32  n = 1; // Actual number of objects success process
 }
 
+message Empty {
+}
+
+message Stats {
+	repeated uint64 counter = 1;
+}
+
+message StatsName {
+	repeated bytes counterName = 1;
+}
+
 service Agent {
 	rpc Put(PutRequest) returns (PutResponse) {
 		option (google.api.http) = {
-			post: "/v1/agent/put"
+			post: "/v1.0/put"
 			body: "*"
 		};
 	}
+
+	rpc GetStats(Empty) returns (Stats) {
+		option (google.api.http) = {
+			get: "/v1.0/stats"
+		};
+	};
+
+	rpc GetStatsName(Empty) returns (StatsName) {
+		option (google.api.http) = {
+			get: "/v1.0/stats_name"
+		};
+	};
+
 }
 

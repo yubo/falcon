@@ -42,7 +42,6 @@ message GetRequest {
 	bytes    key       = 3;
 	int32    shardId   = 4;
 	Cf       consolFun = 5;
-
 }
 
 message GetResponse {
@@ -50,19 +49,42 @@ message GetResponse {
 	repeated DataPoint dps = 2; 
 }
 
+message Empty {
+}
+
+message Stats {
+	repeated uint64 counter = 1;
+}
+
+message StatsName {
+	repeated bytes counterName = 1;
+}
+
 service Service {
 	rpc Put(PutRequest) returns (PutResponse) {
 		option (google.api.http) = {
-			post: "/v1/service/put"
+			post: "/v1.0/service/put"
 			body: "*"
 		};
 	}
 
 	rpc Get(GetRequest) returns (GetResponse) {
 		option (google.api.http) = {
-			post: "/v1/service/get"
+			post: "/v1.0/service/get"
 			body: "*"
 		};
 	}
+
+	rpc GetStats(Empty) returns (Stats) {
+		option (google.api.http) = {
+			get: "/v1.0/stats"
+		};
+	};
+
+	rpc GetStatsName(Empty) returns (StatsName) {
+		option (google.api.http) = {
+			get: "/v1.0/stats_name"
+		};
+	};
 }
 

@@ -35,7 +35,7 @@ const (
 	DEBUG_STEP              = 60    //
 	DEBUG_SAMPLE_NB         = 18000 //单周期生成样本数量
 	DEBUG_STAT_STEP         = 60
-	MODULE_NAME             = "\x1B[32m[SERVICE]\x1B[0m "
+	MODULE_NAME             = "\x1B[36m[SERVICE]\x1B[0m"
 	CTRL_STEP               = 360
 
 	C_CALL_TIMEOUT    = "calltimeout"
@@ -53,6 +53,7 @@ const (
 	C_JUDGE_INTERVAL  = "judgeinterval"
 	C_JUDGE_NUM       = "judgenum"
 	C_ALARM_NUM       = "alarmnum"
+	C_ALARM_ADDR      = "alarmaddr"
 	C_UPSTREAM        = "upstream"
 	C_BURST_SIZE      = "burstsize"
 	//C_WORKER_PROCESSES = "workerprocesses"
@@ -74,6 +75,7 @@ var (
 		C_JUDGE_NUM:       "8",
 		C_ALARM_NUM:       "8",
 		C_BURST_SIZE:      "32",
+		C_SYNC_INTERVAL:   "600",
 	}
 )
 
@@ -98,7 +100,7 @@ type Service struct {
 	shard *ShardModule
 
 	// event_trigger
-	appEventChan chan *alarm.Event
+	eventChan chan *alarm.Event
 
 	//storageModule
 	//hdisk []string
@@ -108,8 +110,8 @@ type Service struct {
 
 func (p *Service) New(conf interface{}) falcon.Module {
 	return &Service{
-		Conf:         conf.(*config.Service),
-		appEventChan: make(chan *alarm.Event, 144),
+		Conf:      conf.(*config.Service),
+		eventChan: make(chan *alarm.Event, 1024),
 	}
 }
 
@@ -128,10 +130,11 @@ func (p *Service) String() string {
 }
 
 func (p *Service) Prestart() (err error) {
-	glog.V(3).Infof(MODULE_NAME+"%s Init()", p.Conf.Name)
+	glog.V(3).Infof("%s Prestart()", MODULE_NAME)
 	p.status = falcon.APP_STATUS_INIT
 
 	for i := 0; i < len(modules); i++ {
+		glog.V(4).Infof("%s %s.prestart()", MODULE_NAME, falcon.GetType(modules[i]))
 		if err = modules[i].prestart(p); err != nil {
 			panic(err)
 			//glog.Error(err)
@@ -141,13 +144,13 @@ func (p *Service) Prestart() (err error) {
 }
 
 func (p *Service) Start() (err error) {
-	glog.V(3).Infof(MODULE_NAME+"%s Start()", p.Conf.Name)
+	glog.V(3).Infof("%s Start()", MODULE_NAME)
 	p.status = falcon.APP_STATUS_PENDING
 
 	for i := 0; i < len(modules); i++ {
+		glog.V(4).Infof("%s %s.start()", MODULE_NAME, falcon.GetType(modules[i]))
 		if err = modules[i].start(p); err != nil {
 			panic(err)
-			//glog.Error(err)
 		}
 	}
 
@@ -156,10 +159,11 @@ func (p *Service) Start() (err error) {
 }
 
 func (p *Service) Stop() (err error) {
-	glog.V(3).Infof(MODULE_NAME+"%s Stop()", p.Conf.Name)
+	glog.V(3).Infof("%s Stop()", MODULE_NAME)
 	p.status = falcon.APP_STATUS_EXIT
 
 	for n, i := len(modules), 0; i < n; i++ {
+		glog.V(4).Infof("%s %s.stop()", MODULE_NAME, falcon.GetType(modules[n-i-1]))
 		if err = modules[n-i-1].stop(p); err != nil {
 			//panic(err)
 			glog.Error(err)
@@ -169,12 +173,13 @@ func (p *Service) Stop() (err error) {
 }
 
 func (p *Service) Reload(c interface{}) (err error) {
-	glog.V(3).Infof(MODULE_NAME+"%s Reload()", p.Conf.Name)
+	glog.V(3).Infof("%s Reload()", MODULE_NAME)
 
 	p.oldConf = p.Conf
 	p.Conf = c.(*config.Service)
 
 	for i := 0; i < len(modules); i++ {
+		glog.V(4).Infof("%s %s.reload()", MODULE_NAME, falcon.GetType(modules[i]))
 		if err = modules[i].reload(p); err != nil {
 			glog.Error(err)
 		}
@@ -183,7 +188,7 @@ func (p *Service) Reload(c interface{}) (err error) {
 }
 
 func (p *Service) Signal(sig os.Signal) (err error) {
-	glog.V(3).Infof(MODULE_NAME+"%s signal %v", p.Conf.Name, sig)
+	glog.Infof("%s recv signal %#v", MODULE_NAME, sig)
 	return err
 }
 

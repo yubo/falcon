@@ -63,7 +63,7 @@ type ActionTriggerApiGet struct {
 type ActionTriggerApiUpdate struct {
 	Id           int64  `json:"id"`
 	TagId        int64  `json:"tag_id"`
-	TokenId      int    `json:"token_id"`
+	TokenId      int64  `json:"token_id"`
 	OrderId      int    `json:"order_id"`
 	Expr         string `json:"expr"`
 	Email        bool   `json:"email"`
@@ -80,7 +80,7 @@ func (op *Operator) CreateActionTrigger(e *ActionTrigger) (id int64, err error) 
 		return
 	}
 
-	DbLog(op.O, op.User.Id, CTL_M_ACTION_TRIGGER, id, CTL_A_ADD, jsonStr(e))
+	op.log(CTL_M_ACTION_TRIGGER, id, CTL_A_ADD, jsonStr(e))
 	return
 }
 
@@ -118,7 +118,7 @@ func (op *Operator) GetActionTriggersCnt(tagId int64, deep int) (cnt int64, err 
 
 func (op *Operator) GetActionTriggers(tagId int64, deep, limit, offset int) (ret []ActionTriggerApiGet, err error) {
 	sql, sql_args := sqlActionTrigger(tagId, deep)
-	sql = "SELECT a.id, a.tag_id, a.token_id, a.order_id, a.expr, a.action_flag, a.action_script, b.name as tag_name, c.name as token_name from action_trigger a LEFT JOIN tag b ON a.tag_id = b.id LEFT JOIN token c ON a.token_id = c.id " + sql + " ORDER BY a.name LIMIT ? OFFSET ?"
+	sql = "SELECT a.id, a.tag_id, a.token_id, a.order_id, a.expr, a.action_flag, a.action_script, b.name as tag_name, c.name as token_name from action_trigger a LEFT JOIN tag b ON a.tag_id = b.id LEFT JOIN token c ON a.token_id = c.id " + sql + " ORDER BY a.order_id, a.id LIMIT ? OFFSET ?"
 	sql_args = append(sql_args, limit, offset)
 
 	_, err = op.O.Raw(sql, sql_args...).QueryRows(&ret)
@@ -126,22 +126,22 @@ func (op *Operator) GetActionTriggers(tagId int64, deep, limit, offset int) (ret
 }
 
 func (op *Operator) UpdateActionTrigger(e *ActionTrigger) (ret *ActionTrigger, err error) {
-	_, err = op.SqlExec("update event_trigger set  tag_id = ?, token_id = ?, order_id = ?, expr = ?, action_flag = ?, action_script = ? where id = ?", e.TagId, e.TokenId, e.OrderId, e.Expr, e.ActionFlag, e.ActionScript, e.Id)
+	_, err = op.SqlExec("update action_trigger set  tag_id = ?, token_id = ?, order_id = ?, expr = ?, action_flag = ?, action_script = ? where id = ?", e.TagId, e.TokenId, e.OrderId, e.Expr, e.ActionFlag, e.ActionScript, e.Id)
 	if err != nil {
 		return
 	}
 
-	DbLog(op.O, op.User.Id, CTL_M_ACTION_TRIGGER, e.Id, CTL_A_SET, jsonStr(e))
-	return ret, err
+	op.log(CTL_M_ACTION_TRIGGER, e.Id, CTL_A_SET, jsonStr(e))
+	return e, err
 
 }
 
 func (op *Operator) DeleteActionTrigger(id int64, tagId int64) (n int64, err error) {
-	if n, err = op.SqlExec("delete from event_trigger where tag_id = ? and id = ?",
+	if n, err = op.SqlExec("delete from action_trigger where tag_id = ? and id = ?",
 		tagId, id); err != nil {
 		return
 	}
 
-	DbLog(op.O, op.User.Id, CTL_M_ACTION_TRIGGER, id, CTL_A_DEL, fmt.Sprintf("RowsAffected %d", n))
+	op.log(CTL_M_ACTION_TRIGGER, id, CTL_A_DEL, fmt.Sprintf("RowsAffected %d", n))
 	return
 }

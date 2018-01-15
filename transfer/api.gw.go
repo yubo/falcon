@@ -35,6 +35,7 @@ func (p *ApiGwModule) start(transfer *Transfer) error {
 		glog.Info(MODULE_NAME + "http disable")
 		return nil
 	}
+	glog.V(4).Infof("%s http addr %s", MODULE_NAME, p.address)
 
 	p.ctx, p.cancel = context.WithCancel(context.Background())
 
@@ -42,13 +43,14 @@ func (p *ApiGwModule) start(transfer *Transfer) error {
 
 	err := falcon.Gateway(service.RegisterServiceHandlerFromEndpoint, p.ctx, mux, p.upstream)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	server := &http.Server{Addr: p.address, Handler: mux}
 
 	go func() {
 		if err := server.ListenAndServe(); err != nil {
+			glog.Errorf("%s ListenAndServ %s err %v", MODULE_NAME, p.address, err)
 			p.cancel()
 		}
 		return
@@ -71,6 +73,8 @@ func (p *ApiGwModule) stop(transfer *Transfer) error {
 }
 
 func (p *ApiGwModule) reload(transfer *Transfer) error {
+	return nil
+
 	if !p.disable {
 		p.stop(transfer)
 		time.Sleep(time.Second)

@@ -1,4 +1,4 @@
-.PHONY: clean parse doc deploy run vendor
+.PHONY: clean parse doc deploy start vendor stats
 
 all: dist/bin/falcon
 
@@ -65,13 +65,16 @@ deploy: $(DEPENDS)
 	cd dist && ../scripts/deploy.sh
 
 start:
-	./dist/bin/falcon -config ./docs/etc/falcon.example.conf -logtostderr -v 4 start 2>&1
+	rm -f ./var/*.rpc; ./dist/bin/falcon start -config ./docs/etc/falcon.example.conf 2>&1
 
 reload:
-	./dist/bin/falcon -config ./docs/etc/falcon.example.conf -logtostderr -v 4 reload 2>&1
+	./dist/bin/falcon reload -config ./docs/etc/falcon.example.conf 2>&1
+
+usr2:
+	cat ./falcon.pid | xargs kill -USR2
 
 parse: $(TARGETS)
-	./dist/bin/falcon -config ./docs/etc/falcon.example.conf -logtostderr -v 4 parse 2>&1
+	./dist/bin/falcon parse -config ./docs/etc/falcon.example.conf 2>&1
 
 coverage: $(DEPENDS)
 	./scripts/test_coverage.sh
@@ -85,5 +88,8 @@ vendor:
 
 doc:
 	./scripts/generate_doc.sh
+
+stats:
+	./dist/bin/falcon stats -config ./docs/etc/falcon.example.conf 
 
 include ./scripts/falcon.mk

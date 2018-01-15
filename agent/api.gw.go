@@ -33,8 +33,6 @@ func (p *ApiGwModule) start(agent *Agent) error {
 	if p.disable {
 		return nil
 	}
-	glog.Info(MODULE_NAME + "http start")
-
 	p.ctx, p.cancel = context.WithCancel(context.Background())
 
 	mux := http.NewServeMux()
@@ -48,6 +46,7 @@ func (p *ApiGwModule) start(agent *Agent) error {
 
 	go func() {
 		if err := server.ListenAndServe(); err != nil {
+			glog.Errorf("%s ListenAndServ %s err %v", MODULE_NAME, p.address, err)
 			p.cancel()
 		}
 		return
@@ -70,6 +69,8 @@ func (p *ApiGwModule) stop(agent *Agent) error {
 }
 
 func (p *ApiGwModule) reload(agent *Agent) error {
+	return nil
+
 	if !p.disable {
 		p.stop(agent)
 		time.Sleep(time.Second)
