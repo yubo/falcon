@@ -1,0 +1,156 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "alarm/alarm.proto",
+    "version": "version not set"
+  },
+  "schemes": [
+    "http",
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/v1.0/put": {
+      "post": {
+        "operationId": "Put",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/alarmPutResponse"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/alarmPutRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Alarm"
+        ]
+      }
+    },
+    "/v1.0/stats": {
+      "get": {
+        "operationId": "GetStats",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/alarmStats"
+            }
+          }
+        },
+        "tags": [
+          "Alarm"
+        ]
+      }
+    },
+    "/v1.0/stats_name": {
+      "get": {
+        "operationId": "GetStatsName",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/alarmStatsName"
+            }
+          }
+        },
+        "tags": [
+          "Alarm"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "alarmEvent": {
+      "type": "object",
+      "properties": {
+        "tagId": {
+          "type": "string",
+          "format": "int64"
+        },
+        "key": {
+          "type": "string",
+          "format": "byte"
+        },
+        "expr": {
+          "type": "string",
+          "format": "byte"
+        },
+        "msg": {
+          "type": "string",
+          "format": "byte"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "int64"
+        },
+        "value": {
+          "type": "number",
+          "format": "double"
+        },
+        "Priority": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
+    "alarmPutRequest": {
+      "type": "object",
+      "properties": {
+        "events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/alarmEvent"
+          }
+        }
+      }
+    },
+    "alarmPutResponse": {
+      "type": "object",
+      "properties": {
+        "n": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
+    "alarmStats": {
+      "type": "object",
+      "properties": {
+        "counter": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uint64"
+          }
+        }
+      }
+    },
+    "alarmStatsName": {
+      "type": "object",
+      "properties": {
+        "counterName": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "byte"
+          }
+        }
+      }
+    }
+  }
+}

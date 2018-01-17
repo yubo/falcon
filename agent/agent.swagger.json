@@ -1,0 +1,148 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "agent/agent.proto",
+    "version": "version not set"
+  },
+  "schemes": [
+    "http",
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/v1.0/put": {
+      "post": {
+        "operationId": "Put",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/agentPutResponse"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/agentPutRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Agent"
+        ]
+      }
+    },
+    "/v1.0/stats": {
+      "get": {
+        "operationId": "GetStats",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/agentStats"
+            }
+          }
+        },
+        "tags": [
+          "Agent"
+        ]
+      }
+    },
+    "/v1.0/stats_name": {
+      "get": {
+        "operationId": "GetStatsName",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/agentStatsName"
+            }
+          }
+        },
+        "tags": [
+          "Agent"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "agentItem": {
+      "type": "object",
+      "properties": {
+        "metric": {
+          "type": "string",
+          "format": "byte"
+        },
+        "tags": {
+          "type": "string",
+          "format": "byte"
+        },
+        "type": {
+          "type": "string",
+          "format": "byte"
+        },
+        "value": {
+          "type": "number",
+          "format": "double"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "int64"
+        }
+      }
+    },
+    "agentPutRequest": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/agentItem"
+          }
+        }
+      }
+    },
+    "agentPutResponse": {
+      "type": "object",
+      "properties": {
+        "n": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
+    "agentStats": {
+      "type": "object",
+      "properties": {
+        "counter": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uint64"
+          }
+        }
+      }
+    },
+    "agentStatsName": {
+      "type": "object",
+      "properties": {
+        "counterName": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "byte"
+          }
+        }
+      }
+    }
+  }
+}

@@ -9,7 +9,6 @@
 *.tmp
 *.pid
 *.sh
-*.swagger.json
 
 var/
 dist/
