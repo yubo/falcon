@@ -70,7 +70,7 @@ func (p *ApiModule) Put(ctx context.Context,
 }
 
 func (p *ApiModule) GetStats(ctx context.Context, in *service.Empty) (*service.Stats, error) {
-	return &service.Stats{Counter: statsCounter}, nil
+	return &service.Stats{Counter: statsGets()}, nil
 }
 
 func (p *ApiModule) GetStatsName(ctx context.Context, in *service.Empty) (*service.StatsName, error) {

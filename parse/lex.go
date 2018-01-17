@@ -10,10 +10,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"regexp"
 	"strconv"
 
 	"github.com/golang/glog"
+	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/config"
 )
 
@@ -24,10 +24,8 @@ const (
 )
 
 type yyModule struct {
-	file  string
-	lino  int
-	pos   int
-	level int
+	file string
+	lino int
 }
 
 var (
@@ -39,18 +37,9 @@ var (
 	yy_ss2          = make(map[string]string)
 	yy_as           = make([]string, 0)
 
-	f_ip      = regexp.MustCompile(`^[0-9]+\.[0-0]+\.[0-9]+\.[0-9]+[ \t\n;{}]{1}`)
-	f_num     = regexp.MustCompile(`^0x[0-9a-fA-F]+|^[0-9]+[ \t\n;{}]{1}`)
-	f_keyword = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9-_]+[ \t\n;{}]{1}`)
-	f_word    = regexp.MustCompile(`(^"[^"]+")|(^[^"\n \t;]+)`)
-	f_env     = regexp.MustCompile(`\$\{[a-zA-Z][0-9a-zA-Z_]+\}`)
-
-	keywords = map[string]int{
+	keyChars = []byte(`={}:;,()+*/%<>~\[\]?!\|-`)
+	keyWords = map[string]int{
 		//general
-		"on":       ON,
-		"yes":      YES,
-		"off":      OFF,
-		"no":       NO,
 		"include":  INCLUDE,
 		"root":     ROOT,
 		"pidFile":  PID_FILE,
@@ -58,7 +47,6 @@ var (
 		"host":     HOST,
 		"disabled": DISABLED,
 		"debug":    DEBUG,
-		"module":   MODULE,
 	}
 )
 
@@ -95,7 +83,7 @@ func exprText(s []byte) (ret string) {
 	var i int
 	var es [][]int
 
-	if es = f_env.FindAllIndex(s, -1); es == nil {
+	if es = falcon.F_env.FindAllIndex(s, -1); es == nil {
 		return string(s)
 	}
 
@@ -159,43 +147,79 @@ begin:
 			text = p.ctx.text[p.ctx.pos:]
 		}
 
+		// find module text
+		if yy_module != nil {
+			level := 1
+			pos := p.ctx.pos
+			for pos < len(p.ctx.text) {
+				if p.ctx.text[pos] == '\n' {
+					p.ctx.lino++
+				}
+				if p.ctx.text[pos] == '{' {
+					level++
+				}
+				if p.ctx.text[pos] == '}' {
+					level--
+					if level == 0 {
+						if p.ctx.pos == pos {
+							glog.V(6).Infof("%s return '}'", MODULE_NAME)
+							p.ctx.pos++
+							return '}'
+						} else {
+							p.t = p.ctx.text[p.ctx.pos:pos]
+							p.ctx.pos = pos
+							glog.V(6).Infof("%s return MODULE_TEXT", MODULE_NAME)
+							return MODULE_TEXT
+						}
+					}
+				}
+				pos++
+			}
+		}
+
 		b = prefix(text, []byte("include"))
 		if b {
 			p.ctx.pos += len("include")
 			return INCLUDE
 		}
 
-		f = f_ip.Find(text)
+		f = falcon.F_addr.Find(text)
 		if f != nil {
-			s := f[:len(f)-1]
-			p.ctx.pos += len(s)
-			p.t = s[:]
+			p.ctx.pos += len(f)
+			p.t = f
+			glog.V(6).Infof("%s return ADDR %s\n", MODULE_NAME, p.t)
+			return ADDR
+		}
+
+		f = falcon.F_ip.Find(text)
+		if f != nil {
+			p.ctx.pos += len(f)
+			p.t = f
+			glog.V(6).Infof("%s return IPA %s\n", MODULE_NAME, p.t)
 			return IPA
 		}
 
-		f = f_num.Find(text)
+		f = falcon.F_num.Find(text)
 		if f != nil {
-			s := f[:len(f)-1]
-			p.ctx.pos += len(s)
-			p.t = s[:]
-			i64, _ := strconv.ParseInt(string(s), 0, 0)
+			p.ctx.pos += len(f)
+			p.t = f
+			i64, _ := strconv.ParseInt(string(f), 0, 0)
 			p.i = int(i64)
 			glog.V(6).Infof("%s return NUM %d\n", MODULE_NAME, p.i)
 			return NUM
 		}
 
 		// find keyword
-		f = f_keyword.Find(text)
+		f = falcon.F_keyword.Find(text)
 		if f != nil {
-			s := f[:len(f)-1]
-			if val, ok := keywords[string(s)]; ok {
-				p.ctx.pos += len(s)
-				glog.V(6).Infof("%s find %s return %d\n", MODULE_NAME, string(s), val)
+			if val, ok := keyWords[string(f)]; ok {
+				p.ctx.pos += len(f)
+				glog.V(6).Infof("%s find %s return %d\n", MODULE_NAME, string(f), val)
 				return val
 			}
 		}
 
-		if bytes.IndexByte([]byte(`={}:;,()+*/%<>~\[\]?!\|-`), text[0]) != -1 {
+		if bytes.IndexByte(keyChars, text[0]) != -1 {
 			if !prefix(text, []byte(`//`)) &&
 				!prefix(text, []byte(`/*`)) {
 				p.ctx.pos++
@@ -239,7 +263,7 @@ begin:
 		}
 
 		// find text
-		f = f_word.Find(text)
+		f = falcon.F_text.Find(text)
 		if f != nil {
 			p.ctx.pos += len(f)
 			if f[0] == '"' {
@@ -307,6 +331,19 @@ func Parse(filename string) *config.FalconConfig {
 			filename, err.Error())
 		os.Exit(1)
 	}
+	glog.V(4).Infof("%s parse file %s", MODULE_NAME, filename)
+	yyParse(yy)
+	return conf
+}
+
+func ParseText(text []byte, filename string, lino int) *config.FalconConfig {
+	conf = &config.FalconConfig{ConfigFile: filename}
+	yy = &yyLex{}
+	yy.ctx = &yy.ctxData[0]
+	yy.ctx.file = filename
+	yy.ctx.lino = 1
+	yy.ctx.pos = 0
+	yy.ctx.text = text
 	glog.V(4).Infof("%s parse file %s", MODULE_NAME, filename)
 	yyParse(yy)
 	return conf

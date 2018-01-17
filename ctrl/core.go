@@ -198,6 +198,9 @@ func (p *Ctrl) Stop() (err error) {
 
 // TODO: reload is not yet implemented
 func (p *Ctrl) Reload(c interface{}) (err error) {
+
+	return nil
+
 	glog.V(3).Infof("%s Reload()", MODULE_NAME)
 	p.oldConf = p.Conf
 	p.Conf = c.(*config.Ctrl)

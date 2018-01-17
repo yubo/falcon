@@ -18,6 +18,7 @@ var (
 	ErrRePreStart     = errors.New("multiple times PreStart")
 	ErrUnsupported    = errors.New("unsupported")
 	ErrDelDefault     = errors.New("You cannot delete this basic data")
+	ENONODE           = errors.New("no such node")
 	ErrDelInUse       = errors.New("Still in use, cannot remove")
 	ErrParam          = errors.New("param error")
 	ErrEmpty          = errors.New("empty items")

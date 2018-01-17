@@ -20,44 +20,43 @@ import (
 %union {
 	num int
 	text string
-	b bool
 }
 
-%type <b> bool
-%type <text> text
 %type <num> num
+%type <text> text module_text
 
 %token <num> NUM
-%token <text> TEXT IPA
+%token <text> TEXT IPA MODULE_TEXT ADDR
 
-%token '{' '}' ';'
-%token ON YES OFF NO INCLUDE ROOT PID_FILE LOG HOST DISABLED DEBUG
-%token MODULE
+%token '{' '}' ';' '*' '+' '>' '<' '+' '(' ')'
+%token INCLUDE ROOT PID_FILE LOG HOST DISABLED DEBUG
 
 %%
 
 config: 
-	| config conf
-	;
+	| config conf_item
+;
 
-bool:
-	ON	{ $$ = true }
-	| YES	{ $$ = true }
-	| OFF	{ $$ = false }
-	| NO	{ $$ = false }
-	|	{ $$ = true }
-	;
+num:
+	NUM			{ $$ = yy.i }
+	| '(' num ')'		{ $$ = $2}
+	| num '*' num		{ $$ = $1 * $3}
+	| num '+' num		{ $$ = $1 + $3}
+	| num '<' '<' num	{ $$ = int(uint($1) << uint($4)) }
+	| num '>' '>' num	{ $$ = int(uint($1) >> uint($4)) }
+;
 
 text:
 	IPA	{ $$ = string(yy.t) }
+	| ADDR	{ $$ = string(yy.t) }
 	| TEXT	{ $$ = exprText(yy.t) }
-	;
-
-num:
-	NUM	{ $$ = yy.i }
 ;
 
-conf: ';'
+module_text:
+  MODULE_TEXT { $$ = string(yy.t) }	
+;
+
+conf_item: ';'
 	| PID_FILE text ';' { conf.PidFile = $2 }
 	| text '=' text ';' {
 		if err := os.Setenv($1, $3); err != nil {
@@ -74,22 +73,13 @@ conf: ';'
 	 		yy.Error(err.Error())
 	 	}
 	}
-	| module '}' '}' {
-		p1, _ := falcon.PreByte(yy.ctx.text, yy.ctx.pos)
-		yy.ctx.text[p1] = ';'
-
-		conf.Conf  = append(conf.Conf, yy_module_parse(
-		yy.ctx.text[yy_module.pos : yy.ctx.pos],
-		yy_module.file, yy_module.lino))
-	}
+	| module ';'
 ;
 
 module: text '{' {
 	 	yy_module = &yyModule {
-			level: 1,
 			file: yy.ctx.file,
 			lino: yy.ctx.lino,
-			pos: yy.ctx.pos - 1,
 		}
 		if m, ok := falcon.Modules[$1]; ok {
 			yy_module_parse = m.Parse
@@ -98,27 +88,12 @@ module: text '{' {
 		}
 
 	}
-	| module ';' {
-		if (yy_module.level == 0) {
-			p1, c1 := falcon.PreByte(yy.ctx.text, yy.ctx.pos)
-			p2, c2 := falcon.PreByte(yy.ctx.text, p1 - 1)
-			if c1 == ';' && c2 == '}' {
-				yy.ctx.text[p1] = '}'
-			}
-			yy.ctx.pos = p2 - 1
-		}
+	| module module_text '}' {
+		conf.Conf  = append(conf.Conf, yy_module_parse([]byte(fmt.Sprintf("{ %s };", $2)),
+			yy_module.file, yy_module.lino))
+		yy_module = nil
 	}
-	| module '{' { yy_module.level++ }
-	| module '}' { yy_module.level-- }
-	| module text
-	| module num 
-	| module bool
-	| module ROOT
-	| module LOG
-	| module HOST
-	| module DEBUG
-	| module INCLUDE
-	| module PID_FILE
-	| module DISABLED
+;
+
 %%
 

@@ -128,7 +128,7 @@ func testToken(t *testing.T) {
 		{tag_idx["a=1,b=2"], role_idx["r4"], user_idx["u1"]},
 	}
 	for _, n := range binds {
-		if _, err := addTplRel(op.O, op.User.Id, n[0], n[1], n[2], TPL_REL_T_ACL_USER); err != nil {
+		if _, err := op.addTplRel(n[0], n[1], n[2], TPL_REL_T_ACL_USER); err != nil {
 			t.Error(err)
 		}
 	}
@@ -142,7 +142,7 @@ func testToken(t *testing.T) {
 		{tag_idx["a=1,b=2"], role_idx["r4"], token_idx["token42"]},
 	}
 	for _, n := range binds {
-		if _, err := addTplRel(op.O, op.User.Id, n[0], n[1], n[2], TPL_REL_T_ACL_TOKEN); err != nil {
+		if _, err := op.addTplRel(n[0], n[1], n[2], TPL_REL_T_ACL_TOKEN); err != nil {
 			t.Error(err)
 		}
 	}

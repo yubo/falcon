@@ -17,26 +17,36 @@ import (
 )
 
 type ApiModule struct {
-	disable bool
-	ctx     context.Context
-	cancel  context.CancelFunc
-	address string
-	putChan chan *Event
+	disable      bool
+	ctx          context.Context
+	cancel       context.CancelFunc
+	address      string
+	putEventChan chan *Event
 }
 
 func (p *ApiModule) Put(ctx context.Context,
 	in *PutRequest) (*PutResponse, error) {
 
+	res := &PutResponse{}
+
 	glog.V(3).Infof("%s rx put %s", MODULE_NAME, in)
 	for _, e := range in.Events {
-		p.putChan <- e
+		select {
+		case p.putEventChan <- e:
+			res.N++
+		default:
+		}
 	}
 
-	return &PutResponse{N: int32(len(in.Events))}, nil
+	statsInc(ST_RX_PUT_ITER, 1)
+	statsInc(ST_RX_PUT_EVENT, int(res.N))
+	statsInc(ST_RX_PUT_ERR_EVENT, len(in.Events)-int(res.N))
+
+	return res, nil
 }
 
 func (p *ApiModule) GetStats(ctx context.Context, in *Empty) (*Stats, error) {
-	return &Stats{Counter: statsCounter}, nil
+	return &Stats{Counter: statsGets()}, nil
 }
 
 func (p *ApiModule) GetStatsName(ctx context.Context, in *Empty) (*StatsName, error) {
@@ -46,7 +56,7 @@ func (p *ApiModule) GetStatsName(ctx context.Context, in *Empty) (*StatsName, er
 func (p *ApiModule) prestart(a *Alarm) error {
 	p.address = a.Conf.Configer.Str(C_API_ADDR)
 	p.disable = falcon.AddrIsDisable(p.address)
-	p.putChan = a.putEventChan
+	p.putEventChan = a.putEventChan
 
 	return nil
 }

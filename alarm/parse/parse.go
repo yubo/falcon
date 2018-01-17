@@ -1,9 +1,9 @@
-//line alarm/parse/parse.y:7
+//line parse.y:7
 package parse
 
 import __yyfmt__ "fmt"
 
-//line alarm/parse/parse.y:7
+//line parse.y:7
 import (
 	"fmt"
 	"os"
@@ -12,7 +12,7 @@ import (
 	fconfig "github.com/yubo/falcon/config"
 )
 
-//line alarm/parse/parse.y:19
+//line parse.y:19
 type yySymType struct {
 	yys  int
 	num  int
@@ -23,17 +23,18 @@ type yySymType struct {
 const NUM = 57346
 const TEXT = 57347
 const IPA = 57348
-const ON = 57349
-const YES = 57350
-const OFF = 57351
-const NO = 57352
-const INCLUDE = 57353
-const ROOT = 57354
-const PID_FILE = 57355
-const LOG = 57356
-const HOST = 57357
-const DISABLED = 57358
-const DEBUG = 57359
+const ADDR = 57349
+const ON = 57350
+const YES = 57351
+const OFF = 57352
+const NO = 57353
+const INCLUDE = 57354
+const ROOT = 57355
+const PID_FILE = 57356
+const LOG = 57357
+const HOST = 57358
+const DISABLED = 57359
+const DEBUG = 57360
 
 var yyToknames = [...]string{
 	"$end",
@@ -42,9 +43,17 @@ var yyToknames = [...]string{
 	"NUM",
 	"TEXT",
 	"IPA",
+	"ADDR",
 	"'{'",
 	"'}'",
 	"';'",
+	"'*'",
+	"'('",
+	"')'",
+	"'+'",
+	"'-'",
+	"'<'",
+	"'>'",
 	"ON",
 	"YES",
 	"OFF",
@@ -64,7 +73,7 @@ const yyEofCode = 1
 const yyErrCode = 2
 const yyInitialStackSize = 16
 
-//line alarm/parse/parse.y:99
+//line parse.y:105
 
 //line yacctab:1
 var yyExca = [...]int{
@@ -75,52 +84,59 @@ var yyExca = [...]int{
 
 const yyPrivate = 57344
 
-const yyLast = 41
+const yyLast = 63
 
 var yyAct = [...]int{
 
-	11, 19, 20, 21, 22, 17, 24, 18, 16, 5,
-	23, 3, 28, 30, 31, 25, 15, 14, 26, 27,
-	25, 19, 20, 21, 22, 15, 14, 7, 6, 4,
-	32, 2, 29, 1, 12, 13, 15, 14, 9, 8,
-	10,
+	25, 26, 16, 14, 15, 20, 21, 22, 23, 27,
+	11, 43, 28, 26, 42, 20, 21, 22, 23, 7,
+	24, 27, 30, 32, 33, 5, 31, 3, 38, 16,
+	14, 15, 18, 6, 34, 40, 41, 35, 17, 36,
+	37, 4, 39, 45, 46, 19, 12, 13, 2, 1,
+	9, 8, 10, 34, 0, 44, 35, 29, 36, 37,
+	16, 14, 15,
 }
 var yyPact = [...]int{
 
-	-1000, 2, -1000, -1000, 20, -1000, -1, -4, -9, 31,
-	16, 11, 31, 31, -1000, -1000, -1000, -1000, -1000, -1000,
-	-1000, -1000, -1000, -1000, -1000, -1000, -1000, -1000, -1000, 31,
-	-1000, -1000, -1000,
+	-1000, 17, -1000, -1000, 24, -1000, 28, 22, -13, 55,
+	9, -3, 55, 55, -1000, -1000, -1000, -1000, -1000, -1000,
+	-1000, -1000, -1000, -1000, -1000, 23, -1000, 9, 23, -1000,
+	-1000, 55, -1000, -1000, 9, 9, -2, -6, 42, -1000,
+	23, 23, 9, 9, -1000, 23, 23,
 }
 var yyPgo = [...]int{
 
-	0, 7, 0, 6, 33, 31, 29, 27,
+	0, 45, 10, 0, 49, 48, 41, 19,
 }
 var yyR1 = [...]int{
 
 	0, 4, 4, 1, 1, 1, 1, 1, 2, 2,
-	3, 5, 5, 6, 6, 7, 7, 7, 7, 7,
-	7, 7, 7, 7, 7, 7,
+	2, 3, 3, 3, 3, 3, 3, 5, 5, 6,
+	6, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+	7, 7,
 }
 var yyR2 = [...]int{
 
 	0, 0, 2, 1, 1, 1, 1, 0, 1, 1,
-	1, 1, 3, 1, 3, 0, 2, 2, 1, 2,
-	2, 2, 2, 2, 3, 2,
+	1, 1, 3, 3, 3, 4, 4, 1, 3, 1,
+	3, 0, 2, 2, 1, 2, 2, 2, 2, 2,
+	3, 2,
 }
 var yyChk = [...]int{
 
-	-1000, -4, -5, 9, -6, 7, 8, -7, 19, 18,
-	20, -2, 14, 15, 6, 5, 9, 9, -1, 10,
-	11, 12, 13, -2, -3, 4, -3, -1, -2, 21,
-	-2, -2, -2,
+	-1000, -4, -5, 10, -6, 8, 9, -7, 27, 26,
+	28, -2, 22, 23, 6, 7, 5, 10, 10, -1,
+	18, 19, 20, 21, -2, -3, 4, 12, -3, -1,
+	-2, 29, -2, -2, 11, 14, 16, 17, -3, -2,
+	-3, -3, 16, 17, 13, -3, -3,
 }
 var yyDef = [...]int{
 
-	1, -2, 2, 11, 15, 13, 0, 0, 7, 0,
-	18, 7, 0, 0, 8, 9, 12, 14, 16, 3,
-	4, 5, 6, 17, 19, 10, 20, 21, 23, 0,
-	22, 25, 24,
+	1, -2, 2, 17, 21, 19, 0, 0, 7, 0,
+	24, 7, 0, 0, 8, 9, 10, 18, 20, 22,
+	3, 4, 5, 6, 23, 25, 11, 0, 26, 27,
+	29, 0, 28, 31, 0, 0, 0, 0, 0, 30,
+	13, 14, 0, 0, 12, 15, 16,
 }
 var yyTok1 = [...]int{
 
@@ -128,20 +144,20 @@ var yyTok1 = [...]int{
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-	3, 3, 3, 3, 3, 3, 3, 3, 3, 9,
-	3, 21, 3, 3, 3, 3, 3, 3, 3, 3,
-	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+	12, 13, 11, 14, 3, 15, 3, 3, 3, 3,
+	3, 3, 3, 3, 3, 3, 3, 3, 3, 10,
+	16, 29, 17, 3, 3, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-	3, 3, 3, 7, 3, 8,
+	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+	3, 3, 3, 8, 3, 9,
 }
 var yyTok2 = [...]int{
 
-	2, 3, 4, 5, 6, 10, 11, 12, 13, 14,
-	15, 16, 17, 18, 19, 20,
+	2, 3, 4, 5, 6, 7, 18, 19, 20, 21,
+	22, 23, 24, 25, 26, 27, 28,
 }
 var yyTok3 = [...]int{
 	0,
@@ -486,55 +502,91 @@ yydefault:
 
 	case 3:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line alarm/parse/parse.y:42
+		//line parse.y:42
 		{
 			yyVAL.b = true
 		}
 	case 4:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line alarm/parse/parse.y:43
+		//line parse.y:43
 		{
 			yyVAL.b = true
 		}
 	case 5:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line alarm/parse/parse.y:44
+		//line parse.y:44
 		{
 			yyVAL.b = false
 		}
 	case 6:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line alarm/parse/parse.y:45
+		//line parse.y:45
 		{
 			yyVAL.b = false
 		}
 	case 7:
 		yyDollar = yyS[yypt-0 : yypt+1]
-		//line alarm/parse/parse.y:46
+		//line parse.y:46
 		{
 			yyVAL.b = true
 		}
 	case 8:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line alarm/parse/parse.y:50
+		//line parse.y:50
 		{
 			yyVAL.text = string(yy.t)
 		}
 	case 9:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line alarm/parse/parse.y:51
+		//line parse.y:51
 		{
-			yyVAL.text = exprText(yy.t)
+			yyVAL.text = string(yy.t)
 		}
 	case 10:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line alarm/parse/parse.y:55
+		//line parse.y:52
+		{
+			yyVAL.text = exprText(yy.t)
+		}
+	case 11:
+		yyDollar = yyS[yypt-1 : yypt+1]
+		//line parse.y:56
 		{
 			yyVAL.num = yy.i
 		}
 	case 12:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line alarm/parse/parse.y:59
+		//line parse.y:57
+		{
+			yyVAL.num = yyDollar[2].num
+		}
+	case 13:
+		yyDollar = yyS[yypt-3 : yypt+1]
+		//line parse.y:58
+		{
+			yyVAL.num = yyDollar[1].num * yyDollar[3].num
+		}
+	case 14:
+		yyDollar = yyS[yypt-3 : yypt+1]
+		//line parse.y:59
+		{
+			yyVAL.num = yyDollar[1].num + yyDollar[3].num
+		}
+	case 15:
+		yyDollar = yyS[yypt-4 : yypt+1]
+		//line parse.y:60
+		{
+			yyVAL.num = int(uint(yyDollar[1].num) << uint(yyDollar[4].num))
+		}
+	case 16:
+		yyDollar = yyS[yypt-4 : yypt+1]
+		//line parse.y:61
+		{
+			yyVAL.num = int(uint(yyDollar[1].num) >> uint(yyDollar[4].num))
+		}
+	case 18:
+		yyDollar = yyS[yypt-3 : yypt+1]
+		//line parse.y:65
 		{
 			// end
 			conf.Configer.Set(fconfig.APP_CONF_FILE, yy_ss)
@@ -545,72 +597,72 @@ yydefault:
 				conf.Host, _ = os.Hostname()
 			}
 		}
-	case 13:
+	case 19:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line alarm/parse/parse.y:72
+		//line parse.y:78
 		{
 			// begin
 			conf = &config.Alarm{Name: "alarm"}
 		}
-	case 16:
+	case 22:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line alarm/parse/parse.y:79
+		//line parse.y:85
 		{
 			conf.Disabled = yyDollar[2].b
 		}
-	case 17:
+	case 23:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line alarm/parse/parse.y:80
+		//line parse.y:86
 		{
 			conf.Host = yyDollar[2].text
 		}
-	case 18:
+	case 24:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line alarm/parse/parse.y:81
+		//line parse.y:87
 		{
 			conf.Debug = 1
 		}
-	case 19:
+	case 25:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line alarm/parse/parse.y:82
+		//line parse.y:88
 		{
 			conf.Debug = yyDollar[2].num
 		}
-	case 20:
+	case 26:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line alarm/parse/parse.y:83
+		//line parse.y:89
 		{
 			yy_ss[yyDollar[1].text] = fmt.Sprintf("%d", yyDollar[2].num)
 		}
-	case 21:
+	case 27:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line alarm/parse/parse.y:84
+		//line parse.y:90
 		{
 			yy_ss[yyDollar[1].text] = fmt.Sprintf("%v", yyDollar[2].b)
 		}
-	case 22:
+	case 28:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line alarm/parse/parse.y:85
+		//line parse.y:91
 		{
 			yy.include(yyDollar[2].text)
 		}
-	case 23:
+	case 29:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line alarm/parse/parse.y:86
+		//line parse.y:92
 		{
 			yy_ss[yyDollar[1].text] = yyDollar[2].text
 		}
-	case 24:
+	case 30:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line alarm/parse/parse.y:87
+		//line parse.y:93
 		{
 			if err := os.Setenv(yyDollar[1].text, yyDollar[3].text); err != nil {
 				yy.Error(err.Error())
 			}
 		}
-	case 25:
+	case 31:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line alarm/parse/parse.y:92
+		//line parse.y:98
 		{
 			if err := os.Chdir(yyDollar[2].text); err != nil {
 				yy.Error(err.Error())

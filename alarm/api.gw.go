@@ -71,6 +71,8 @@ func (p *ApiGwModule) stop(transfer *Alarm) error {
 }
 
 func (p *ApiGwModule) reload(transfer *Alarm) error {
+	return nil
+
 	if !p.disable {
 		p.stop(transfer)
 		time.Sleep(time.Second)

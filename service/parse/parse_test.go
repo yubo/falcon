@@ -17,26 +17,22 @@ var text = []byte(`
 	FALCON_DSN	= falcon:1234@tcp(localhost:3306)/falcon?loc=Local&parseTime=true;
 
 	debug;
-	leasekey	"/open-falcon/service/online/test.falcon";
-	leasettl	20;
-	apiAddr		${SERVICE_ADDR};
-	httpAddr	${SERVICE_ADDR}.gw;
-	dsn		${INDEX_DSN};
-	dbMaxIdle	4;
-	callTimeout	5000;	// 请求超时时间
-	workerProcesses	2;	// 数据迁移时连接目标服务器的并发数量
-	hdisk		"./var/data/hd01";
-	syncDsn		${FALCON_DSN};
-	syncInterval	600;	// 同步配置间隔时间
-	judgeInterval	60;	// 事件触发器扫描间隔时间
-	shardIds	"0,1,2,3,4,5,6,7,8,9";
-	migrate {
-		disabled;
-		upstream {
-			storage_00	127.0.0.1:7020;
-			storage_01	127.0.0.1:7021;
-		};
-	};
+	leasekey		"/open-falcon/service/online/test.falcon";
+	leasettl		20;
+	apiAddr			${SERVICE_ADDR};
+	httpAddr		${SERVICE_ADDR}.gw;
+	dsn			${INDEX_DSN};
+	dbMaxIdle		4;
+	callTimeout		5000;	// 请求超时时间
+	workerProcesses		2;	// 数据迁移时连接目标服务器的并发数量
+	hdisk			"./var/data/hd01";
+	syncDsn			${FALCON_DSN};
+	syncInterval		600;	// 同步配置间隔时间
+	judgeInterval		60;	// 事件触发器扫描间隔时间
+	shardIds		"0,1,2,3,4,5,6,7,8,9";
+	lastTsthreshold		30;		// 最近活动时间阈值，超过的数据项会被忽略
+	indexTimeout		3600*26;
+	indexUpdateCycleTime	3600*24;
 };
 `)
 

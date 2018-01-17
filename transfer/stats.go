@@ -60,6 +60,10 @@ func init() {
 	}
 }
 
+func statsDec(idx, n int) {
+	atomic.AddUint64(&statsCounter[idx], ^uint64(n-1))
+}
+
 func statsInc(idx, n int) {
 	atomic.AddUint64(&statsCounter[idx], uint64(n))
 }
@@ -70,6 +74,14 @@ func statsSet(idx, n int) {
 
 func statsGet(idx int) uint64 {
 	return atomic.LoadUint64(&statsCounter[idx])
+}
+
+func statsGets() []uint64 {
+	cnt := make([]uint64, ST_ARRAY_SIZE)
+	for i := 0; i < ST_ARRAY_SIZE; i++ {
+		cnt[i] = atomic.LoadUint64(&statsCounter[i])
+	}
+	return cnt
 }
 
 func (p *Transfer) Stats(conf interface{}) (s string) {

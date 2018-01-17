@@ -12,6 +12,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/yubo/falcon/agent"
+	"golang.org/x/net/context"
 )
 
 func init() {
@@ -80,7 +81,7 @@ func (p *emulator) GName() string {
 	return p.gname
 }
 
-func (p *emulator) Start(ag *agent.Agent) (err error) {
+func (p *emulator) Start(ctx context.Context, ag *agent.Agent) (err error) {
 
 	dir := ag.Conf.Configer.Str(agent.C_EMU_TPL_DIR)
 

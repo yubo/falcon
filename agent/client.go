@@ -13,17 +13,14 @@ import (
 	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/service"
 	"golang.org/x/net/context"
-	"google.golang.org/grpc"
 )
 
 type ClientModule struct {
-	conn   *grpc.ClientConn
-	client service.ServiceClient
 	ctx    context.Context
 	cancel context.CancelFunc
 }
 
-func (p *ClientModule) put(items []*service.Item, timeout int) {
+func clientPut(client service.ServiceClient, items []*service.Item, timeout int) {
 
 	statsInc(ST_TX_PUT_ITERS, 1)
 	statsInc(ST_TX_PUT_ITEMS, len(items))
@@ -32,7 +29,7 @@ func (p *ClientModule) put(items []*service.Item, timeout int) {
 
 	ctx, _ := context.WithTimeout(context.Background(),
 		time.Duration(timeout)*time.Millisecond)
-	resp, err := p.client.Put(ctx, &service.PutRequest{Items: items})
+	resp, err := client.Put(ctx, &service.PutRequest{Items: items})
 	if err != nil {
 		statsInc(ST_TX_PUT_ERR_ITERS, 1)
 	} else {
@@ -40,15 +37,17 @@ func (p *ClientModule) put(items []*service.Item, timeout int) {
 	}
 }
 
-func (client *ClientModule) mainLoop(agent *Agent) error {
-	upstream := agent.Conf.Configer.Str(C_UPSTREAM)
+func (p *ClientModule) txWorker(ch chan *putContext, upstream, host_ string,
+	callTimeout, burstSize int) error {
+
+	host := []byte(host_)
 	if upstream == "stdout" {
 		go func() {
 			for {
 				select {
-				case <-client.ctx.Done():
+				case <-p.ctx.Done():
 					return
-				case put := <-agent.appPutChan:
+				case put := <-ch:
 
 					for _, item := range put.items {
 						fmt.Printf("%s TX PUT %10.4f %s %s\n",
@@ -65,30 +64,26 @@ func (client *ClientModule) mainLoop(agent *Agent) error {
 	}
 
 	go func() {
-		conn, _, err := falcon.DialRr(client.ctx, upstream, true)
+		conn, _, err := falcon.DialRr(p.ctx, upstream, true)
 		if err != nil {
 			return
 		}
 		defer conn.Close()
+		client := service.NewServiceClient(conn)
 
-		client.client = service.NewServiceClient(conn)
-		callTimeout, _ := agent.Conf.Configer.Int(C_CALL_TIMEOUT)
-		burstSize, _ := agent.Conf.Configer.Int(C_BURST_SIZE)
-		host := []byte(agent.Conf.Host)
 		items := make([]*service.Item, burstSize)
 		i := 0
 
 		for {
 			select {
-			case <-client.ctx.Done():
+			case <-p.ctx.Done():
 				return
-			case put := <-agent.appPutChan:
+			case put := <-ch:
 				glog.V(5).Infof("%s tx put %d\n", MODULE_NAME, len(put.items))
 				n := 0
 				for _, item_ := range put.items {
 
 					// TODO check
-
 					item, err := item_.toServiceItem(host)
 					if err != nil {
 						break
@@ -103,7 +98,7 @@ func (client *ClientModule) mainLoop(agent *Agent) error {
 					n++
 
 					if i == burstSize {
-						client.put(items[:i], callTimeout)
+						clientPut(client, items[:i], callTimeout)
 						i = 0
 					}
 				}
@@ -112,7 +107,7 @@ func (client *ClientModule) mainLoop(agent *Agent) error {
 				}
 			case <-time.After(time.Second):
 				if i > 0 {
-					client.put(items[:i], callTimeout)
+					clientPut(client, items[:i], callTimeout)
 					i = 0
 				}
 			}
@@ -128,9 +123,13 @@ func (p *ClientModule) prestart(agent *Agent) error {
 
 func (p *ClientModule) start(agent *Agent) error {
 
+	upstream := agent.Conf.Configer.Str(C_UPSTREAM)
+	callTimeout, _ := agent.Conf.Configer.Int(C_CALL_TIMEOUT)
+	burstSize, _ := agent.Conf.Configer.Int(C_BURST_SIZE)
 	p.ctx, p.cancel = context.WithCancel(context.Background())
 
-	if err := p.mainLoop(agent); err != nil {
+	if err := p.txWorker(agent.putChan, upstream, agent.Conf.Host,
+		callTimeout, burstSize); err != nil {
 		return err
 	}
 
@@ -145,6 +144,5 @@ func (p *ClientModule) stop(agent *Agent) error {
 func (p *ClientModule) reload(agent *Agent) error {
 	p.stop(agent)
 	time.Sleep(time.Second)
-	p.prestart(agent)
 	return p.start(agent)
 }

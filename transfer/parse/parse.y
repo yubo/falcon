@@ -27,9 +27,9 @@ import (
 %type <num> num
 
 %token <num> NUM
-%token <text> TEXT IPA
+%token <text> TEXT IPA ADDR
 
-%token '{' '}' ';'
+%token '{' '}' ';' '*' '(' ')' '+' '-' '<' '>'
 %token ON YES OFF NO INCLUDE ROOT PID_FILE LOG HOST DISABLED DEBUG
 %token UPSTREAM
 
@@ -49,12 +49,19 @@ bool:
 
 text:
 	IPA	{ $$ = string(yy.t) }
+	| ADDR	{ $$ = string(yy.t) }
 	| TEXT	{ $$ = exprText(yy.t) }
 ;
 
 num:
-	NUM { $$ = yy.i }
+	NUM			{ $$ = yy.i }
+	| '(' num ')'		{ $$ = $2}
+	| num '*' num		{ $$ = $1 * $3}
+	| num '+' num		{ $$ = $1 + $3}
+	| num '<' '<' num	{ $$ = int(uint($1) << uint($4)) }
+	| num '>' '>' num	{ $$ = int(uint($1) >> uint($4)) }
 ;
+
 
 conf: ';'
 	| transfer '}' ';'      {

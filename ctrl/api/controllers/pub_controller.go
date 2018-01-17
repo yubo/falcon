@@ -48,5 +48,5 @@ func (c *PubController) GetConfig() {
 // @Failure 400 string error
 // @router /stats [get]
 func (c *PubController) GetStats() {
-	c.SendMsg(200, ctrl.StatsHandle())
+	c.SendMsg(200, ctrl.StatsGets())
 }

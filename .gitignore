@@ -9,8 +9,6 @@
 *.tmp
 *.pid
 *.sh
-*.pb.go
-*.pb.gw.go
 *.swagger.json
 
 var/

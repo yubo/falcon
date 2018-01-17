@@ -22,10 +22,10 @@ var text = []byte(`
 	httpAddr	0.0.0.0:7007;
 	ifacePrefix	eth,em;
 	workerProcesses	3;
-	callTimeout	5000;
+	callTimeout	60*(3+1);
 	plugins     	sys;
 //	upstream	stdout;
-//	upstream	127.0.0.1:1234,127.0.0.1:1235;
+//	upstream	"127.0.0.1:1234,127.0.0.1:1235";
 	upstream        stdout;
 	emuTplDir	./var/tpl;	
 	plugins		"sys,emulator";

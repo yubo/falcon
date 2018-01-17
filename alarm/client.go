@@ -26,18 +26,17 @@ type ClientModule struct {
 }
 
 func (p *ClientModule) prestart(alarm *Alarm) error {
+	p.callTimeout, _ = alarm.Conf.Configer.Int(C_CALL_TIMEOUT)
+	p.workerProcesses, _ = alarm.Conf.Configer.Int(C_WORKER_PROCESSES)
+	p.actionChan = alarm.actionChan
 	return nil
 }
 
 func (p *ClientModule) start(alarm *Alarm) (err error) {
 
-	p.callTimeout, _ = alarm.Conf.Configer.Int(C_CALL_TIMEOUT)
-	p.workerProcesses, _ = alarm.Conf.Configer.Int(C_WORKER_PROCESSES)
-	p.actionChan = alarm.actionChan
-
 	p.ctx, p.cancel = context.WithCancel(context.Background())
 
-	go actionWorker(p.ctx, p.actionChan, p.workerProcesses)
+	go p.actionWorker()
 
 	return nil
 }
@@ -54,7 +53,11 @@ func (p *ClientModule) reload(alarm *Alarm) error {
 	return p.start(alarm)
 }
 
-func actionWorker(ctx context.Context, ch chan *Action, n int) {
+func (p *ClientModule) actionWorker() {
+	ctx := p.ctx
+	ch := p.actionChan
+	n := p.workerProcesses
+
 	for i := 0; i < n; i++ {
 		go func() {
 			for {
@@ -62,6 +65,7 @@ func actionWorker(ctx context.Context, ch chan *Action, n int) {
 				case <-ctx.Done():
 					return
 				case action := <-ch:
+					statsInc(ST_ACTIONCHAN_OUT, 1)
 					glog.V(3).Infof("%s >>action<< %v", MODULE_NAME, action)
 				}
 			}

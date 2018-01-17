@@ -17,21 +17,19 @@ import (
 // upstream: connection to the
 
 type TaskModule struct {
-	lru       *queue
-	cleanChan chan *eventEntry
-	ctx       context.Context
-	cancel    context.CancelFunc
+	ctx    context.Context
+	cancel context.CancelFunc
 }
 
 func (p *TaskModule) prestart(alarm *Alarm) error {
-	p.lru = &alarm.lru
-	p.cleanChan = alarm.delEventEntryChan
 	return nil
 }
 
 func (p *TaskModule) start(alarm *Alarm) (err error) {
 	p.ctx, p.cancel = context.WithCancel(context.Background())
-	go lruCleanWorker(p.ctx, p.lru, p.cleanChan)
+	expireTime, _ := alarm.Conf.Configer.Int64(C_EVENT_EXPIRE_TIME)
+
+	go p.cleanWorker(alarm.delEventEntryChan, &alarm.lru, expireTime)
 	return nil
 }
 
@@ -43,32 +41,30 @@ func (p *TaskModule) stop(alarm *Alarm) error {
 func (p *TaskModule) reload(alarm *Alarm) error {
 	p.stop(alarm)
 	time.Sleep(time.Second)
-	p.prestart(alarm)
 	return p.start(alarm)
 }
 
-func lruCleanWorker(ctx context.Context, list *queue, ch chan *eventEntry) {
-	ticker := time.NewTicker(time.Second).C
+func (p *TaskModule) cleanWorker(ch chan *eventEntry, list *queue, expireTime int64) {
+
+	ticker := time.NewTicker(time.Second * EVENT_CLEAN_INTERVAL).C
+	ctx := p.ctx
+
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-ticker:
-			glog.V(3).Infof("%s lruCleanWorker entering", MODULE_NAME)
+			glog.V(3).Infof("%s cleanWorker entering", MODULE_NAME)
 			now := time.Now().Unix()
 
-			l := list.dequeue()
-			if l == nil {
-				continue
+			for l := list.dequeue(); l != nil; l = list.dequeue() {
+				e := list_entry(l)
+				if now-e.lastTs < expireTime {
+					list.addHead(l)
+					break
+				}
+				ch <- e
 			}
-
-			e := list_entry(l)
-			if now-e.lastTs < EVENT_TIMEOUT {
-				list.addHead(l)
-				continue
-			}
-
-			ch <- e
 		}
 	}
 }

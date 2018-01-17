@@ -18,6 +18,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/yubo/falcon/agent"
+	"golang.org/x/net/context"
 )
 
 const (
@@ -118,7 +119,7 @@ func (p *cpuCollector) Reset() {
 	p.last = nil
 }
 
-func (p *cpuCollector) Start(agent *agent.Agent) error {
+func (p *cpuCollector) Start(ctx context.Context, agent *agent.Agent) error {
 	glog.V(5).Infof("start")
 	return nil
 }

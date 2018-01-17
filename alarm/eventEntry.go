@@ -33,7 +33,7 @@ func (p *eventEntry) Index(s, substr string) int {
 	case "key":
 		s = p.key
 	}
-	glog.V(3).Infof("index(%s, %s) = %d", s, substr, strings.Index(s, substr))
+	glog.V(3).Infof("%s index(%s, %s) = %d", MODULE_NAME, s, substr, strings.Index(s, substr))
 	return strings.Index(s, substr)
 }
 

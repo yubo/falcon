@@ -21,7 +21,7 @@ var (
 type Collector interface {
 	GName() string
 	Name() string
-	Start(*Agent) error
+	Start(context.Context, *Agent) error
 	Reset()
 	Collect() ([]*Item, error)
 }
@@ -38,68 +38,31 @@ func RegisterCollector(c Collector) {
 }
 
 type CollectModule struct {
-	a []Collector
-
 	ctx    context.Context
 	cancel context.CancelFunc
 }
 
 func (p *CollectModule) prestart(agent *Agent) error {
-
-	p.a = []Collector{}
-
-	keys := make(map[string]bool)
-
-	plugins := strings.Split(agent.Conf.Configer.Str(C_PLUGINS), ",")
-
-	for _, plugin := range plugins {
-		plugin = strings.TrimSpace(plugin)
-		if group, ok := collectorGroups[plugin]; ok {
-			// skip if exists
-			if keys[plugin] {
-				continue
-			}
-			for _, c := range group {
-				glog.V(4).Infof("%s add plugin %s", MODULE_NAME, plugin)
-				p.a = append(p.a, c)
-			}
-			keys[plugin] = true
-		} else {
-			glog.Infof("plugin %s miss", plugin)
-		}
-	}
-
 	return nil
 }
 
 func (p *CollectModule) start(agent *Agent) error {
+	interval, _ := agent.Conf.Configer.Int(C_INTERVAL)
+	collectors := getCollectors(strings.Split(agent.Conf.Configer.Str(C_PLUGINS), ","))
+	putChan := agent.putChan
 
 	p.ctx, p.cancel = context.WithCancel(context.Background())
-	interval, _ := agent.Conf.Configer.Int(C_INTERVAL)
-	ticker := time.NewTicker(time.Second * time.Duration(interval)).C
 
-	for _, c := range p.a {
+	for _, c := range collectors {
 		glog.V(4).Infof("%s plugins %s.Start()", MODULE_NAME, falcon.GetType(c))
-		if err := c.Start(agent); err != nil {
+		if err := c.Start(p.ctx, agent); err != nil {
 			glog.V(4).Infof("%s plugins %s.Start() err %v", MODULE_NAME, falcon.GetType(c), err)
 			return err
 		}
 	}
 
-	go func() {
-		for {
-			select {
-			case <-p.ctx.Done():
-				return
-			case <-ticker:
-				for _, c := range p.a {
-					if items, err := c.Collect(); err == nil {
-						agent.appPutChan <- &putContext{items: items}
-					}
-				}
-			}
-		}
-	}()
+	go p.collectWorker(putChan, collectors, interval)
+
 	return nil
 }
 
@@ -111,6 +74,45 @@ func (p *CollectModule) stop(agent *Agent) error {
 func (p *CollectModule) reload(agent *Agent) error {
 	p.stop(agent)
 	time.Sleep(time.Second)
-	p.prestart(agent)
 	return p.start(agent)
+}
+
+func (p *CollectModule) collectWorker(putChan chan *putContext, collectors []Collector, interval int) {
+	ticker := time.NewTicker(time.Second * time.Duration(interval)).C
+	for {
+		select {
+		case <-p.ctx.Done():
+			return
+		case <-ticker:
+			for _, c := range collectors {
+				if items, err := c.Collect(); err == nil {
+					putChan <- &putContext{items: items}
+				}
+			}
+		}
+	}
+
+}
+
+func getCollectors(plugins []string) []Collector {
+	collectors := []Collector{}
+	keys := make(map[string]bool)
+
+	for _, plugin := range plugins {
+		plugin = strings.TrimSpace(plugin)
+		if group, ok := collectorGroups[plugin]; ok {
+			// skip if exists
+			if keys[plugin] {
+				continue
+			}
+			for _, c := range group {
+				glog.V(4).Infof("%s add plugin %s", MODULE_NAME, plugin)
+				collectors = append(collectors, c)
+			}
+			keys[plugin] = true
+		} else {
+			glog.Infof("plugin %s miss", plugin)
+		}
+	}
+	return collectors
 }

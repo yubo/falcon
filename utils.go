@@ -42,10 +42,17 @@ const (
 )
 
 var (
-	f_network   = regexp.MustCompile(`^(tcp)|(unix)+:`)
 	crc64_table = crc64.MakeTable(crc64.ECMA)
 	crc32_table = crc32.MakeTable(0xD5828281)
 	_randSrc    = rand.NewSource(time.Now().UnixNano())
+
+	f_network = regexp.MustCompile(`^(tcp)|(unix)+:`)
+	F_ip      = regexp.MustCompile(`^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+`)
+	F_addr    = regexp.MustCompile(`^([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)?:[0-9]+`)
+	F_num     = regexp.MustCompile(`^0x[0-9a-fA-F]+|^[0-9]+`)
+	F_keyword = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9-_]+`)
+	F_text    = regexp.MustCompile(`(^"[^"]+")|(^[^"\n \t;]+)`)
+	F_env     = regexp.MustCompile(`\$\{[a-zA-Z][0-9a-zA-Z_]+\}`)
 )
 
 func RandString(n int) string {

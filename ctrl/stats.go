@@ -37,11 +37,8 @@ var (
 	}
 )
 
-func StatsHandle() (ret []uint64) {
-	for i := 0; i < ST_ARRAY_SIZE; i++ {
-		ret = append(ret, atomic.LoadUint64(&statsCounter[i]))
-	}
-	return
+func statsDec(idx, n int) {
+	atomic.AddUint64(&statsCounter[idx], ^uint64(n-1))
 }
 
 func statInc(idx, n int) {
@@ -54,6 +51,14 @@ func statSet(idx, n int) {
 
 func statGet(idx int) uint64 {
 	return atomic.LoadUint64(&statsCounter[idx])
+}
+
+func StatsGets() []uint64 {
+	cnt := make([]uint64, ST_ARRAY_SIZE)
+	for i := 0; i < ST_ARRAY_SIZE; i++ {
+		cnt[i] = atomic.LoadUint64(&statsCounter[i])
+	}
+	return cnt
 }
 
 func (p *Ctrl) Stats(conf interface{}) (s string) {
@@ -71,7 +76,8 @@ func (p *Ctrl) Stats(conf interface{}) (s string) {
 	}
 
 	for i := 0; i < ST_ARRAY_SIZE; i++ {
-		s += fmt.Sprintf("%-30s %d\n", statsCounterName[i], stats[i])
+		s += fmt.Sprintf("%-30s %d\n",
+			statsCounterName[i], stats[i])
 	}
 	return
 }

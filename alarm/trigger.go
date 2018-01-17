@@ -108,38 +108,38 @@ type Trigger struct {
 
 type TriggerModule struct {
 	sync.RWMutex
-	lru             *queue //lru queue
-	syncInterval    int
-	workerProcesses int
-	putChan         chan *Event
-	actionChan      chan *Action
-	cleanChan       chan *eventEntry
-	ctx             context.Context
-	cancel          context.CancelFunc
-	trigger         *Trigger
-	eventNodes      map[string]map[int64]*eventEntry // map[event.Key][nodeId]
-	db              orm.Ormer
+	lru               *queue //lru queue
+	syncInterval      int
+	workerProcesses   int
+	putEventChan      chan *Event
+	actionChan        chan *Action
+	delEventEntryChan chan *eventEntry
+	ctx               context.Context
+	cancel            context.CancelFunc
+	trigger           *Trigger
+	eventNodes        map[string]map[int64]*eventEntry // map[event.Key][nodeId]
+	db                orm.Ormer
 }
 
 func (p *TriggerModule) prestart(a *Alarm) error {
+	p.workerProcesses, _ = a.Conf.Configer.Int(C_WORKER_PROCESSES)
+	p.syncInterval, _ = a.Conf.Configer.Int(C_SYNC_INTERVAL)
 	p.ctx, p.cancel = context.WithCancel(context.Background())
-	p.putChan = a.putEventChan
-	p.actionChan = a.actionChan
-	p.cleanChan = a.delEventEntryChan
 	p.eventNodes = make(map[string]map[int64]*eventEntry)
 	p.lru = &a.lru
+	p.putEventChan = a.putEventChan
+	p.actionChan = a.actionChan
+	p.delEventEntryChan = a.delEventEntryChan
+
 	return nil
 }
 
-func (p *TriggerModule) start(s *Alarm) (err error) {
-	dbmaxidle, _ := s.Conf.Configer.Int(C_DB_MAX_IDLE)
-	dbmaxconn, _ := s.Conf.Configer.Int(C_DB_MAX_CONN)
-	p.workerProcesses, _ = s.Conf.Configer.Int(C_WORKER_PROCESSES)
-	p.syncInterval, _ = s.Conf.Configer.Int(C_SYNC_INTERVAL)
-	p.putChan = s.putEventChan
+func (p *TriggerModule) start(a *Alarm) (err error) {
+	dbmaxidle, _ := a.Conf.Configer.Int(C_DB_MAX_IDLE)
+	dbmaxconn, _ := a.Conf.Configer.Int(C_DB_MAX_CONN)
 
 	p.db, err = falcon.NewOrm("alarm_sync",
-		s.Conf.Configer.Str(C_SYNC_DSN), dbmaxidle, dbmaxconn)
+		a.Conf.Configer.Str(C_SYNC_DSN), dbmaxidle, dbmaxconn)
 	if err != nil {
 		return err
 	}
@@ -396,7 +396,7 @@ func actionGenerate(p *ActionTrigger, node *Node, e *eventEntry, users map[int64
 	return action
 }
 
-func (p *TriggerModule) createEvent(event *Event) {
+func (p *TriggerModule) createEvent(event *Event) error {
 	e := &eventEntry{
 		lastTs:    time.Now().Unix(),
 		tagId:     event.TagId,
@@ -414,7 +414,7 @@ func (p *TriggerModule) createEvent(event *Event) {
 	// check node
 	node := t.nodes[e.tagId]
 	if node == nil {
-		return
+		return falcon.ENONODE
 	}
 
 	// add eventEntry
@@ -422,6 +422,7 @@ func (p *TriggerModule) createEvent(event *Event) {
 		p.eventNodes[e.key] = make(map[int64]*eventEntry)
 	}
 	p.eventNodes[e.key][e.tagId] = e
+	statsInc(ST_EVENTENTRY, 1)
 
 	// add lru queue
 	p.lru.enqueue(&e.list)
@@ -429,9 +430,15 @@ func (p *TriggerModule) createEvent(event *Event) {
 	// generate action
 	if action := actionGenerate(node.processEvent(e),
 		node, e, t.users); action != nil {
-		p.actionChan <- action
-	}
 
+		select {
+		case p.actionChan <- action:
+		default:
+			statsInc(ST_ACTIONCHAN_IN_ERR, 1)
+		}
+		statsInc(ST_ACTIONCHAN_IN, 1)
+	}
+	return nil
 }
 
 func (p *TriggerModule) updateEvent(entry *eventEntry) {
@@ -454,6 +461,7 @@ func (p *TriggerModule) deleteEvent(e *eventEntry) {
 	if len(p.eventNodes[e.key]) == 0 {
 		delete(p.eventNodes, e.key)
 	}
+	statsInc(ST_EVENTENTRY_EXPIRED, 1)
 }
 
 func (p *TriggerModule) precessEvent(event *Event) {
@@ -464,14 +472,17 @@ func (p *TriggerModule) precessEvent(event *Event) {
 	p.RUnlock()
 
 	if nodes == nil || nodes[event.TagId] == nil {
-		p.createEvent(event)
+		if err := p.createEvent(event); err != nil {
+			statsInc(ST_PROCESS_EVENT_ERR, 1)
+		}
 	} else {
 		p.updateEvent(nodes[event.TagId])
 	}
+	statsInc(ST_PROCESS_EVENT, 1)
 }
 
 func (p *TriggerModule) processWorker() {
-	ch := p.putChan
+	ch := p.putEventChan
 	for i := 0; i < p.workerProcesses; i++ {
 		go func() {
 			for {
@@ -488,7 +499,7 @@ func (p *TriggerModule) processWorker() {
 }
 
 func (p *TriggerModule) cleanWorker() {
-	ch := p.cleanChan
+	ch := p.delEventEntryChan
 	for {
 		select {
 		case <-p.ctx.Done():

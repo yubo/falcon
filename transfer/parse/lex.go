@@ -10,10 +10,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"regexp"
 	"strconv"
 
 	"github.com/golang/glog"
+	"github.com/yubo/falcon"
 	fconfig "github.com/yubo/falcon/config"
 	"github.com/yubo/falcon/transfer/config"
 )
@@ -28,16 +28,10 @@ var (
 	yy    *yyLex
 	conf  *config.Transfer
 	yy_ss = make(map[string]string)
-	yy_is = make(map[int]string)
 	yy_as = make([]string, 0)
 
-	f_ip      = regexp.MustCompile(`^[0-9]+\.[0-0]+\.[0-9]+\.[0-9]+[ \t\n;{}]{1}`)
-	f_num     = regexp.MustCompile(`^0x[0-9a-fA-F]+|^[0-9]+[ \t\n;{}]{1}`)
-	f_keyword = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9-_]+[ \t\n;{}]{1}`)
-	f_word    = regexp.MustCompile(`(^"[^"]+")|(^[^"\n \t;]+)`)
-	f_env     = regexp.MustCompile(`\$\{[a-zA-Z][0-9a-zA-Z_]+\}`)
-
-	keywords = map[string]int{
+	keyChars = []byte(`={}:;,()+*/%<>~\[\]?!\|-`)
+	keyWords = map[string]int{
 		//general
 		"on":       ON,
 		"yes":      YES,
@@ -69,7 +63,6 @@ type yyLex struct {
 	ctx     *yyCtx
 	t       []byte
 	i       int
-	debug   bool
 }
 
 func prefix(a, b []byte) bool {
@@ -88,7 +81,7 @@ func exprText(s []byte) (ret string) {
 	var i int
 	var es [][]int
 
-	if es = f_env.FindAllIndex(s, -1); es == nil {
+	if es = falcon.F_env.FindAllIndex(s, -1); es == nil {
 		return string(s)
 	}
 
@@ -158,38 +151,43 @@ begin:
 			return INCLUDE
 		}
 
-		f = f_ip.Find(text)
+		f = falcon.F_addr.Find(text)
 		if f != nil {
-			s := f[:len(f)-1]
-			p.ctx.pos += len(s)
-			p.t = s[:]
+			p.ctx.pos += len(f)
+			p.t = f
+			glog.V(6).Infof("%s return ADDR %s\n", MODULE_NAME, p.t)
+			return ADDR
+		}
+
+		f = falcon.F_ip.Find(text)
+		if f != nil {
+			p.ctx.pos += len(f)
+			p.t = f
+			glog.V(6).Infof("%s return IPA %s\n", MODULE_NAME, p.t)
 			return IPA
 		}
 
-		f = f_num.Find(text)
+		f = falcon.F_num.Find(text)
 		if f != nil {
-			s := f[:len(f)-1]
-			p.ctx.pos += len(s)
-			p.t = s[:]
-			i64, _ := strconv.ParseInt(string(s), 0, 0)
+			p.ctx.pos += len(f)
+			p.t = f
+			i64, _ := strconv.ParseInt(string(f), 0, 0)
 			p.i = int(i64)
 			glog.V(6).Infof("%s return NUM %d\n", MODULE_NAME, p.i)
 			return NUM
 		}
 
 		// find keyword
-		f = f_keyword.Find(text)
+		f = falcon.F_keyword.Find(text)
 		if f != nil {
-			s := f[:len(f)-1]
-			if val, ok := keywords[string(s)]; ok {
-				p.ctx.pos += len(s)
-				glog.V(6).Infof("%s find %s return %d\n",
-					MODULE_NAME, string(s), val)
+			if val, ok := keyWords[string(f)]; ok {
+				p.ctx.pos += len(f)
+				glog.V(6).Infof("%s find %s return %d\n", MODULE_NAME, string(f), val)
 				return val
 			}
 		}
 
-		if bytes.IndexByte([]byte(`={}:;,()+*/%<>~\[\]?!\|-`), text[0]) != -1 {
+		if bytes.IndexByte(keyChars, text[0]) != -1 {
 			if !prefix(text, []byte(`//`)) &&
 				!prefix(text, []byte(`/*`)) {
 				p.ctx.pos++
@@ -201,6 +199,7 @@ begin:
 		// comm
 		if text[0] == '#' || prefix(text, []byte(`//`)) {
 			for p.ctx.pos < len(p.ctx.text) {
+				//glog.Infof("%s %c", MODULE_NAME, p.ctx.text[p.ctx.pos])
 				if p.ctx.text[p.ctx.pos] == '\n' {
 					p.ctx.pos++
 					p.ctx.lino++
@@ -232,7 +231,7 @@ begin:
 		}
 
 		// find text
-		f = f_word.Find(text)
+		f = falcon.F_text.Find(text)
 		if f != nil {
 			p.ctx.pos += len(f)
 			if f[0] == '"' {

@@ -27,11 +27,10 @@ import (
 %type <num> num
 
 %token <num> NUM
-%token <text> TEXT IPA
+%token <text> TEXT IPA ADDR
 
-%token '{' '}' ';'
+%token '{' '}' ';' '*' '(' ')' '+' '-' '<' '>'
 %token ON YES OFF NO INCLUDE ROOT PID_FILE LOG HOST DISABLED DEBUG
-%token MIGRATE UPSTREAM
 
 %%
 
@@ -49,11 +48,17 @@ bool:
 
 text:
 	IPA	{ $$ = string(yy.t) }
+	| ADDR	{ $$ = string(yy.t) }
 	| TEXT	{ $$ = exprText(yy.t) }
 ;
 
 num:
-	NUM { $$ = yy.i }
+	NUM			{ $$ = yy.i }
+	| '(' num ')'		{ $$ = $2}
+	| num '*' num		{ $$ = $1 * $3}
+	| num '+' num		{ $$ = $1 + $3}
+	| num '<' '<' num	{ $$ = int(uint($1) << uint($4)) }
+	| num '>' '>' num	{ $$ = int(uint($1) >> uint($4)) }
 ;
 
 
@@ -79,7 +84,6 @@ service:
 
 service_item:
 	| DISABLED bool	{ conf.Disabled = $2 }
- 	| MIGRATE 	'{' service_migrate '}'
 	| HOST text	{ conf.Host = $2 }
 	| DEBUG		{ conf.Debug = 1 }
 	| DEBUG num	{ conf.Debug = $2 }
@@ -96,24 +100,7 @@ service_item:
 		if err := os.Chdir($2); err != nil {
 			yy.Error(err.Error())
 		}
-	};
-
-service_migrate:
-	| service_migrate service_migrate_item ';'
-
-service_migrate_item:
-	| DISABLED bool { conf.Migrate.Disabled = $2 }
-	| UPSTREAM '{' ss2 '}' {
-		conf.Migrate.Upstream = yy_ss2
-		yy_ss2 = make(map[string]string)
 	}
-;
-
-ss2:
-	| ss2 text text ';'    { yy_ss2[$2] = $3 }
-	| ss2 text num ';'     { yy_ss2[$2] = fmt.Sprintf("%d", $3) }
-	| ss2 text bool ';'    { yy_ss2[$2] = fmt.Sprintf("%v", $3) }
-	| ss2 INCLUDE text ';' { yy.include($3) }
 ;
 
 %%

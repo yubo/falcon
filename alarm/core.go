@@ -16,21 +16,22 @@ import (
 )
 
 const (
-	MODULE_NAME     = "\x1B[31m[ALARM]\x1B[0m"
-	CONN_RETRY      = 2
-	DEBUG_STAT_STEP = 60
-	CTRL_STEP       = 360
-	EVENT_TIMEOUT   = 180
+	MODULE_NAME          = "\x1B[31m[ALARM]\x1B[0m"
+	CONN_RETRY           = 2
+	DEBUG_STAT_STEP      = 60
+	CTRL_STEP            = 360
+	EVENT_CLEAN_INTERVAL = 2 // second
 
-	C_API_ADDR         = "apiaddr"
-	C_HTTP_ADDR        = "httpaddr"
-	C_CALL_TIMEOUT     = "calltimeout"
-	C_BURST_SIZE       = "burstsize"
-	C_DB_MAX_IDLE      = "dbmaxidle"
-	C_DB_MAX_CONN      = "dbmaxconn"
-	C_SYNC_INTERVAL    = "syncinterval"
-	C_SYNC_DSN         = "syncdsn"
-	C_WORKER_PROCESSES = "worker_processes"
+	C_API_ADDR          = "apiaddr"
+	C_HTTP_ADDR         = "httpaddr"
+	C_CALL_TIMEOUT      = "calltimeout"
+	C_BURST_SIZE        = "burstsize"
+	C_DB_MAX_IDLE       = "dbmaxidle"
+	C_DB_MAX_CONN       = "dbmaxconn"
+	C_SYNC_INTERVAL     = "syncinterval"
+	C_SYNC_DSN          = "syncdsn"
+	C_WORKER_PROCESSES  = "workerprocesses"
+	C_EVENT_EXPIRE_TIME = "eventexpiretime"
 )
 
 const (
@@ -42,12 +43,13 @@ const (
 var (
 	modules     []module
 	ConfDefault = map[string]string{
-		C_CALL_TIMEOUT:     "5000",
-		C_BURST_SIZE:       "16",
-		C_DB_MAX_IDLE:      "4",
-		C_DB_MAX_CONN:      "4",
-		C_WORKER_PROCESSES: "4",
-		C_SYNC_INTERVAL:    "600",
+		C_CALL_TIMEOUT:      "5000",
+		C_BURST_SIZE:        "16",
+		C_DB_MAX_IDLE:       "4",
+		C_DB_MAX_CONN:       "4",
+		C_WORKER_PROCESSES:  "4",
+		C_SYNC_INTERVAL:     "600",
+		C_EVENT_EXPIRE_TIME: "180",
 	}
 )
 

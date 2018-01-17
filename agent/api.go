@@ -46,7 +46,7 @@ func (p *ApiModule) Put(ctx context.Context, in *PutRequest) (*PutResponse,
 
 func (p *ApiModule) GetStats(ctx context.Context, in *Empty) (*Stats,
 	error) {
-	return &Stats{Counter: statsCounter}, nil
+	return &Stats{Counter: statsGets()}, nil
 }
 
 func (p *ApiModule) GetStatsName(ctx context.Context, in *Empty) (*StatsName,
@@ -57,7 +57,7 @@ func (p *ApiModule) GetStatsName(ctx context.Context, in *Empty) (*StatsName,
 func (p *ApiModule) prestart(agent *Agent) error {
 	p.address = agent.Conf.Configer.Str(C_API_ADDR)
 	p.disable = falcon.AddrIsDisable(p.address)
-	p.putChan = agent.appPutChan
+	p.putChan = agent.putChan
 	return nil
 }
 
