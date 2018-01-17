@@ -15,4 +15,3 @@ dist/
 tmp/
 
 .gdbinit
-cmd/vendor
