@@ -125,7 +125,7 @@ func (p *itemEntry) Nodata(isNum bool, args []float64, get expr.GetHandle) float
 
 // TODO
 func (p *itemEntry) getDps(begin, end int64) ([]*DataPoint, error) {
-	return nil, nil
+	return p._getData(CACHE_SIZE), nil
 }
 
 // return [l, h)

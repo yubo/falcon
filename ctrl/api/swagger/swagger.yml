@@ -3115,7 +3115,7 @@ definitions:
       role_token:
         type: array
         items:
-          $ref: '#/definitions/36840.0xc42039f710.false'
+          $ref: '#/definitions/36840.0xc4203a9770.false'
       tag_id:
         type: integer
         format: int64
@@ -3143,7 +3143,7 @@ definitions:
       role_user:
         type: array
         items:
-          $ref: '#/definitions/114424.0xc4204c9470.false'
+          $ref: '#/definitions/114424.0xc4204d34d0.false'
       tag_id:
         type: integer
         format: int64

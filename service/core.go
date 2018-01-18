@@ -83,8 +83,11 @@ type Service struct {
 	// runtime
 	status uint32
 
-	//cacheModule
+	//shardModule
 	shard *ShardModule
+
+	// tsdb
+	tsdb *TsdbModule
 
 	// event_trigger
 	eventChan chan *alarm.Event
