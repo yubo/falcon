@@ -18,7 +18,6 @@ func init() {
 	service.RegisterModule(&service.ShardModule{})
 	service.RegisterModule(&service.ApiModule{})
 	service.RegisterModule(&service.ApiGwModule{})
-	service.RegisterModule(&service.IndexModule{})
 	service.RegisterModule(&service.TimerModule{})
 	service.RegisterModule(&service.TriggerModule{})
 	service.RegisterModule(&service.ClientModule{})

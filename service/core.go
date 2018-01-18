@@ -27,10 +27,8 @@ const (
 	CACHE_SIZE_MASK         = CACHE_SIZE - 1
 	DATA_TIMESTAMP_REGULATE = false
 	INDEX_QPS               = 100
-	INDEX_UPDATE_CYCLE_TIME = 3600 * 24
-	INDEX_TIMEOUT           = 3600 * 26
-	INDEX_TRASH_LOOPTIME    = 600
-	INDEX_MAX_OPEN_CONNS    = 4
+	INDEX_UPDATE_INTERVAL   = 3600 * 24
+	INDEX_EXPIRE_TIME       = 3600 * 26
 	DEBUG_MULTIPLES         = 20    // demo 时间倍数
 	DEBUG_STEP              = 60    //
 	DEBUG_SAMPLE_NB         = 18000 //单周期生成样本数量
@@ -38,44 +36,33 @@ const (
 	MODULE_NAME             = "\x1B[36m[SERVICE]\x1B[0m"
 	CTRL_STEP               = 360
 
-	C_CALL_TIMEOUT    = "calltimeout"
-	C_API_ADDR        = "apiaddr"
-	C_HTTP_ADDR       = "httpaddr"
-	C_IDX             = "idx"
-	C_IDXINTERVAL     = "idxinterval"
-	C_IDXFULLINTERVAL = "idxfullinterval"
-	C_DB_MAX_IDLE     = "dbmaxidle"
-	C_DB_MAX_CONN     = "dbmaxconn"
-	C_DSN             = "dsn"
-	C_SYNC_DSN        = "syncdsn"
-	C_SYNC_INTERVAL   = "syncinterval"
-	C_SHARD_IDS       = "shardids"
-	C_JUDGE_INTERVAL  = "judgeinterval"
-	C_JUDGE_NUM       = "judgenum"
-	C_ALARM_NUM       = "alarmnum"
-	C_ALARM_ADDR      = "alarmaddr"
-	C_UPSTREAM        = "upstream"
-	C_BURST_SIZE      = "burstsize"
-	//C_WORKER_PROCESSES = "workerprocesses"
-	//C_SHMMAGIC         = "shmmagic"
-	//C_SHMKEY           = "shmkey"
-	//C_SHMSIZE          = "shmsize"
-	//C_HDISK            = "hdisk"
+	C_CALL_TIMEOUT   = "calltimeout"
+	C_API_ADDR       = "apiaddr"
+	C_HTTP_ADDR      = "httpaddr"
+	C_IDX            = "idx"
+	C_DB_MAX_IDLE    = "dbmaxidle"
+	C_DB_MAX_CONN    = "dbmaxconn"
+	C_DSN            = "dsn"
+	C_SYNC_DSN       = "syncdsn"
+	C_SYNC_INTERVAL  = "syncinterval"
+	C_SHARD_IDS      = "shardids"
+	C_JUDGE_INTERVAL = "judgeinterval"
+	C_JUDGE_NUM      = "judgenum"
+	C_ALARM_ADDR     = "alarmaddr"
+	C_UPSTREAM       = "upstream"
+	C_BURST_SIZE     = "burstsize"
 )
 
 var (
 	modules     []module
 	ConfDefault = map[string]string{
-		C_CALL_TIMEOUT:    "5000",
-		C_IDX:             "true",
-		C_IDXINTERVAL:     "30",
-		C_IDXFULLINTERVAL: "86400",
-		C_DB_MAX_IDLE:     "4",
-		C_DB_MAX_CONN:     "4",
-		C_JUDGE_NUM:       "8",
-		C_ALARM_NUM:       "8",
-		C_BURST_SIZE:      "32",
-		C_SYNC_INTERVAL:   "600",
+		C_CALL_TIMEOUT:  "5000",
+		C_IDX:           "true",
+		C_DB_MAX_IDLE:   "4",
+		C_DB_MAX_CONN:   "4",
+		C_JUDGE_NUM:     "8",
+		C_BURST_SIZE:    "32",
+		C_SYNC_INTERVAL: "600",
 	}
 )
 
@@ -190,11 +177,4 @@ func (p *Service) Reload(c interface{}) (err error) {
 func (p *Service) Signal(sig os.Signal) (err error) {
 	glog.Infof("%s recv signal %#v", MODULE_NAME, sig)
 	return err
-}
-
-// TODO fix me
-func addEntryHandle(e *itemEntry) {
-}
-
-func delEntryHandle(e *itemEntry) {
 }

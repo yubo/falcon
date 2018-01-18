@@ -51,3 +51,23 @@ func (p *queue) dequeue() *list.ListHead {
 	//p.size--
 	return entry
 }
+
+func (p *queue) first() *list.ListHead {
+	p.Lock()
+	defer p.Unlock()
+
+	if p.head.Empty() {
+		return nil
+	}
+
+	entry := p.head.Next
+	return entry
+}
+
+func (p *queue) moveTail(entry *list.ListHead) {
+	p.Lock()
+	defer p.Unlock()
+
+	p.head.MoveTail(entry)
+	//p.size++
+}

@@ -103,8 +103,8 @@ func testGenerateShard(items []*testItem) *ShardModule {
 	shard := &ShardModule{
 		bucketMap: make(map[int32]*bucketEntry),
 	}
-	shard.newQueue.init()
-	shard.lruQueue.init()
+	shard.putQueue.init()
+	shard.idxQueue.init()
 	shard.bucketMap[0] = &bucketEntry{itemMap: make(map[string]*itemEntry)}
 
 	return shard

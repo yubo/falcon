@@ -76,6 +76,11 @@ func list_entry(l *list.ListHead) *itemEntry {
 		unsafe.Offsetof(((*itemEntry)(nil)).list))))
 }
 
+func list_p_entry(l *list.ListHead) *itemEntry {
+	return (*itemEntry)(unsafe.Pointer((uintptr(unsafe.Pointer(l)) -
+		unsafe.Offsetof(((*itemEntry)(nil)).list_p))))
+}
+
 // tags must sorted order by tag key
 func tagsMatch(pattern, tags string) bool {
 	if len(pattern) == 0 {

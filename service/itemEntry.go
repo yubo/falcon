@@ -16,7 +16,8 @@ import (
 type itemEntry struct { // item_t
 	sync.RWMutex
 	expr.ExprItem
-	list      list.ListHead // point to newQueue or lruQueue
+	list      list.ListHead // point to newQueue or idxQueue trashQueue
+	list_p    list.ListHead // point to putQueue
 	shardId   int32
 	key       string
 	flag      uint32
@@ -65,6 +66,7 @@ func (p *itemEntry) put(item *Item) error {
 	p.timestamp[id] = item.Timestamp
 	p.value[id] = item.Value
 	p.dataId += 1
+
 	// HOOK TSDB
 	return nil
 }

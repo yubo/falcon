@@ -40,16 +40,11 @@ type Trigger struct {
 type TriggerModule struct {
 	sync.RWMutex
 
-	syncInterval  int
-	judgeInterval int
-	judgeNum      int
-	alarmNum      int
-	eventChan     chan *alarm.Event
-	ctx           context.Context
-	cancel        context.CancelFunc
-	trigger       *Trigger
-	service       *Service
-	db            orm.Ormer
+	eventChan chan *alarm.Event
+	ctx       context.Context
+	cancel    context.CancelFunc
+	trigger   *Trigger
+	service   *Service
 }
 
 func (p *TriggerModule) prestart(s *Service) error {
@@ -61,22 +56,30 @@ func (p *TriggerModule) prestart(s *Service) error {
 func (p *TriggerModule) start(s *Service) (err error) {
 	dbmaxidle, _ := s.Conf.Configer.Int(C_DB_MAX_IDLE)
 	dbmaxconn, _ := s.Conf.Configer.Int(C_DB_MAX_CONN)
-	p.syncInterval, _ = s.Conf.Configer.Int(C_SYNC_INTERVAL)
-	p.judgeInterval, _ = s.Conf.Configer.Int(C_JUDGE_INTERVAL)
-	p.judgeNum, _ = s.Conf.Configer.Int(C_JUDGE_NUM)
-	p.alarmNum, _ = s.Conf.Configer.Int(C_ALARM_NUM)
-	p.eventChan = s.eventChan
+	syncInterval, _ := s.Conf.Configer.Int(C_SYNC_INTERVAL)
+	judgeInterval, _ := s.Conf.Configer.Int(C_JUDGE_INTERVAL)
+	judgeNum, _ := s.Conf.Configer.Int(C_JUDGE_NUM)
+	eventChan := s.eventChan
 	p.trigger = &Trigger{}
 
-	p.db, err = falcon.NewOrm("service_sync",
+	db, err := falcon.NewOrm("service_sync",
 		s.Conf.Configer.Str(C_SYNC_DSN), dbmaxidle, dbmaxconn)
 	if err != nil {
 		return err
 	}
 
-	go p.syncWorker()
-	go p.judgeWorker()
+	go p.syncWorker(syncInterval, db)
+	go p.judgeWorker(judgeInterval, judgeNum, eventChan)
 
+	return nil
+}
+
+func (p *TriggerModule) stop(s *Service) error {
+	p.cancel()
+	return nil
+}
+
+func (p *TriggerModule) reload(s *Service) error {
 	return nil
 }
 
@@ -279,10 +282,10 @@ func (p *Trigger) updateEventTrigger() error {
 	}
 }
 
-func (p *TriggerModule) triggerSync() {
+func (p *TriggerModule) triggerSync(db orm.Ormer) {
 	glog.V(3).Infof("%s sync", MODULE_NAME)
 	// nodes
-	t := &Trigger{db: p.db}
+	t := &Trigger{db: db}
 	if t.updateNode() == nil &&
 		t.updateTagHost() == nil &&
 		t.updateEventTrigger() == nil &&
@@ -295,16 +298,16 @@ func (p *TriggerModule) triggerSync() {
 
 }
 
-func (p *TriggerModule) syncWorker() {
-	ticker := time.NewTicker(time.Second * time.Duration(p.syncInterval)).C
-	p.triggerSync()
+func (p *TriggerModule) syncWorker(interval int, db orm.Ormer) {
+	ticker := time.NewTicker(time.Second * time.Duration(interval)).C
+	p.triggerSync(db)
 
 	for {
 		select {
 		case <-p.ctx.Done():
 			return
 		case <-ticker:
-			p.triggerSync()
+			p.triggerSync(db)
 		}
 	}
 }
@@ -328,18 +331,18 @@ func judgeTagNode(node *Node, eventChan chan *alarm.Event) {
 	}
 }
 
-func (p *TriggerModule) judgeWorker() {
-	ticker := time.NewTicker(time.Second * time.Duration(p.judgeInterval)).C
-	taskCh := make(chan *Node, p.judgeNum)
+func (p *TriggerModule) judgeWorker(interval, n int, ch chan *alarm.Event) {
+	ticker := time.NewTicker(time.Second * time.Duration(interval)).C
+	taskCh := make(chan *Node, n)
 
-	for i := 0; i < p.judgeNum; i++ {
+	for i := 0; i < n; i++ {
 		go func() {
 			for {
 				select {
 				case <-p.ctx.Done():
 					return
 				case node := <-taskCh:
-					judgeTagNode(node, p.eventChan)
+					judgeTagNode(node, ch)
 				}
 			}
 
@@ -364,13 +367,4 @@ func (p *TriggerModule) judgeWorker() {
 		}
 	}
 
-}
-
-func (p *TriggerModule) stop(s *Service) error {
-	p.cancel()
-	return nil
-}
-
-func (p *TriggerModule) reload(s *Service) error {
-	return nil
 }

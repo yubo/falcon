@@ -9,20 +9,90 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
-	"github.com/golang/glog"
+	"github.com/astaxie/beego/orm"
 	"github.com/yubo/falcon"
+	"golang.org/x/net/context"
 )
 
 // shard -> bucket -> item
-
 type ShardModule struct {
 	sync.RWMutex
 	service    *Service
-	newQueue   queue //immediate queue
-	lruQueue   queue //lru queue
 	bucketMap  map[int32]*bucketEntry
 	shardTotal int
+
+	trashQueue queue //trash ie queue
+	idxQueue   queue //index update queue
+	putQueue   queue //put api queue
+
+	ctx    context.Context
+	cancel context.CancelFunc
+
+	db orm.Ormer
+}
+
+func (p *ShardModule) prestart(s *Service) error {
+	p.bucketMap = make(map[int32]*bucketEntry)
+	s.shard = p
+	return nil
+}
+
+func (p *ShardModule) start(s *Service) (err error) {
+	ids_ := strings.Split(s.Conf.Configer.Str(C_SHARD_IDS), ",")
+	ids := make([]int, len(ids_))
+	for i := 0; i < len(ids); i++ {
+		ids[i], err = strconv.Atoi(ids_[i])
+		if err != nil {
+			return err
+		}
+	}
+
+	for _, shardId := range ids {
+		p.bucketMap[int32(shardId)] = &bucketEntry{
+			itemMap: make(map[string]*itemEntry),
+		}
+	}
+	p.service = s
+	p.idxQueue.init()
+	p.putQueue.init()
+	p.trashQueue.init()
+
+	dbmaxidle, _ := s.Conf.Configer.Int(C_DB_MAX_IDLE)
+	dbmaxconn, _ := s.Conf.Configer.Int(C_DB_MAX_CONN)
+	db, err := falcon.NewOrm("service_index",
+		s.Conf.Configer.Str(C_DSN), dbmaxidle, dbmaxconn)
+	if err != nil {
+		return err
+	}
+
+	p.ctx, p.cancel = context.WithCancel(context.Background())
+
+	go p.indexWorker(db)
+	go p.cleanWorker()
+
+	return nil
+}
+
+func (p *ShardModule) stop(s *Service) error {
+	return nil
+}
+
+func (p *ShardModule) reload(s *Service) error {
+	return nil
+}
+
+func (p *ShardModule) getTrashItem() *itemEntry {
+	l := p.trashQueue.dequeue()
+	if l == nil {
+		return nil
+	}
+	return list_entry(l)
+}
+
+func (p *ShardModule) putTrashItem(ie *itemEntry) {
+	p.trashQueue.enqueue(&ie.list)
 }
 
 func (p *ShardModule) put(item *Item) (*itemEntry, error) {
@@ -37,10 +107,17 @@ func (p *ShardModule) put(item *Item) (*itemEntry, error) {
 		if err != nil {
 			return nil, err
 		}
-		p.newQueue.enqueue(&ie.list)
+		p.idxQueue.addHead(&ie.list)
+		p.putQueue.enqueue(&ie.list_p)
+		return ie, ie.put(item)
 	}
 
-	return ie, ie.put(item)
+	if err := ie.put(item); err != nil {
+		return ie, err
+	}
+
+	p.putQueue.moveTail(&ie.list_p)
+	return ie, nil
 }
 
 func (p *ShardModule) get(req *GetRequest) ([]*DataPoint, error) {
@@ -67,41 +144,74 @@ func (p *ShardModule) getBucket(shardId int32) (*bucketEntry, error) {
 	return nil, falcon.ErrNoExits
 }
 
-func (p *ShardModule) prestart(s *Service) (err error) {
-	glog.V(3).Infof(MODULE_NAME + " shard prestart \n")
-	p.bucketMap = make(map[int32]*bucketEntry)
+func (p *ShardModule) cleanWorker() {
+	var now int64
 
-	ids_ := strings.Split(s.Conf.Configer.Str(C_SHARD_IDS), ",")
-	ids := make([]int, len(ids_))
-	for i := 0; i < len(ids); i++ {
-		ids[i], err = strconv.Atoi(ids_[i])
-		if err != nil {
-			return err
+	ticker := time.NewTicker(time.Second).C
+	for {
+		select {
+		case <-p.ctx.Done():
+			return
+		case <-ticker:
+			now = timer.now()
+			for l := p.putQueue.dequeue(); l != nil; l = p.putQueue.dequeue() {
+				e := list_p_entry(l)
+
+				if now-e.lastTs > INDEX_EXPIRE_TIME {
+					// DEL_HOOK
+					p.delEntryHandle(e)
+
+				} else {
+					p.putQueue.addHead(l)
+					break
+				}
+			}
 		}
 	}
+}
 
-	for _, shardId := range ids {
-		p.bucketMap[int32(shardId)] = &bucketEntry{
-			itemMap: make(map[string]*itemEntry),
+func (p *ShardModule) indexWorker(db orm.Ormer) {
+	//ticker := falconTicker(time.Second/INDEX_QPS, b.Conf.Debug)
+	ticker := time.NewTicker(time.Second / INDEX_QPS).C
+
+	for {
+		select {
+		case <-p.ctx.Done():
+			return
+		case <-ticker:
+			statsInc(ST_INDEX_TICK, 1)
+			l := p.idxQueue.dequeue()
+			if l == nil {
+				time.Sleep(time.Second)
+				continue
+			}
+
+			e := list_entry(l)
+			now := timer.now()
+
+			if now-e.idxTs > INDEX_UPDATE_INTERVAL {
+				// update
+				e.idxTs = now
+				p.idxQueue.enqueue(l)
+				indexUpdate(e, db)
+			} else {
+				p.idxQueue.addHead(l)
+				time.Sleep(time.Second)
+			}
 		}
 	}
-	p.newQueue.init()
-	p.lruQueue.init()
-	s.shard = p
-	p.service = s
-	return nil
 }
 
-func (p *ShardModule) start(s *Service) error {
-	glog.V(3).Infof(MODULE_NAME + " shard start \n")
-	return nil
+// TODO fix me
+func (p *ShardModule) addEntryHandle(e *itemEntry) {
 }
 
-func (p *ShardModule) stop(s *Service) error {
-	//p.cache.close()
-	return nil
-}
+// already del from p.putQueue
+func (p *ShardModule) delEntryHandle(e *itemEntry) {
+	bucket, _ := p.getBucket(e.shardId)
+	bucket.unlink(e.key)
 
-func (p *ShardModule) reload(s *Service) error {
-	return nil
+	p.idxQueue.Lock()
+	defer p.idxQueue.Unlock()
+	e.list.Del()
 }

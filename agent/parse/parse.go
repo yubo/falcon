@@ -1,9 +1,9 @@
-//line parse.y:7
+//line agent/parse/parse.y:7
 package parse
 
 import __yyfmt__ "fmt"
 
-//line parse.y:7
+//line agent/parse/parse.y:7
 import (
 	"fmt"
 	"os"
@@ -12,7 +12,7 @@ import (
 	fconfig "github.com/yubo/falcon/config"
 )
 
-//line parse.y:19
+//line agent/parse/parse.y:19
 type yySymType struct {
 	yys  int
 	num  int
@@ -35,7 +35,6 @@ const LOG = 57357
 const HOST = 57358
 const DISABLED = 57359
 const DEBUG = 57360
-const METRIC = 57361
 
 var yyToknames = [...]string{
 	"$end",
@@ -66,7 +65,6 @@ var yyToknames = [...]string{
 	"HOST",
 	"DISABLED",
 	"DEBUG",
-	"METRIC",
 	"'='",
 }
 var yyStatenames = [...]string{}
@@ -75,7 +73,7 @@ const yyEofCode = 1
 const yyErrCode = 2
 const yyInitialStackSize = 16
 
-//line parse.y:106
+//line agent/parse/parse.y:106
 
 //line yacctab:1
 var yyExca = [...]int{
@@ -86,29 +84,29 @@ var yyExca = [...]int{
 
 const yyPrivate = 57344
 
-const yyLast = 66
+const yyLast = 63
 
 var yyAct = [...]int{
 
 	25, 26, 16, 14, 15, 20, 21, 22, 23, 27,
 	11, 43, 28, 26, 42, 20, 21, 22, 23, 7,
-	24, 27, 30, 32, 33, 18, 19, 31, 38, 16,
-	14, 15, 17, 6, 34, 40, 41, 35, 29, 36,
-	37, 4, 39, 45, 46, 2, 12, 13, 1, 0,
-	9, 8, 10, 34, 0, 44, 35, 0, 36, 37,
-	5, 0, 3, 16, 14, 15,
+	24, 27, 30, 32, 33, 5, 31, 3, 38, 16,
+	14, 15, 18, 6, 34, 40, 41, 35, 17, 36,
+	37, 4, 39, 45, 46, 19, 12, 13, 2, 1,
+	9, 8, 10, 34, 0, 44, 35, 29, 36, 37,
+	16, 14, 15,
 }
 var yyPact = [...]int{
 
-	-1000, 52, -1000, -1000, 24, -1000, 22, 15, -13, 58,
-	9, -3, 58, 58, -1000, -1000, -1000, -1000, -1000, -1000,
+	-1000, 17, -1000, -1000, 24, -1000, 28, 22, -13, 55,
+	9, -3, 55, 55, -1000, -1000, -1000, -1000, -1000, -1000,
 	-1000, -1000, -1000, -1000, -1000, 23, -1000, 9, 23, -1000,
-	-1000, 58, -1000, -1000, 9, 9, -2, -6, 42, -1000,
+	-1000, 55, -1000, -1000, 9, 9, -2, -6, 42, -1000,
 	23, 23, 9, 9, -1000, 23, 23,
 }
 var yyPgo = [...]int{
 
-	0, 26, 10, 0, 48, 45, 41, 19,
+	0, 45, 10, 0, 49, 48, 41, 19,
 }
 var yyR1 = [...]int{
 
@@ -129,7 +127,7 @@ var yyChk = [...]int{
 	-1000, -4, -5, 10, -6, 8, 9, -7, 27, 26,
 	28, -2, 22, 23, 6, 7, 5, 10, 10, -1,
 	18, 19, 20, 21, -2, -3, 4, 12, -3, -1,
-	-2, 30, -2, -2, 11, 14, 16, 17, -3, -2,
+	-2, 29, -2, -2, 11, 14, 16, 17, -3, -2,
 	-3, -3, 16, 17, 13, -3, -3,
 }
 var yyDef = [...]int{
@@ -148,7 +146,7 @@ var yyTok1 = [...]int{
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
 	12, 13, 11, 14, 3, 15, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 10,
-	16, 30, 17, 3, 3, 3, 3, 3, 3, 3,
+	16, 29, 17, 3, 3, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
@@ -159,7 +157,7 @@ var yyTok1 = [...]int{
 var yyTok2 = [...]int{
 
 	2, 3, 4, 5, 6, 7, 18, 19, 20, 21,
-	22, 23, 24, 25, 26, 27, 28, 29,
+	22, 23, 24, 25, 26, 27, 28,
 }
 var yyTok3 = [...]int{
 	0,
@@ -504,91 +502,91 @@ yydefault:
 
 	case 3:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line parse.y:43
+		//line agent/parse/parse.y:42
 		{
 			yyVAL.b = true
 		}
 	case 4:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line parse.y:44
+		//line agent/parse/parse.y:43
 		{
 			yyVAL.b = true
 		}
 	case 5:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line parse.y:45
+		//line agent/parse/parse.y:44
 		{
 			yyVAL.b = false
 		}
 	case 6:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line parse.y:46
+		//line agent/parse/parse.y:45
 		{
 			yyVAL.b = false
 		}
 	case 7:
 		yyDollar = yyS[yypt-0 : yypt+1]
-		//line parse.y:47
+		//line agent/parse/parse.y:46
 		{
 			yyVAL.b = true
 		}
 	case 8:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line parse.y:51
+		//line agent/parse/parse.y:50
 		{
 			yyVAL.text = string(yy.t)
 		}
 	case 9:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line parse.y:52
+		//line agent/parse/parse.y:51
 		{
 			yyVAL.text = string(yy.t)
 		}
 	case 10:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line parse.y:53
+		//line agent/parse/parse.y:52
 		{
 			yyVAL.text = exprText(yy.t)
 		}
 	case 11:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line parse.y:57
+		//line agent/parse/parse.y:56
 		{
 			yyVAL.num = yy.i
 		}
 	case 12:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line parse.y:58
+		//line agent/parse/parse.y:57
 		{
 			yyVAL.num = yyDollar[2].num
 		}
 	case 13:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line parse.y:59
+		//line agent/parse/parse.y:58
 		{
 			yyVAL.num = yyDollar[1].num * yyDollar[3].num
 		}
 	case 14:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line parse.y:60
+		//line agent/parse/parse.y:59
 		{
 			yyVAL.num = yyDollar[1].num + yyDollar[3].num
 		}
 	case 15:
 		yyDollar = yyS[yypt-4 : yypt+1]
-		//line parse.y:61
+		//line agent/parse/parse.y:60
 		{
 			yyVAL.num = int(uint(yyDollar[1].num) << uint(yyDollar[4].num))
 		}
 	case 16:
 		yyDollar = yyS[yypt-4 : yypt+1]
-		//line parse.y:62
+		//line agent/parse/parse.y:61
 		{
 			yyVAL.num = int(uint(yyDollar[1].num) >> uint(yyDollar[4].num))
 		}
 	case 18:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line parse.y:67
+		//line agent/parse/parse.y:66
 		{
 			// end
 			conf.Configer.Set(fconfig.APP_CONF_FILE, yy_ss)
@@ -601,62 +599,62 @@ yydefault:
 		}
 	case 19:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line parse.y:80
+		//line agent/parse/parse.y:79
 		{
 			// begin
 			conf = &config.Agent{Name: "agent"}
 		}
 	case 22:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line parse.y:87
+		//line agent/parse/parse.y:86
 		{
 			conf.Disabled = yyDollar[2].b
 		}
 	case 23:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line parse.y:88
+		//line agent/parse/parse.y:87
 		{
 			conf.Host = yyDollar[2].text
 		}
 	case 24:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line parse.y:89
+		//line agent/parse/parse.y:88
 		{
 			conf.Debug = 1
 		}
 	case 25:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line parse.y:90
+		//line agent/parse/parse.y:89
 		{
 			conf.Debug = yyDollar[2].num
 		}
 	case 26:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line parse.y:91
+		//line agent/parse/parse.y:90
 		{
 			yy_ss[yyDollar[1].text] = fmt.Sprintf("%d", yyDollar[2].num)
 		}
 	case 27:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line parse.y:92
+		//line agent/parse/parse.y:91
 		{
 			yy_ss[yyDollar[1].text] = fmt.Sprintf("%v", yyDollar[2].b)
 		}
 	case 28:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line parse.y:93
+		//line agent/parse/parse.y:92
 		{
 			yy.include(yyDollar[2].text)
 		}
 	case 29:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line parse.y:94
+		//line agent/parse/parse.y:93
 		{
 			yy_ss[yyDollar[1].text] = yyDollar[2].text
 		}
 	case 30:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line parse.y:95
+		//line agent/parse/parse.y:94
 		{
 			if err := os.Setenv(yyDollar[1].text, yyDollar[3].text); err != nil {
 				yy.Error(err.Error())
@@ -664,7 +662,7 @@ yydefault:
 		}
 	case 31:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line parse.y:100
+		//line agent/parse/parse.y:99
 		{
 			if err := os.Chdir(yyDollar[2].text); err != nil {
 				yy.Error(err.Error())
