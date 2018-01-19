@@ -44,7 +44,7 @@ func test_cache_init() {
 	cache.prestart(cacheApp)
 }
 
-func TestCache(t *testing.T) {
+func testCache(t *testing.T) {
 	//fmt.Println(runtime.Caller(0))
 	test_cache_init()
 	cache.prestart(cacheApp)
@@ -92,7 +92,7 @@ func TestCache(t *testing.T) {
 	fmt.Printf("all c.unlink success\n")
 }
 
-func TestCacheQueue(t *testing.T) {
+func testCacheQueue(t *testing.T) {
 	cache.prestart(cacheApp)
 
 	item := newItem(0)
