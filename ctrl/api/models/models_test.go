@@ -16,6 +16,25 @@ import (
 
 var (
 	test_db_init bool
+	dbTables     = []string{
+		"agents_info",
+		"plugin_dir",
+		"dashboard_graph",
+		"dashboard_screen",
+		"tmp_graph",
+		"kv",
+		"host",
+		"token",
+		"role",
+		"session",
+		"tag",
+		"tag_rel",
+		"tag_host",
+		"user",
+		"log",
+		"tpl_rel",
+		"event_trigger",
+	}
 )
 
 const (

@@ -25,7 +25,7 @@ type HostController struct {
 // @Failure 400 string error
 // @router / [post]
 func (c *HostController) CreateHost() {
-	var host models.HostCreate
+	var host models.HostApiAdd
 
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	json.Unmarshal(c.Ctx.Input.RequestBody, &host)
@@ -105,7 +105,7 @@ func (c *HostController) GetHost() {
 // @Failure 400 string error
 // @router / [put]
 func (c *HostController) UpdateHost() {
-	input := models.HostUpdate{}
+	input := models.HostApiUpdate{}
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	err := json.Unmarshal(c.Ctx.Input.RequestBody, &input)
 	if err != nil {

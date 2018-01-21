@@ -59,7 +59,7 @@ func (c *SetController) GetUser() {
 // @Failure 400 string error
 // @router /profile [put]
 func (c *SetController) UpdateUser() {
-	user := &models.UserProfileUpdate{}
+	user := &models.UserProfileApiUpdate{}
 
 	err := json.Unmarshal(c.Ctx.Input.RequestBody, user)
 	if err != nil {

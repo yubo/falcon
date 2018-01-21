@@ -178,7 +178,7 @@ func (p *ExprObj) reduce(name string) error {
 	return nil
 }
 
-func (p *ExprObj) Exec(item Item) float64 {
+func (p *ExprObj) Invoke(item Item) float64 {
 	var isNum bool
 	typ := p.Type >> 1
 

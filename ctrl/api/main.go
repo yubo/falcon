@@ -17,11 +17,12 @@ import (
 	"github.com/golang/glog"
 	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/ctrl"
-	"github.com/yubo/falcon/ctrl/api/module"
 	"github.com/yubo/falcon/ctrl/config"
 	"github.com/yubo/falcon/parse"
 	"github.com/yubo/gotool/flags"
 
+	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/yubo/falcon/ctrl/api/models/session"
 	_ "github.com/yubo/falcon/ctrl/plugin/demo"
 )
 
@@ -33,8 +34,9 @@ const (
 
 func init() {
 	falcon.RegisterModule(&ctrl.Ctrl{}, "ctrl", falcon.GetType(config.Ctrl{}))
-	ctrl.RegisterModule(&module.DevModule{})
+	ctrl.RegisterModule(&ctrl.OrmModule{})
 	ctrl.RegisterModule(&ctrl.EtcdCliModule{})
+	ctrl.RegisterModule(&ctrl.ApiModule{Dev: true})
 
 	flags.CommandLine.Usage = fmt.Sprintf("Usage: %s COMMAND start|stop|reload|stats\n", os.Args[0])
 
@@ -67,10 +69,8 @@ func signalNotify(p *falcon.Process) {
 
 	glog.Infof("%s [%d] register signal notify", MODULE_NAME, p.Pid)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT,
-		syscall.SIGUSR1)
+		syscall.SIGUSR1, syscall.SIGUSR2)
 	atomic.StoreUint32(&p.Status, falcon.APP_STATUS_RUNNING)
-
-	glog.Infof("%s [%d] register signal notify", MODULE_NAME, p.Pid)
 
 	for {
 		s := <-sigs

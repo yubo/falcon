@@ -35,6 +35,7 @@ import (
 )
 
 const (
+	IndentSize    = 4
 	letterIdxBits = 6                    // 6 bits to represent a letter index
 	letterIdxMask = 1<<letterIdxBits - 1 // All 1-bits, as many as letterIdxBits
 	letterIdxMax  = 63 / letterIdxBits   // # of letter indices fitting in 63 bits
@@ -208,8 +209,8 @@ func Override(dst, src interface{}) error {
 	return nil
 }
 
-func NewOrm(name, dsn string, maxIdleConns, maxOpenConns int) (o orm.Ormer, err error) {
-	db, err := sql.Open("mysql", dsn)
+func NewOrm(name, dsn string, maxIdleConns, maxOpenConns int) (o orm.Ormer, db *sql.DB, err error) {
+	db, err = sql.Open("mysql", dsn)
 	if err != nil {
 		return
 	}
@@ -221,7 +222,8 @@ func NewOrm(name, dsn string, maxIdleConns, maxOpenConns int) (o orm.Ormer, err 
 		return
 	}
 
-	return orm.NewOrmWithDB("mysql", name, db)
+	o, err = orm.NewOrmWithDB("mysql", name, db)
+	return
 }
 
 // ############################################################################3
@@ -339,4 +341,18 @@ func GetByteTls(url string, timeout time.Duration) ([]byte, error) {
 	}
 	defer r.Body.Close()
 	return ioutil.ReadAll(r.Body)
+}
+
+func KeyAttr(key []byte) (string, string, string, string, error) {
+	var err error
+	s := strings.Split(string(key), "/")
+	if len(s) != 4 {
+		err = EINVAL
+	}
+
+	return s[0], s[1], s[2], s[3], err
+}
+
+func AttrKey(endpoint, metric, tags, typ string) []byte {
+	return []byte(fmt.Sprintf("%s/%s/%s/%s", endpoint, metric, tags, typ))
 }

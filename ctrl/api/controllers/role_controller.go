@@ -26,7 +26,7 @@ type RoleController struct {
 // @Failure 400 string error
 // @router / [post]
 func (c *RoleController) CreateRole() {
-	var role models.RoleCreate
+	var role models.RoleApiAdd
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	json.Unmarshal(c.Ctx.Input.RequestBody, &role)
 
@@ -106,7 +106,7 @@ func (c *RoleController) GetRole() {
 // @Failure 400 string error
 // @router / [put]
 func (c *RoleController) UpdateRole() {
-	input := models.RoleUpdate{}
+	input := models.RoleApiUpdate{}
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	err := json.Unmarshal(c.Ctx.Input.RequestBody, &input)
 	if err != nil {

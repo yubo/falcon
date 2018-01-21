@@ -11,8 +11,6 @@ import (
 	"github.com/golang/glog"
 	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/alarm/config"
-	"github.com/yubo/falcon/alarm/parse"
-	fconfig "github.com/yubo/falcon/config"
 )
 
 const (
@@ -89,9 +87,9 @@ func (p *Alarm) Name() string {
 	return p.Conf.Name
 }
 
-func (p *Alarm) Parse(text []byte, filename string, lino int) fconfig.ModuleConf {
-	p.Conf = parse.Parse(text, filename, lino).(*config.Alarm)
-	p.Conf.Configer.Set(fconfig.APP_CONF_DEFAULT, ConfDefault)
+func (p *Alarm) Parse(text []byte, filename string, lino int) falcon.ModuleConf {
+	p.Conf = config.Parse(text, filename, lino).(*config.Alarm)
+	p.Conf.Configer.Set(falcon.APP_CONF_DEFAULT, ConfDefault)
 	return p.Conf
 }
 

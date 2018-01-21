@@ -39,6 +39,7 @@ func (p *ShardModule) prestart(s *Service) error {
 	return nil
 }
 
+// TODO
 func (p *ShardModule) start(s *Service) (err error) {
 	ids_ := strings.Split(s.Conf.Configer.Str(C_SHARD_IDS), ",")
 	ids := make([]int, len(ids_))
@@ -51,7 +52,7 @@ func (p *ShardModule) start(s *Service) (err error) {
 
 	for _, shardId := range ids {
 		p.bucketMap[int32(shardId)] = &bucketEntry{
-			itemMap: make(map[string]*itemEntry),
+			dpEntryMap: make(map[string]*dpEntry),
 		}
 	}
 	p.service = s
@@ -61,7 +62,7 @@ func (p *ShardModule) start(s *Service) (err error) {
 
 	dbmaxidle, _ := s.Conf.Configer.Int(C_DB_MAX_IDLE)
 	dbmaxconn, _ := s.Conf.Configer.Int(C_DB_MAX_CONN)
-	db, err := falcon.NewOrm("service_index",
+	db, _, err := falcon.NewOrm("service_index",
 		s.Conf.Configer.Str(C_DSN), dbmaxidle, dbmaxconn)
 	if err != nil {
 		return err
@@ -83,7 +84,7 @@ func (p *ShardModule) reload(s *Service) error {
 	return nil
 }
 
-func (p *ShardModule) getTrashItem() *itemEntry {
+func (p *ShardModule) getTrashItem() *dpEntry {
 	l := p.trashQueue.dequeue()
 	if l == nil {
 		return nil
@@ -91,28 +92,28 @@ func (p *ShardModule) getTrashItem() *itemEntry {
 	return list_entry(l)
 }
 
-func (p *ShardModule) putTrashItem(ie *itemEntry) {
+func (p *ShardModule) putTrashItem(ie *dpEntry) {
 	p.trashQueue.enqueue(&ie.list)
 }
 
-func (p *ShardModule) put(item *Item) (*itemEntry, error) {
-	bucket, err := p.getBucket(item.ShardId)
+func (p *ShardModule) put(dp *DataPoint) (*dpEntry, error) {
+	bucket, err := p.getBucket(dp.Key.ShardId)
 	if err != nil {
 		return nil, err
 	}
 
-	ie, err := bucket.getItem(string(item.Key))
+	ie, err := bucket.getDpEntry(string(dp.Key.Key))
 	if err != nil {
-		ie, err = bucket.addItem(item)
+		ie, err = bucket.createDpEntry(dp)
 		if err != nil {
 			return nil, err
 		}
 		p.idxQueue.addHead(&ie.list)
 		p.putQueue.enqueue(&ie.list_p)
-		return ie, ie.put(item)
+		return ie, ie.put(dp)
 	}
 
-	if err := ie.put(item); err != nil {
+	if err := ie.put(dp); err != nil {
 		return ie, err
 	}
 
@@ -120,18 +121,21 @@ func (p *ShardModule) put(item *Item) (*itemEntry, error) {
 	return ie, nil
 }
 
-func (p *ShardModule) get(req *GetRequest) ([]*DataPoint, error) {
-	bucket, err := p.getBucket(req.ShardId)
+func (p *ShardModule) get(key *Key, start, end int64) (*DataPoints, error) {
+	bucket, err := p.getBucket(key.ShardId)
 	if err != nil {
 		return nil, err
 	}
 
-	ie, err := bucket.getItem(string(req.Key))
+	ie, err := bucket.getDpEntry(string(key.Key))
 	if err != nil {
 		return nil, err
 	}
 
-	return ie.getDps(req.Start, req.End)
+	return &DataPoints{
+		Key:    key,
+		Values: ie.getValues(start, end),
+	}, nil
 }
 
 func (p *ShardModule) getBucket(shardId int32) (*bucketEntry, error) {
@@ -203,13 +207,13 @@ func (p *ShardModule) indexWorker(db orm.Ormer) {
 }
 
 // TODO fix me
-func (p *ShardModule) addEntryHandle(e *itemEntry) {
+func (p *ShardModule) addEntryHandle(e *dpEntry) {
 }
 
 // already del from p.putQueue
-func (p *ShardModule) delEntryHandle(e *itemEntry) {
-	bucket, _ := p.getBucket(e.shardId)
-	bucket.unlink(e.key)
+func (p *ShardModule) delEntryHandle(e *dpEntry) {
+	bucket, _ := p.getBucket(e.key.ShardId)
+	bucket.unlink(string(e.key.Key))
 
 	p.idxQueue.Lock()
 	defer p.idxQueue.Unlock()

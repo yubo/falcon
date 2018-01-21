@@ -7,7 +7,6 @@ package models
 
 import (
 	"github.com/yubo/falcon"
-	"github.com/yubo/falcon/ctrl/config"
 )
 
 var (
@@ -22,7 +21,7 @@ type Auth struct {
 }
 
 type AuthInterface interface {
-	Init(conf *config.Ctrl) error
+	Init(cf *falcon.Configer) error
 	Verify(c interface{}) (success bool, uuid string, err error)
 	AuthorizeUrl(ctx interface{}) string
 	LoginCb(ctx interface{}) (uuid string, err error)

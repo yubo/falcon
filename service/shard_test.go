@@ -10,7 +10,7 @@ import (
 	"runtime"
 	"testing"
 
-	fconfig "github.com/yubo/falcon/config"
+	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/service/config"
 )
 
@@ -20,12 +20,16 @@ var (
 	err      error
 )
 
-func newItem(i int) *Item {
-	return &Item{
-		Key:       []byte(fmt.Sprintf("host_%d/metric_%d//GAUGE", i, i)),
-		ShardId:   0,
-		Value:     float64(i),
-		Timestamp: int64(i) * DEBUG_STEP,
+func newDp(i int) *DataPoint {
+	return &DataPoint{
+		Key: &Key{
+			Key:     []byte(fmt.Sprintf("host_%d/metric_%d//GAUGE", i, i)),
+			ShardId: 0,
+		},
+		Value: &TimeValuePair{
+			Timestamp: int64(i) * DEBUG_STEP,
+			Value:     float64(i),
+		},
 	}
 }
 
@@ -36,7 +40,7 @@ func test_cache_init() {
 			Name: "cacheApp",
 		},
 	}
-	cacheApp.Conf.Configer.Set(fconfig.APP_CONF_FILE, map[string]string{
+	cacheApp.Conf.Configer.Set(falcon.APP_CONF_FILE, map[string]string{
 		"shardIds": "0",
 	})
 
@@ -48,11 +52,12 @@ func testCache(t *testing.T) {
 	//fmt.Println(runtime.Caller(0))
 	test_cache_init()
 	cache.prestart(cacheApp)
-	item1 := newItem(1)
-	item2 := newItem(2)
+	cache.start(cacheApp)
+	defer cache.stop(cacheApp)
+	dp := newDp(1)
 
 	// create
-	tie, err := cacheApp.shard.put(item1)
+	e, err := cacheApp.shard.put(dp)
 	if err != nil {
 		t.Error(err)
 	}
@@ -64,29 +69,30 @@ func testCache(t *testing.T) {
 		t.Error(err)
 	}
 
-	ie, err := bucket.getItem(string(item1.Key))
-	if err != nil || tie != ie {
-		t.Errorf("bucket.getItem(%s) error", string(item1.Key))
+	e_, err := bucket.getDpEntry(string(dp.Key.Key))
+	if err != nil || e != e_ {
+		t.Errorf("bucket.getDpEntry(%s) error", string(dp.Key.Key))
 	}
-	fmt.Printf("bucket.getItem success\n")
+	fmt.Printf("bucket.getDpEntry success\n")
 
-	if len(bucket.itemMap) != 1 {
-		t.Errorf(" size error size %d want 1", len(bucket.itemMap))
+	if len(bucket.dpEntryMap) != 1 {
+		t.Errorf(" size error size %d want 1", len(bucket.dpEntryMap))
 	}
 
-	cacheApp.shard.put(item2)
-	if len(bucket.itemMap) != 2 {
-		t.Errorf(" size error size %d want 2", len(bucket.itemMap))
+	dp2 := newDp(2)
+	cacheApp.shard.put(dp2)
+	if len(bucket.dpEntryMap) != 2 {
+		t.Errorf(" size error size %d want 2", len(bucket.dpEntryMap))
 	}
 
 	// unlink
-	bucket.unlink(string(item1.Key))
-	if len(bucket.itemMap) != 1 {
-		t.Errorf(" size error size %d want 1", len(bucket.itemMap))
+	bucket.unlink(string(dp.Key.Key))
+	if len(bucket.dpEntryMap) != 1 {
+		t.Errorf(" size error size %d want 1", len(bucket.dpEntryMap))
 	}
 	fmt.Printf("c.unlink success\n")
 
-	for k, _ := range bucket.itemMap {
+	for k, _ := range bucket.dpEntryMap {
 		bucket.unlink(k)
 	}
 	fmt.Printf("all c.unlink success\n")
@@ -94,20 +100,22 @@ func testCache(t *testing.T) {
 
 func testCacheQueue(t *testing.T) {
 	cache.prestart(cacheApp)
+	cache.start(cacheApp)
+	defer cache.stop(cacheApp)
 
-	item := newItem(0)
-	ie, err := cacheApp.shard.put(item)
+	dp := newDp(0)
+	e, err := cacheApp.shard.put(dp)
 	if err != nil {
 		t.Errorf("%s:%s", "testCacheQueue", err.Error())
 	}
 
 	//fmt.Printf("cacheEtnry filename: %s\n", entry.filename())
 	for i := 1; i < 2*CACHE_SIZE; i++ {
-		ie.put(newItem(i))
-		if len(ie.getItems(CACHE_SIZE)) != CACHE_SIZE {
-			t.Errorf("len(data) %d want %d", len(ie.getItems(CACHE_SIZE)), CACHE_SIZE)
+		e.put(newDp(i))
+		if len(e.getDps(CACHE_SIZE).Values) != CACHE_SIZE {
+			t.Errorf("len(data) %d want %d", len(e.getDps(CACHE_SIZE).Values), CACHE_SIZE)
 		}
 	}
-	fmt.Printf("e.getItems() success\n")
+	fmt.Printf("e.getDps() success\n")
 
 }

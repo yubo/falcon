@@ -8,7 +8,6 @@ package models
 import (
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/yubo/falcon"
 )
@@ -39,7 +38,7 @@ func (op *Operator) AddDashboardTmpGraph(inputs *APITmpGraph) (id int64, err err
 	cs_string := strings.Join(cs, TMP_GRAPH_FILED_DELIMITER)
 	ck := falcon.Md5sum([]byte(es_string + ":" + cs_string))
 
-	res, err := op.O.Raw("insert ignore into `tmp_graph` (endpoints, counters, ck) values(?, ?, ?) on duplicate key update time_=?", es_string, cs_string, ck, time.Now()).Exec()
+	res, err := op.O.Raw("INSERT INTO `tmp_graph` (endpoints, counters, ck) values(?, ?, ?) ON DUPLICATE KEY UPDATE ck = ?", es_string, cs_string, ck, ck).Exec()
 	if err != nil {
 		return 0, err
 	}

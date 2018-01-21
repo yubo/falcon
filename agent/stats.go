@@ -6,13 +6,14 @@
 package agent
 
 import (
-	"context"
 	"fmt"
 	"sync/atomic"
 	"time"
 
 	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/agent/config"
+	"github.com/yubo/falcon/transfer"
+	"golang.org/x/net/context"
 )
 
 const (
@@ -74,8 +75,8 @@ func (p *Agent) Stats(conf interface{}) (s string) {
 	}
 	defer conn.Close()
 
-	client := NewAgentClient(conn)
-	stats, err := client.GetStats(context.Background(), &Empty{})
+	client := transfer.NewTransferClient(conn)
+	stats, err := client.GetStats(context.Background(), &transfer.Empty{})
 	if err != nil {
 		return ""
 	}

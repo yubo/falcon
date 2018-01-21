@@ -12,7 +12,6 @@ import (
 	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/ctrl"
 	"github.com/yubo/falcon/ctrl/api/models"
-	"github.com/yubo/falcon/ctrl/config"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	googleOauth2 "google.golang.org/api/oauth2/v1"
@@ -30,13 +29,13 @@ func init() {
 	models.RegisterAuth(GOOGLE_NAME, &googleAuth{})
 }
 
-func (p *googleAuth) Init(conf *config.Ctrl) error {
+func (p *googleAuth) Init(conf *falcon.Configer) error {
 	p.config = oauth2.Config{
 		Endpoint:     google.Endpoint,
 		Scopes:       []string{googleOauth2.PlusMeScope, googleOauth2.UserinfoEmailScope},
-		ClientID:     conf.Ctrl.Str(ctrl.C_GOOGLE_CLIENT_ID),
-		ClientSecret: conf.Ctrl.Str(ctrl.C_GOOGLE_CLIENT_SECRET),
-		RedirectURL:  conf.Ctrl.Str(ctrl.C_GOOGLE_REDIRECT_URL),
+		ClientID:     conf.Str(ctrl.C_GOOGLE_CLIENT_ID),
+		ClientSecret: conf.Str(ctrl.C_GOOGLE_CLIENT_SECRET),
+		RedirectURL:  conf.Str(ctrl.C_GOOGLE_REDIRECT_URL),
 	}
 	return nil
 }

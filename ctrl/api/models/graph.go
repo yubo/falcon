@@ -9,25 +9,12 @@ import (
 	"fmt"
 	"strings"
 	"time"
-	//cmodel "github.com/yubo/falcon/common/model"
-	//fhttp "github.com/yubo/falcon/transfer/http"
+
+	"github.com/yubo/falcon/ctrl"
+	"github.com/yubo/falcon/transfer"
 )
 
 // for api doc
-type JsonFloat float64
-
-type RRDData struct {
-	Timestamp int64   `json:"timestamp"`
-	Value     float64 `json:"value"`
-}
-
-type GraphQueryResponse struct {
-	Endpoint string     `json:"endpoint"`
-	Counter  string     `json:"counter"`
-	DsType   string     `json:"dstype"`
-	Step     int        `json:"step"`
-	Values   []*RRDData `json:"Values"` //大写为了兼容已经再用这个api的用户
-}
 
 type Endpoint struct {
 	Id       int64     `json:"id"`
@@ -48,13 +35,11 @@ type EndpointCounter struct {
 	TModify    time.Time `json:"-"`
 }
 
-type APIQueryGraphDrawData struct {
-	HostNames []string `json:"hostnames"`
-	Counters  []string `json:"counters"`
+type DataPointApiGet struct {
+	Keys      []string `json:"keys"`
 	ConsolFun string   `json:"consol_fun"`
-	StartTime int64    `json:"start_time"`
-	EndTime   int64    `json:"end_time"`
-	Step      int      `json:"step"`
+	Start     int64    `json:"start"`
+	End       int64    `json:"end"`
 }
 
 func (op *Operator) GetEndpoint(qs []string, tags []string,
@@ -97,22 +82,16 @@ func (op *Operator) GetEndpointCounter(query string, ids []string, limit int) (r
 	return
 }
 
-/*
-func GetCounterData(inputs *APIQueryGraphDrawData) (ret []*cmodel.GraphQueryResponse, err error) {
-	items := make([]cmodel.GraphInfoParam, 0)
+func GetDataPoints(in *DataPointApiGet) (*transfer.GetResponse, error) {
+	req := &transfer.GetRequest{
+		Start: in.Start,
+		End:   in.End,
+	}
 
-	for _, host := range inputs.HostNames {
-		for _, counter := range inputs.Counters {
-			items = append(items, cmodel.GraphInfoParam{Endpoint: host, Counter: counter})
-		}
+	req.Keys = make([][]byte, len(in.Keys))
+	for i, key := range in.Keys {
+		req.Keys[i] = []byte(key)
 	}
-	query := fhttp.GraphHistoryParam{
-		Start:            int(inputs.StartTime),
-		End:              int(inputs.EndTime),
-		CF:               inputs.ConsolFun,
-		EndpointCounters: items,
-	}
-	err = postJson(transferUrl+"/graph/history", query, &ret)
-	return
+
+	return ctrl.GetDps(req)
 }
-*/

@@ -12,14 +12,15 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/transfer"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
 
 type putContext struct {
-	items []*Item
-	done  chan *PutResponse
+	dps  []*transfer.DataPoint
+	done chan *transfer.PutResponse
 }
 
 type ApiModule struct {
@@ -30,13 +31,13 @@ type ApiModule struct {
 	putChan chan *putContext
 }
 
-func (p *ApiModule) Put(ctx context.Context, in *PutRequest) (*PutResponse,
+func (p *ApiModule) Put(ctx context.Context, in *transfer.PutRequest) (*transfer.PutResponse,
 	error) {
 
 	glog.V(5).Infof("%s rx put %v", MODULE_NAME, in)
 	put := &putContext{
-		items: in.Items,
-		done:  make(chan *PutResponse),
+		dps:  in.Data,
+		done: make(chan *transfer.PutResponse),
 	}
 
 	p.putChan <- put
@@ -44,14 +45,19 @@ func (p *ApiModule) Put(ctx context.Context, in *PutRequest) (*PutResponse,
 	return resp, nil
 }
 
-func (p *ApiModule) GetStats(ctx context.Context, in *Empty) (*Stats,
+func (p *ApiModule) Get(ctx context.Context, in *transfer.GetRequest) (*transfer.GetResponse,
 	error) {
-	return &Stats{Counter: statsGets()}, nil
+	return nil, falcon.ErrUnsupported
 }
 
-func (p *ApiModule) GetStatsName(ctx context.Context, in *Empty) (*StatsName,
+func (p *ApiModule) GetStats(ctx context.Context, in *transfer.Empty) (*transfer.Stats,
 	error) {
-	return &StatsName{CounterName: statsCounterName}, nil
+	return &transfer.Stats{Counter: statsGets()}, nil
+}
+
+func (p *ApiModule) GetStatsName(ctx context.Context, in *transfer.Empty) (*transfer.StatsName,
+	error) {
+	return &transfer.StatsName{CounterName: statsCounterName}, nil
 }
 
 func (p *ApiModule) prestart(agent *Agent) error {
@@ -74,7 +80,7 @@ func (p *ApiModule) start(agent *Agent) error {
 	}
 
 	server := grpc.NewServer()
-	RegisterAgentServer(server, p)
+	transfer.RegisterTransferServer(server, p)
 
 	// Register reflection service on gRPC server.
 	reflection.Register(server)

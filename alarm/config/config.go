@@ -8,7 +8,7 @@ package config
 import (
 	"fmt"
 
-	"github.com/yubo/falcon/config"
+	"github.com/yubo/falcon"
 )
 
 type Alarm struct {
@@ -17,7 +17,7 @@ type Alarm struct {
 	Name     string
 	Host     string
 	Upstream map[int]string
-	Configer config.Configer
+	Configer falcon.Configer
 }
 
 func (p Alarm) GetName() string {
@@ -39,7 +39,7 @@ func (p Alarm) String() string {
 		"disabled", p.Disabled,
 		"Name", p.Name,
 		"Host", p.Host,
-		"Upstream", config.IndentLines(1, s1),
+		"Upstream", falcon.IndentLines(1, s1),
 		p.Configer.String(),
 	)
 }

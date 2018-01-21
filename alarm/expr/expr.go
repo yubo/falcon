@@ -122,7 +122,7 @@ type ExprObj struct {
 	S1   string
 }
 
-func (p *ExprObj) Exec(e Event_i) int {
+func (p *ExprObj) Invoke(e Event_i) int {
 	switch p.Type {
 	case EXPR_OBJ_TYPE_RAW:
 		return p.I

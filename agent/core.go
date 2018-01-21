@@ -11,8 +11,6 @@ import (
 	"github.com/golang/glog"
 	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/agent/config"
-	"github.com/yubo/falcon/agent/parse"
-	fconfig "github.com/yubo/falcon/config"
 )
 
 const (
@@ -72,9 +70,9 @@ func (p *Agent) Name() string {
 	return p.Conf.Name
 }
 
-func (p *Agent) Parse(text []byte, filename string, lino int) fconfig.ModuleConf {
-	p.Conf = parse.Parse(text, filename, lino).(*config.Agent)
-	p.Conf.Configer.Set(fconfig.APP_CONF_DEFAULT, ConfDefault)
+func (p *Agent) Parse(text []byte, filename string, lino int) falcon.ModuleConf {
+	p.Conf = config.Parse(text, filename, lino).(*config.Agent)
+	p.Conf.Configer.Set(falcon.APP_CONF_DEFAULT, ConfDefault)
 	return p.Conf
 }
 

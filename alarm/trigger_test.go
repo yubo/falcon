@@ -39,7 +39,7 @@ func init() {
 	netAddr := fmt.Sprintf("%s(%s)", prot, addr)
 	dsn := fmt.Sprintf("%s:%s@%s/%s?timeout=30s&strict=true", user, pass, netAddr, dbname)
 
-	test_db, err = falcon.NewOrm("test_action_sync", dsn, 10, 10)
+	test_db, _, err = falcon.NewOrm("test_action_sync", dsn, 10, 10)
 	if err != nil {
 		return
 	}

@@ -8,7 +8,7 @@ package config
 import (
 	"fmt"
 
-	"github.com/yubo/falcon/config"
+	"github.com/yubo/falcon"
 )
 
 type Transfer struct {
@@ -16,8 +16,8 @@ type Transfer struct {
 	Disabled bool
 	Name     string
 	Host     string
-	Upstream map[int]string
-	Configer config.Configer
+	ShardMap map[int]string
+	Configer falcon.Configer
 }
 
 func (p Transfer) GetName() string {
@@ -26,7 +26,7 @@ func (p Transfer) GetName() string {
 
 func (p Transfer) String() string {
 	var s1 string
-	for k, v := range p.Upstream {
+	for k, v := range p.ShardMap {
 		s1 += fmt.Sprintf("%d %s\n", k, v)
 	}
 	return fmt.Sprintf("%-17s %d\n"+
@@ -39,7 +39,7 @@ func (p Transfer) String() string {
 		"disabled", p.Disabled,
 		"Name", p.Name,
 		"Host", p.Host,
-		"Upstream", config.IndentLines(1, s1),
+		"Upstream", falcon.IndentLines(1, s1),
 		p.Configer.String(),
 	)
 }

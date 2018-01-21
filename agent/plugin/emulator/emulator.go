@@ -12,6 +12,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/yubo/falcon/agent"
+	"github.com/yubo/falcon/transfer"
 	"golang.org/x/net/context"
 )
 
@@ -108,10 +109,10 @@ func (p *emulator) Start(ctx context.Context, ag *agent.Agent) (err error) {
 	return nil
 }
 
-func (p *emulator) Collect() (ret []*agent.Item, err error) {
+func (p *emulator) Collect() (ret []*transfer.DataPoint, err error) {
 
 	now := time.Now().Unix()
-	ret = make([]*agent.Item, len(p.tpl))
+	ret = make([]*transfer.DataPoint, len(p.tpl))
 
 	n := 0
 	for metric, _ := range p.tpl {

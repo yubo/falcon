@@ -15,58 +15,6 @@
     "application/json"
   ],
   "paths": {
-    "/v1.0/service/get": {
-      "post": {
-        "operationId": "Get",
-        "responses": {
-          "200": {
-            "description": "",
-            "schema": {
-              "$ref": "#/definitions/serviceGetResponse"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/serviceGetRequest"
-            }
-          }
-        ],
-        "tags": [
-          "Service"
-        ]
-      }
-    },
-    "/v1.0/service/put": {
-      "post": {
-        "operationId": "Put",
-        "responses": {
-          "200": {
-            "description": "",
-            "schema": {
-              "$ref": "#/definitions/servicePutResponse"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/servicePutRequest"
-            }
-          }
-        ],
-        "tags": [
-          "Service"
-        ]
-      }
-    },
     "/v1.0/stats": {
       "get": {
         "operationId": "GetStats",
@@ -101,68 +49,32 @@
     }
   },
   "definitions": {
-    "serviceCf": {
-      "type": "string",
-      "enum": [
-        "MIN",
-        "MAX",
-        "AVERAGE"
-      ],
-      "default": "MIN"
-    },
-    "serviceDataPoint": {
+    "serviceDataPoints": {
       "type": "object",
       "properties": {
-        "timestamp": {
-          "type": "string",
-          "format": "int64"
-        },
-        "value": {
-          "type": "number",
-          "format": "double"
-        }
-      }
-    },
-    "serviceGetRequest": {
-      "type": "object",
-      "properties": {
-        "start": {
-          "type": "string",
-          "format": "int64"
-        },
-        "end": {
-          "type": "string",
-          "format": "int64"
-        },
         "key": {
-          "type": "string",
-          "format": "byte"
+          "$ref": "#/definitions/serviceKey"
         },
-        "shardId": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "consolFun": {
-          "$ref": "#/definitions/serviceCf"
+        "values": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/serviceTimeValuePair"
+          }
         }
       }
     },
     "serviceGetResponse": {
       "type": "object",
       "properties": {
-        "key": {
-          "type": "string",
-          "format": "byte"
-        },
-        "dps": {
+        "data": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/serviceDataPoint"
+            "$ref": "#/definitions/serviceDataPoints"
           }
         }
       }
     },
-    "serviceItem": {
+    "serviceKey": {
       "type": "object",
       "properties": {
         "key": {
@@ -172,25 +84,6 @@
         "shardId": {
           "type": "integer",
           "format": "int32"
-        },
-        "value": {
-          "type": "number",
-          "format": "double"
-        },
-        "timestamp": {
-          "type": "string",
-          "format": "int64"
-        }
-      }
-    },
-    "servicePutRequest": {
-      "type": "object",
-      "properties": {
-        "items": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/serviceItem"
-          }
         }
       }
     },
@@ -224,6 +117,19 @@
             "type": "string",
             "format": "byte"
           }
+        }
+      }
+    },
+    "serviceTimeValuePair": {
+      "type": "object",
+      "properties": {
+        "timestamp": {
+          "type": "string",
+          "format": "int64"
+        },
+        "value": {
+          "type": "number",
+          "format": "double"
         }
       }
     }

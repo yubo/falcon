@@ -13,58 +13,59 @@ import (
 	"github.com/yubo/gotool/list"
 )
 
-type itemEntry struct { // item_t
+var (
+	nullTs = &TimeValuePair{}
+)
+
+type dpEntry struct {
 	sync.RWMutex
 	expr.ExprItem
-	list      list.ListHead // point to newQueue or idxQueue trashQueue
-	list_p    list.ListHead // point to putQueue
-	shardId   int32
-	key       string
-	flag      uint32
-	idxTs     int64
-	commitTs  int64
-	createTs  int64
-	lastTs    int64
-	dataId    uint32
-	timestamp []int64
-	value     []float64
-	endpoint  string
-	metric    string
-	tags      string
-	typ       string
+	list   list.ListHead // point to newQueue or idxQueue trashQueue
+	list_p list.ListHead // point to putQueue
+	key    *Key
+	values []*TimeValuePair
 
-	//tsdb hook
+	flag     uint32
+	idxTs    int64
+	commitTs int64
+	createTs int64
+	lastTs   int64
+	dataId   uint32
+	endpoint string
+	metric   string
+	tags     string
+	typ      string
 }
 
-func itemEntryNew(item *Item) (*itemEntry, error) {
-	endpoint, metric, tags, typ, err := item.Attr()
+func dpEntryNew(dp *DataPoint) (*dpEntry, error) {
+	endpoint, metric, tags, typ, err := dp.Key.Attr()
 	if err != nil {
 		return nil, err
 	}
 
-	return &itemEntry{
-		createTs:  timer.now(),
-		endpoint:  endpoint,
-		metric:    metric,
-		tags:      tags,
-		typ:       typ,
-		key:       string(item.Key),
-		shardId:   item.ShardId,
-		dataId:    CACHE_SIZE,
-		timestamp: make([]int64, CACHE_SIZE),
-		value:     make([]float64, CACHE_SIZE),
-	}, nil
+	e := &dpEntry{
+		key:      dp.Key,
+		values:   make([]*TimeValuePair, CACHE_SIZE),
+		createTs: timer.now(),
+		endpoint: endpoint,
+		metric:   metric,
+		tags:     tags,
+		typ:      typ,
+		dataId:   CACHE_SIZE,
+	}
+	for i := 0; i < len(e.values); i++ {
+		e.values[i] = nullTs
+	}
+	return e, nil
 
 }
 
 // called by rpc
-func (p *itemEntry) put(item *Item) error {
+func (p *dpEntry) put(dp *DataPoint) error {
 	p.Lock()
 	defer p.Unlock()
-	p.lastTs = item.Timestamp
-	id := p.dataId & CACHE_SIZE_MASK
-	p.timestamp[id] = item.Timestamp
-	p.value[id] = item.Value
+	p.lastTs = dp.Value.Timestamp
+	p.values[p.dataId&CACHE_SIZE_MASK] = dp.Value
 	p.dataId += 1
 
 	// HOOK TSDB
@@ -72,7 +73,7 @@ func (p *itemEntry) put(item *Item) error {
 }
 
 //TODO for expr.Item interface{}
-func (p *itemEntry) Get(isNum bool, num, shift_time_ int) (ret []float64) {
+func (p *dpEntry) Get(isNum bool, num, shift_time_ int) (ret []float64) {
 	p.RLock()
 	defer p.RUnlock()
 
@@ -84,16 +85,16 @@ func (p *itemEntry) Get(isNum bool, num, shift_time_ int) (ret []float64) {
 
 	if isNum {
 		for i = 0; i < CACHE_SIZE; i++ {
-			if now-p.timestamp[(id-i)&CACHE_SIZE_MASK] >= shift_time {
+			if now-p.values[(id-i)&CACHE_SIZE_MASK].Timestamp >= shift_time {
 				break
 			}
 		}
 		for j := 0; i < CACHE_SIZE && j < num; i++ {
-			k := (id - i) & CACHE_SIZE_MASK
-			if p.timestamp[k] == 0 {
+			v := p.values[(id-i)&CACHE_SIZE_MASK]
+			if v.Timestamp == 0 {
 				break
 			}
-			ret = append(ret, p.value[k])
+			ret = append(ret, v.Value)
 			j++
 		}
 		return
@@ -102,21 +103,21 @@ func (p *itemEntry) Get(isNum bool, num, shift_time_ int) (ret []float64) {
 	// isSec
 	sec := int64(num) + int64(shift_time)
 	for i = 0; i < CACHE_SIZE; i++ {
-		if now-p.timestamp[(id-i)&CACHE_SIZE_MASK] >= shift_time {
+		if now-p.values[(id-i)&CACHE_SIZE_MASK].Timestamp >= shift_time {
 			break
 		}
 	}
 	for ; i < CACHE_SIZE; i++ {
-		k := (id - i) & CACHE_SIZE_MASK
-		if now-p.timestamp[k] >= sec || p.timestamp[k] == 0 {
+		v := p.values[(id-i)&CACHE_SIZE_MASK]
+		if now-v.Timestamp >= sec || v.Timestamp == 0 {
 			break
 		}
-		ret = append(ret, p.value[k])
+		ret = append(ret, v.Value)
 	}
 	return ret
 }
 
-func (p *itemEntry) Nodata(isNum bool, args []float64, get expr.GetHandle) float64 {
+func (p *dpEntry) Nodata(isNum bool, args []float64, get expr.GetHandle) float64 {
 	if timer.now()-p.lastTs <= int64(args[0]) {
 		return 1
 	}
@@ -124,72 +125,60 @@ func (p *itemEntry) Nodata(isNum bool, args []float64, get expr.GetHandle) float
 }
 
 // TODO
-func (p *itemEntry) getDps(begin, end int64) ([]*DataPoint, error) {
-	return p._getData(CACHE_SIZE), nil
+func (p *dpEntry) getValues(begin, end int64) []*TimeValuePair {
+	p.Lock()
+	defer p.Unlock()
+	return p._getValues(CACHE_SIZE)
 }
 
 // return [l, h)
 // h - l <= CACHE_SIZE
-func (p *itemEntry) _getData(n int) (ret []*DataPoint) {
+func (p *dpEntry) _getValues(n int) (ret []*TimeValuePair) {
+	var num uint32
+	ret = make([]*TimeValuePair, n)
+
 	if n == 0 {
 		return
 	}
 
 	if n > CACHE_SIZE {
-		n = CACHE_SIZE
+		num = CACHE_SIZE
+	} else {
+		num = uint32(n)
 	}
 
-	ret = make([]*DataPoint, n)
-
 	//H := h & CACHE_SIZE_MASK
-	begin := (p.dataId - uint32(n))
+	begin := (p.dataId - num)
 
-	for i := 0; i < n; i++ {
-		id := (uint32(i) + begin) & CACHE_SIZE_MASK
-		ret[i] = &DataPoint{
-			Timestamp: p.timestamp[id],
-			Value:     p.value[id],
-		}
+	for i := uint32(0); i < num; i++ {
+		ret[i] = p.values[(i+begin)&CACHE_SIZE_MASK]
 	}
 	return
 }
 
-func (p *itemEntry) _getItems(n int) (ret []*Item) {
-	data := p._getData(n)
-
-	for _, v := range data {
-		ret = append(ret, &Item{
-			Key:       []byte(p.key),
-			Value:     v.Value,
-			Timestamp: v.Timestamp,
-		})
-	}
-
-	return ret
+func (p *dpEntry) _getDps(n int) *DataPoints {
+	return &DataPoints{Key: p.key, Values: p._getValues(n)}
 }
 
-func (p *itemEntry) getItems(n int) (ret []*Item) {
+func (p *dpEntry) getDps(n int) (ret *DataPoints) {
 	p.Lock()
 	defer p.Unlock()
 
-	return p._getItems(n)
+	return p._getDps(n)
 }
 
-/* the last item(dequeue) */
-func (p *itemEntry) getItem() (ret *Item) {
+/* the last dp(dequeue) */
+func (p *dpEntry) getDp() (ret *DataPoint) {
 	p.RLock()
 	defer p.RUnlock()
 
 	//p.dataId always > 0
-	id := uint32(p.dataId-1) & CACHE_SIZE_MASK
-	return &Item{
-		Key:       []byte(p.key),
-		Value:     p.value[id],
-		Timestamp: p.timestamp[id],
+	return &DataPoint{
+		Key:   p.key,
+		Value: p.values[(p.dataId-1)&CACHE_SIZE_MASK],
 	}
-	return
 }
 
-func (p *itemEntry) String() string {
+func (p *dpEntry) String() string {
 	return fmt.Sprintf("%s\n", p.key)
 }

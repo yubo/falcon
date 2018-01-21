@@ -47,7 +47,7 @@ func indexUpdateEndpointCounter(counter, tags, typ string, ts int64, db orm.Orme
 	return
 }
 
-func indexUpdate(e *itemEntry, db orm.Ormer) {
+func indexUpdate(e *dpEntry, db orm.Ormer) {
 
 	statsInc(ST_INDEX_UPDATE, 1)
 

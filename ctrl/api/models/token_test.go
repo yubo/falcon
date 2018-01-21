@@ -101,7 +101,7 @@ func testToken(t *testing.T) {
 		"r4",
 	}
 	for _, item := range items {
-		if role_idx[item], err = op.CreateRole(&RoleCreate{Name: item}); err != nil {
+		if role_idx[item], err = op.CreateRole(&RoleApiAdd{Name: item}); err != nil {
 			t.Error(err)
 		}
 	}
@@ -115,7 +115,7 @@ func testToken(t *testing.T) {
 		"token42",
 	}
 	for _, item := range items {
-		if token_idx[item], err = op.CreateToken(&TokenCreate{Name: item}); err != nil {
+		if token_idx[item], err = op.CreateToken(&TokenApiCreate{Name: item}); err != nil {
 			t.Error(err)
 		}
 	}

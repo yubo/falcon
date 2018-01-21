@@ -8,7 +8,6 @@ package auth
 import (
 	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/ctrl/api/models"
-	"github.com/yubo/falcon/ctrl/config"
 )
 
 type weappAuth struct {
@@ -22,7 +21,7 @@ func init() {
 	models.RegisterAuth(WEAPP_NAME, &weappAuth{})
 }
 
-func (p *weappAuth) Init(conf *config.Ctrl) error {
+func (p *weappAuth) Init(conf *falcon.Configer) error {
 	return nil
 }
 

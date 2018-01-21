@@ -17,7 +17,6 @@ import (
 	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/ctrl"
 	"github.com/yubo/falcon/ctrl/api/models"
-	"github.com/yubo/falcon/ctrl/config"
 )
 
 const (
@@ -38,8 +37,8 @@ func init() {
 	models.RegisterAuth(MISSO_NAME, &missoAuth{})
 }
 
-func (p *missoAuth) Init(conf *config.Ctrl) error {
-	p.RedirectURL = conf.Ctrl.Str(ctrl.C_MISSO_REDIRECT_URL)
+func (p *missoAuth) Init(conf *falcon.Configer) error {
+	p.RedirectURL = conf.Str(ctrl.C_MISSO_REDIRECT_URL)
 	p.CookieSecretKey = "secret-key-for-encrypt-cookie"
 	p.missoAuthDomain = "http://sso.pt.xiaomi.com"
 	p.BrokerName = "test"

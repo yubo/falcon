@@ -6,13 +6,13 @@
 package service
 
 import (
-	"context"
 	"fmt"
 	"sync/atomic"
 	"time"
 
 	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/service/config"
+	"golang.org/x/net/context"
 )
 
 const (

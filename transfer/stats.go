@@ -6,7 +6,6 @@
 package transfer
 
 import (
-	"context"
 	"fmt"
 	"sync/atomic"
 	"time"
@@ -14,6 +13,7 @@ import (
 	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/service"
 	"github.com/yubo/falcon/transfer/config"
+	"golang.org/x/net/context"
 )
 
 const (

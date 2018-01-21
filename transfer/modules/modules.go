@@ -15,8 +15,9 @@ func init() {
 	falcon.RegisterModule(&transfer.Transfer{}, "transfer",
 		falcon.GetType(config.Transfer{}))
 
+	transfer.RegisterModule(&transfer.SchedulerModule{})
+	transfer.RegisterModule(&transfer.ClientModule{})
 	transfer.RegisterModule(&transfer.ApiModule{})
 	transfer.RegisterModule(&transfer.ApiGwModule{})
-	transfer.RegisterModule(&transfer.ClientModule{})
 
 }

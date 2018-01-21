@@ -6,12 +6,11 @@
 package demo
 
 import (
-	"context"
 	"time"
 
 	"github.com/golang/glog"
 	"github.com/yubo/falcon/ctrl"
-	"github.com/yubo/falcon/ctrl/config"
+	"golang.org/x/net/context"
 )
 
 const (
@@ -27,13 +26,11 @@ type Demo struct {
 	cancel context.CancelFunc
 }
 
-func (p *Demo) PreStart(c *config.Ctrl) error {
-	glog.Info(MODULE_NAME + " prestart")
+func (p *Demo) PreStart(c *ctrl.Ctrl) error {
 	return nil
 }
 
-func (p *Demo) Start(c *config.Ctrl) error {
-	glog.Info(MODULE_NAME + " start")
+func (p *Demo) Start(c *ctrl.Ctrl) error {
 	p.ctx, p.cancel = context.WithCancel(context.Background())
 
 	ticker := time.NewTicker(time.Second * 60)
@@ -43,7 +40,7 @@ func (p *Demo) Start(c *config.Ctrl) error {
 			case <-p.ctx.Done():
 				return
 			case <-ticker.C:
-				glog.Info(MODULE_NAME + " .")
+				glog.V(5).Info(MODULE_NAME + " .")
 			}
 		}
 	}()
@@ -51,16 +48,11 @@ func (p *Demo) Start(c *config.Ctrl) error {
 
 }
 
-func (p *Demo) Stop(c *config.Ctrl) error {
-	glog.Info(MODULE_NAME + " stop")
+func (p *Demo) Stop(c *ctrl.Ctrl) error {
 	p.cancel()
 	return nil
 }
 
-func (p *Demo) Reload(old, c *config.Ctrl) error {
-	glog.Info(MODULE_NAME + " reload")
-	p.Stop(c)
-	time.Sleep(time.Second)
-	p.PreStart(c)
-	return p.Start(c)
+func (p *Demo) Reload(c *ctrl.Ctrl) error {
+	return nil
 }

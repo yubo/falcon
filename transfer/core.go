@@ -10,9 +10,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/yubo/falcon"
-	fconfig "github.com/yubo/falcon/config"
 	"github.com/yubo/falcon/transfer/config"
-	"github.com/yubo/falcon/transfer/parse"
 )
 
 const (
@@ -46,9 +44,10 @@ func RegisterModule(m module) {
 }
 
 type reqPayload struct {
-	action int
-	data   interface{}
-	done   chan interface{}
+	action  int
+	shardId int
+	data    interface{}
+	done    chan interface{}
 }
 
 type Transfer struct {
@@ -57,13 +56,12 @@ type Transfer struct {
 	// runtime
 	status uint32
 	//appPutChan chan *service.Item // upstreams
-	reqChan chan *reqPayload
+	shardmap []chan *reqPayload
 }
 
 func (p *Transfer) New(conf interface{}) falcon.Module {
 	return &Transfer{
-		Conf:    conf.(*config.Transfer),
-		reqChan: make(chan *reqPayload, 1024),
+		Conf: conf.(*config.Transfer),
 	}
 }
 
@@ -71,9 +69,9 @@ func (p *Transfer) Name() string {
 	return p.Conf.Name
 }
 
-func (p *Transfer) Parse(text []byte, filename string, lino int) fconfig.ModuleConf {
-	p.Conf = parse.Parse(text, filename, lino).(*config.Transfer)
-	p.Conf.Configer.Set(fconfig.APP_CONF_DEFAULT, ConfDefault)
+func (p *Transfer) Parse(text []byte, filename string, lino int) falcon.ModuleConf {
+	p.Conf = config.Parse(text, filename, lino).(*config.Transfer)
+	p.Conf.Configer.Set(falcon.APP_CONF_DEFAULT, ConfDefault)
 	return p.Conf
 }
 
@@ -84,6 +82,7 @@ func (p *Transfer) String() string {
 func (p *Transfer) Prestart() (err error) {
 	glog.V(3).Infof("%s Prestart()", MODULE_NAME)
 	p.status = falcon.APP_STATUS_INIT
+	p.shardmap = make([]chan *reqPayload, falcon.SHARD_NUM)
 
 	for i := 0; i < len(modules); i++ {
 		glog.V(4).Infof("%s %s.prestart()", MODULE_NAME, falcon.GetType(modules[i]))
@@ -147,3 +146,10 @@ func (p *Transfer) Signal(sig os.Signal) (err error) {
 	glog.Infof("%s recv signal %#v", MODULE_NAME, sig)
 	return err
 }
+
+type BaseModule struct{}
+
+func (p *BaseModule) prestart(transfer *Transfer) error { return nil }
+func (p *BaseModule) start(transfer *Transfer) error    { return nil }
+func (p *BaseModule) stop(transfer *Transfer) error     { return nil }
+func (p *BaseModule) reload(transfer *Transfer) error   { return nil }

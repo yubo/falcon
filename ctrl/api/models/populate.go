@@ -79,7 +79,7 @@ func (op *Operator) populate() (interface{}, error) {
 	}
 	for _, item2 := range items2 {
 		glog.Infof("add host(%s, %s)\n", item2[1], item2[0])
-		if host_idx[item2[1]], err = op.CreateHost(&HostCreate{Name: item2[1]}); err != nil {
+		if host_idx[item2[1]], err = op.CreateHost(&HostApiAdd{Name: item2[1]}); err != nil {
 			glog.Error(err.Error())
 			return nil, err
 		}
@@ -271,7 +271,7 @@ func (op *Operator) populate() (interface{}, error) {
 	}
 	for _, item := range items {
 		glog.Infof("add role(%s)\n", item)
-		if role_idx[item], err = op.CreateRole(&RoleCreate{Name: item}); err != nil {
+		if role_idx[item], err = op.CreateRole(&RoleApiAdd{Name: item}); err != nil {
 			glog.Error(err.Error())
 			return nil, err
 		}

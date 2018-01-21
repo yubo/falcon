@@ -7,7 +7,6 @@ package transfer
 
 import (
 	"net"
-	"time"
 
 	"github.com/golang/glog"
 	"github.com/yubo/falcon"
@@ -23,65 +22,83 @@ type ApiModule struct {
 	cancel  context.CancelFunc
 	address string
 	//putChan chan []*service.Item
-	reqChan chan *reqPayload
+	shardmap []chan *reqPayload
 }
 
 func (p *ApiModule) Get(ctx context.Context,
-	in *service.GetRequest) (res *service.GetResponse, err error) {
+	in *GetRequest) (res *GetResponse, err error) {
 
-	req := &reqPayload{
-		action: RPC_ACTION_GET,
-		data:   in,
-		done:   make(chan interface{}),
+	var rs []*service.GetResponse
+
+	reqs, err := in.Adjust()
+	if err != nil {
+		return nil, err
 	}
-	p.reqChan <- req
-	res = (<-req.done).(*service.GetResponse)
+
+	for shardId, req := range reqs {
+		req := &reqPayload{
+			action: RPC_ACTION_GET,
+			data:   req,
+			done:   make(chan interface{}),
+		}
+		p.shardmap[shardId] <- req
+		rs = append(rs, (<-req.done).(*service.GetResponse))
+	}
+
+	res = &GetResponse{}
+	for _, r := range rs {
+		for _, v := range r.Data {
+			res.Data = append(res.Data, &DataPoints{
+				Key:    v.Key.Key,
+				Values: v.Values,
+			})
+		}
+	}
 
 	// directly forward
 	statsInc(ST_RX_GET_ITERS, 1)
-	statsInc(ST_RX_GET_ITEMS, len(res.Dps))
+	statsInc(ST_RX_GET_ITEMS, len(res.Data))
 	return
 }
 
 func (p *ApiModule) Put(ctx context.Context,
-	in *service.PutRequest) (res *service.PutResponse, err error) {
+	in *PutRequest) (res *PutResponse, err error) {
 
-	glog.V(5).Infof("%s rx put %v", MODULE_NAME, len(in.Items))
+	glog.V(5).Infof("%s rx put %v", MODULE_NAME, len(in.Data))
 
-	res = &service.PutResponse{}
+	res = &PutResponse{}
 
-	for _, item := range in.Items {
-		if err = item.Adjust(); err != nil {
-			return
+	for _, dp := range in.Data {
+		tdp, err := dp.Adjust()
+		if err != nil {
+			return nil, err
 		}
 
-		p.reqChan <- &reqPayload{
+		req := &reqPayload{
 			action: RPC_ACTION_PUT,
-			data:   item,
+			data:   tdp,
 		}
+		p.shardmap[tdp.Key.ShardId] <- req
 		res.N++
 	}
 
 	statsInc(ST_RX_PUT_ITERS, 1)
 	statsInc(ST_RX_PUT_ITEMS, int(res.N))
-	statsInc(ST_RX_PUT_ERR_ITEMS, len(in.Items)-int(res.N))
+	statsInc(ST_RX_PUT_ERR_ITEMS, len(in.Data)-int(res.N))
 
 	return
 }
 
-func (p *ApiModule) GetStats(ctx context.Context, in *service.Empty) (*service.Stats, error) {
-	return &service.Stats{Counter: statsGets()}, nil
+func (p *ApiModule) GetStats(ctx context.Context, in *Empty) (*Stats, error) {
+	return &Stats{Counter: statsGets()}, nil
 }
 
-func (p *ApiModule) GetStatsName(ctx context.Context, in *service.Empty) (*service.StatsName, error) {
-	return &service.StatsName{CounterName: statsCounterName}, nil
+func (p *ApiModule) GetStatsName(ctx context.Context, in *Empty) (*StatsName, error) {
+	return &StatsName{CounterName: statsCounterName}, nil
 }
 
 func (p *ApiModule) prestart(transfer *Transfer) error {
-	p.address = transfer.Conf.Configer.Str(C_API_ADDR)
-	p.disable = falcon.AddrIsDisable(p.address)
-	p.reqChan = transfer.reqChan
-
+	p.shardmap = transfer.shardmap
 	return nil
 }
 
@@ -92,6 +109,8 @@ func (p *ApiModule) start(transfer *Transfer) (err error) {
 		return nil
 	}
 
+	p.address = transfer.Conf.Configer.Str(C_API_ADDR)
+	p.disable = falcon.AddrIsDisable(p.address)
 	p.ctx, p.cancel = context.WithCancel(context.Background())
 
 	ln, err := net.Listen(falcon.ParseAddr(p.address))
@@ -100,7 +119,7 @@ func (p *ApiModule) start(transfer *Transfer) (err error) {
 	}
 
 	server := grpc.NewServer()
-	service.RegisterServiceServer(server, p)
+	RegisterTransferServer(server, p)
 
 	// Register reflection service on gRPC server.
 	reflection.Register(server)
@@ -128,11 +147,4 @@ func (p *ApiModule) stop(transfer *Transfer) error {
 
 func (p *ApiModule) reload(transfer *Transfer) error {
 	return nil
-
-	if !p.disable {
-		p.stop(transfer)
-		time.Sleep(time.Second)
-	}
-	p.prestart(transfer)
-	return p.start(transfer)
 }

@@ -47,8 +47,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/astaxie/beego/orm"
 	"github.com/astaxie/beego/session"
+	"github.com/yubo/falcon/ctrl"
 	// import mysql driver
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -130,11 +130,7 @@ type Provider struct {
 
 // connect to mysql
 func (mp *Provider) connectInit() *sql.DB {
-	db, e := orm.GetDB()
-	if e != nil {
-		return nil
-	}
-	return db
+	return ctrl.Orm.CtrlDb
 }
 
 // SessionInit init mysql session.

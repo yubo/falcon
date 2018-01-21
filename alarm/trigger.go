@@ -14,8 +14,13 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/golang/glog"
 	"github.com/yubo/falcon"
-	"github.com/yubo/falcon/ctrl/api/models"
 	"golang.org/x/net/context"
+)
+
+const (
+	TPL_REL_T_ACL_USER = iota
+	TPL_REL_T_ACL_TOKEN
+	TPL_REL_T_RULE_TRIGGER
 )
 
 type Action struct {
@@ -138,7 +143,7 @@ func (p *TriggerModule) start(a *Alarm) (err error) {
 	dbmaxidle, _ := a.Conf.Configer.Int(C_DB_MAX_IDLE)
 	dbmaxconn, _ := a.Conf.Configer.Int(C_DB_MAX_CONN)
 
-	p.db, err = falcon.NewOrm("alarm_sync",
+	p.db, _, err = falcon.NewOrm("alarm_sync",
 		a.Conf.Configer.Str(C_SYNC_DSN), dbmaxidle, dbmaxconn)
 	if err != nil {
 		return err
@@ -183,7 +188,7 @@ func setNodes(rows []*Node, trigger *Trigger) error {
 }
 
 func getUsers(db orm.Ormer) (rows []*User, err error) {
-	_, err = db.Raw("SELECT a.id, a.name, a.cname, a.email, a.phone FROM user a JOIN (SELECT distinct sub_id FROM tpl_rel WHERE type_id = ?) b ON a.id = b.sub_id", models.TPL_REL_T_ACL_TOKEN).QueryRows(&rows)
+	_, err = db.Raw("SELECT a.id, a.name, a.cname, a.email, a.phone FROM user a JOIN (SELECT distinct sub_id FROM tpl_rel WHERE type_id = ?) b ON a.id = b.sub_id", TPL_REL_T_ACL_TOKEN).QueryRows(&rows)
 	return
 }
 
@@ -198,7 +203,7 @@ func setUsers(rows []*User, trigger *Trigger) error {
 }
 
 func getTagRoleUser(db orm.Ormer) (rows []*TagRoleUser, err error) {
-	_, err = db.Raw("SELECT tag_id, tpl_id as role_id, sub_id as user_id FROM tpl_rel WHERE type_id = ?", models.TPL_REL_T_ACL_USER).QueryRows(&rows)
+	_, err = db.Raw("SELECT tag_id, tpl_id as role_id, sub_id as user_id FROM tpl_rel WHERE type_id = ?", TPL_REL_T_ACL_USER).QueryRows(&rows)
 	return
 }
 
@@ -236,7 +241,7 @@ func setTagRoleUser(rows []*TagRoleUser, trigger *Trigger) error {
 }
 
 func getTagRoleToken(db orm.Ormer) (rows []*TagRoleToken, err error) {
-	_, err = db.Raw("SELECT tag_id, tpl_id as role_id, sub_id as token_id FROM tpl_rel WHERE type_id = ?", models.TPL_REL_T_ACL_TOKEN).QueryRows(&rows)
+	_, err = db.Raw("SELECT tag_id, tpl_id as role_id, sub_id as token_id FROM tpl_rel WHERE type_id = ?", TPL_REL_T_ACL_TOKEN).QueryRows(&rows)
 	return
 }
 

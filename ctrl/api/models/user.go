@@ -52,7 +52,7 @@ type UserApiUpdate struct {
 	Disabled  int    `json:"disabled"`
 }
 
-type UserProfileUpdate struct {
+type UserProfileApiUpdate struct {
 	Cname string `json:"cname"`
 	Email string `json:"email"`
 	Phone string `json:"phone"`

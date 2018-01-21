@@ -17,7 +17,6 @@ import (
 	"github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/pkg/transport"
 	"github.com/golang/glog"
-	"github.com/yubo/falcon/config"
 	"golang.org/x/net/context"
 )
 
@@ -70,7 +69,7 @@ type EtcdCli struct {
 	cancel     context.CancelFunc
 }
 
-func etcdCliConfig(cli *EtcdCli, c config.Configer) {
+func etcdCliConfig(cli *EtcdCli, c *Configer) {
 	cli.endpoints = strings.Split(c.Str(C_ETCD_ENDPOINTS), ",")
 	cli.username = c.Str(C_ETCD_USERNAME)
 	cli.password = c.Str(C_ETCD_PASSWORD)
@@ -82,7 +81,7 @@ func etcdCliConfig(cli *EtcdCli, c config.Configer) {
 	cli.leasettl = c.DefaultInt64(C_LEASE_TTL, 30)
 }
 
-func NewEtcdCli(c config.Configer) *EtcdCli {
+func NewEtcdCli(c *Configer) *EtcdCli {
 	cli := &EtcdCli{}
 	etcdCliConfig(cli, c)
 	return cli
@@ -276,7 +275,7 @@ func (p *EtcdCli) Stop() {
 	p.client.Close()
 }
 
-func (p *EtcdCli) Reload(c config.Configer) {
+func (p *EtcdCli) Reload(c *Configer) {
 	p.Stop()
 	etcdCliConfig(p, c)
 	p.Prestart()

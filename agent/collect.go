@@ -6,16 +6,20 @@
 package agent
 
 import (
+	"sort"
 	"strings"
 	"time"
 
 	"github.com/golang/glog"
 	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/service"
+	"github.com/yubo/falcon/transfer"
 	"golang.org/x/net/context"
 )
 
 var (
 	collectorGroups map[string]map[string]Collector
+	hostName        string
 )
 
 type Collector interface {
@@ -23,7 +27,7 @@ type Collector interface {
 	Name() string
 	Start(context.Context, *Agent) error
 	Reset()
-	Collect() ([]*Item, error)
+	Collect() ([]*transfer.DataPoint, error)
 }
 
 func init() {
@@ -50,6 +54,7 @@ func (p *CollectModule) start(agent *Agent) error {
 	interval, _ := agent.Conf.Configer.Int(C_INTERVAL)
 	collectors := getCollectors(strings.Split(agent.Conf.Configer.Str(C_PLUGINS), ","))
 	putChan := agent.putChan
+	hostName = agent.Conf.Host
 
 	p.ctx, p.cancel = context.WithCancel(context.Background())
 
@@ -85,8 +90,8 @@ func (p *CollectModule) collectWorker(putChan chan *putContext, collectors []Col
 			return
 		case <-ticker:
 			for _, c := range collectors {
-				if items, err := c.Collect(); err == nil {
-					putChan <- &putContext{items: items}
+				if dps, err := c.Collect(); err == nil {
+					putChan <- &putContext{dps: dps}
 				}
 			}
 		}
@@ -115,4 +120,30 @@ func getCollectors(plugins []string) []Collector {
 		}
 	}
 	return collectors
+}
+
+func NewMetricValue(metric string,
+	val float64, typ string, tags ...string) *transfer.DataPoint {
+	var tags_ string
+
+	if len(tags) > 0 {
+		sort.Strings(tags)
+		tags_ = strings.Join(tags, ",")
+	}
+
+	return &transfer.DataPoint{
+		Key: falcon.AttrKey(hostName, metric, tags_, typ),
+		Value: &service.TimeValuePair{
+			Timestamp: time.Now().Unix(),
+			Value:     val,
+		},
+	}
+}
+
+func GaugeValue(metric string, val float64, tags ...string) *transfer.DataPoint {
+	return NewMetricValue(metric, val, "GAUGE", tags...)
+}
+
+func CounterValue(metric string, val float64, tags ...string) *transfer.DataPoint {
+	return NewMetricValue(metric, val, "COUNTER", tags...)
 }

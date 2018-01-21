@@ -349,7 +349,8 @@ func (op *Operator) resetDb(file string) (interface{}, error) {
 
 func (op *Operator) ResetDb(populate bool) (interface{}, error) {
 
-	file := ctrl.Configure.Ctrl.Str(ctrl.C_DB_SCHEMA)
+	conf := &ctrl.Configure.Ctrl
+	file := conf.Str(ctrl.C_DB_SCHEMA)
 	if file == "" {
 		return "", fmt.Errorf("please config ctrl:dbSchema  file path")
 	}
@@ -360,7 +361,7 @@ func (op *Operator) ResetDb(populate bool) (interface{}, error) {
 
 	// reset cache
 	// ugly hack
-	initCache(ctrl.Configure)
+	initCache(conf)
 
 	if populate {
 		return op.populate()

@@ -74,22 +74,20 @@ func (c *GraphController) GetEndpointCounter() {
 
 // @Title Get Counters Data for draw lines
 // @Description get tmp graph
-// @Param	body	body 	models.APIQueryGraphDrawData	true	"api query graph draw data"
-// @Success 200 {object} []models.GraphQueryResponse "graph query response"
+// @Param	body	body 	models.DataPointApiGet	true	"api query graph draw data"
+// @Success 200 {object} service.GetResponse "graph query response"
 // @Failure 400 string error
-// @router /counter_data [post]
+// @router /datapoint [post]
 func (c *GraphController) GetCounterData() {
-	var inputs models.APIQueryGraphDrawData
+	var inputs models.DataPointApiGet
 
 	//op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	json.Unmarshal(c.Ctx.Input.RequestBody, &inputs)
-	/*
-		obj, err := models.GetCounterData(&inputs)
-		if err != nil {
-			c.SendMsg(400, err.Error())
-		} else {
-			c.SendMsg(200, obj)
-		}
-	*/
+	obj, err := models.GetDataPoints(&inputs)
+	if err != nil {
+		c.SendMsg(400, err.Error())
+	} else {
+		c.SendMsg(200, obj)
+	}
 	c.SendMsg(200, "")
 }

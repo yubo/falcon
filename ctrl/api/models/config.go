@@ -9,20 +9,12 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/astaxie/beego/orm"
 	"github.com/golang/glog"
 	"github.com/yubo/falcon"
-	fconfig "github.com/yubo/falcon/config"
 	"github.com/yubo/falcon/ctrl"
 	//"github.com/yubo/falcon/graph"
 	//"github.com/yubo/falcon/transfer"
 )
-
-type Kv struct {
-	Key     string
-	Section string
-	Value   string
-}
 
 var (
 	// for Description
@@ -187,47 +179,6 @@ var (
 	}
 )
 
-func prepareEtcdConfig() error {
-	put := make(map[string]string)
-	for module, kv := range EtcdMap {
-		ks := make(map[string]bool)
-		for _, k := range kv {
-			ks[k] = false
-		}
-
-		prefix := fmt.Sprintf("/open-falcon/%s/config/", module)
-		resp, err := ctrl.EtcdGetPrefix(prefix)
-		if err != nil {
-			return err
-		}
-		for _, v := range resp.Kvs {
-			if _, ok := ks[string(v.Key)]; ok {
-				ks[string(v.Key)] = true
-			}
-		}
-		for k, exist := range ks {
-			if !exist {
-				put[k] = ""
-			}
-		}
-	}
-	return ctrl.EtcdPuts(put)
-}
-
-func GetDbConfig(o orm.Ormer, module string) (ret map[string]string, err error) {
-	var row Kv
-	ret = make(map[string]string)
-
-	err = o.Raw("SELECT `section`, `key`, `value` FROM `kv` where "+
-		"`section` = ? and `key` = 'config'", module).QueryRow(&row)
-	if err != nil {
-		return
-	}
-
-	err = json.Unmarshal([]byte(row.Value), &ret)
-	return
-}
-
 func (op *Operator) SetEtcdConfig(module string, conf map[string]string) error {
 	ks, ok := EtcdMap[module]
 	if !ok {
@@ -245,7 +196,7 @@ func (op *Operator) SetEtcdConfig(module string, conf map[string]string) error {
 }
 
 func (op *Operator) SetDbConfig(module string, conf map[string]string) error {
-	kv, _ := GetDbConfig(op.O, module)
+	kv, _ := ctrl.GetDbConfig(op.O, module)
 	for k, v := range conf {
 		if v != "" {
 			kv[k] = v
@@ -263,8 +214,8 @@ func (op *Operator) SetDbConfig(module string, conf map[string]string) error {
 	return err
 }
 
-func (op *Operator) ConfigGet(module string) ([fconfig.APP_CONF_SIZE]map[string]string, error) {
-	var c *fconfig.Configer
+func (op *Operator) ConfigGet(module string) ([falcon.APP_CONF_SIZE]map[string]string, error) {
+	var c *falcon.Configer
 
 	switch module {
 	case "ctrl":
@@ -280,19 +231,19 @@ func (op *Operator) ConfigGet(module string) ([fconfig.APP_CONF_SIZE]map[string]
 	//case "transfer": // for falcon-plus
 	//	c = &ctrl.Configure.Transfer
 	default:
-		return [fconfig.APP_CONF_SIZE]map[string]string{}, falcon.ErrNoModule
+		return [falcon.APP_CONF_SIZE]map[string]string{}, falcon.ErrNoModule
 	}
 
-	conf, err := GetDbConfig(op.O, module)
+	conf, err := ctrl.GetDbConfig(op.O, module)
 	if err == nil {
-		c.Set(fconfig.APP_CONF_DB, conf)
+		c.Set(falcon.APP_CONF_DB, conf)
 	}
 
 	return c.Get(), nil
 }
 
-func (op *Operator) ConfigerGet(module string) (*fconfig.Configer, error) {
-	var c *fconfig.Configer
+func (op *Operator) ConfigerGet(module string) (*falcon.Configer, error) {
+	var c *falcon.Configer
 
 	switch module {
 	case "ctrl":
@@ -311,9 +262,9 @@ func (op *Operator) ConfigerGet(module string) (*fconfig.Configer, error) {
 		return nil, falcon.ErrNoModule
 	}
 
-	conf, err := GetDbConfig(op.O, module)
+	conf, err := ctrl.GetDbConfig(op.O, module)
 	if err == nil {
-		c.Set(fconfig.APP_CONF_DB, conf)
+		c.Set(falcon.APP_CONF_DB, conf)
 	}
 
 	return c, nil
@@ -395,7 +346,7 @@ func (op *Operator) ExpansionBegin(module string, newEndpoint string) error {
 		}
 
 		// get
-		transfer, err := GetDbConfig(op.O, "transfer")
+		transfer, err := ctrl.GetDbConfig(op.O, "transfer")
 		if err != nil {
 			return err
 		}

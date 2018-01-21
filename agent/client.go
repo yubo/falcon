@@ -11,7 +11,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/yubo/falcon"
-	"github.com/yubo/falcon/service"
+	"github.com/yubo/falcon/transfer"
 	"golang.org/x/net/context"
 )
 
@@ -20,27 +20,26 @@ type ClientModule struct {
 	cancel context.CancelFunc
 }
 
-func clientPut(client service.ServiceClient, items []*service.Item, timeout int) {
+func clientPut(client transfer.TransferClient, dps []*transfer.DataPoint, timeout int) {
 
 	statsInc(ST_TX_PUT_ITERS, 1)
-	statsInc(ST_TX_PUT_ITEMS, len(items))
+	statsInc(ST_TX_PUT_ITEMS, len(dps))
 
-	glog.V(6).Infof("%s tx put %v", MODULE_NAME, items)
+	glog.V(6).Infof("%s tx put %v", MODULE_NAME, dps)
 
 	ctx, _ := context.WithTimeout(context.Background(),
 		time.Duration(timeout)*time.Millisecond)
-	resp, err := client.Put(ctx, &service.PutRequest{Items: items})
+	resp, err := client.Put(ctx, &transfer.PutRequest{Data: dps})
 	if err != nil {
 		statsInc(ST_TX_PUT_ERR_ITERS, 1)
 	} else {
-		statsInc(ST_TX_PUT_ERR_ITEMS, int(len(items)-int(resp.N)))
+		statsInc(ST_TX_PUT_ERR_ITEMS, int(len(dps)-int(resp.N)))
 	}
 }
 
-func (p *ClientModule) txWorker(ch chan *putContext, upstream, host_ string,
+func (p *ClientModule) txWorker(ch chan *putContext, upstream string,
 	callTimeout, burstSize int) error {
 
-	host := []byte(host_)
 	if upstream == "stdout" {
 		go func() {
 			for {
@@ -49,13 +48,13 @@ func (p *ClientModule) txWorker(ch chan *putContext, upstream, host_ string,
 					return
 				case put := <-ch:
 
-					for _, item := range put.items {
-						fmt.Printf("%s TX PUT %10.4f %s %s\n",
-							MODULE_NAME, item.Value,
-							item.Metric, item.Tags)
+					for _, dp := range put.dps {
+						fmt.Printf("%s TX PUT %10.4f %s\n",
+							MODULE_NAME, dp.Value.Value,
+							string(dp.Key))
 					}
 					if put.done != nil {
-						put.done <- &PutResponse{N: int32(len(put.items))}
+						put.done <- &transfer.PutResponse{N: int32(len(put.dps))}
 					}
 				}
 			}
@@ -69,9 +68,9 @@ func (p *ClientModule) txWorker(ch chan *putContext, upstream, host_ string,
 			return
 		}
 		defer conn.Close()
-		client := service.NewServiceClient(conn)
+		client := transfer.NewTransferClient(conn)
 
-		items := make([]*service.Item, burstSize)
+		dps := make([]*transfer.DataPoint, burstSize)
 		i := 0
 
 		for {
@@ -79,35 +78,30 @@ func (p *ClientModule) txWorker(ch chan *putContext, upstream, host_ string,
 			case <-p.ctx.Done():
 				return
 			case put := <-ch:
-				glog.V(5).Infof("%s tx put %d\n", MODULE_NAME, len(put.items))
+				glog.V(5).Infof("%s tx put %d\n", MODULE_NAME, len(put.dps))
 				n := 0
-				for _, item_ := range put.items {
+				for _, dp := range put.dps {
 
 					// TODO check
-					item, err := item_.toServiceItem(host)
-					if err != nil {
-						break
-					}
-
 					glog.V(6).Infof("%s TX PUT %d %10.4f %s\n",
-						MODULE_NAME, item.Timestamp,
-						item.Value, item.Key)
+						MODULE_NAME, dp.Value.Timestamp,
+						dp.Value.Value, dp.Key)
 
-					items[i] = item
+					dps[i] = dp
 					i++
 					n++
 
 					if i == burstSize {
-						clientPut(client, items[:i], callTimeout)
+						clientPut(client, dps[:i], callTimeout)
 						i = 0
 					}
 				}
 				if put.done != nil {
-					put.done <- &PutResponse{N: int32(n)}
+					put.done <- &transfer.PutResponse{N: int32(n)}
 				}
 			case <-time.After(time.Second):
 				if i > 0 {
-					clientPut(client, items[:i], callTimeout)
+					clientPut(client, dps[:i], callTimeout)
 					i = 0
 				}
 			}
@@ -122,13 +116,14 @@ func (p *ClientModule) prestart(agent *Agent) error {
 }
 
 func (p *ClientModule) start(agent *Agent) error {
+	conf := &agent.Conf.Configer
 
-	upstream := agent.Conf.Configer.Str(C_UPSTREAM)
-	callTimeout, _ := agent.Conf.Configer.Int(C_CALL_TIMEOUT)
-	burstSize, _ := agent.Conf.Configer.Int(C_BURST_SIZE)
+	upstream := conf.Str(C_UPSTREAM)
+	callTimeout, _ := conf.Int(C_CALL_TIMEOUT)
+	burstSize, _ := conf.Int(C_BURST_SIZE)
 	p.ctx, p.cancel = context.WithCancel(context.Background())
 
-	if err := p.txWorker(agent.putChan, upstream, agent.Conf.Host,
+	if err := p.txWorker(agent.putChan, upstream,
 		callTimeout, burstSize); err != nil {
 		return err
 	}

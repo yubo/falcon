@@ -22,27 +22,27 @@ type EventTrigger struct {
 	Expr     string
 	Msg      string
 	Child    []*EventTrigger
-	items    []*itemEntry
+	items    []*dpEntry
 	expr     *expr.Expr
 }
 
-func (p *EventTrigger) Dispatch(item *itemEntry) *alarm.Event {
-	glog.V(4).Infof("%s dispatch %s expr %s", MODULE_NAME, item.key, p.Expr)
+func (p *EventTrigger) Dispatch(e *dpEntry) *alarm.Event {
+	glog.V(4).Infof("%s dispatch %s expr %s", MODULE_NAME, e.key, p.Expr)
 
-	if !expr.Exec(item, p.expr) {
+	if !expr.Exec(e, p.expr) {
 		return nil
 	}
 
-	item.RLock()
-	defer item.RUnlock()
-	id := (item.dataId - 1) & CACHE_SIZE_MASK
+	e.RLock()
+	defer e.RUnlock()
+	v := e.values[(e.dataId-1)&CACHE_SIZE_MASK]
 	return &alarm.Event{
 		TagId:     p.TagId,
-		Key:       []byte(item.key),
+		Key:       e.key.Key,
 		Expr:      []byte(p.Expr),
 		Msg:       []byte(p.Msg),
-		Timestamp: item.timestamp[id],
-		Value:     item.value[id],
+		Timestamp: v.Timestamp,
+		Value:     v.Value,
 	}
 
 }

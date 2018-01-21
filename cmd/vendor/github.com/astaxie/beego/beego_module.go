@@ -31,11 +31,19 @@ import (
 )
 
 type BeegoModule struct {
-	ctx    context.Context
-	cancel context.CancelFunc
+	devmode bool
+	ctx     context.Context
+	cancel  context.CancelFunc
 }
 
-func (p *BeegoModule) PreStart() error {
+func (p *BeegoModule) Start(dev bool) error {
+
+	if p.devmode = dev; dev {
+		Run()
+		return nil
+	}
+
+	p.ctx, p.cancel = context.WithCancel(context.Background())
 	AddAPPStartHook(
 		registerMime,
 		registerDefaultErrorHandler,
@@ -47,20 +55,18 @@ func (p *BeegoModule) PreStart() error {
 
 	for _, hk := range hooks {
 		if err := hk(); err != nil {
-			panic(err)
+			return err
 		}
 	}
-	return nil
-}
 
-func (p *BeegoModule) Start() error {
-	p.ctx, p.cancel = context.WithCancel(context.Background())
 	BeeApp.ModuleRun(p)
 	return nil
 }
 
 func (p *BeegoModule) Stop() error {
-	p.cancel()
+	if !p.devmode {
+		p.cancel()
+	}
 	return nil
 }
 

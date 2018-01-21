@@ -27,7 +27,7 @@ type TokenController struct {
 // @Failure 400 string error
 // @router / [post]
 func (c *TokenController) CreateToken() {
-	var token models.TokenCreate
+	var token models.TokenApiCreate
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	json.Unmarshal(c.Ctx.Input.RequestBody, &token)
 
@@ -108,7 +108,7 @@ func (c *TokenController) GetToken() {
 // @Failure 400 string error
 // @router / [put]
 func (c *TokenController) UpdateToken() {
-	input := models.TokenUpdate{}
+	input := models.TokenApiUpdate{}
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 	err := json.Unmarshal(c.Ctx.Input.RequestBody, &input)
 	if err != nil {

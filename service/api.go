@@ -30,19 +30,19 @@ func (p *ApiModule) Get(ctx context.Context,
 	res, err = p.service.tsdb.get(in)
 
 	statsInc(ST_RX_GET_ITERS, 1)
-	statsInc(ST_RX_GET_ITEMS, len(res.Dps))
+	statsInc(ST_RX_GET_ITEMS, len(res.Data))
 	return
 }
 
 func (p *ApiModule) Put(ctx context.Context,
 	in *PutRequest) (res *PutResponse, err error) {
 
-	glog.V(5).Infof("%s rx put %v", MODULE_NAME, len(in.Items))
+	glog.V(5).Infof("%s rx put %v", MODULE_NAME, len(in.Data))
 	res, err = p.service.tsdb.put(in)
 
 	statsInc(ST_RX_PUT_ITERS, 1)
 	statsInc(ST_RX_PUT_ITEMS, int(res.N))
-	statsInc(ST_RX_PUT_ERR_ITEMS, len(in.Items)-int(res.N))
+	statsInc(ST_RX_PUT_ERR_ITEMS, len(in.Data)-int(res.N))
 	return
 
 	/*

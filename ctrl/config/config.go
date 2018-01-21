@@ -8,20 +8,20 @@ package config
 import (
 	"fmt"
 
-	"github.com/yubo/falcon/config"
+	"github.com/yubo/falcon"
 )
 
 type Ctrl struct {
-	// only in config.conf
+	// only in falcon.conf
 	Debug    int
 	Disabled bool
 	Name     string
 	Host     string
 	Metrics  []string
-	Ctrl     config.Configer
-	Agent    config.Configer
-	Transfer config.Configer
-	Backend  config.Configer
+	Ctrl     falcon.Configer
+	Agent    falcon.Configer
+	Transfer falcon.Configer
+	Backend  falcon.Configer
 	// 1: default, 2: db, 3: ConfCtrl.Container
 	// height will cover low
 }
@@ -51,10 +51,10 @@ func (c Ctrl) String() string {
 		"disabled", c.Disabled,
 		"Name", c.Name,
 		"Host", c.Host,
-		"Metrics", config.IndentLines(1, s),
-		"ctrl", config.IndentLines(1, c.Ctrl.String()),
-		"agent", config.IndentLines(1, c.Agent.String()),
-		"transfer", config.IndentLines(1, c.Transfer.String()),
-		"backend", config.IndentLines(1, c.Backend.String()),
+		"Metrics", falcon.IndentLines(1, s),
+		"ctrl", falcon.IndentLines(1, c.Ctrl.String()),
+		"agent", falcon.IndentLines(1, c.Agent.String()),
+		"transfer", falcon.IndentLines(1, c.Transfer.String()),
+		"backend", falcon.IndentLines(1, c.Backend.String()),
 	)
 }

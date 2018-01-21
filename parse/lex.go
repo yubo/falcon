@@ -14,7 +14,6 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/yubo/falcon"
-	"github.com/yubo/falcon/config"
 )
 
 const (
@@ -29,10 +28,10 @@ type yyModule struct {
 }
 
 var (
-	conf            *config.FalconConfig
+	conf            *falcon.FalconConfig
 	yy              *yyLex
 	yy_module       *yyModule
-	yy_module_parse func(text []byte, filename string, lino int) config.ModuleConf
+	yy_module_parse func(text []byte, filename string, lino int) falcon.ModuleConf
 	yy_ss           = make(map[string]string)
 	yy_ss2          = make(map[string]string)
 	yy_as           = make([]string, 0)
@@ -317,10 +316,10 @@ func (p *yyLex) Error(s string) {
 	os.Exit(1)
 }
 
-func Parse(filename string) *config.FalconConfig {
+func Parse(filename string) *falcon.FalconConfig {
 	var err error
 
-	conf = &config.FalconConfig{ConfigFile: filename}
+	conf = &falcon.FalconConfig{ConfigFile: filename}
 	yy = &yyLex{}
 	yy.ctx = &yy.ctxData[0]
 	yy.ctx.file = filename
@@ -336,8 +335,8 @@ func Parse(filename string) *config.FalconConfig {
 	return conf
 }
 
-func ParseText(text []byte, filename string, lino int) *config.FalconConfig {
-	conf = &config.FalconConfig{ConfigFile: filename}
+func ParseText(text []byte, filename string, lino int) *falcon.FalconConfig {
+	conf = &falcon.FalconConfig{ConfigFile: filename}
 	yy = &yyLex{}
 	yy.ctx = &yy.ctxData[0]
 	yy.ctx.file = filename

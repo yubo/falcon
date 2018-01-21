@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/yubo/falcon/config"
 )
 
 type Module interface {
@@ -28,13 +27,13 @@ type Module interface {
 	Signal(os.Signal) error
 	String() string
 	Name() string
-	Parse(text []byte, filename string, lino int) config.ModuleConf
+	Parse(text []byte, filename string, lino int) ModuleConf
 	Stats(config interface{}) string
 }
 
 // reload not support add/del/disable module
 type Process struct {
-	Config *config.FalconConfig
+	Config *FalconConfig
 	Pid    int
 	Status uint32
 	Module []Module
@@ -53,7 +52,7 @@ func init() {
 	Modules = make(map[string]Module)
 }
 
-func NewProcess(c *config.FalconConfig) *Process {
+func NewProcess(c *FalconConfig) *Process {
 	p := &Process{
 		Config: c,
 		Pid:    os.Getpid(),
@@ -147,7 +146,7 @@ func RegisterModule(m Module, name, tpl string) error {
 	return nil
 }
 
-func SetGlog(c *config.FalconConfig) {
+func SetGlog(c *FalconConfig) {
 	glog.V(3).Infof("%s set glog %s, %d", MODULE_NAME, c.Log, c.Logv)
 	flag.Lookup("v").Value.Set(fmt.Sprintf("%d", c.Logv))
 

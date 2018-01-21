@@ -8,7 +8,7 @@ package config
 import (
 	"fmt"
 
-	"github.com/yubo/falcon/config"
+	"github.com/yubo/falcon"
 )
 
 type Migrate struct {
@@ -23,7 +23,7 @@ func (p Migrate) String() string {
 		s += fmt.Sprintf("%-17s %s\n", k, v)
 	}
 	if s != "" {
-		s = fmt.Sprintf("\n%s\n", config.IndentLines(1, s))
+		s = fmt.Sprintf("\n%s\n", falcon.IndentLines(1, s))
 	}
 
 	return fmt.Sprintf("%-17s %v\n"+
@@ -38,7 +38,7 @@ type Service struct {
 	Name     string
 	Host     string
 	Migrate  Migrate
-	Configer config.Configer
+	Configer falcon.Configer
 }
 
 func (c Service) GetName() string {
@@ -56,7 +56,7 @@ func (c Service) String() string {
 		"disabled", c.Disabled,
 		"Name", c.Name,
 		"Host", c.Host,
-		"migrate", config.IndentLines(1, c.Migrate.String()),
+		"migrate", falcon.IndentLines(1, c.Migrate.String()),
 		c.Configer.String(),
 	)
 }

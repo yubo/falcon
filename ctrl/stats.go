@@ -16,24 +16,20 @@ import (
 )
 
 const (
-	ST_UPSTREAM_RECONNECT = iota
-	ST_UPSTREAM_DIAL
-	ST_UPSTREAM_DIAL_ERR
-	ST_UPSTREAM_UPDATE
-	ST_UPSTREAM_UPDATE_ITEM
-	ST_UPSTREAM_UPDATE_ERR
+	ST_GET_ITERS = iota
+	ST_GET_ITERS_ERR
+	ST_GET_DPS
+	ST_GET_DPS_ERR
 	ST_ARRAY_SIZE
 )
 
 var (
 	statsCounter     [ST_ARRAY_SIZE]uint64
 	statsCounterName [ST_ARRAY_SIZE]string = [ST_ARRAY_SIZE]string{
-		"st_upstream_reconnect",
-		"st_upstream_dial",
-		"st_upstream_dial_err",
-		"st_upstream_update",
-		"st_upstream_update_item",
-		"st_upstream_update_err",
+		"st_get_iters",
+		"st_get_iters_err",
+		"st_get_dps",
+		"st_get_dps_err",
 	}
 )
 
@@ -41,15 +37,15 @@ func statsDec(idx, n int) {
 	atomic.AddUint64(&statsCounter[idx], ^uint64(n-1))
 }
 
-func statInc(idx, n int) {
+func statsInc(idx, n int) {
 	atomic.AddUint64(&statsCounter[idx], uint64(n))
 }
 
-func statSet(idx, n int) {
+func statsSet(idx, n int) {
 	atomic.StoreUint64(&statsCounter[idx], uint64(n))
 }
 
-func statGet(idx int) uint64 {
+func statsGet(idx int) uint64 {
 	return atomic.LoadUint64(&statsCounter[idx])
 }
 

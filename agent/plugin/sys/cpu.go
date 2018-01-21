@@ -18,6 +18,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/yubo/falcon/agent"
+	"github.com/yubo/falcon/transfer"
 	"golang.org/x/net/context"
 )
 
@@ -124,7 +125,7 @@ func (p *cpuCollector) Start(ctx context.Context, agent *agent.Agent) error {
 	return nil
 }
 
-func (p *cpuCollector) Collect() (ret []*agent.Item, err error) {
+func (p *cpuCollector) Collect() (ret []*transfer.DataPoint, err error) {
 	p.last = p.cur
 	p.cur, err = p.collect()
 	if err != nil {
@@ -156,7 +157,7 @@ func (p *cpuCollector) collect() (*cpuStatSample, error) {
 	return ps, nil
 }
 
-func (p *cpuCollector) stat() (ret []*agent.Item, err error) {
+func (p *cpuCollector) stat() (ret []*transfer.DataPoint, err error) {
 	var n float64
 	if p.last == nil {
 		return nil, errors.New("no data")

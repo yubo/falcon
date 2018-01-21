@@ -11,6 +11,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/transfer"
 	"golang.org/x/net/context"
 )
 
@@ -37,7 +38,7 @@ func (p *ApiGwModule) start(agent *Agent) error {
 
 	mux := http.NewServeMux()
 
-	err := falcon.Gateway(RegisterAgentHandlerFromEndpoint, p.ctx, mux, p.upstream)
+	err := falcon.Gateway(transfer.RegisterTransferHandlerFromEndpoint, p.ctx, mux, p.upstream)
 	if err != nil {
 		return nil
 	}

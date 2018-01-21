@@ -18,20 +18,20 @@ type Token struct {
 	Note  string `json:"note"`
 }
 
-type TokenCreate struct {
+type TokenApiCreate struct {
 	Name  string `json:"name"`
 	Cname string `json:"cname"`
 	Note  string `json:"note"`
 }
 
-type TokenUpdate struct {
+type TokenApiUpdate struct {
 	Id    int64  `json:"id"`
 	Name  string `json:"name"`
 	Cname string `json:"cname"`
 	Note  string `json:"note"`
 }
 
-func (op *Operator) CreateToken(o *TokenCreate) (id int64, err error) {
+func (op *Operator) CreateToken(o *TokenApiCreate) (id int64, err error) {
 	id, err = op.SqlInsert("insert token (name, cname, note) values (?, ?, ?)", o.Name, o.Cname, o.Note)
 	if err != nil {
 		return

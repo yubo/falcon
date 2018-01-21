@@ -8,13 +8,13 @@ package falcon
 const (
 	VERSION      = "0.0.3"
 	DEFAULT_STEP = 60 //s
-	IndentSize   = 4
+	SHARD_NUM    = 10
 	//MIN_STEP     = 30 //s
 	REPLICAS = 500
 	//GAUGE       = "GAUGE"
 	//DERIVE      = "DERIVE"
 	//COUNTER     = "COUNTER"
-	MODULE_NAME = "\x1B[30m[FALCON]\x1B[0m"
+	MODULE_NAME = "\x1B[37m[FALCON]\x1B[0m"
 
 	C_ETCD_ENDPOINTS = "etcdendpoints"
 	C_ETCD_USERNAME  = "etcdusername"

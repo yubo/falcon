@@ -6,13 +6,13 @@
 package ctrl
 
 import (
+	"encoding/json"
 	"os"
 
+	"github.com/astaxie/beego/orm"
 	"github.com/golang/glog"
 	"github.com/yubo/falcon"
-	fconfig "github.com/yubo/falcon/config"
 	"github.com/yubo/falcon/ctrl/config"
-	"github.com/yubo/falcon/ctrl/parse"
 )
 
 const (
@@ -39,29 +39,25 @@ const (
 	C_GOOGLE_CLIENT_ID        = "googleclientid"
 	C_GOOGLE_CLIENT_SECRET    = "googleclientsecret"
 	C_GOOGLE_REDIRECT_URL     = "googleredirecturl"
-	C_MI_NORNS_INTERVAL       = "minornsinterval"
 	C_HTTP_ADDR               = "httpaddr"
 	C_DB_SCHEMA               = "dbschema"
 	C_DB_MAX_CONN             = "dbmaxconn"
 	C_DB_MAX_IDLE             = "dbmaxidle"
-	C_MI_NORNS_URL            = "minornsurl"
-	C_RL_GC_INTERVAL          = "rlgcinterval"
-	C_RL_GC_TIMEOUT           = "rlgctimeout"
-	C_RL_LIMIT                = "rllimit"
-	C_RL_ACCURACY             = "rlaccuracy"
 	C_ADMIN                   = "admin"
 	C_DSN                     = "dsn"
 	C_IDX_DSN                 = "idxdsn"
 	C_ALARM_DSN               = "alarmdsn"
 	C_TAG_SCHEMA              = "tagschema"
-	C_TRANSFER_URL            = "transferurl"
 	C_WEIXIN_APP_ID           = "wxappid"
 	C_WEIXIN_APP_SECRET       = "wxappsecret"
+	C_TRANSFER_ADDR           = "transferaddr"
+	C_CALL_TIMEOUT            = "calltimeout"
 )
 
 var (
 	modules   []module
 	Configure *config.Ctrl
+	RunMode   uint32
 
 	ConfDefault = map[string]string{
 		C_MASTER_MODE:             "true",
@@ -73,8 +69,7 @@ var (
 		C_CACHE_MODULE:            "host,role,system,tag,user",
 		C_DB_MAX_CONN:             "30",
 		C_DB_MAX_IDLE:             "30",
-		C_MI_NORNS_URL:            "http://norns.dev/api/v1/tagstring/cop.xiaomi/hostinfos",
-		C_MI_NORNS_INTERVAL:       "5",
+		C_CALL_TIMEOUT:            "5000",
 	}
 
 	ConfDesc = map[string]string{
@@ -101,22 +96,30 @@ var (
 	}
 )
 
-// module {{{
+// ctl runmode name
+const (
+	CTL_RUNMODE_MASTER = 1 << iota
+	CTL_RUNMODE_DEV
+	CTL_RUNMODE_MI
+)
+
+type Kv struct {
+	Key     string
+	Section string
+	Value   string
+}
 
 type module interface {
-	PreStart(*config.Ctrl) error        // alloc public data
-	Start(*config.Ctrl) error           // alloc private data, run private goroutine
-	Stop(*config.Ctrl) error            // free private data, private goroutine exit
-	Reload(old, new *config.Ctrl) error // try to keep the data, refresh configure
+	PreStart(*Ctrl) error // alloc public data
+	Start(*Ctrl) error    // alloc private data, run private goroutine
+	Stop(*Ctrl) error     // free private data, private goroutine exit
+	Reload(*Ctrl) error   // try to keep the data, refresh configure
 }
 
 func RegisterModule(m module) {
 	modules = append(modules, m)
 }
 
-// }}}
-
-// Ctrl {{{
 type Ctrl struct {
 	Conf    *config.Ctrl
 	oldConf *config.Ctrl
@@ -137,10 +140,10 @@ func (p *Ctrl) Name() string {
 	return p.Conf.Name
 }
 
-func (p *Ctrl) Parse(text []byte, filename string, lino int) fconfig.ModuleConf {
-	p.Conf = parse.Parse(text, filename, lino).(*config.Ctrl)
+func (p *Ctrl) Parse(text []byte, filename string, lino int) falcon.ModuleConf {
+	p.Conf = config.Parse(text, filename, lino).(*config.Ctrl)
 	/* TODO: fill agent, transfer, backend, graph */
-	p.Conf.Ctrl.Set(fconfig.APP_CONF_DEFAULT, ConfDefault)
+	p.Conf.Ctrl.Set(falcon.APP_CONF_DEFAULT, ConfDefault)
 	return p.Conf
 }
 
@@ -157,7 +160,7 @@ func (p *Ctrl) Prestart() (err error) {
 
 	for i := 0; i < len(modules); i++ {
 		glog.V(4).Infof("%s %s.prestart()", MODULE_NAME, falcon.GetType(modules[i]))
-		if e := modules[i].PreStart(p.Conf); e != nil {
+		if e := modules[i].PreStart(p); e != nil {
 			err = e
 			glog.Error(err)
 		}
@@ -169,9 +172,25 @@ func (p *Ctrl) Start() (err error) {
 	glog.V(3).Infof("%s Start()", MODULE_NAME)
 	p.status = falcon.APP_STATUS_PENDING
 
+	conf := &p.Conf.Ctrl
+	// ctrl config
+	conf.Set(falcon.APP_CONF_DEFAULT, ConfDefault)
+
+	// connect db, can not register db twice  :(
+	// get ctrl config from db
+	if conf.DefaultBool(C_MASTER_MODE, false) {
+		RunMode |= CTL_RUNMODE_MASTER
+	}
+	if conf.DefaultBool(C_MI_MODE, false) {
+		RunMode |= CTL_RUNMODE_MI
+	}
+	if conf.DefaultBool(C_DEV_MODE, false) {
+		RunMode |= CTL_RUNMODE_DEV
+	}
+
 	for i := 0; i < len(modules); i++ {
 		glog.V(4).Infof("%s %s.start()", MODULE_NAME, falcon.GetType(modules[i]))
-		if e := modules[i].Start(p.Conf); e != nil {
+		if e := modules[i].Start(p); e != nil {
 			err = e
 			glog.Error(err)
 		}
@@ -187,7 +206,7 @@ func (p *Ctrl) Stop() (err error) {
 
 	for n, i := len(modules), 0; i < n; i++ {
 		glog.V(4).Infof("%s %s.stop()", MODULE_NAME, falcon.GetType(modules[n-i-1]))
-		if e := modules[n-i-1].Stop(p.Conf); e != nil {
+		if e := modules[n-i-1].Stop(p); e != nil {
 			err = e
 			glog.Error(err)
 		}
@@ -202,12 +221,11 @@ func (p *Ctrl) Reload(c interface{}) (err error) {
 	return nil
 
 	glog.V(3).Infof("%s Reload()", MODULE_NAME)
-	p.oldConf = p.Conf
 	p.Conf = c.(*config.Ctrl)
 
 	for i := 0; i < len(modules); i++ {
 		glog.V(4).Infof("%s %s.reload()", MODULE_NAME, falcon.GetType(modules[i]))
-		if e := modules[i].Reload(p.oldConf, p.Conf); e != nil {
+		if e := modules[i].Reload(p); e != nil {
 			err = e
 			glog.Error(err)
 		}
@@ -220,4 +238,16 @@ func (p *Ctrl) Signal(sig os.Signal) error {
 	return nil
 }
 
-// }}}
+func GetDbConfig(o orm.Ormer, module string) (ret map[string]string, err error) {
+	var row Kv
+	ret = make(map[string]string)
+
+	err = o.Raw("SELECT `section`, `key`, `value` FROM `kv` where "+
+		"`section` = ? and `key` = 'config'", module).QueryRow(&row)
+	if err != nil {
+		return
+	}
+
+	err = json.Unmarshal([]byte(row.Value), &ret)
+	return
+}

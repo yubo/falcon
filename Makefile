@@ -3,20 +3,21 @@
 all: dist/bin/falcon
 
 MODULES=falcon
-SUBMODULES=ctrl agent transfer service
+SUBMODULES=ctrl agent transfer service alarm
 PBFILES=$(shell find . -name "*.proto" -type f -not -path "./cmd*")
 DOCFILES=dist/etc/falcon.example.conf \
 	dist/etc/metric_names \
 	dist/html/ctrl.swagger.json \
+	dist/html/transfer.swagger.json \
 	dist/html/service.swagger.json \
 	dist/html/agent.swagger.json \
 	dist/html/alarm.swagger.json \
 	dist/html/api_reference.md
 GOFILES=$(shell find . -name "*.go" -type f -not -path "./cmd*") \
-	agent/agent.pb.go agent/agent.pb.gw.go \
+	transfer/transfer.pb.go transfer/transfer.pb.gw.go \
 	service/service.pb.go service/service.pb.gw.go \
 	alarm/alarm.pb.go alarm/alarm.pb.gw.go \
-	parse/parse.go $(SUBMODULES:%=%/parse/parse.go) \
+	parse/parse.go $(SUBMODULES:%=%/config/parse.go) \
 	gitlog.go
 DEPENDS=dist $(GOFILES) $(DOCFILES)
 TARGETS=dist dist/bin/falcon $(DOCFILES)
@@ -27,7 +28,7 @@ dist/bin/falcon: $(DEPENDS) cmd/falcon/*.go
 dist/html/ctrl.swagger.json: docs/ctrl.swagger.json
 	cp -f $< $@
 
-dist/html/transfer.swagger.json: service/service.swagger.json
+dist/html/transfer.swagger.json: transfer/transfer.swagger.json
 	cp -f $< $@
 
 dist/html/service.swagger.json: service/service.swagger.json

@@ -8,7 +8,7 @@ package config
 import (
 	"fmt"
 
-	"github.com/yubo/falcon/config"
+	"github.com/yubo/falcon"
 )
 
 type Agent struct {
@@ -16,7 +16,7 @@ type Agent struct {
 	Disabled bool
 	Name     string
 	Host     string
-	Configer config.Configer
+	Configer falcon.Configer
 }
 
 func (c Agent) GetName() string {

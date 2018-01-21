@@ -20,20 +20,20 @@ type Role struct {
 	Note  string `json:"note"`
 }
 
-type RoleCreate struct {
+type RoleApiAdd struct {
 	Name  string `json:"name"`
 	Cname string `json:"cname"`
 	Note  string `json:"note"`
 }
 
-type RoleUpdate struct {
+type RoleApiUpdate struct {
 	Id    int64  `json:"id"`
 	Name  string `json:"name"`
 	Cname string `json:"cname"`
 	Note  string `json:"note"`
 }
 
-func (op *Operator) CreateRole(r *RoleCreate) (id int64, err error) {
+func (op *Operator) CreateRole(r *RoleApiAdd) (id int64, err error) {
 	id, err = op.SqlInsert("insert role (name, cname, note) values (?, ?, ?)", r.Name, r.Cname, r.Note)
 	if err != nil {
 		return

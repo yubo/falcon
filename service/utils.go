@@ -71,14 +71,14 @@ func backtrace(i int) string {
 	return ""
 }
 
-func list_entry(l *list.ListHead) *itemEntry {
-	return (*itemEntry)(unsafe.Pointer((uintptr(unsafe.Pointer(l)) -
-		unsafe.Offsetof(((*itemEntry)(nil)).list))))
+func list_entry(l *list.ListHead) *dpEntry {
+	return (*dpEntry)(unsafe.Pointer((uintptr(unsafe.Pointer(l)) -
+		unsafe.Offsetof(((*dpEntry)(nil)).list))))
 }
 
-func list_p_entry(l *list.ListHead) *itemEntry {
-	return (*itemEntry)(unsafe.Pointer((uintptr(unsafe.Pointer(l)) -
-		unsafe.Offsetof(((*itemEntry)(nil)).list_p))))
+func list_p_entry(l *list.ListHead) *dpEntry {
+	return (*dpEntry)(unsafe.Pointer((uintptr(unsafe.Pointer(l)) -
+		unsafe.Offsetof(((*dpEntry)(nil)).list_p))))
 }
 
 // tags must sorted order by tag key

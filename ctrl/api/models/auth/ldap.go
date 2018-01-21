@@ -14,7 +14,6 @@ import (
 	"github.com/yubo/falcon/ctrl"
 	"github.com/yubo/falcon/ctrl/api/controllers"
 	"github.com/yubo/falcon/ctrl/api/models"
-	"github.com/yubo/falcon/ctrl/config"
 	"gopkg.in/ldap.v2"
 )
 
@@ -35,12 +34,12 @@ func init() {
 	models.RegisterAuth(LDAP_NAME, &ldapAuth{})
 }
 
-func (p *ldapAuth) Init(conf *config.Ctrl) error {
-	p.addr = conf.Ctrl.Str(ctrl.C_LDAP_ADDR)
-	p.baseDN = conf.Ctrl.Str(ctrl.C_LDAP_BASE_DN)
-	p.bindDN = conf.Ctrl.Str(ctrl.C_LDAP_BIND_DN)
-	p.bindPwd = conf.Ctrl.Str(ctrl.C_LDAP_BIND_PWD)
-	p.filter = conf.Ctrl.Str(ctrl.C_LDAP_FILTER)
+func (p *ldapAuth) Init(conf *falcon.Configer) error {
+	p.addr = conf.Str(ctrl.C_LDAP_ADDR)
+	p.baseDN = conf.Str(ctrl.C_LDAP_BASE_DN)
+	p.bindDN = conf.Str(ctrl.C_LDAP_BIND_DN)
+	p.bindPwd = conf.Str(ctrl.C_LDAP_BIND_PWD)
+	p.filter = conf.Str(ctrl.C_LDAP_FILTER)
 	return nil
 }
 

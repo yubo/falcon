@@ -13,32 +13,20 @@ import (
 	"github.com/yubo/falcon"
 )
 
-func (p *GetRequest) Csum() string {
-	return falcon.Md5sum(p.Key)
-}
-
-func (p *GetRequest) Sum64() uint64 {
+func (p *Key) Sum64() uint64 {
 	return falcon.Sum64(p.Key)
 }
 
-func (p *GetRequest) Sum32() uint32 {
+func (p *Key) Sum32() uint32 {
 	return falcon.Sum32(p.Key)
 }
 
-func (p *Item) Sum64() uint64 {
-	return falcon.Sum64(p.Key)
-}
-
-func (p *Item) Sum32() uint32 {
-	return falcon.Sum32(p.Key)
-}
-
-func (p *Item) Csum() string {
+func (p *Key) Csum() string {
 	return falcon.Md5sum(p.Key)
 }
 
 // call before use item.Key
-func (p *Item) Adjust() error {
+func (p *Key) Adjust() error {
 	endpoint, metric, tags, typ, err := p.Attr()
 	if err != nil {
 		return err
@@ -54,7 +42,7 @@ func (p *Item) Adjust() error {
 	return nil
 }
 
-func (p *Item) Attr() (string, string, string, string, error) {
+func (p *Key) Attr() (string, string, string, string, error) {
 	var err error
 	s := strings.Split(string(p.Key), "/")
 	if len(s) != 4 {

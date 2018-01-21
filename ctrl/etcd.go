@@ -8,7 +8,6 @@ package ctrl
 import (
 	"github.com/coreos/etcd/clientv3"
 	"github.com/yubo/falcon"
-	"github.com/yubo/falcon/ctrl/config"
 )
 
 var (
@@ -40,25 +39,26 @@ func EtcdGet(key string) (string, error) {
 	return etcdCli.cli.Get(key)
 }
 
-func (p *EtcdCliModule) PreStart(c *config.Ctrl) error {
-
-	p.cli = falcon.NewEtcdCli(c.Ctrl)
-	p.cli.Prestart()
+func (p *EtcdCliModule) PreStart(ctrl *Ctrl) error {
 	etcdCli = p
 	return nil
 }
 
-func (p *EtcdCliModule) Start(c *config.Ctrl) error {
+func (p *EtcdCliModule) Start(ctrl *Ctrl) error {
+	conf := &ctrl.Conf.Ctrl
+	p.cli = falcon.NewEtcdCli(conf)
+	p.cli.Prestart()
 	p.cli.Start()
 	return nil
 }
 
-func (p *EtcdCliModule) Stop(c *config.Ctrl) error {
+func (p *EtcdCliModule) Stop(ctrl *Ctrl) error {
 	p.cli.Stop()
 	return nil
 }
 
-func (p *EtcdCliModule) Reload(old, c *config.Ctrl) error {
-	p.cli.Reload(c.Ctrl)
-	return p.Start(c)
+func (p *EtcdCliModule) Reload(ctrl *Ctrl) error {
+	conf := &ctrl.Conf.Ctrl
+	p.cli.Reload(conf)
+	return p.Start(ctrl)
 }

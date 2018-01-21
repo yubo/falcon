@@ -32,7 +32,6 @@ const (
 )
 
 type ClientModule struct {
-	reqChan      chan *reqPayload
 	shardmap     []chan *reqPayload
 	serviceChans map[string]chan *reqPayload
 	clients      map[string]*rpcClient
@@ -43,15 +42,17 @@ type ClientModule struct {
 }
 
 func (p *ClientModule) prestart(transfer *Transfer) error {
+	p.shardmap = transfer.shardmap
+	return nil
+}
 
-	p.reqChan = transfer.reqChan
-	p.shardmap = make([]chan *reqPayload, len(transfer.Conf.Upstream))
+func (p *ClientModule) start(transfer *Transfer) (err error) {
 	p.serviceChans = make(map[string]chan *reqPayload)
 	p.clients = make(map[string]*rpcClient)
 	p.callTimeout, _ = transfer.Conf.Configer.Int(C_CALL_TIMEOUT)
 	p.burstSize, _ = transfer.Conf.Configer.Int(C_BURST_SIZE)
 
-	for shardId, addr := range transfer.Conf.Upstream {
+	for shardId, addr := range transfer.Conf.ShardMap {
 		ch := p.serviceChans[addr]
 		if ch == nil {
 			ch = make(chan *reqPayload, 144)
@@ -60,11 +61,6 @@ func (p *ClientModule) prestart(transfer *Transfer) error {
 		}
 		p.shardmap[shardId] = ch
 	}
-
-	return nil
-}
-
-func (p *ClientModule) start(transfer *Transfer) (err error) {
 
 	p.ctx, p.cancel = context.WithCancel(context.Background())
 
@@ -78,8 +74,6 @@ func (p *ClientModule) start(transfer *Transfer) (err error) {
 		}
 		c.cli = service.NewServiceClient(c.conn)
 	}
-
-	go putWorker(p.ctx, p.reqChan, p.shardmap)
 
 	for addr, ch := range p.serviceChans {
 		go clientWorker(p.ctx, ch, p.clients[addr],
@@ -101,42 +95,21 @@ func (p *ClientModule) reload(transfer *Transfer) error {
 	return p.start(transfer)
 }
 
-func putWorker(ctx context.Context, in chan *reqPayload, out []chan *reqPayload) {
-	n := uint64(len(out))
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case req := <-in:
-			switch req.action {
-			case RPC_ACTION_PUT:
-				item := req.data.(*service.Item)
-				item.ShardId = int32(item.Sum64() % n)
-				out[item.ShardId] <- req
-			case RPC_ACTION_GET:
-				r := req.data.(*service.GetRequest)
-				r.ShardId = int32(falcon.Sum64(r.Key) % n)
-				out[r.ShardId] <- req
-			}
-		}
-	}
-}
-
-func clientPut(client service.ServiceClient, items []*service.Item,
+func clientPut(client service.ServiceClient, dps []*service.DataPoint,
 	timeout int) *service.PutResponse {
 
 	statsInc(ST_TX_PUT_ITERS, 1)
-	statsInc(ST_TX_PUT_ITEMS, len(items))
+	statsInc(ST_TX_PUT_ITEMS, len(dps))
 
-	glog.V(5).Infof("%s tx put %v", MODULE_NAME, len(items))
+	glog.V(5).Infof("%s tx put %v", MODULE_NAME, len(dps))
 	ctx, _ := context.WithTimeout(context.Background(),
 		time.Duration(timeout)*time.Millisecond)
 	res, err := client.Put(ctx,
-		&service.PutRequest{Items: items})
+		&service.PutRequest{Data: dps})
 	if err != nil {
 		statsInc(ST_TX_PUT_ERR_ITERS, 1)
 	}
-	statsInc(ST_TX_PUT_ERR_ITEMS, int(len(items)-int(res.N)))
+	statsInc(ST_TX_PUT_ERR_ITEMS, int(len(dps)-int(res.N)))
 	return res
 }
 
@@ -152,7 +125,7 @@ func clientGet(client service.ServiceClient, req *service.GetRequest,
 	if err != nil {
 		statsInc(ST_TX_GET_ERR_ITERS, 1)
 	}
-	statsInc(ST_TX_GET_ITEMS, int(len(res.Dps)))
+	statsInc(ST_TX_GET_ITEMS, int(len(res.Data)))
 	return res
 }
 
@@ -161,7 +134,7 @@ func clientWorker(ctx context.Context,
 
 	var i int
 
-	items := make([]*service.Item, burstSize)
+	dps := make([]*service.DataPoint, burstSize)
 	for {
 		select {
 		case <-ctx.Done():
@@ -171,14 +144,16 @@ func clientWorker(ctx context.Context,
 			switch req.action {
 			case RPC_ACTION_PUT:
 				if req.done != nil {
-					req.done <- clientPut(c.cli, []*service.Item{
-						req.data.(*service.Item)}, timeout)
+					go func() {
+						req.done <- clientPut(c.cli, []*service.DataPoint{
+							req.data.(*service.DataPoint)}, timeout)
+					}()
 					continue
 				}
-				items[i] = req.data.(*service.Item)
+				dps[i] = req.data.(*service.DataPoint)
 				i++
 				if i == burstSize {
-					clientPut(c.cli, items[:i], timeout)
+					clientPut(c.cli, dps[:i], timeout)
 					i = 0
 				}
 			case RPC_ACTION_GET:
@@ -189,7 +164,7 @@ func clientWorker(ctx context.Context,
 			}
 		case <-time.After(time.Second):
 			if i > 0 {
-				clientPut(c.cli, items[:i], timeout)
+				clientPut(c.cli, dps[:i], timeout)
 				i = 0
 			}
 		}

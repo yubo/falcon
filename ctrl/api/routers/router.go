@@ -17,25 +17,12 @@ import (
 	"github.com/astaxie/beego/context"
 	"github.com/astaxie/beego/orm"
 	"github.com/golang/glog"
+	"github.com/yubo/falcon/ctrl"
 	"github.com/yubo/falcon/ctrl/api/controllers"
 	"github.com/yubo/falcon/ctrl/api/models"
 )
 
-const (
-	ACL = true
-)
-
-var (
-	initRouter bool
-)
-
-func PreStart() error {
-
-	if initRouter {
-		return nil
-	}
-
-	initRouter = true
+func init() {
 
 	beego.InsertFilter("/v1.0/*", beego.BeforeRouter, profileFilter)
 	beego.InsertFilter("/v1.0/*", beego.BeforeRouter, accessFilter)
@@ -60,17 +47,14 @@ func PreStart() error {
 	)
 	beego.AddNamespace(ns)
 
-	return nil
 }
 
 func accessFilter(ctx *context.Context) {
 
 	//time.Sleep(time.Millisecond * 100)
 
-	if models.ApiRl != nil {
-		ip := models.GetIPAdress(ctx.Request)
-		if !models.ApiRl.Update(ip) {
-			http.Error(ctx.ResponseWriter, "Too Many Requests", 429)
+	if ctrl.Hooks.RateLimitsAccess != nil {
+		if !ctrl.Hooks.RateLimitsAccess(ctx) {
 			return
 		}
 	}
@@ -108,7 +92,7 @@ func accessFilter(ctx *context.Context) {
 			beego.Debug("TOKEN ", op.Token)
 			http.Error(ctx.ResponseWriter, "permission denied, operate", 403)
 		}
-		if models.RunMode&models.CTL_RUNMODE_MI != 0 {
+		if ctrl.RunMode&ctrl.CTL_RUNMODE_MI != 0 {
 			if strings.HasPrefix(ctx.Request.RequestURI, "/v1.0/host") &&
 				ctx.Request.Method == "PUT" {
 				return

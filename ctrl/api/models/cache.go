@@ -8,11 +8,8 @@ package models
 import (
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/golang/glog"
-	"github.com/yubo/falcon/ctrl"
-	"github.com/yubo/falcon/ctrl/config"
 )
 
 var (
@@ -126,69 +123,4 @@ func (tree *cacheTreeT) _build() {
 		}
 	}
 
-}
-
-/* called by initModels() */
-func initCache(c *config.Ctrl) error {
-	for _, module := range strings.Split(
-		c.Ctrl.Str(ctrl.C_CACHE_MODULE), ",") {
-		for k, v := range ModuleName {
-			if v == module {
-				moduleCache[k] = cache{
-					enable: true,
-					id:     make(map[int64]interface{}),
-					key:    make(map[string]interface{}),
-				}
-				break
-			}
-		}
-	}
-
-	// build host cache
-	if moduleCache[CTL_M_HOST].enable {
-		var items []*Host
-		for i := 0; ; i++ {
-			n, err := Db.Ctrl.Raw("select id, uuid, name, type, status, loc, idc, pause, maintain_begin, maintain_end, create_time from host limit ? offset ?", 100, 100*i).QueryRows(&items)
-			if err != nil || n == 0 {
-				break
-			}
-
-			for _, h := range items {
-				moduleCache[CTL_M_HOST].set(h.Id, h, h.Name)
-			}
-		}
-	}
-	// build tag cache
-	if moduleCache[CTL_M_TAG].enable {
-		var items []*Tag
-		for i := 0; ; i++ {
-			n, err := Db.Ctrl.Raw("select id, name, type, create_time from tag LIMIT ? OFFSET ?", 100, 100*i).QueryRows(&items)
-			if err != nil || n == 0 {
-				break
-			}
-
-			for _, t := range items {
-				moduleCache[CTL_M_TAG].set(t.Id, t, t.Name)
-			}
-		}
-	}
-
-	go func() {
-		cacheTree = &cacheTreeT{
-			m: make(map[int64]*TreeNode),
-			c: make(chan struct{}, 1),
-		}
-		cacheTree._build()
-		ticker := time.NewTicker(time.Second * 60)
-		for {
-			select {
-			case <-ticker.C:
-				cacheTree._build()
-			case <-cacheTree.c:
-				cacheTree._build()
-			}
-		}
-	}()
-
-	return nil
 }

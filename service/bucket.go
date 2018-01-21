@@ -13,27 +13,27 @@ import (
 
 type bucketEntry struct { // bucket_t
 	sync.RWMutex
-	itemMap map[string]*itemEntry
+	dpEntryMap map[string]*dpEntry
 }
 
-func (p *bucketEntry) addItem(item *Item) (ie *itemEntry, err error) {
+func (p *bucketEntry) createDpEntry(dp *DataPoint) (ie *dpEntry, err error) {
 	p.Lock()
 	defer p.Unlock()
 
-	if ie, err = itemEntryNew(item); err != nil {
+	if ie, err = dpEntryNew(dp); err != nil {
 		return
 	}
 
-	p.itemMap[string(item.Key)] = ie
+	p.dpEntryMap[string(dp.Key.Key)] = ie
 
 	return ie, nil
 }
 
-func (p *bucketEntry) getItem(key string) (*itemEntry, error) {
+func (p *bucketEntry) getDpEntry(key string) (*dpEntry, error) {
 	p.RLock()
 	defer p.RUnlock()
 
-	if ie, ok := p.itemMap[key]; ok {
+	if ie, ok := p.dpEntryMap[key]; ok {
 		return ie, nil
 	}
 	return nil, falcon.ErrNoExits
@@ -43,18 +43,18 @@ func (p *bucketEntry) getItem(key string) (*itemEntry, error) {
  * not idxq.size --
  */
 
-func (p *bucketEntry) unlink(key string) *itemEntry {
+func (p *bucketEntry) unlink(key string) *dpEntry {
 	p.Lock()
 	defer p.Unlock()
 
-	ie, ok := p.itemMap[key]
+	ie, ok := p.dpEntryMap[key]
 	if !ok {
 		return nil
 	}
 	ie.Lock()
 	defer ie.Unlock()
 
-	delete(p.itemMap, key)
+	delete(p.dpEntryMap, key)
 	ie.list.Del()
 
 	return ie

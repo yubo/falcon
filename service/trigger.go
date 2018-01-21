@@ -62,7 +62,7 @@ func (p *TriggerModule) start(s *Service) (err error) {
 	eventChan := s.eventChan
 	p.trigger = &Trigger{}
 
-	db, err := falcon.NewOrm("service_sync",
+	db, _, err := falcon.NewOrm("service_sync",
 		s.Conf.Configer.Str(C_SYNC_DSN), dbmaxidle, dbmaxconn)
 	if err != nil {
 		return err
@@ -201,7 +201,7 @@ func setEventTriggers(rows []*EventTrigger, trigger *Trigger) (err error) {
 	return nil
 }
 
-func setServiceItems(items map[string]*itemEntry, trigger *Trigger) error {
+func setServiceItems(items map[string]*dpEntry, trigger *Trigger) error {
 	for _, item := range items {
 		// endpoint ?
 		nodes, ok := trigger.hostNodes[string(item.endpoint)]
@@ -243,9 +243,9 @@ func setServiceShards(shard *ShardModule, trigger *Trigger) error {
 
 	// process
 	for _, v := range bucketMap {
-		items := make(map[string]*itemEntry)
+		items := make(map[string]*dpEntry)
 		v.RLock()
-		for k1, v1 := range v.itemMap {
+		for k1, v1 := range v.dpEntryMap {
 			items[k1] = v1
 		}
 		v.RUnlock()

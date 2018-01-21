@@ -6,7 +6,6 @@
 package service
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"testing"
@@ -16,6 +15,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/alarm"
+	"golang.org/x/net/context"
 )
 
 var (
@@ -44,7 +44,7 @@ func init() {
 	netAddr := fmt.Sprintf("%s(%s)", prot, addr)
 	dsn := fmt.Sprintf("%s:%s@%s/%s?timeout=30s&strict=true", user, pass, netAddr, dbname)
 
-	test_db, err = falcon.NewOrm("test_service_sync", dsn, 10, 10)
+	test_db, _, err = falcon.NewOrm("test_service_sync", dsn, 10, 10)
 	if err != nil {
 		return
 	}
@@ -98,28 +98,22 @@ func testTirggerDb(t *testing.T) {
 	}
 }
 
-func testGenerateShard(items []*testItem) *ShardModule {
+func testGenerateShard() *ShardModule {
 
 	shard := &ShardModule{
 		bucketMap: make(map[int32]*bucketEntry),
 	}
 	shard.putQueue.init()
 	shard.idxQueue.init()
-	shard.bucketMap[0] = &bucketEntry{itemMap: make(map[string]*itemEntry)}
+	shard.bucketMap[0] = &bucketEntry{dpEntryMap: make(map[string]*dpEntry)}
 
 	return shard
 }
 
-func testFillDps(shard *ShardModule, items []*testItem, dps []*DataPoint, t *testing.T) {
-	for _, v := range items {
-		for _, dp := range dps {
-			item := &Item{
-				ShardId:   0,
-				Key:       []byte(v.key),
-				Value:     dp.Value,
-				Timestamp: dp.Timestamp,
-			}
-			if _, err := shard.put(item); err != nil {
+func testFillDps(shard *ShardModule, keys []*Key, vs []*TimeValuePair, t *testing.T) {
+	for _, key := range keys {
+		for _, v := range vs {
+			if _, err := shard.put(&DataPoint{Key: key, Value: v}); err != nil {
 				t.Error(err)
 			}
 		}
@@ -183,24 +177,23 @@ func testTrigger(t *testing.T) {
 		{5, 0, 6, 1, "cpu", "cpu.busy", "", "count(#3,99,>)=3", "cpu busy over 99%", nil, nil, nil},
 	}
 
-	testItems := []*testItem{
-		{"xiaomi.bj/cpu.busy//GAUGE"},
-		{"inf.xiaomi.bj/cpu.busy//GAUGE"},
-		{"miliao.xiaomi.bj/cpu.busy//GAUGE"},
-		{"op.miliao.xiaomi.bj/cpu.busy//GAUGE"},
-		{"micloud.miliao.xiaomi.bj/cpu.busy//GAUGE"},
-		{"op_micloud.miliao.xiaomi.bj/cpu.busy//GAUGE"},
+	testKeys := []*Key{
+		{[]byte("xiaomi.bj/cpu.busy//GAUGE"), 0},
+		{[]byte("inf.xiaomi.bj/cpu.busy//GAUGE"), 0},
+		{[]byte("miliao.xiaomi.bj/cpu.busy//GAUGE"), 0},
+		{[]byte("op.miliao.xiaomi.bj/cpu.busy//GAUGE"), 0},
+		{[]byte("micloud.miliao.xiaomi.bj/cpu.busy//GAUGE"), 0},
+		{[]byte("op_micloud.miliao.xiaomi.bj/cpu.busy//GAUGE"), 0},
 	}
 
-	testDps := []*DataPoint{
+	testVs := []*TimeValuePair{
 		{0, 0}, {1, 1}, {2, 2}, {3, 3}, {4, 4}, {5, 5}, {6, 6}, {7, 7}, {8, 8}, {9, 9},
 	}
 
 	trigger := &Trigger{}
+	shard := testGenerateShard()
 
-	shard := testGenerateShard(testItems)
-
-	testFillDps(shard, testItems, testDps, t)
+	testFillDps(shard, testKeys, testVs, t)
 
 	if err = setNodes(treeNodes, trigger); err != nil {
 		t.Error(err)

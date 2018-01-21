@@ -284,7 +284,7 @@
                         "description": "map[string]string",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.Obj"
+                            "$ref": "#/definitions/.Obj"
                         }
                     }
                 ],
@@ -3603,6 +3603,9 @@
         }
     },
     "definitions": {
+        ".Obj": {
+            "type": "object"
+        },
         ".Trigger": {
             "type": "object"
         },
@@ -4320,10 +4323,6 @@
                 }
             }
         },
-        "models.Obj": {
-            "title": "Obj",
-            "type": "object"
-        },
         "models.OperatorInfo": {
             "title": "OperatorInfo",
             "type": "object",
@@ -4660,7 +4659,7 @@
                 "role_token": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/36840.0xc4203a9770.false"
+                        "$ref": "#/definitions/37099.0xc42038eff0.false"
                     }
                 },
                 "tag_id": {
@@ -4700,7 +4699,7 @@
                 "role_user": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/114424.0xc4204d34d0.false"
+                        "$ref": "#/definitions/111863.0xc4204aa900.false"
                     }
                 },
                 "tag_id": {
