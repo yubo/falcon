@@ -7,7 +7,7 @@ package service
 
 import "testing"
 
-func TestTagsMatch(t *testing.T) {
+func testTagsMatch(t *testing.T) {
 	cases := []struct {
 		pattern string
 		tags    string

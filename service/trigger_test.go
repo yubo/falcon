@@ -51,7 +51,7 @@ func init() {
 	test_db_init = true
 }
 
-func TestTirggerDb(t *testing.T) {
+func testTirggerDb(t *testing.T) {
 	var (
 		err           error
 		shard         *ShardModule
@@ -157,7 +157,7 @@ func testTriggerExprProcess(trigger *Trigger) int {
 	return cnt
 }
 
-func TestTrigger(t *testing.T) {
+func testTrigger(t *testing.T) {
 	treeNodes := []*Node{
 		{2, "cop=xiaomi", 1, nil, nil, nil},
 		{3, "cop=xiaomi,owt=inf", 2, nil, nil, nil},

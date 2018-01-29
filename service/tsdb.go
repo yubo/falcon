@@ -7,12 +7,15 @@ package service
 
 import (
 	"fmt"
+	"log"
+	"math/rand"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
-	"github.com/golang/glog"
 	"github.com/huangaz/tsdb/lib/bucketLogWriter"
 	"github.com/huangaz/tsdb/lib/bucketMap"
 	"github.com/huangaz/tsdb/lib/dataTypes"
@@ -24,6 +27,22 @@ import (
 
 const (
 	dataDirectory = "/tmp/tsdb"
+	shardNum      = dataTypes.GORILLA_SHARDS
+)
+
+var (
+	// 13*2h
+	bucketNum uint8 = 13
+	// 2h
+	bucketSize         uint64 = 2 * 3600
+	keyWriterNum              = 2
+	keyWriterQueueSize uint32 = 100
+	logWiterNum               = 2
+	logWriterQueueSize uint32 = 100
+	// 15min
+	allowedTimestampBehind uint32 = 15 * 60
+	cleanInterval                 = time.Hour
+	finalizeInterval              = 10 * time.Minute
 )
 
 // shard -> bucket -> item
@@ -31,7 +50,6 @@ type TsdbModule struct {
 	sync.RWMutex
 	service *Service
 	buckets map[int]*bucketMap.BucketMap
-	ids     []int
 
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -59,90 +77,91 @@ func (g *GetResponse) PrintForDebug() string {
 
 func (t *TsdbModule) prestart(s *Service) error {
 	s.tsdb = t
+	t.service = s
 	return nil
 }
 
 func (t *TsdbModule) start(s *Service) (err error) {
 	t.ctx, t.cancel = context.WithCancel(context.Background())
-	ids_ := strings.Split(s.Conf.Configer.Str(C_SHARD_IDS), ",")
-	t.ids = make([]int, len(ids_))
-	for i := 0; i < len(t.ids); i++ {
-		t.ids[i], err = strconv.Atoi(ids_[i])
-		if err != nil {
-			return err
-		}
+
+	keyWriters := make([]*keyListWriter.KeyListWriter, keyWriterNum)
+	for i := 0; i < len(keyWriters); i++ {
+		keyWriters[i] = keyListWriter.NewKeyListWriter(dataDirectory, keyWriterQueueSize)
 	}
+
+	bucketLogWriters := make([]*bucketLogWriter.BucketLogWriter, logWiterNum)
+	for i := 0; i < len(bucketLogWriters); i++ {
+		bucketLogWriters[i] = bucketLogWriter.NewBucketLogWriter(bucketSize, dataDirectory,
+			logWriterQueueSize, allowedTimestampBehind)
+	}
+
 	t.buckets = make(map[int]*bucketMap.BucketMap)
-
-	k := keyListWriter.NewKeyListWriter(dataDirectory, 100)
-	b := bucketLogWriter.NewBucketLogWriter(4*3600, dataDirectory, 100, 0)
-
-	for _, shardId := range t.ids {
-		// todo
+	for shardId := 0; shardId < shardNum; shardId++ {
+		k := keyWriters[rand.Intn(len(keyWriters))]
+		b := bucketLogWriters[rand.Intn(len(bucketLogWriters))]
 		if err := createShardPath(shardId); err != nil {
 			return err
 		}
-		t.buckets[shardId] = bucketMap.NewBucketMap(6, 4*3600, int64(shardId), dataDirectory,
-			k, b, bucketMap.UNOWNED)
+		t.buckets[shardId] = bucketMap.NewBucketMap(bucketNum, bucketSize, int64(shardId),
+			dataDirectory, k, b, bucketMap.UNOWNED)
 	}
 
-	// check
-	go func() {
-		for _, m := range t.buckets {
-			if ok := m.SetState(bucketMap.PRE_OWNED); !ok {
-				glog.Fatal("set state failed")
-			}
-			if err := m.ReadKeyList(); err != nil {
-				glog.Fatal(err)
-			}
-			if err := m.ReadData(); err != nil {
-				glog.Fatal(err)
-			}
-		}
-		for _, m := range t.buckets {
-			more, err := m.ReadBlockFiles()
-			if err != nil {
-				glog.Fatal(err)
-			}
+	t.reload(t.service)
 
-			for more {
-				more, err = m.ReadBlockFiles()
-				if err != nil {
-					glog.Fatal(err)
-				}
-			}
-		}
-
-	}()
+	go t.cleanWorker()
+	go t.finalizeBucketWorker()
 
 	return nil
 }
 
 func (t *TsdbModule) stop(s *Service) error {
+	t.cancel()
 	return nil
 }
 
 func (t *TsdbModule) reload(s *Service) error {
-	// TODO
-	/*
-		ids_ := strings.Split(s.Conf.Configer.Str(C_SHARD_IDS), ",")
-		new_ids := make([]int, len(ids_))
-		for i := 0; i < len(ids); i++ {
-			ids[i], err = strconv.Atoi(ids_[i])
-			if err != nil {
-				return err
-			}
+	t.RLock()
+	defer t.RUnlock()
+
+	ids := strings.Split(s.Conf.Configer.Str(C_SHARD_IDS), ",")
+	newMap := make(map[int]bool, len(ids))
+	for i := 0; i < len(ids); i++ {
+		id, err := strconv.Atoi(ids[i])
+		if err != nil {
+			return err
 		}
+		newMap[id] = true
+	}
 
-		// diff new_ids t.ids
+	var shardToBeAdded []int
+	var shardToBeDropped []int
 
-	*/
+	for k, v := range t.buckets {
+		state := v.GetState()
+		if _, ok := newMap[k]; ok {
+			if state == bucketMap.UNOWNED {
+				shardToBeAdded = append(shardToBeAdded, k)
+			} else if state == bucketMap.PRE_UNOWNED {
+				v.CancelUnowning()
+			}
+		} else if state == bucketMap.OWNED {
+			shardToBeDropped = append(shardToBeDropped, k)
+		}
+	}
+
+	sort.Ints(shardToBeAdded)
+	sort.Ints(shardToBeDropped)
+
+	go t.addShard(shardToBeAdded)
+	go t.dropShard(shardToBeDropped)
 
 	return nil
 }
 
-// TODO
 func (t *TsdbModule) put(req *PutRequest) (*PutResponse, error) {
+	t.RLock()
+	defer t.RUnlock()
+
 	res := &PutResponse{}
 	for _, item := range req.Items {
 		m := t.buckets[int(item.ShardId)]
@@ -166,8 +185,10 @@ func (t *TsdbModule) put(req *PutRequest) (*PutResponse, error) {
 	return res, nil
 }
 
-// TODO
 func (t *TsdbModule) get(req *GetRequest) (*GetResponse, error) {
+	t.RLock()
+	defer t.RUnlock()
+
 	res := &GetResponse{
 		Key: make([]byte, len(req.Key)),
 	}
@@ -185,7 +206,9 @@ func (t *TsdbModule) get(req *GetRequest) (*GetResponse, error) {
 	switch state {
 	case bucketMap.UNOWNED:
 		return nil, fmt.Errorf("Don't own shard %d", req.ShardId)
-	case bucketMap.PRE_OWNED, bucketMap.READING_KEYS, bucketMap.READING_KEYS_DONE, bucketMap.READING_LOGS, bucketMap.PROCESSING_QUEUED_DATA_POINTS:
+
+	case bucketMap.PRE_OWNED, bucketMap.READING_KEYS, bucketMap.READING_KEYS_DONE,
+		bucketMap.READING_LOGS, bucketMap.PROCESSING_QUEUED_DATA_POINTS:
 		return nil, fmt.Errorf("Shard %d in progress", req.ShardId)
 	default:
 		datas, err := m.Get(string(req.Key), req.Start, req.End)
@@ -198,9 +221,11 @@ func (t *TsdbModule) get(req *GetRequest) (*GetResponse, error) {
 		}
 
 		if state == bucketMap.READING_BLOCK_DATA {
-			return res, fmt.Errorf("Shard %d in progress", req.ShardId)
-		} else if req.Start < m.GetReliableDataStartTime() {
-			return res, fmt.Errorf("missing too much data")
+			log.Printf("Shard %d in process", req.ShardId)
+		}
+
+		if req.Start < m.GetReliableDataStartTime() {
+			log.Printf("missing too much data")
 		}
 
 		return res, nil
@@ -210,4 +235,142 @@ func (t *TsdbModule) get(req *GetRequest) (*GetResponse, error) {
 
 func createShardPath(shardId int) error {
 	return os.MkdirAll(fmt.Sprintf("%s/%d", dataDirectory, shardId), 0755)
+}
+
+func (t *TsdbModule) cleanWorker() {
+	ticker := time.NewTicker(cleanInterval).C
+
+	for {
+		select {
+		case <-ticker:
+			t.RLock()
+			defer t.RUnlock()
+
+			for _, v := range t.buckets {
+				state := v.GetState()
+				if state == bucketMap.OWNED {
+					v.CompactKeyList()
+					err := v.DeleteOldBlockFiles()
+					if err != nil {
+						log.Println(err)
+						continue
+					}
+				} else if state == bucketMap.PRE_UNOWNED {
+					err := v.SetState(bucketMap.UNOWNED)
+					if err != nil {
+						log.Println(err)
+						continue
+					}
+				}
+			}
+		case <-t.ctx.Done():
+			return
+		}
+	}
+}
+
+func (t *TsdbModule) finalizeBucketWorker() {
+	ticker := time.NewTicker(finalizeInterval).C
+
+	for {
+		select {
+		case <-ticker:
+			finalizeTimeSeries()
+		case <-t.ctx.Done():
+			return
+		}
+	}
+}
+
+func (t *TsdbModule) addShard(shards []int) {
+	t.RLock()
+	t.RUnlock()
+
+	for _, shardId := range shards {
+		m := t.buckets[shardId]
+		if m == nil {
+			log.Printf("Invalid shardId :%d", shardId)
+			continue
+		}
+
+		if m.GetState() >= bucketMap.PRE_OWNED {
+			continue
+		}
+
+		if err := m.SetState(bucketMap.PRE_OWNED); err != nil {
+			log.Println(err)
+			continue
+		}
+
+		if err := m.ReadKeyList(); err != nil {
+			log.Println(err)
+			continue
+		}
+
+		if err := m.ReadData(); err != nil {
+			log.Println(err)
+			continue
+		}
+	}
+
+	go func() {
+		for _, shardId := range shards {
+			m := t.buckets[shardId]
+			if m == nil {
+				log.Printf("Invalid shardId :%d", shardId)
+				continue
+			}
+
+			if m.GetState() != bucketMap.READING_BLOCK_DATA {
+				continue
+			}
+
+			for more, _ := m.ReadBlockFiles(); more; more, _ = m.ReadBlockFiles() {
+			}
+
+			/*
+				more, err := m.ReadBlockFiles()
+				if err != nil {
+					log.Println(err)
+					continue
+				}
+
+				for more {
+					more, err = m.ReadBlockFiles()
+					if err != nil {
+						log.Println(err)
+						break
+					}
+				}
+			*/
+
+		}
+	}()
+}
+
+func (t *TsdbModule) dropShard(shards []int) error {
+	t.RLock()
+	defer t.RUnlock()
+
+	for _, shardId := range shards {
+		m := t.buckets[shardId]
+		if m == nil {
+			log.Printf("Invalid shardId :%d", shardId)
+			continue
+		}
+
+		if m.GetState() != bucketMap.OWNED {
+			continue
+		}
+
+		if err := m.SetState(bucketMap.PRE_UNOWNED); err != nil {
+			log.Println(err)
+			continue
+		}
+	}
+
+	return nil
+}
+
+func finalizeTimeSeries() {
 }
