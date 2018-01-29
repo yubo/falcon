@@ -26,6 +26,8 @@ type entry struct {
 }
 
 type RateLimits struct {
+	sync.RWMutex
+
 	members     map[string]*entry
 	hz          uint32 //  HZ
 	bits        uint32 //  slices per cycle
@@ -34,10 +36,10 @@ type RateLimits struct {
 	offset      time.Duration
 	dataTimeout time.Duration
 	gcInterval  time.Duration
-	ctx         context.Context
-	stop        context.CancelFunc
 	gcStart     bool
-	sync.RWMutex
+
+	ctx    context.Context
+	cancel context.CancelFunc
 }
 
 /* find first set bit */
@@ -73,7 +75,7 @@ func New(hz, accuracy uint32) (*RateLimits, error) {
 	rl.mask = rl.size - 1
 	rl.offset = time.Duration(rl.size) * time.Second / time.Duration(hz)
 
-	rl.ctx, rl.stop = context.WithCancel(context.Background())
+	rl.ctx, rl.cancel = context.WithCancel(context.Background())
 
 	return rl, nil
 }
@@ -129,13 +131,11 @@ func (rl *RateLimits) GcStart(dataTimeout, gcInterval time.Duration) error {
 }
 
 func (rl *RateLimits) GcStop() {
-	rl.stop()
+	rl.cancel()
 }
 
 func (rl *RateLimits) add(key string) (e *entry) {
-	var (
-		ok bool
-	)
+	var ok bool
 
 	rl.Lock()
 	defer rl.Unlock()

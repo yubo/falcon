@@ -58,9 +58,9 @@ type TsdbModule struct {
 func (p *PutRequest) PrintForDebug() string {
 	var res string
 	res += fmt.Sprintf("--PutRequest PrintForDebug--\n")
-	for _, item := range p.Items {
-		res += fmt.Sprintf("%4s%20s%10s%3d%8s%5d%8s%15f\n", "key:", string(item.Key),
-			"shardId:", item.ShardId, "time:", item.Timestamp, "value:", item.Value)
+	for _, dp := range p.Data {
+		res += fmt.Sprintf("%4s%20s%10s%3d%8s%5d%8s%15f\n", "key:", string(dp.Key.Key),
+			"shardId:", dp.Key.ShardId, "time:", dp.Value.Timestamp, "value:", dp.Value.Value)
 	}
 	return res
 }
@@ -68,9 +68,11 @@ func (p *PutRequest) PrintForDebug() string {
 func (g *GetResponse) PrintForDebug() string {
 	var res string
 	res += fmt.Sprintf("--GetResponse PrintForDebug--\n")
-	res += fmt.Sprintf("key: %s\n", string(g.Key))
-	for _, dp := range g.Dps {
-		res += fmt.Sprintf("%10s%5d%8s%10f\n", "timestamp:", dp.Timestamp, "value:", dp.Value)
+	for _, dp := range g.Data {
+		res += fmt.Sprintf("key: %s\n", string(dp.Key.Key))
+		for _, v := range dp.Values {
+			res += fmt.Sprintf("%10s%5d%8s%10f\n", "timestamp:", v.Timestamp, "value:", v.Value)
+		}
 	}
 	return res
 }
@@ -163,14 +165,14 @@ func (t *TsdbModule) put(req *PutRequest) (*PutResponse, error) {
 	defer t.RUnlock()
 
 	res := &PutResponse{}
-	for _, item := range req.Items {
-		m := t.buckets[int(item.ShardId)]
+	for _, dp := range req.Data {
+		m := t.buckets[int(dp.Key.ShardId)]
 		if m == nil {
 			return res, falcon.EEXIST
 		}
 
-		newRows, dataPoints, err := m.Put(string(item.Key), dataTypes.DataPoint{Value: item.Value,
-			Timestamp: item.Timestamp}, 0, false)
+		newRows, dataPoints, err := m.Put(string(dp.Key.Key), dataTypes.DataPoint{Value: dp.Value.Value,
+			Timestamp: dp.Value.Timestamp}, 0, false)
 		if err != nil {
 			return res, err
 		}
@@ -185,52 +187,55 @@ func (t *TsdbModule) put(req *PutRequest) (*PutResponse, error) {
 	return res, nil
 }
 
-func (t *TsdbModule) get(req *GetRequest) (*GetResponse, error) {
+func (t *TsdbModule) _get(key *Key, start, end int64) (res []*TimeValuePair, err error) {
 	t.RLock()
 	defer t.RUnlock()
 
-	res := &GetResponse{
-		Key: make([]byte, len(req.Key)),
-	}
-	if len(req.Key) == 0 {
-		return nil, fmt.Errorf("null key!")
-	}
-
-	m := t.buckets[int(req.ShardId)]
+	m := t.buckets[int(key.ShardId)]
 	if m == nil {
 		return nil, falcon.EEXIST
 	}
 
-	copy(res.Key, req.Key)
 	state := m.GetState()
 	switch state {
 	case bucketMap.UNOWNED:
-		return nil, fmt.Errorf("Don't own shard %d", req.ShardId)
+		return nil, fmt.Errorf("Don't own shard %d", key.ShardId)
 
 	case bucketMap.PRE_OWNED, bucketMap.READING_KEYS, bucketMap.READING_KEYS_DONE,
 		bucketMap.READING_LOGS, bucketMap.PROCESSING_QUEUED_DATA_POINTS:
-		return nil, fmt.Errorf("Shard %d in progress", req.ShardId)
+		return nil, fmt.Errorf("Shard %d in progress", key.ShardId)
 	default:
-		datas, err := m.Get(string(req.Key), req.Start, req.End)
+		datas, err := m.Get(string(key.Key), start, end)
 		if err != nil {
 			return res, err
 		}
 
 		for _, dp := range datas {
-			res.Dps = append(res.Dps, &DataPoint{Value: dp.Value, Timestamp: dp.Timestamp})
+			res = append(res, &TimeValuePair{Value: dp.Value, Timestamp: dp.Timestamp})
 		}
 
 		if state == bucketMap.READING_BLOCK_DATA {
-			log.Printf("Shard %d in process", req.ShardId)
+			log.Printf("Shard %d in process", key.ShardId)
 		}
 
-		if req.Start < m.GetReliableDataStartTime() {
+		if start < m.GetReliableDataStartTime() {
 			log.Printf("missing too much data")
 		}
 
 		return res, nil
 
 	}
+}
+
+func (t *TsdbModule) get(req *GetRequest) (res *GetResponse, err error) {
+
+	res = &GetResponse{Data: make([]*DataPoints, len(req.Keys))}
+	for i, key := range req.Keys {
+		if res.Data[i].Values, err = t._get(key, req.Start, req.End); err != nil {
+			return
+		}
+	}
+	return
 }
 
 func createShardPath(shardId int) error {

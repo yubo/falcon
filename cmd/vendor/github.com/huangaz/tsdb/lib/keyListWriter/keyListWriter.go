@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"sync"
-	"time"
 
 	"github.com/huangaz/tsdb/lib/persistentKeyList"
 )
@@ -133,10 +132,6 @@ func (k *KeyListWriter) startWriterThread() {
 			case <-k.stopThread_:
 				return
 			default:
-				if !k.threadIsRuning || len(k.keyInfoQueue_) == 0 {
-					time.Sleep(time.Second)
-					continue
-				}
 				k.writeOneKey()
 			}
 		}
@@ -153,36 +148,45 @@ func (k *KeyListWriter) stopWriterThread() {
 
 // Write a single entry from the queue.
 func (k *KeyListWriter) writeOneKey() {
+	var keys []KeyInfo
+	var info KeyInfo
+
+	if !k.threadIsRuning || len(k.keyInfoQueue_) == 0 {
+		return
+	}
+
 	// dequeue
-	for {
-		select {
-		case key := <-k.keyInfoQueue_:
-			switch key.keyType {
-			case START_SHARD:
-				k.enable(key.shardId)
-			case STOP_SHARD:
-				k.disable(key.shardId)
-			case WRITE_KEY:
-				writer := k.get(key.shardId)
-				if writer == nil {
-					log.Printf("Trying to write key to non-enabled shard %d", key.shardId)
-					continue
-				}
-				item := persistentKeyList.KeyItem{key.keyId, key.key, key.category}
-				if !writer.AppendKey(item) {
-					log.Printf("Failed to write key '%s' to log for shard %d", key.key,
-						key.shardId)
-
-					// Try to put it back in the queue for later.
-					k.keyInfoQueue_ <- key
-				}
-			default:
-				log.Printf("Invalid keyType: %d", key.keyType)
-			}
-
-		default:
+	for info = range k.keyInfoQueue_ {
+		keys = append(keys, info)
+		if len(k.keyInfoQueue_) == 0 {
 			break
 		}
 	}
+
+	for _, key := range keys {
+		switch key.keyType {
+		case START_SHARD:
+			k.enable(key.shardId)
+		case STOP_SHARD:
+			k.disable(key.shardId)
+		case WRITE_KEY:
+			writer := k.get(key.shardId)
+			if writer == nil {
+				log.Printf("Trying to write key to non-enabled shard %d", key.shardId)
+				continue
+			}
+			item := persistentKeyList.KeyItem{key.keyId, key.key, key.category}
+			if !writer.AppendKey(item) {
+				log.Printf("Failed to write key '%s' to log for shard %d", key.key,
+					key.shardId)
+
+				// Try to put it back in the queue for later.
+				k.keyInfoQueue_ <- key
+			}
+		default:
+			log.Printf("Invalid keyType: %d", key.keyType)
+		}
+	}
+
 	return
 }
