@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/huangaz/tsdb/lib/testUtil"
-	fconfig "github.com/yubo/falcon/config"
+	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/service/config"
 )
 
@@ -20,7 +20,7 @@ func test_init() *TsdbModule {
 			Name: "cacheApp",
 		},
 	}
-	s.Conf.Configer.Set(fconfig.APP_CONF_FILE, map[string]string{
+	s.Conf.Configer.Set(falcon.APP_CONF_FILE, map[string]string{
 		"shardIds": "1,2,3,4",
 	})
 
@@ -118,10 +118,14 @@ func TestPutAndRecover(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	getReq := &GetRequest{
-		Start:   0,
-		End:     time.Now().Unix(),
-		ShardId: 1,
-		Key:     putReq.Items[0].Key,
+		Start: 0,
+		End:   time.Now().Unix(),
+		Keys: []*Key{
+			&Key{
+				ShardId: 1,
+				Key:     putReq.Data[0].Key.Key,
+			},
+		},
 	}
 	getRes, err := t2.get(getReq)
 	if err != nil {
@@ -131,16 +135,17 @@ func TestPutAndRecover(t *testing.T) {
 	// fmt.Println(putReq.PrintForDebug())
 	// fmt.Println(getRes.PrintForDebug())
 
-	if string(getRes.Key) != string(putReq.Items[0].Key) {
+	if string(getRes.Data[0].Key.Key) != string(putReq.Data[0].Key.Key) {
 		t.Fatal("wrong result")
 	}
 
-	if len(putReq.Items) != len(getRes.Dps) {
-		t.Fatalf("Length of putReq(%d) and getRes(%d) not equal!", len(putReq.Items), len(getRes.Dps))
+	if len(putReq.Data) != len(getRes.Data) {
+		t.Fatalf("Length of putReq(%d) and getRes(%d) not equal!", len(putReq.Data), len(getRes.Data))
 	}
 
-	for i, item := range putReq.Items {
-		if item.Value != getRes.Dps[i].Value || item.Timestamp != getRes.Dps[i].Timestamp {
+	for i, dp := range putReq.Data {
+		if dp.Value.Value != getRes.Data[0].Values[i].Value ||
+			dp.Value.Timestamp != getRes.Data[0].Values[i].Timestamp {
 			t.Fatal("wrong result")
 		}
 	}
@@ -148,7 +153,7 @@ func TestPutAndRecover(t *testing.T) {
 
 func dataGenerator(begin int64, numOfKeys, num int) *PutRequest {
 	req := &PutRequest{}
-	req.Items = make([]*Item, num*numOfKeys)
+	req.Data = make([]*DataPoint, num*numOfKeys)
 	index := 0
 
 	for i := 0; i < numOfKeys; i++ {
@@ -156,13 +161,16 @@ func dataGenerator(begin int64, numOfKeys, num int) *PutRequest {
 		var testTime = begin
 
 		for j := 0; j < num; j++ {
-			newItem := &Item{
-				Key:       testKey,
-				ShardId:   int32(i + 1),
-				Timestamp: testTime,
-				Value:     float64(100 + rand.Intn(50)),
+			req.Data[index] = &DataPoint{
+				Key: &Key{
+					Key:     testKey,
+					ShardId: int32(i + 1),
+				},
+				Value: &TimeValuePair{
+					Timestamp: testTime,
+					Value:     float64(100 + rand.Intn(50)),
+				},
 			}
-			req.Items[index] = newItem
 			index++
 			testTime += int64(55 + rand.Intn(10))
 		}
@@ -176,7 +184,7 @@ func TestReload(t *testing.T) {
 	tsdb.start(s)
 	defer tsdb.stop(s)
 
-	s.Conf.Configer.Set(fconfig.APP_CONF_FILE, map[string]string{
+	s.Conf.Configer.Set(APP_CONF_FILE, map[string]string{
 		"shardIds": "1,3,5,7",
 	})
 	time.Sleep(100 * time.Millisecond)
