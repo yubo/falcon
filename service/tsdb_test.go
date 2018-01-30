@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/huangaz/tsdb/lib/testUtil"
 	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/lib/tsdb"
 	"github.com/yubo/falcon/service/config"
@@ -31,6 +30,7 @@ func test_init() *TsdbModule {
 	return tm
 }
 
+/*
 func TestPut(t *testing.T) {
 	tm := test_init()
 	tm.start(s)
@@ -66,14 +66,14 @@ func TestPut(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// fmt.Println(putReq.PrintForDebug())
-	// fmt.Println(getRes.PrintForDebug())
+	fmt.Println(putReq.PrintForDebug())
+	fmt.Println(getRes.PrintForDebug())
 
 	if string(getRes.Data[0].Key.Key) != string(putReq.Data[0].Key.Key) {
 		t.Fatal("wrong result")
 	}
 
-	if len(putReq.Data) != len(getRes.Data) {
+	if len(putReq.Data) != len(getRes.Data[0].Values) {
 		t.Fatalf("Length of putReq(%d) and getRes(%d) not equal!", len(putReq.Data), len(getRes.Data))
 	}
 
@@ -84,19 +84,18 @@ func TestPut(t *testing.T) {
 		}
 	}
 }
+*/
 
-/*
 func TestPutAndRecover(t *testing.T) {
-	tsdb := test_init()
-	tsdb.start(s)
-	defer tsdb.stop(s)
+	tm := test_init()
+	tm.start(s)
 
 	num := 1000
 	putReq := dataGenerator(time.Now().Unix()-int64(num*60), 1, num)
 
 	time.Sleep(100 * time.Millisecond)
 
-	putRes, err := tsdb.put(putReq)
+	putRes, err := tm.put(putReq)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -106,17 +105,17 @@ func TestPutAndRecover(t *testing.T) {
 
 	time.Sleep(1000 * time.Millisecond)
 
-	bucketToFinalize := tsdb.buckets[1].Bucket(putReq.Data[0].Value.Timestamp)
-	n, err := tsdb.buckets[1].FinalizeBuckets(bucketToFinalize)
+	bucketToFinalize := tm.buckets[1].Bucket(putReq.Data[0].Value.Timestamp)
+	n, err := tm.buckets[1].FinalizeBuckets(bucketToFinalize)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if n != 1 {
 		t.Fatal("finalize failed")
 	}
-	// log.Println("lastFinalizedBucket_: ", tsdb.buckets[1].GetLastFinalizedBucket())
+	// log.Println("lastFinalizedBucket_: ", tm.buckets[1].GetLastFinalizedBucket())
 
-	tsdb.stop(s)
+	tm.stop(s)
 
 	// recover data from disk
 	t2 := test_init()
@@ -126,8 +125,8 @@ func TestPutAndRecover(t *testing.T) {
 	getReq := &GetRequest{
 		Start: 0,
 		End:   time.Now().Unix(),
-		Keys: []*Key{
-			&Key{
+		Keys: []*tsdb.Key{
+			&tsdb.Key{
 				ShardId: 1,
 				Key:     putReq.Data[0].Key.Key,
 			},
@@ -145,7 +144,7 @@ func TestPutAndRecover(t *testing.T) {
 		t.Fatal("wrong result")
 	}
 
-	if len(putReq.Data) != len(getRes.Data) {
+	if len(putReq.Data) != len(getRes.Data[0].Values) {
 		t.Fatalf("Length of putReq(%d) and getRes(%d) not equal!", len(putReq.Data), len(getRes.Data))
 	}
 
@@ -156,7 +155,6 @@ func TestPutAndRecover(t *testing.T) {
 		}
 	}
 }
-*/
 
 func dataGenerator(begin int64, numOfKeys, num int) *PutRequest {
 	req := &PutRequest{}
@@ -164,7 +162,7 @@ func dataGenerator(begin int64, numOfKeys, num int) *PutRequest {
 	index := 0
 
 	for i := 0; i < numOfKeys; i++ {
-		testKey := []byte(testUtil.RandStr(10))
+		testKey := []byte(tsdb.RandStr(10))
 		var testTime = begin
 
 		for j := 0; j < num; j++ {
@@ -187,20 +185,20 @@ func dataGenerator(begin int64, numOfKeys, num int) *PutRequest {
 
 /*
 func TestReload(t *testing.T) {
-	test_init()
-	tsdb.start(s)
-	defer tsdb.stop(s)
+	tm := test_init()
+	tm.start(s)
+	defer tm.stop(s)
 
-	s.Conf.Configer.Set(APP_CONF_FILE, map[string]string{
+	s.Conf.Configer.Set(falcon.APP_CONF_FILE, map[string]string{
 		"shardIds": "1,3,5,7",
 	})
 	time.Sleep(100 * time.Millisecond)
-	tsdb.reload(s)
+	tm.reload(s)
 	time.Sleep(100 * time.Millisecond)
 
 	var newMap []int
-	for k, v := range tsdb.buckets {
-		if v.GetState() == bucketMap.OWNED {
+	for k, v := range tm.buckets {
+		if v.GetState() == tsdb.OWNED {
 			newMap = append(newMap, k)
 		}
 	}
