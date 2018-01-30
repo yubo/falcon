@@ -30,14 +30,13 @@ func test_init() *TsdbModule {
 	return tsdb
 }
 
-/*
 func TestPut(t *testing.T) {
-	test_init()
+	tsdb := test_init()
 	tsdb.start(s)
 	defer tsdb.stop(s)
 
-	num := 1000
-	putReq := dataGenerator(1, num)
+	num := 10
+	putReq := dataGenerator(0, 1, num)
 
 	time.Sleep(100 * time.Millisecond)
 
@@ -52,10 +51,14 @@ func TestPut(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	getReq := &GetRequest{
-		Start:   0,
-		End:     int64(60 * num),
-		ShardId: 1,
-		Key:     putReq.Items[0].Key,
+		Start: 0,
+		End:   int64(60 * num),
+		Keys: []*Key{
+			&Key{
+				ShardId: 1,
+				Key:     putReq.Data[0].Key.Key,
+			},
+		},
 	}
 	getRes, err := tsdb.get(getReq)
 	if err != nil {
@@ -65,25 +68,27 @@ func TestPut(t *testing.T) {
 	// fmt.Println(putReq.PrintForDebug())
 	// fmt.Println(getRes.PrintForDebug())
 
-	if string(getRes.Key) != string(putReq.Items[0].Key) {
+	if string(getRes.Data[0].Key.Key) != string(putReq.Data[0].Key.Key) {
 		t.Fatal("wrong result")
 	}
 
-	if len(putReq.Items) != len(getRes.Dps) {
-		t.Fatalf("Length of putReq(%d) and getRes(%d) not equal!", len(putReq.Items), len(getRes.Dps))
+	if len(putReq.Data) != len(getRes.Data) {
+		t.Fatalf("Length of putReq(%d) and getRes(%d) not equal!", len(putReq.Data), len(getRes.Data))
 	}
 
-	for i, item := range putReq.Items {
-		if item.Value != getRes.Dps[i].Value || item.Timestamp != getRes.Dps[i].Timestamp {
+	for i, dp := range putReq.Data {
+		if dp.Value.Value != getRes.Data[0].Values[i].Value ||
+			dp.Value.Timestamp != getRes.Data[0].Values[i].Timestamp {
 			t.Fatal("wrong result")
 		}
 	}
 }
-*/
 
+/*
 func TestPutAndRecover(t *testing.T) {
 	tsdb := test_init()
 	tsdb.start(s)
+	defer tsdb.stop(s)
 
 	num := 1000
 	putReq := dataGenerator(time.Now().Unix()-int64(num*60), 1, num)
@@ -100,8 +105,8 @@ func TestPutAndRecover(t *testing.T) {
 
 	time.Sleep(1000 * time.Millisecond)
 
-	// finalizedTimstamp := time.Now().Unix() - int64(allowedTimestampBehind+60) - int64(bucketUtils.Duration(1, bucketSize))
-	n, err := tsdb.buckets[1].FinalizeBuckets(0)
+	bucketToFinalize := tsdb.buckets[1].Bucket(putReq.Data[0].Value.Timestamp)
+	n, err := tsdb.buckets[1].FinalizeBuckets(bucketToFinalize)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -150,6 +155,7 @@ func TestPutAndRecover(t *testing.T) {
 		}
 	}
 }
+*/
 
 func dataGenerator(begin int64, numOfKeys, num int) *PutRequest {
 	req := &PutRequest{}

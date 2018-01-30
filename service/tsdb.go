@@ -18,6 +18,7 @@ import (
 
 	"github.com/huangaz/tsdb/lib/bucketLogWriter"
 	"github.com/huangaz/tsdb/lib/bucketMap"
+	"github.com/huangaz/tsdb/lib/bucketUtils"
 	"github.com/huangaz/tsdb/lib/dataTypes"
 	"github.com/huangaz/tsdb/lib/keyListWriter"
 	"github.com/yubo/falcon"
@@ -39,10 +40,20 @@ var (
 	keyWriterQueueSize uint32 = 100
 	logWiterNum               = 2
 	logWriterQueueSize uint32 = 100
+
 	// 15min
-	allowedTimestampBehind uint32 = 15 * 60
-	cleanInterval                 = time.Hour
-	finalizeInterval              = 10 * time.Minute
+	allowTimestampBehind uint32 = 15 * 60
+
+	// 1 min
+	allowTimestampAhead uint32 = 60
+
+	// 1 hour
+	cleanInterval = time.Hour
+
+	// 1o min
+	finalizeInterval = 10 * time.Minute
+
+	adjustTimestamp = false
 )
 
 // shard -> bucket -> item
@@ -94,7 +105,7 @@ func (t *TsdbModule) start(s *Service) (err error) {
 	bucketLogWriters := make([]*bucketLogWriter.BucketLogWriter, logWiterNum)
 	for i := 0; i < len(bucketLogWriters); i++ {
 		bucketLogWriters[i] = bucketLogWriter.NewBucketLogWriter(bucketSize, dataDirectory,
-			logWriterQueueSize, allowedTimestampBehind)
+			logWriterQueueSize, allowTimestampBehind)
 	}
 
 	t.buckets = make(map[int]*bucketMap.BucketMap)
@@ -171,7 +182,16 @@ func (t *TsdbModule) put(req *PutRequest) (*PutResponse, error) {
 			return res, falcon.EEXIST
 		}
 
-		newRows, dataPoints, err := m.Put(string(dp.Key.Key), dataTypes.DataPoint{Value: dp.Value.Value,
+		// Adjust 0, late, or early timestamps to now. Disable only for testing.
+		now := time.Now().Unix()
+		if adjustTimestamp {
+			if dp.Value.Timestamp == 0 || dp.Value.Timestamp < now-int64(allowTimestampBehind) ||
+				dp.Value.Timestamp > now+int64(allowTimestampAhead) {
+				dp.Value.Timestamp = now
+			}
+		}
+
+		newRows, dataPoints, err := m.Put(string(dp.Key.Key), dataTypes.TimeValuePair{Value: dp.Value.Value,
 			Timestamp: dp.Value.Timestamp}, 0, false)
 		if err != nil {
 			return res, err
@@ -231,9 +251,11 @@ func (t *TsdbModule) get(req *GetRequest) (res *GetResponse, err error) {
 
 	res = &GetResponse{Data: make([]*DataPoints, len(req.Keys))}
 	for i, key := range req.Keys {
-		if res.Data[i].Values, err = t._get(key, req.Start, req.End); err != nil {
+		dps := &DataPoints{Key: key}
+		if dps.Values, err = t._get(key, req.Start, req.End); err != nil {
 			return
 		}
+		res.Data[i] = dps
 	}
 	return
 }
@@ -247,6 +269,8 @@ func (t *TsdbModule) cleanWorker() {
 
 	for {
 		select {
+		case <-t.ctx.Done():
+			return
 		case <-ticker:
 			t.RLock()
 			defer t.RUnlock()
@@ -268,8 +292,6 @@ func (t *TsdbModule) cleanWorker() {
 					}
 				}
 			}
-		case <-t.ctx.Done():
-			return
 		}
 	}
 }
@@ -279,10 +301,12 @@ func (t *TsdbModule) finalizeBucketWorker() {
 
 	for {
 		select {
-		case <-ticker:
-			finalizeTimeSeries()
 		case <-t.ctx.Done():
 			return
+		case <-ticker:
+			timestamp := time.Now().Unix() - int64(allowTimestampAhead+allowTimestampBehind) -
+				int64(bucketUtils.Duration(1, bucketSize))
+			t.finalizeBucket(timestamp)
 		}
 	}
 }
@@ -330,24 +354,19 @@ func (t *TsdbModule) addShard(shards []int) {
 				continue
 			}
 
-			for more, _ := m.ReadBlockFiles(); more; more, _ = m.ReadBlockFiles() {
+			more, err := m.ReadBlockFiles()
+			if err != nil {
+				log.Println(err)
+				continue
 			}
 
-			/*
-				more, err := m.ReadBlockFiles()
+			for more {
+				more, err = m.ReadBlockFiles()
 				if err != nil {
 					log.Println(err)
-					continue
+					break
 				}
-
-				for more {
-					more, err = m.ReadBlockFiles()
-					if err != nil {
-						log.Println(err)
-						break
-					}
-				}
-			*/
+			}
 
 		}
 	}()
@@ -377,5 +396,18 @@ func (t *TsdbModule) dropShard(shards []int) error {
 	return nil
 }
 
-func finalizeTimeSeries() {
+func (t *TsdbModule) finalizeBucket(timestamp int64) {
+	go func() {
+		t.RLock()
+		defer t.RUnlock()
+
+		for _, bucket := range t.buckets {
+			bucketToFinalize := bucket.Bucket(timestamp)
+			_, err := bucket.FinalizeBuckets(bucketToFinalize)
+			if err != nil {
+				log.Println(err)
+				continue
+			}
+		}
+	}()
 }
