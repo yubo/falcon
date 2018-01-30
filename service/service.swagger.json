@@ -49,41 +49,14 @@
     }
   },
   "definitions": {
-    "serviceDataPoints": {
-      "type": "object",
-      "properties": {
-        "key": {
-          "$ref": "#/definitions/serviceKey"
-        },
-        "values": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/serviceTimeValuePair"
-          }
-        }
-      }
-    },
     "serviceGetResponse": {
       "type": "object",
       "properties": {
         "data": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/serviceDataPoints"
+            "$ref": "#/definitions/tsdbDataPoints"
           }
-        }
-      }
-    },
-    "serviceKey": {
-      "type": "object",
-      "properties": {
-        "key": {
-          "type": "string",
-          "format": "byte"
-        },
-        "shardId": {
-          "type": "integer",
-          "format": "int32"
         }
       }
     },
@@ -120,7 +93,34 @@
         }
       }
     },
-    "serviceTimeValuePair": {
+    "tsdbDataPoints": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/definitions/tsdbKey"
+        },
+        "values": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/tsdbTimeValuePair"
+          }
+        }
+      }
+    },
+    "tsdbKey": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string",
+          "format": "byte"
+        },
+        "shardId": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
+    "tsdbTimeValuePair": {
       "type": "object",
       "properties": {
         "timestamp": {

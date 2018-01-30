@@ -9,12 +9,13 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/yubo/falcon/lib/tsdb"
 	"github.com/yubo/falcon/service/expr"
 	"github.com/yubo/gotool/list"
 )
 
 var (
-	nullTs = &TimeValuePair{}
+	nullTs = &tsdb.TimeValuePair{}
 )
 
 type dpEntry struct {
@@ -22,8 +23,8 @@ type dpEntry struct {
 	expr.ExprItem
 	list   list.ListHead // point to newQueue or idxQueue trashQueue
 	list_p list.ListHead // point to putQueue
-	key    *Key
-	values []*TimeValuePair
+	key    *tsdb.Key
+	values []*tsdb.TimeValuePair
 
 	flag     uint32
 	idxTs    int64
@@ -37,15 +38,15 @@ type dpEntry struct {
 	typ      string
 }
 
-func dpEntryNew(dp *DataPoint) (*dpEntry, error) {
-	endpoint, metric, tags, typ, err := dp.Key.Attr()
+func dpEntryNew(dp *tsdb.DataPoint) (*dpEntry, error) {
+	endpoint, metric, tags, typ, err := keyAttr(dp.Key)
 	if err != nil {
 		return nil, err
 	}
 
 	e := &dpEntry{
 		key:      dp.Key,
-		values:   make([]*TimeValuePair, CACHE_SIZE),
+		values:   make([]*tsdb.TimeValuePair, CACHE_SIZE),
 		createTs: timer.now(),
 		endpoint: endpoint,
 		metric:   metric,
@@ -61,7 +62,7 @@ func dpEntryNew(dp *DataPoint) (*dpEntry, error) {
 }
 
 // called by rpc
-func (p *dpEntry) put(dp *DataPoint) error {
+func (p *dpEntry) put(dp *tsdb.DataPoint) error {
 	p.Lock()
 	defer p.Unlock()
 	p.lastTs = dp.Value.Timestamp
@@ -125,7 +126,7 @@ func (p *dpEntry) Nodata(isNum bool, args []float64, get expr.GetHandle) float64
 }
 
 // TODO
-func (p *dpEntry) getValues(begin, end int64) []*TimeValuePair {
+func (p *dpEntry) getValues(begin, end int64) []*tsdb.TimeValuePair {
 	p.Lock()
 	defer p.Unlock()
 	return p._getValues(CACHE_SIZE)
@@ -133,9 +134,9 @@ func (p *dpEntry) getValues(begin, end int64) []*TimeValuePair {
 
 // return [l, h)
 // h - l <= CACHE_SIZE
-func (p *dpEntry) _getValues(n int) (ret []*TimeValuePair) {
+func (p *dpEntry) _getValues(n int) (ret []*tsdb.TimeValuePair) {
 	var num uint32
-	ret = make([]*TimeValuePair, n)
+	ret = make([]*tsdb.TimeValuePair, n)
 
 	if n == 0 {
 		return
@@ -156,11 +157,11 @@ func (p *dpEntry) _getValues(n int) (ret []*TimeValuePair) {
 	return
 }
 
-func (p *dpEntry) _getDps(n int) *DataPoints {
-	return &DataPoints{Key: p.key, Values: p._getValues(n)}
+func (p *dpEntry) _getDps(n int) *tsdb.DataPoints {
+	return &tsdb.DataPoints{Key: p.key, Values: p._getValues(n)}
 }
 
-func (p *dpEntry) getDps(n int) (ret *DataPoints) {
+func (p *dpEntry) getDps(n int) (ret *tsdb.DataPoints) {
 	p.Lock()
 	defer p.Unlock()
 
@@ -168,12 +169,12 @@ func (p *dpEntry) getDps(n int) (ret *DataPoints) {
 }
 
 /* the last dp(dequeue) */
-func (p *dpEntry) getDp() (ret *DataPoint) {
+func (p *dpEntry) getDp() (ret *tsdb.DataPoint) {
 	p.RLock()
 	defer p.RUnlock()
 
 	//p.dataId always > 0
-	return &DataPoint{
+	return &tsdb.DataPoint{
 		Key:   p.key,
 		Value: p.values[(p.dataId-1)&CACHE_SIZE_MASK],
 	}

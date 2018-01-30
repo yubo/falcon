@@ -13,6 +13,7 @@ import (
 
 	"github.com/astaxie/beego/orm"
 	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/lib/tsdb"
 	"golang.org/x/net/context"
 )
 
@@ -96,7 +97,7 @@ func (p *ShardModule) putTrashItem(ie *dpEntry) {
 	p.trashQueue.enqueue(&ie.list)
 }
 
-func (p *ShardModule) put(dp *DataPoint) (*dpEntry, error) {
+func (p *ShardModule) put(dp *tsdb.DataPoint) (*dpEntry, error) {
 	bucket, err := p.getBucket(dp.Key.ShardId)
 	if err != nil {
 		return nil, err
@@ -121,7 +122,7 @@ func (p *ShardModule) put(dp *DataPoint) (*dpEntry, error) {
 	return ie, nil
 }
 
-func (p *ShardModule) get(key *Key, start, end int64) (*DataPoints, error) {
+func (p *ShardModule) get(key *tsdb.Key, start, end int64) (*tsdb.DataPoints, error) {
 	bucket, err := p.getBucket(key.ShardId)
 	if err != nil {
 		return nil, err
@@ -132,7 +133,7 @@ func (p *ShardModule) get(key *Key, start, end int64) (*DataPoints, error) {
 		return nil, err
 	}
 
-	return &DataPoints{
+	return &tsdb.DataPoints{
 		Key:    key,
 		Values: ie.getValues(start, end),
 	}, nil

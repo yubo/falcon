@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/lib/tsdb"
 	"github.com/yubo/falcon/service/config"
 )
 
@@ -20,13 +21,13 @@ var (
 	err      error
 )
 
-func newDp(i int) *DataPoint {
-	return &DataPoint{
-		Key: &Key{
+func newDp(i int) *tsdb.DataPoint {
+	return &tsdb.DataPoint{
+		Key: &tsdb.Key{
 			Key:     []byte(fmt.Sprintf("host_%d/metric_%d//GAUGE", i, i)),
 			ShardId: 0,
 		},
-		Value: &TimeValuePair{
+		Value: &tsdb.TimeValuePair{
 			Timestamp: int64(i) * DEBUG_STEP,
 			Value:     float64(i),
 		},

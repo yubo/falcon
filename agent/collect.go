@@ -12,7 +12,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/yubo/falcon"
-	"github.com/yubo/falcon/service"
+	"github.com/yubo/falcon/lib/tsdb"
 	"github.com/yubo/falcon/transfer"
 	"golang.org/x/net/context"
 )
@@ -133,7 +133,7 @@ func NewMetricValue(metric string,
 
 	return &transfer.DataPoint{
 		Key: falcon.AttrKey(hostName, metric, tags_, typ),
-		Value: &service.TimeValuePair{
+		Value: &tsdb.TimeValuePair{
 			Timestamp: time.Now().Unix(),
 			Value:     val,
 		},

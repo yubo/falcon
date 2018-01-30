@@ -15,6 +15,7 @@ func init() {
 	falcon.RegisterModule(&service.Service{}, "service",
 		falcon.GetType(config.Service{}))
 
+	service.RegisterModule(&service.TsdbModule{})
 	service.RegisterModule(&service.ShardModule{})
 	service.RegisterModule(&service.ApiModule{})
 	service.RegisterModule(&service.ApiGwModule{})

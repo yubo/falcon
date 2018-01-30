@@ -784,116 +784,14 @@
 			"revisionTime": "2017-07-14T17:28:03Z"
 		},
 		{
-			"checksumSHA1": "+Q03rsDOkAuYJNJjEeIRUOUTBs8=",
-			"path": "github.com/huangaz/tsdb/lib/bitUtil",
-			"revision": "22aeb55970c9179e130319a62cbce50766454de6",
-			"revisionTime": "2018-01-29T06:26:44Z"
-		},
-		{
-			"checksumSHA1": "5MMc1Eq85/+wCVuO6RVVDkU2HT0=",
-			"path": "github.com/huangaz/tsdb/lib/bucketLogWriter",
-			"revision": "22aeb55970c9179e130319a62cbce50766454de6",
-			"revisionTime": "2018-01-29T06:26:44Z"
-		},
-		{
-			"checksumSHA1": "MwML+ShDqJ68B6UehsFlJhU+P+M=",
-			"path": "github.com/huangaz/tsdb/lib/bucketMap",
-			"revision": "22aeb55970c9179e130319a62cbce50766454de6",
-			"revisionTime": "2018-01-29T06:26:44Z"
-		},
-		{
-			"checksumSHA1": "/uxXE8DQYWehgi/wtDSRIoq3Ops=",
-			"path": "github.com/huangaz/tsdb/lib/bucketStorage",
-			"revision": "22aeb55970c9179e130319a62cbce50766454de6",
-			"revisionTime": "2018-01-29T06:26:44Z"
-		},
-		{
-			"checksumSHA1": "Jp9QMuXU6sUL7yBeEUq9ajnvPXQ=",
-			"path": "github.com/huangaz/tsdb/lib/bucketUtils",
-			"revision": "22aeb55970c9179e130319a62cbce50766454de6",
-			"revisionTime": "2018-01-29T06:26:44Z"
-		},
-		{
-			"checksumSHA1": "B5eL25RWoo2ze2xO17TBt8cC4EA=",
-			"path": "github.com/huangaz/tsdb/lib/bucketedTimeSeries",
-			"revision": "22aeb55970c9179e130319a62cbce50766454de6",
-			"revisionTime": "2018-01-29T06:26:44Z"
-		},
-		{
-			"checksumSHA1": "ZdvrKFB15JasBSovswikNDSCw78=",
-			"path": "github.com/huangaz/tsdb/lib/dataBlockReader",
-			"revision": "22aeb55970c9179e130319a62cbce50766454de6",
-			"revisionTime": "2018-01-29T06:26:44Z"
-		},
-		{
-			"checksumSHA1": "+4O4lZc6zqtppHxB6l05rwXtjTs=",
-			"path": "github.com/huangaz/tsdb/lib/dataLog",
-			"revision": "22aeb55970c9179e130319a62cbce50766454de6",
-			"revisionTime": "2018-01-29T06:26:44Z"
-		},
-		{
 			"checksumSHA1": "AJmR7Jf3BTq02LzD1PM5+Bt4Dcs=",
 			"path": "github.com/huangaz/tsdb/lib/dataTypes",
 			"revision": "22aeb55970c9179e130319a62cbce50766454de6",
 			"revisionTime": "2018-01-29T06:26:44Z"
 		},
 		{
-			"checksumSHA1": "u3dY9OhpQ/ViD5upAGPPaydLwtA=",
-			"path": "github.com/huangaz/tsdb/lib/fileUtils",
-			"revision": "22aeb55970c9179e130319a62cbce50766454de6",
-			"revisionTime": "2018-01-29T06:26:44Z"
-		},
-		{
-			"checksumSHA1": "RrzYobDEBM8MPvqHF+r3pybrRDs=",
-			"path": "github.com/huangaz/tsdb/lib/keyListWriter",
-			"revision": "22aeb55970c9179e130319a62cbce50766454de6",
-			"revisionTime": "2018-01-29T06:26:44Z"
-		},
-		{
-			"checksumSHA1": "dB/a+9YRkoUegRKs7bMrWWI66xc=",
-			"path": "github.com/huangaz/tsdb/lib/persistentKeyList",
-			"revision": "22aeb55970c9179e130319a62cbce50766454de6",
-			"revisionTime": "2018-01-29T06:26:44Z"
-		},
-		{
 			"checksumSHA1": "62id22Gvy8hCKaqZmybSIFt+sPs=",
 			"path": "github.com/huangaz/tsdb/lib/testUtil",
-			"revision": "22aeb55970c9179e130319a62cbce50766454de6",
-			"revisionTime": "2018-01-29T06:26:44Z"
-		},
-		{
-			"checksumSHA1": "67bA4AjwslHlbR3v0HaXd01CZ9E=",
-			"path": "github.com/huangaz/tsdb/lib/timeConstants",
-			"revision": "22aeb55970c9179e130319a62cbce50766454de6",
-			"revisionTime": "2018-01-29T06:26:44Z"
-		},
-		{
-			"checksumSHA1": "hd8fqPFNqtE3sXEqvrI5hT3/T8U=",
-			"path": "github.com/huangaz/tsdb/lib/timeSeries",
-			"revision": "22aeb55970c9179e130319a62cbce50766454de6",
-			"revisionTime": "2018-01-29T06:26:44Z"
-		},
-		{
-			"checksumSHA1": "8axvNUIgv9we+cgdSV8Wr1I7nBw=",
-			"path": "github.com/huangaz/tsdb/lib/timeSeriesStream",
-			"revision": "22aeb55970c9179e130319a62cbce50766454de6",
-			"revisionTime": "2018-01-29T06:26:44Z"
-		},
-		{
-			"checksumSHA1": "+oK7Ctm0iAYAPjr+MfoSrin/aTw=",
-			"path": "github.com/huangaz/tsdb/lib/timer",
-			"revision": "22aeb55970c9179e130319a62cbce50766454de6",
-			"revisionTime": "2018-01-29T06:26:44Z"
-		},
-		{
-			"checksumSHA1": "0Qy1YwutfiCnf5FoNxuNoGHYoZs=",
-			"path": "github.com/huangaz/tsdb/lib/utils",
-			"revision": "22aeb55970c9179e130319a62cbce50766454de6",
-			"revisionTime": "2018-01-29T06:26:44Z"
-		},
-		{
-			"checksumSHA1": "c1XfVuVYSBFHOKhkPksyND1bOnk=",
-			"path": "github.com/huangaz/tsdb/lib/utils/priorityQueue",
 			"revision": "22aeb55970c9179e130319a62cbce50766454de6",
 			"revisionTime": "2018-01-29T06:26:44Z"
 		},
@@ -1043,178 +941,184 @@
 			"revisionTime": "2016-08-13T15:48:53Z"
 		},
 		{
-			"checksumSHA1": "bBgBOwui7C1f3atMhgem0ywW4Co=",
+			"checksumSHA1": "lIDLJXXyI4Kuzx8K+BQ8/jVn3X8=",
 			"path": "github.com/yubo/falcon",
-			"revision": "6fe962e168e6787e5596311355ccacfaf69d477c",
-			"revisionTime": "2018-01-21T12:43:45Z"
+			"revision": "36601226faa5d3987eac9da7fa34e49462d064c1",
+			"revisionTime": "2018-01-30T07:08:30Z"
 		},
 		{
-			"checksumSHA1": "1B5BXYODZGBuCVHN+UkenEoRR7w=",
+			"checksumSHA1": "4q7DEQW8nuONLgNuN+WYUgwZjas=",
 			"path": "github.com/yubo/falcon/agent",
-			"revision": "6fe962e168e6787e5596311355ccacfaf69d477c",
-			"revisionTime": "2018-01-21T12:43:45Z"
+			"revision": "36601226faa5d3987eac9da7fa34e49462d064c1",
+			"revisionTime": "2018-01-30T07:08:30Z"
 		},
 		{
 			"checksumSHA1": "2ItdPl/2w7AGFE+MBfMp4ELnLnc=",
 			"path": "github.com/yubo/falcon/agent/config",
-			"revision": "6fe962e168e6787e5596311355ccacfaf69d477c",
-			"revisionTime": "2018-01-21T12:43:45Z"
+			"revision": "36601226faa5d3987eac9da7fa34e49462d064c1",
+			"revisionTime": "2018-01-30T07:08:30Z"
 		},
 		{
 			"checksumSHA1": "8U6cxx+6rw9VgxVpneadNxQML50=",
 			"path": "github.com/yubo/falcon/agent/modules",
-			"revision": "6fe962e168e6787e5596311355ccacfaf69d477c",
-			"revisionTime": "2018-01-21T12:43:45Z"
+			"revision": "36601226faa5d3987eac9da7fa34e49462d064c1",
+			"revisionTime": "2018-01-30T07:08:30Z"
 		},
 		{
 			"checksumSHA1": "zYxbgFTV7LPS7TApOBnuk6y0RUo=",
 			"path": "github.com/yubo/falcon/agent/plugin",
-			"revision": "6fe962e168e6787e5596311355ccacfaf69d477c",
-			"revisionTime": "2018-01-21T12:43:45Z"
+			"revision": "36601226faa5d3987eac9da7fa34e49462d064c1",
+			"revisionTime": "2018-01-30T07:08:30Z"
 		},
 		{
 			"checksumSHA1": "NOPkB1Glxj8FF8VqKiQI0WSBTkY=",
 			"path": "github.com/yubo/falcon/agent/plugin/emulator",
-			"revision": "6fe962e168e6787e5596311355ccacfaf69d477c",
-			"revisionTime": "2018-01-21T12:43:45Z"
+			"revision": "36601226faa5d3987eac9da7fa34e49462d064c1",
+			"revisionTime": "2018-01-30T07:08:30Z"
 		},
 		{
 			"checksumSHA1": "4hoBNG4pMvMUcXs9T16lzyXUhlg=",
 			"path": "github.com/yubo/falcon/agent/plugin/sys",
-			"revision": "6fe962e168e6787e5596311355ccacfaf69d477c",
-			"revisionTime": "2018-01-21T12:43:45Z"
+			"revision": "36601226faa5d3987eac9da7fa34e49462d064c1",
+			"revisionTime": "2018-01-30T07:08:30Z"
 		},
 		{
-			"checksumSHA1": "ZZtMdTUpCFGghR5aG+5W9IjsKQk=",
+			"checksumSHA1": "JhAuiCrCzwsaXVVgIFG68oJZSho=",
 			"path": "github.com/yubo/falcon/alarm",
-			"revision": "6fe962e168e6787e5596311355ccacfaf69d477c",
-			"revisionTime": "2018-01-21T12:43:45Z"
+			"revision": "36601226faa5d3987eac9da7fa34e49462d064c1",
+			"revisionTime": "2018-01-30T07:08:30Z"
 		},
 		{
 			"checksumSHA1": "37enVD/a53FJhB7vftmxCsc9Y9w=",
 			"path": "github.com/yubo/falcon/alarm/config",
-			"revision": "6fe962e168e6787e5596311355ccacfaf69d477c",
-			"revisionTime": "2018-01-21T12:43:45Z"
+			"revision": "36601226faa5d3987eac9da7fa34e49462d064c1",
+			"revisionTime": "2018-01-30T07:08:30Z"
 		},
 		{
 			"checksumSHA1": "UJ48fGljxRNv1iGyvSGVFVrMHn8=",
 			"path": "github.com/yubo/falcon/alarm/expr",
-			"revision": "6fe962e168e6787e5596311355ccacfaf69d477c",
-			"revisionTime": "2018-01-21T12:43:45Z"
+			"revision": "36601226faa5d3987eac9da7fa34e49462d064c1",
+			"revisionTime": "2018-01-30T07:08:30Z"
 		},
 		{
 			"checksumSHA1": "o7DnjHpGnk4ruxPBX5D8fswgQNI=",
 			"path": "github.com/yubo/falcon/alarm/modules",
-			"revision": "6fe962e168e6787e5596311355ccacfaf69d477c",
-			"revisionTime": "2018-01-21T12:43:45Z"
+			"revision": "36601226faa5d3987eac9da7fa34e49462d064c1",
+			"revisionTime": "2018-01-30T07:08:30Z"
 		},
 		{
 			"checksumSHA1": "hg/OPsLNvr8cmV5G/93IKD17YSs=",
 			"path": "github.com/yubo/falcon/ctrl",
-			"revision": "6fe962e168e6787e5596311355ccacfaf69d477c",
-			"revisionTime": "2018-01-21T12:43:45Z"
+			"revision": "36601226faa5d3987eac9da7fa34e49462d064c1",
+			"revisionTime": "2018-01-30T07:08:30Z"
 		},
 		{
 			"checksumSHA1": "rlUTUb7232ia2AW+p5dGKACKBnY=",
 			"path": "github.com/yubo/falcon/ctrl/api/controllers",
-			"revision": "6fe962e168e6787e5596311355ccacfaf69d477c",
-			"revisionTime": "2018-01-21T12:43:45Z"
+			"revision": "36601226faa5d3987eac9da7fa34e49462d064c1",
+			"revisionTime": "2018-01-30T07:08:30Z"
 		},
 		{
 			"checksumSHA1": "SVLgo7oJ0OZpdnpsc1zyVppZ5Uc=",
 			"path": "github.com/yubo/falcon/ctrl/api/models",
-			"revision": "6fe962e168e6787e5596311355ccacfaf69d477c",
-			"revisionTime": "2018-01-21T12:43:45Z"
+			"revision": "36601226faa5d3987eac9da7fa34e49462d064c1",
+			"revisionTime": "2018-01-30T07:08:30Z"
 		},
 		{
 			"checksumSHA1": "q4HKKL5pdQDEDXDRC2SHRcaz0Ds=",
 			"path": "github.com/yubo/falcon/ctrl/api/models/auth",
-			"revision": "6fe962e168e6787e5596311355ccacfaf69d477c",
-			"revisionTime": "2018-01-21T12:43:45Z"
+			"revision": "36601226faa5d3987eac9da7fa34e49462d064c1",
+			"revisionTime": "2018-01-30T07:08:30Z"
 		},
 		{
 			"checksumSHA1": "q7iuF6Ae6Sii7Nb4xdFiLZz9ask=",
 			"path": "github.com/yubo/falcon/ctrl/api/models/session",
-			"revision": "6fe962e168e6787e5596311355ccacfaf69d477c",
-			"revisionTime": "2018-01-21T12:43:45Z"
+			"revision": "36601226faa5d3987eac9da7fa34e49462d064c1",
+			"revisionTime": "2018-01-30T07:08:30Z"
 		},
 		{
 			"checksumSHA1": "SVkgxGHDE69pqKaMXdW/zcbJToI=",
 			"path": "github.com/yubo/falcon/ctrl/api/routers",
-			"revision": "6fe962e168e6787e5596311355ccacfaf69d477c",
-			"revisionTime": "2018-01-21T12:43:45Z"
+			"revision": "36601226faa5d3987eac9da7fa34e49462d064c1",
+			"revisionTime": "2018-01-30T07:08:30Z"
 		},
 		{
 			"checksumSHA1": "ITYVcZnqMUxbLVgLp29fEHadFoc=",
 			"path": "github.com/yubo/falcon/ctrl/config",
-			"revision": "6fe962e168e6787e5596311355ccacfaf69d477c",
-			"revisionTime": "2018-01-21T12:43:45Z"
+			"revision": "36601226faa5d3987eac9da7fa34e49462d064c1",
+			"revisionTime": "2018-01-30T07:08:30Z"
 		},
 		{
 			"checksumSHA1": "b1zVHKlS1g7JQa+a61wqqtJdNsE=",
 			"path": "github.com/yubo/falcon/ctrl/modules",
-			"revision": "6fe962e168e6787e5596311355ccacfaf69d477c",
-			"revisionTime": "2018-01-21T12:43:45Z"
+			"revision": "36601226faa5d3987eac9da7fa34e49462d064c1",
+			"revisionTime": "2018-01-30T07:08:30Z"
 		},
 		{
 			"checksumSHA1": "p2j3UK4f0+hQfpjOqlL/Mu5YW8Q=",
 			"path": "github.com/yubo/falcon/ctrl/plugin/demo",
-			"revision": "6fe962e168e6787e5596311355ccacfaf69d477c",
-			"revisionTime": "2018-01-21T12:43:45Z"
+			"revision": "36601226faa5d3987eac9da7fa34e49462d064c1",
+			"revisionTime": "2018-01-30T07:08:30Z"
 		},
 		{
 			"checksumSHA1": "gTaYvYl8iJ8ch1F5ssjZz6+KHX8=",
 			"path": "github.com/yubo/falcon/ctrl/plugin/rate_limits",
-			"revision": "6fe962e168e6787e5596311355ccacfaf69d477c",
-			"revisionTime": "2018-01-21T12:43:45Z"
+			"revision": "36601226faa5d3987eac9da7fa34e49462d064c1",
+			"revisionTime": "2018-01-30T07:08:30Z"
+		},
+		{
+			"checksumSHA1": "kiwK4kU6TPQk8t7pQycqxtgdMCc=",
+			"path": "github.com/yubo/falcon/lib/tsdb",
+			"revision": "36601226faa5d3987eac9da7fa34e49462d064c1",
+			"revisionTime": "2018-01-30T07:08:30Z"
 		},
 		{
 			"checksumSHA1": "YF2Ksd4EtzyHE1fWVN2VyP6rm/g=",
 			"path": "github.com/yubo/falcon/parse",
-			"revision": "6fe962e168e6787e5596311355ccacfaf69d477c",
-			"revisionTime": "2018-01-21T12:43:45Z"
+			"revision": "36601226faa5d3987eac9da7fa34e49462d064c1",
+			"revisionTime": "2018-01-30T07:08:30Z"
 		},
 		{
-			"checksumSHA1": "+gIXuZDwZlwFEizZiNOW0/kSKms=",
+			"checksumSHA1": "FvFz+5cRbfhgqhOfCBHnjGjXleA=",
 			"path": "github.com/yubo/falcon/service",
-			"revision": "6fe962e168e6787e5596311355ccacfaf69d477c",
-			"revisionTime": "2018-01-21T12:43:45Z"
+			"revision": "36601226faa5d3987eac9da7fa34e49462d064c1",
+			"revisionTime": "2018-01-30T07:08:30Z"
 		},
 		{
 			"checksumSHA1": "tZWISoqrMqrucuXOOqFKwisEIj4=",
 			"path": "github.com/yubo/falcon/service/config",
-			"revision": "6fe962e168e6787e5596311355ccacfaf69d477c",
-			"revisionTime": "2018-01-21T12:43:45Z"
+			"revision": "36601226faa5d3987eac9da7fa34e49462d064c1",
+			"revisionTime": "2018-01-30T07:08:30Z"
 		},
 		{
 			"checksumSHA1": "nr+naB3ItDQyLNjHTjgG2ifXriw=",
 			"path": "github.com/yubo/falcon/service/expr",
-			"revision": "6fe962e168e6787e5596311355ccacfaf69d477c",
-			"revisionTime": "2018-01-21T12:43:45Z"
+			"revision": "36601226faa5d3987eac9da7fa34e49462d064c1",
+			"revisionTime": "2018-01-30T07:08:30Z"
 		},
 		{
-			"checksumSHA1": "Vi1GBMQz2FmVC7zlYsolNxqfHgE=",
+			"checksumSHA1": "l2650vDUQPmmmPWcQjXG01afKbU=",
 			"path": "github.com/yubo/falcon/service/modules",
-			"revision": "6fe962e168e6787e5596311355ccacfaf69d477c",
-			"revisionTime": "2018-01-21T12:43:45Z"
+			"revision": "36601226faa5d3987eac9da7fa34e49462d064c1",
+			"revisionTime": "2018-01-30T07:08:30Z"
 		},
 		{
-			"checksumSHA1": "NM4gNRtkQhFF8FRlesx2y8oP3po=",
+			"checksumSHA1": "QbX4zVF0ogvkdVxnDp3CMPtPWjk=",
 			"path": "github.com/yubo/falcon/transfer",
-			"revision": "6fe962e168e6787e5596311355ccacfaf69d477c",
-			"revisionTime": "2018-01-21T12:43:45Z"
+			"revision": "36601226faa5d3987eac9da7fa34e49462d064c1",
+			"revisionTime": "2018-01-30T07:08:30Z"
 		},
 		{
 			"checksumSHA1": "c7iQi04NxbC9SbEWBt2vjYhfbg0=",
 			"path": "github.com/yubo/falcon/transfer/config",
-			"revision": "6fe962e168e6787e5596311355ccacfaf69d477c",
-			"revisionTime": "2018-01-21T12:43:45Z"
+			"revision": "36601226faa5d3987eac9da7fa34e49462d064c1",
+			"revisionTime": "2018-01-30T07:08:30Z"
 		},
 		{
 			"checksumSHA1": "K0qgVAbTGv2pgmQA7cH3nnNx59U=",
 			"path": "github.com/yubo/falcon/transfer/modules",
-			"revision": "6fe962e168e6787e5596311355ccacfaf69d477c",
-			"revisionTime": "2018-01-21T12:43:45Z"
+			"revision": "36601226faa5d3987eac9da7fa34e49462d064c1",
+			"revisionTime": "2018-01-30T07:08:30Z"
 		},
 		{
 			"checksumSHA1": "0huAlrDtTwS7NaiMQNZPvDF4Fj0=",

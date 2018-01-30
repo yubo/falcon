@@ -3,16 +3,17 @@ option go_package = "github.com/yubo/falcon/transfer";
 package transfer;
 
 import "google/api/annotations.proto";
+import "lib/tsdb/tsdb.proto";
 import "service/service.proto";
 
 message DataPoint {
 	bytes key = 1;
-	service.TimeValuePair value = 2; 
+	tsdb.TimeValuePair value = 2; 
 }
 
 message DataPoints {
 	bytes key = 1;
-	repeated service.TimeValuePair values = 2; 
+	repeated tsdb.TimeValuePair values = 2; 
 }
 
 

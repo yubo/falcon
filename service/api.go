@@ -27,6 +27,7 @@ type ApiModule struct {
 func (p *ApiModule) Get(ctx context.Context,
 	in *GetRequest) (res *GetResponse, err error) {
 
+	glog.V(3).Infof("%s rx get len(Keys) %d", MODULE_NAME, len(in.Keys))
 	res, err = p.service.tsdb.get(in)
 
 	statsInc(ST_RX_GET_ITERS, 1)
@@ -37,8 +38,11 @@ func (p *ApiModule) Get(ctx context.Context,
 func (p *ApiModule) Put(ctx context.Context,
 	in *PutRequest) (res *PutResponse, err error) {
 
-	glog.V(5).Infof("%s rx put %v", MODULE_NAME, len(in.Data))
+	glog.V(4).Infof("%s rx put %v", MODULE_NAME, len(in.Data))
 	res, err = p.service.tsdb.put(in)
+	if err != nil {
+		glog.V(4).Infof("%s rx put err %v", MODULE_NAME, err)
+	}
 
 	statsInc(ST_RX_PUT_ITERS, 1)
 	statsInc(ST_RX_PUT_ITEMS, int(res.N))

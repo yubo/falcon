@@ -12,6 +12,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/lib/tsdb"
 	"github.com/yubo/falcon/service"
 	"golang.org/x/net/context"
 )
@@ -95,7 +96,7 @@ func (p *ClientModule) reload(transfer *Transfer) error {
 	return p.start(transfer)
 }
 
-func clientPut(client service.ServiceClient, dps []*service.DataPoint,
+func clientPut(client service.ServiceClient, dps []*tsdb.DataPoint,
 	timeout int) *service.PutResponse {
 
 	statsInc(ST_TX_PUT_ITERS, 1)
@@ -109,7 +110,11 @@ func clientPut(client service.ServiceClient, dps []*service.DataPoint,
 	if err != nil {
 		statsInc(ST_TX_PUT_ERR_ITERS, 1)
 	}
-	statsInc(ST_TX_PUT_ERR_ITEMS, int(len(dps)-int(res.N)))
+	if res == nil {
+		statsInc(ST_TX_PUT_ERR_ITEMS, int(len(dps)))
+	} else {
+		statsInc(ST_TX_PUT_ERR_ITEMS, int(len(dps)-int(res.N)))
+	}
 	return res
 }
 
@@ -134,7 +139,7 @@ func clientWorker(ctx context.Context,
 
 	var i int
 
-	dps := make([]*service.DataPoint, burstSize)
+	dps := make([]*tsdb.DataPoint, burstSize)
 	for {
 		select {
 		case <-ctx.Done():
@@ -145,12 +150,12 @@ func clientWorker(ctx context.Context,
 			case RPC_ACTION_PUT:
 				if req.done != nil {
 					go func() {
-						req.done <- clientPut(c.cli, []*service.DataPoint{
-							req.data.(*service.DataPoint)}, timeout)
+						req.done <- clientPut(c.cli, []*tsdb.DataPoint{
+							req.data.(*tsdb.DataPoint)}, timeout)
 					}()
 					continue
 				}
-				dps[i] = req.data.(*service.DataPoint)
+				dps[i] = req.data.(*tsdb.DataPoint)
 				i++
 				if i == burstSize {
 					clientPut(c.cli, dps[:i], timeout)

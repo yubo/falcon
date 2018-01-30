@@ -110,19 +110,6 @@
       ],
       "default": "MIN"
     },
-    "serviceTimeValuePair": {
-      "type": "object",
-      "properties": {
-        "timestamp": {
-          "type": "string",
-          "format": "int64"
-        },
-        "value": {
-          "type": "number",
-          "format": "double"
-        }
-      }
-    },
     "transferDataPoint": {
       "type": "object",
       "properties": {
@@ -131,7 +118,7 @@
           "format": "byte"
         },
         "value": {
-          "$ref": "#/definitions/serviceTimeValuePair"
+          "$ref": "#/definitions/tsdbTimeValuePair"
         }
       }
     },
@@ -145,7 +132,7 @@
         "values": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/serviceTimeValuePair"
+            "$ref": "#/definitions/tsdbTimeValuePair"
           }
         }
       }
@@ -225,6 +212,19 @@
             "type": "string",
             "format": "byte"
           }
+        }
+      }
+    },
+    "tsdbTimeValuePair": {
+      "type": "object",
+      "properties": {
+        "timestamp": {
+          "type": "string",
+          "format": "int64"
+        },
+        "value": {
+          "type": "number",
+          "format": "double"
         }
       }
     }

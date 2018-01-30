@@ -1,0 +1,3 @@
+[submodule "lib/tsdb"]
+	path = lib/tsdb
+	url = https://github.com/huangaz/tsdb

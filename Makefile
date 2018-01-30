@@ -15,6 +15,7 @@ DOCFILES=dist/etc/falcon.example.conf \
 	dist/html/api_reference.md
 GOFILES=$(shell find . -name "*.go" -type f -not -path "./cmd*") \
 	transfer/transfer.pb.go transfer/transfer.pb.gw.go \
+	lib/tsdb/tsdb.pb.go \
 	service/service.pb.go service/service.pb.gw.go \
 	alarm/alarm.pb.go alarm/alarm.pb.gw.go \
 	parse/parse.go $(SUBMODULES:%=%/config/parse.go) \

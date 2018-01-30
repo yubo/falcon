@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/lib/tsdb"
 	"github.com/yubo/falcon/service"
 )
 
@@ -30,14 +31,14 @@ func adjustKey(key []byte) ([]byte, error) {
 }
 
 // call before use item.Key
-func (p *DataPoint) Adjust() (*service.DataPoint, error) {
+func (p *DataPoint) Adjust() (*tsdb.DataPoint, error) {
 	key, err := adjustKey(p.Key)
 	if err != nil {
 		return nil, err
 	}
 
-	return &service.DataPoint{
-		Key:   &service.Key{Key: key, ShardId: int32(scheduler(key))},
+	return &tsdb.DataPoint{
+		Key:   &tsdb.Key{Key: key, ShardId: int32(scheduler(key))},
 		Value: p.Value,
 	}, nil
 }
@@ -48,13 +49,13 @@ func (p *GetRequest) Adjust() (map[int]*service.GetRequest, error) {
 	for _, key := range p.Keys {
 		shardId := scheduler(key)
 		if req, ok := ret[shardId]; ok {
-			req.Keys = append(req.Keys, &service.Key{
+			req.Keys = append(req.Keys, &tsdb.Key{
 				Key:     key,
 				ShardId: int32(shardId),
 			})
 		} else {
 			ret[shardId] = &service.GetRequest{
-				Keys: []*service.Key{&service.Key{
+				Keys: []*tsdb.Key{&tsdb.Key{
 					Key:     key,
 					ShardId: int32(shardId),
 				}},

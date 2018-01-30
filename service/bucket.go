@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/lib/tsdb"
 )
 
 type bucketEntry struct { // bucket_t
@@ -16,7 +17,7 @@ type bucketEntry struct { // bucket_t
 	dpEntryMap map[string]*dpEntry
 }
 
-func (p *bucketEntry) createDpEntry(dp *DataPoint) (ie *dpEntry, err error) {
+func (p *bucketEntry) createDpEntry(dp *tsdb.DataPoint) (ie *dpEntry, err error) {
 	p.Lock()
 	defer p.Unlock()
 

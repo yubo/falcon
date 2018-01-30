@@ -54,7 +54,7 @@ func (p *TaskModule) cleanWorker(ch chan *eventEntry, list *queue, expireTime in
 		case <-ctx.Done():
 			return
 		case <-ticker:
-			glog.V(3).Infof("%s cleanWorker entering", MODULE_NAME)
+			glog.V(5).Infof("%s cleanWorker entering", MODULE_NAME)
 			now := time.Now().Unix()
 
 			for l := list.dequeue(); l != nil; l = list.dequeue() {

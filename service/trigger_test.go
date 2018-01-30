@@ -15,6 +15,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/alarm"
+	"github.com/yubo/falcon/lib/tsdb"
 	"golang.org/x/net/context"
 )
 
@@ -110,10 +111,10 @@ func testGenerateShard() *ShardModule {
 	return shard
 }
 
-func testFillDps(shard *ShardModule, keys []*Key, vs []*TimeValuePair, t *testing.T) {
+func testFillDps(shard *ShardModule, keys []*tsdb.Key, vs []*tsdb.TimeValuePair, t *testing.T) {
 	for _, key := range keys {
 		for _, v := range vs {
-			if _, err := shard.put(&DataPoint{Key: key, Value: v}); err != nil {
+			if _, err := shard.put(&tsdb.DataPoint{Key: key, Value: v}); err != nil {
 				t.Error(err)
 			}
 		}
@@ -177,7 +178,7 @@ func testTrigger(t *testing.T) {
 		{5, 0, 6, 1, "cpu", "cpu.busy", "", "count(#3,99,>)=3", "cpu busy over 99%", nil, nil, nil},
 	}
 
-	testKeys := []*Key{
+	testKeys := []*tsdb.Key{
 		{[]byte("xiaomi.bj/cpu.busy//GAUGE"), 0},
 		{[]byte("inf.xiaomi.bj/cpu.busy//GAUGE"), 0},
 		{[]byte("miliao.xiaomi.bj/cpu.busy//GAUGE"), 0},
@@ -186,7 +187,7 @@ func testTrigger(t *testing.T) {
 		{[]byte("op_micloud.miliao.xiaomi.bj/cpu.busy//GAUGE"), 0},
 	}
 
-	testVs := []*TimeValuePair{
+	testVs := []*tsdb.TimeValuePair{
 		{0, 0}, {1, 1}, {2, 2}, {3, 3}, {4, 4}, {5, 5}, {6, 6}, {7, 7}, {8, 8}, {9, 9},
 	}
 

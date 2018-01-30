@@ -7,6 +7,7 @@ import (
 
 	"github.com/huangaz/tsdb/lib/testUtil"
 	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/lib/tsdb"
 	"github.com/yubo/falcon/service/config"
 )
 
@@ -24,23 +25,23 @@ func test_init() *TsdbModule {
 		"shardIds": "1,2,3,4",
 	})
 
-	tsdb := &TsdbModule{}
-	tsdb.prestart(s)
+	tm := &TsdbModule{}
+	tm.prestart(s)
 
-	return tsdb
+	return tm
 }
 
 func TestPut(t *testing.T) {
-	tsdb := test_init()
-	tsdb.start(s)
-	defer tsdb.stop(s)
+	tm := test_init()
+	tm.start(s)
+	defer tm.stop(s)
 
 	num := 10
 	putReq := dataGenerator(0, 1, num)
 
 	time.Sleep(100 * time.Millisecond)
 
-	putRes, err := tsdb.put(putReq)
+	putRes, err := tm.put(putReq)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -53,14 +54,14 @@ func TestPut(t *testing.T) {
 	getReq := &GetRequest{
 		Start: 0,
 		End:   int64(60 * num),
-		Keys: []*Key{
-			&Key{
+		Keys: []*tsdb.Key{
+			&tsdb.Key{
 				ShardId: 1,
 				Key:     putReq.Data[0].Key.Key,
 			},
 		},
 	}
-	getRes, err := tsdb.get(getReq)
+	getRes, err := tm.get(getReq)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -159,7 +160,7 @@ func TestPutAndRecover(t *testing.T) {
 
 func dataGenerator(begin int64, numOfKeys, num int) *PutRequest {
 	req := &PutRequest{}
-	req.Data = make([]*DataPoint, num*numOfKeys)
+	req.Data = make([]*tsdb.DataPoint, num*numOfKeys)
 	index := 0
 
 	for i := 0; i < numOfKeys; i++ {
@@ -167,12 +168,12 @@ func dataGenerator(begin int64, numOfKeys, num int) *PutRequest {
 		var testTime = begin
 
 		for j := 0; j < num; j++ {
-			req.Data[index] = &DataPoint{
-				Key: &Key{
+			req.Data[index] = &tsdb.DataPoint{
+				Key: &tsdb.Key{
 					Key:     testKey,
 					ShardId: int32(i + 1),
 				},
-				Value: &TimeValuePair{
+				Value: &tsdb.TimeValuePair{
 					Timestamp: testTime,
 					Value:     float64(100 + rand.Intn(50)),
 				},

@@ -10,9 +10,12 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strings"
 	"unsafe"
 
+	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/lib/tsdb"
 	"github.com/yubo/gotool/list"
 )
 
@@ -99,4 +102,46 @@ func tagsMatch(pattern, tags string) bool {
 
 	}
 	return true
+}
+
+func keySum64(p *tsdb.Key) uint64 {
+	return falcon.Sum64(p.Key)
+}
+
+func keySum32(p *tsdb.Key) uint32 {
+	return falcon.Sum32(p.Key)
+}
+
+func keyCsum(p *tsdb.Key) string {
+	return falcon.Md5sum(p.Key)
+}
+
+// call before use item.Key
+func keyAdjust(p *tsdb.Key) error {
+	endpoint, metric, tags, typ, err := keyAttr(p)
+	if err != nil {
+		return err
+	}
+
+	if len(tags) > 0 {
+		tags_ := strings.Split(tags, ",")
+		sort.Strings(tags_)
+		tags = strings.Join(tags_, ",")
+		p.Key = []byte(fmt.Sprintf("%s/%s/%s/%s", endpoint, metric, tags, typ))
+	}
+
+	return nil
+}
+
+func keyAttr(p *tsdb.Key) (string, string, string, string, error) {
+	var err error
+	s := strings.Split(string(p.Key), "/")
+	if len(s) != 4 {
+		err = falcon.EINVAL
+	}
+
+	if _, ok := ItemType_value[s[3]]; !ok {
+		err = falcon.EINVAL
+	}
+	return s[0], s[1], s[2], s[3], err
 }

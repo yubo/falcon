@@ -32,6 +32,10 @@ func clientPut(client transfer.TransferClient, dps []*transfer.DataPoint, timeou
 	resp, err := client.Put(ctx, &transfer.PutRequest{Data: dps})
 	if err != nil {
 		statsInc(ST_TX_PUT_ERR_ITERS, 1)
+	}
+
+	if resp == nil {
+		statsInc(ST_TX_PUT_ERR_ITEMS, int(len(dps)))
 	} else {
 		statsInc(ST_TX_PUT_ERR_ITEMS, int(len(dps)-int(resp.N)))
 	}

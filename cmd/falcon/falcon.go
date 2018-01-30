@@ -24,6 +24,9 @@ import (
 	_ "github.com/yubo/falcon/ctrl/modules"
 	_ "github.com/yubo/falcon/service/modules"
 	_ "github.com/yubo/falcon/transfer/modules"
+
+	"net/http"
+	_ "net/http/pprof"
 )
 
 var opts falcon.CmdOpts
@@ -75,6 +78,7 @@ func signalNotify(p *falcon.Process) {
 	atomic.StoreUint32(&p.Status, falcon.APP_STATUS_RUNNING)
 
 	glog.Infof("%s [%d] register signal notify", MODULE_NAME, p.Pid)
+	go http.ListenAndServe(":8008", nil)
 
 	for {
 		s := <-sigs
