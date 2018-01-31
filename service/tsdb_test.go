@@ -37,7 +37,7 @@ func TestPut(t *testing.T) {
 	defer tm.stop(s)
 
 	num := 10
-	putReq := dataGenerator(0, 1, num)
+	putReq := dataGenerator(0, 1, num,1)
 
 	time.Sleep(100 * time.Millisecond)
 
@@ -91,7 +91,9 @@ func TestPutAndRecover(t *testing.T) {
 	tm.start(s)
 
 	num := 1000
-	putReq := dataGenerator(time.Now().Unix()-int64(num*60), 1, num)
+	numOfKeys := 10
+	beginTimestamp := time.Now().Unix() - int64(num*60)
+	putReq := dataGenerator(beginTimestamp, numOfKeys, num, 1)
 
 	time.Sleep(100 * time.Millisecond)
 
@@ -99,13 +101,13 @@ func TestPutAndRecover(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if putRes.N != int32(num) {
-		t.Fatalf("Put failed! Want %d,put %d", num, putRes.N)
+	if putRes.N != int32(num*numOfKeys) {
+		t.Fatalf("Put failed! Want %d,put %d", num*numOfKeys, putRes.N)
 	}
 
 	time.Sleep(1000 * time.Millisecond)
 
-	bucketToFinalize := tm.buckets[1].Bucket(putReq.Data[0].Value.Timestamp)
+	bucketToFinalize := tm.buckets[1].Bucket(beginTimestamp)
 	n, err := tm.buckets[1].FinalizeBuckets(bucketToFinalize)
 	if err != nil {
 		t.Fatal(err)
@@ -144,11 +146,12 @@ func TestPutAndRecover(t *testing.T) {
 		t.Fatal("wrong result")
 	}
 
-	if len(putReq.Data) != len(getRes.Data[0].Values) {
-		t.Fatalf("Length of putReq(%d) and getRes(%d) not equal!", len(putReq.Data), len(getRes.Data))
+	if num != len(getRes.Data[0].Values) {
+		t.Fatalf("Length of getRes(%d) and num(%d) not equal!", len(getRes.Data), num)
 	}
 
-	for i, dp := range putReq.Data {
+	for i := 0; i < num; i++ {
+		dp := putReq.Data[i]
 		if dp.Value.Value != getRes.Data[0].Values[i].Value ||
 			dp.Value.Timestamp != getRes.Data[0].Values[i].Timestamp {
 			t.Fatal("wrong result")
@@ -156,20 +159,20 @@ func TestPutAndRecover(t *testing.T) {
 	}
 }
 
-func dataGenerator(begin int64, numOfKeys, num int) *PutRequest {
+func dataGenerator(begin int64, numOfKeys, num int, shardId int32) *PutRequest {
 	req := &PutRequest{}
 	req.Data = make([]*tsdb.DataPoint, num*numOfKeys)
 	index := 0
 
 	for i := 0; i < numOfKeys; i++ {
-		testKey := []byte(tsdb.RandStr(10))
+		testKey := []byte(tsdb.RandStr(20))
 		var testTime = begin
 
 		for j := 0; j < num; j++ {
 			req.Data[index] = &tsdb.DataPoint{
 				Key: &tsdb.Key{
 					Key:     testKey,
-					ShardId: int32(i + 1),
+					ShardId: shardId,
 				},
 				Value: &tsdb.TimeValuePair{
 					Timestamp: testTime,
