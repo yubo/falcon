@@ -48,22 +48,24 @@ type TriggerModule struct {
 }
 
 func (p *TriggerModule) prestart(s *Service) error {
-	p.ctx, p.cancel = context.WithCancel(context.Background())
 	p.service = s
 	return nil
 }
 
 func (p *TriggerModule) start(s *Service) (err error) {
-	dbmaxidle, _ := s.Conf.Configer.Int(C_DB_MAX_IDLE)
-	dbmaxconn, _ := s.Conf.Configer.Int(C_DB_MAX_CONN)
-	syncInterval, _ := s.Conf.Configer.Int(C_SYNC_INTERVAL)
-	judgeInterval, _ := s.Conf.Configer.Int(C_JUDGE_INTERVAL)
-	judgeNum, _ := s.Conf.Configer.Int(C_JUDGE_NUM)
+	p.ctx, p.cancel = context.WithCancel(context.Background())
+
+	conf := &s.Conf.Configer
+	dbmaxidle, _ := conf.Int(C_DB_MAX_IDLE)
+	dbmaxconn, _ := conf.Int(C_DB_MAX_CONN)
+	syncInterval, _ := conf.Int(C_SYNC_INTERVAL)
+	judgeInterval, _ := conf.Int(C_JUDGE_INTERVAL)
+	judgeNum, _ := conf.Int(C_JUDGE_NUM)
 	eventChan := s.eventChan
 	p.trigger = &Trigger{}
 
-	db, _, err := falcon.NewOrm("service_sync",
-		s.Conf.Configer.Str(C_SYNC_DSN), dbmaxidle, dbmaxconn)
+	db, _, err := falcon.NewOrm("service_sync", conf.Str(C_SYNC_DSN),
+		dbmaxidle, dbmaxconn)
 	if err != nil {
 		return err
 	}
@@ -201,29 +203,29 @@ func setEventTriggers(rows []*EventTrigger, trigger *Trigger) (err error) {
 	return nil
 }
 
-func setServiceItems(items map[string]*dpEntry, trigger *Trigger) error {
-	for _, item := range items {
+func setServiceEntries(entries map[string]*cacheEntry, trigger *Trigger) error {
+	for _, entry := range entries {
 		// endpoint ?
-		nodes, ok := trigger.hostNodes[string(item.endpoint)]
+		nodes, ok := trigger.hostNodes[string(entry.endpoint)]
 		if !ok {
 			continue
 		}
 
 		for _, node := range nodes {
 			// metric ?
-			ets, ok := node.eventTriggerMetrics[string(item.metric)]
+			triggers, ok := node.eventTriggerMetrics[string(entry.metric)]
 			if !ok {
 				continue
 			}
 
 			// tags ?
-			for _, et := range ets {
-				if !tagsMatch(et.Tags, string(item.tags)) {
+			for _, t := range triggers {
+				if !tagsMatch(t.Tags, string(entry.tags)) {
 					continue
 				}
 
 				// match !
-				et.items = append(et.items, item)
+				t.entries = append(t.entries, entry)
 			}
 		}
 
@@ -231,25 +233,21 @@ func setServiceItems(items map[string]*dpEntry, trigger *Trigger) error {
 	return nil
 }
 
-func setServiceShards(shard *ShardModule, trigger *Trigger) error {
-	bucketMap := make(map[int32]*bucketEntry)
+func setServiceBuckets(cache *CacheModule, trigger *Trigger) error {
 
 	// copy it first
-	shard.RLock()
-	for k, v := range shard.bucketMap {
-		bucketMap[k] = v
-	}
-	shard.RUnlock()
-
-	// process
-	for _, v := range bucketMap {
-		items := make(map[string]*dpEntry)
-		v.RLock()
-		for k1, v1 := range v.dpEntryMap {
-			items[k1] = v1
+	for _, bucket := range cache.buckets {
+		if bucket.getState() != CACHE_BUCKET_ENABLE {
+			continue
 		}
-		v.RUnlock()
-		setServiceItems(items, trigger)
+
+		entries := make(map[string]*cacheEntry)
+		bucket.RLock()
+		for k, v := range bucket.entries {
+			entries[k] = v
+		}
+		bucket.RUnlock()
+		setServiceEntries(entries, trigger)
 	}
 
 	return nil
@@ -289,7 +287,7 @@ func (p *TriggerModule) triggerSync(db orm.Ormer) {
 	if t.updateNode() == nil &&
 		t.updateTagHost() == nil &&
 		t.updateEventTrigger() == nil &&
-		setServiceShards(p.service.shard, t) == nil {
+		setServiceBuckets(p.service.cache, t) == nil {
 
 		p.Lock()
 		p.trigger = t
@@ -312,12 +310,15 @@ func (p *TriggerModule) syncWorker(interval int, db orm.Ormer) {
 	}
 }
 
-func judgeTagNode(node *Node, eventChan chan *alarm.Event) {
+func judgeTagNode(buckets []*cacheBucket, node *Node, eventChan chan *alarm.Event) {
 	for _, eventTriggers := range node.eventTriggerMetrics {
 		for _, eventTrigger := range eventTriggers {
-			statsInc(ST_JUDGE_CNT, len(eventTrigger.items))
-			for _, item := range eventTrigger.items {
-				event := eventTrigger.Dispatch(item)
+			statsInc(ST_JUDGE_CNT, len(eventTrigger.entries))
+			for _, entry := range eventTrigger.entries {
+				if buckets[entry.key.ShardId].getState() != CACHE_BUCKET_ENABLE {
+					continue
+				}
+				event := eventTrigger.Dispatch(entry)
 				if event != nil {
 					select {
 					case eventChan <- event:
@@ -334,6 +335,7 @@ func judgeTagNode(node *Node, eventChan chan *alarm.Event) {
 func (p *TriggerModule) judgeWorker(interval, n int, ch chan *alarm.Event) {
 	ticker := time.NewTicker(time.Second * time.Duration(interval)).C
 	taskCh := make(chan *Node, n)
+	buckets := p.service.cache.buckets
 
 	for i := 0; i < n; i++ {
 		go func() {
@@ -342,7 +344,7 @@ func (p *TriggerModule) judgeWorker(interval, n int, ch chan *alarm.Event) {
 				case <-p.ctx.Done():
 					return
 				case node := <-taskCh:
-					judgeTagNode(node, ch)
+					judgeTagNode(buckets, node, ch)
 				}
 			}
 

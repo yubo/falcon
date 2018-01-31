@@ -48,10 +48,12 @@ func (p *ClientModule) prestart(transfer *Transfer) error {
 }
 
 func (p *ClientModule) start(transfer *Transfer) (err error) {
+	conf := &transfer.Conf.Configer
+
 	p.serviceChans = make(map[string]chan *reqPayload)
 	p.clients = make(map[string]*rpcClient)
-	p.callTimeout, _ = transfer.Conf.Configer.Int(C_CALL_TIMEOUT)
-	p.burstSize, _ = transfer.Conf.Configer.Int(C_BURST_SIZE)
+	p.callTimeout, _ = conf.Int(C_CALL_TIMEOUT)
+	p.burstSize, _ = conf.Int(C_BURST_SIZE)
 
 	for shardId, addr := range transfer.Conf.ShardMap {
 		ch := p.serviceChans[addr]

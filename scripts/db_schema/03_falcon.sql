@@ -135,8 +135,6 @@ CREATE TABLE `host` (
   `idc`			varchar(128)	DEFAULT ''	NOT NULL,
   `disabled`		integer		DEFAULT '0'	NOT NULL,
   `pause`		integer		DEFAULT '0'	NOT NULL,
-  `maintain_begin`	integer		DEFAULT '0'	NOT NULL,
-  `maintain_end`	integer		DEFAULT '0'	NOT NULL,
   PRIMARY KEY (`id`),
   INDEX `index_status` (`status`),
   INDEX `index_type` (`type`),

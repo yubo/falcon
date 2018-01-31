@@ -1,4 +1,4 @@
-.PHONY: clean parse doc deploy start vendor stats
+.PHONY: clean parse doc deploy start vendor stats update
 
 all: dist/bin/falcon
 
@@ -93,5 +93,8 @@ doc:
 
 stats:
 	./dist/bin/falcon stats -config ./docs/etc/falcon.example.conf 
+
+update:
+	git submodule update --recursive --init
 
 include ./scripts/falcon.mk

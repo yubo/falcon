@@ -15,46 +15,40 @@ import (
 )
 
 type Host struct {
-	Id            int64  `json:"id"`
-	Uuid          string `json:"uuid"`
-	Name          string `json:"name"`
-	Type          string `json:"typ"`
-	Status        string `json:"status"`
-	Loc           string `json:"loc"`
-	Idc           string `json:"idc"`
-	Pause         int64  `json:"pause"`
-	MaintainBegin int64  `json:"maintain_begin"`
-	MaintainEnd   int64  `json:"maintain_end"`
+	Id     int64  `json:"id"`
+	Uuid   string `json:"uuid"`
+	Name   string `json:"name"`
+	Type   string `json:"typ"`
+	Status string `json:"status"`
+	Loc    string `json:"loc"`
+	Idc    string `json:"idc"`
+	Pause  int64  `json:"pause"`
 }
 
 type HostApiAdd struct {
-	Uuid          string `json:"uuid"`
-	Name          string `json:"name"`
-	Type          string `json:"typ"`
-	Status        string `json:"status"`
-	Loc           string `json:"loc"`
-	Idc           string `json:"idc"`
-	Pause         int64  `json:"pause"`
-	MaintainBegin int64  `json:"maintain_begin"`
-	MaintainEnd   int64  `json:"maintain_end"`
+	Uuid   string `json:"uuid"`
+	Name   string `json:"name"`
+	Type   string `json:"typ"`
+	Status string `json:"status"`
+	Loc    string `json:"loc"`
+	Idc    string `json:"idc"`
+	Pause  int64  `json:"pause"`
 }
 
 type HostApiUpdate struct {
-	Id            int64  `json:"id"`
-	Uuid          string `json:"uuid"`
-	Name          string `json:"name"`
-	Type          string `json:"typ"`
-	Status        string `json:"status"`
-	Loc           string `json:"loc"`
-	Idc           string `json:"idc"`
-	Pause         int64  `json:"pause"`
-	MaintainBegin int64  `json:"maintain_begin"`
-	MaintainEnd   int64  `json:"maintain_end"`
+	Id     int64  `json:"id"`
+	Uuid   string `json:"uuid"`
+	Name   string `json:"name"`
+	Type   string `json:"typ"`
+	Status string `json:"status"`
+	Loc    string `json:"loc"`
+	Idc    string `json:"idc"`
+	Pause  int64  `json:"pause"`
 }
 
 func (op *Operator) CreateHost(h *HostApiAdd) (id int64, err error) {
-	id, err = op.SqlInsert("insert host (uuid, name, type, status, loc, idc, pause, maintain_begin, maintain_end) values (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-		h.Uuid, h.Name, h.Type, h.Status, h.Loc, h.Idc, h.Pause, h.MaintainBegin, h.MaintainEnd)
+	id, err = op.SqlInsert("insert host (uuid, name, type, status, loc, idc, pause) values (?, ?, ?, ?, ?, ?, ?)",
+		h.Uuid, h.Name, h.Type, h.Status, h.Loc, h.Idc, h.Pause)
 	if err != nil {
 		return
 	}
@@ -69,7 +63,7 @@ func (op *Operator) GetHost(id int64) (h *Host, err error) {
 	}
 
 	h = &Host{}
-	err = op.SqlRow(h, "select id, uuid, name, type, status, loc, idc, pause, maintain_begin, maintain_end from host where id = ?", id)
+	err = op.SqlRow(h, "select id, uuid, name, type, status, loc, idc, pause from host where id = ?", id)
 	if err != nil {
 		return
 	}
@@ -86,13 +80,13 @@ func (op *Operator) GetHostsCnt(query string) (cnt int64, err error) {
 
 func (op *Operator) GetHosts(query string, limit, offset int) (ret []*Host, err error) {
 	sql, sql_args := sqlName(query)
-	sql = sqlLimit("select id, uuid, name, type, status, loc, idc, pause, maintain_begin, maintain_end from host "+sql+" ORDER BY name", limit, offset)
+	sql = sqlLimit("select id, uuid, name, type, status, loc, idc, pause from host "+sql+" ORDER BY name", limit, offset)
 	_, err = op.O.Raw(sql, sql_args...).QueryRows(&ret)
 	return
 }
 
 func (op *Operator) UpdateHost(h *Host) (ret *Host, err error) {
-	_, err = op.SqlExec("update host set uuid = ?, name = ?, type = ?, status = ?, loc = ?, idc = ?, pause = ?, maintain_begin = ?, maintain_end = ? where id = ?", h.Uuid, h.Name, h.Type, h.Status, h.Loc, h.Idc, h.Pause, h.MaintainBegin, h.MaintainEnd, h.Id)
+	_, err = op.SqlExec("update host set uuid = ?, name = ?, type = ?, status = ?, loc = ?, idc = ?, pause = ? where id = ?", h.Uuid, h.Name, h.Type, h.Status, h.Loc, h.Idc, h.Pause, h.Id)
 	if err != nil {
 		return
 	}
@@ -203,7 +197,7 @@ func (op *Operator) GetTagHost(tagId int64, query string, deep bool,
 		return ctrl.Hooks.GetTagHost(tag.Name, query, deep, limit, offset)
 	} else {
 		sql, sql_args := tagHostSql(tagId, query, deep)
-		sql = "select a.id, a.tag_id as tag_id, a.host_id as host_id, h.name as host_name, h.pause as pause, h.maintain_begin as maintain_begin, h.maintain_end as maintain_end, t.name as tag_name from tag_host a left join host h on a.host_id = h.id left join tag t on a.tag_id = t.id " + sql + " ORDER BY h.name"
+		sql = "select a.id, a.tag_id as tag_id, a.host_id as host_id, h.name as host_name, h.pause as pause, t.name as tag_name from tag_host a left join host h on a.host_id = h.id left join tag t on a.tag_id = t.id " + sql + " ORDER BY h.name"
 		if limit > 0 {
 			sql += " LIMIT ? OFFSET ?"
 			sql_args = append(sql_args, limit, offset)

@@ -17,10 +17,12 @@ import (
 	"github.com/golang/glog"
 	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/ctrl"
+	"github.com/yubo/falcon/ctrl/api/models"
 	"golang.org/x/net/context"
 )
 
 const (
+	MODULE_NAME         = "\x1B[33m[CTRL_PLUGIN_MI]\x1B[0m"
 	C_MI_NORNS_INTERVAL = "minornsinterval"
 	C_MI_NORNS_URL      = "minornsurl"
 
@@ -53,6 +55,17 @@ type NornsHostInfo struct {
 	Name   string
 	Tags   []string
 	Detail NornsHosts
+}
+
+type Host struct {
+	Id     int64
+	Uuid   string
+	Name   string
+	Type   string
+	Status string
+	Loc    string
+	Idc    string
+	Pause  int64
 }
 
 type miSync struct {
@@ -124,30 +137,29 @@ func init() {
 	ctrl.RegisterModule(&MiModule{})
 }
 
-func (p *MiModule) PreStart(ctrl *Ctrl) error {
-	ctrl.Hooks.RateLimitsAccess = rateLimitsAccess
+func (p *MiModule) PreStart(c *ctrl.Ctrl) error {
 	module = p
 	return nil
 }
 
-func (p *MiModule) Start(ctrl *Ctrl) error {
-	conf := &ctrl.Conf.Ctrl
+func (p *MiModule) Start(c *ctrl.Ctrl) error {
+	conf := &c.Conf.Ctrl
 	p.ctx, p.cancel = context.WithCancel(context.Background())
 
 	url := conf.DefaultString(C_MI_NORNS_URL, C_MI_NORNS_URL_DEF)
-	interval, _ := conf.DefaultInt(C_MI_NORNS_INTERVAL, C_MI_NORNS_INTERVAL_DEF)
+	interval := conf.DefaultInt(C_MI_NORNS_INTERVAL, C_MI_NORNS_INTERVAL_DEF)
 
 	syncWorker(url, interval, p.ctx)
 
 	return nil
 }
 
-func (p *MiModule) Stop(ctrl *Ctrl) error {
+func (p *MiModule) Stop(c *ctrl.Ctrl) error {
 	p.cancel()
 	return nil
 }
 
-func (p *MiModule) Reload(ctrl *Ctrl) error {
+func (p *MiModule) Reload(c *ctrl.Ctrl) error {
 	return nil
 }
 
@@ -161,7 +173,7 @@ func miGetTagHostByTag(tagstring, query string, localhosts map[string]*Host) (re
 	}
 	tags := strings.Split(tagstring, ",")
 
-	for _, host := range miSyncer.ctx.h {
+	for _, host := range module.miSyncer.ctx.h {
 		if query != "" && !strings.Contains(host.name, query) {
 			continue
 		}
@@ -196,11 +208,11 @@ func miGetTagHostCnt(tag, query string, deep bool) (int64, error) {
 	var hosts []*ctrl.TagHostApiGet
 	var err error
 
-	if miSyncer.ctx == nil {
+	if module.miSyncer.ctx == nil {
 		return 0, nil
 	}
 
-	hosts, err = miGetTagHostByTag(tag, query, miSyncer.localhosts)
+	hosts, err = miGetTagHostByTag(tag, query, module.miSyncer.localhosts)
 	if err != nil {
 		return 0, err
 	}
@@ -210,11 +222,11 @@ func miGetTagHostCnt(tag, query string, deep bool) (int64, error) {
 func miGetTagHost(tag, query string, deep bool,
 	limit, offset int) (ret []*ctrl.TagHostApiGet, err error) {
 
-	if miSyncer.ctx == nil {
+	if module.miSyncer.ctx == nil {
 		return
 	}
 
-	ret, err = miGetTagHostByTag(tag, query, miSyncer.localhosts)
+	ret, err = miGetTagHostByTag(tag, query, module.miSyncer.localhosts)
 	if err != nil {
 		return
 	}
@@ -227,10 +239,8 @@ func miGetTagHost(tag, query string, deep bool,
 	}
 
 	for i, _ := range ret {
-		if h1, err := SysOp.GetHost(ret[i].HostId); err == nil {
+		if h1, err := models.SysOp.GetHost(ret[i].HostId); err == nil {
 			ret[i].Pause = h1.Pause
-			ret[i].MaintainBegin = h1.MaintainBegin
-			ret[i].MaintainEnd = h1.MaintainEnd
 		}
 	}
 	return
@@ -245,7 +255,7 @@ func miFetchHosts(filename string) (ctx *miSyncContent, err error) {
 		host: make(map[string]*miHost),
 	}
 	if filename == "" {
-		if err = falcon.GetJson(miNornsUrl, &hosts, 2*time.Minute); err != nil {
+		if err = falcon.GetJson(module.miNornsUrl, &hosts, 2*time.Minute); err != nil {
 			glog.Error(MODULE_NAME, err)
 			return
 		}
@@ -274,7 +284,7 @@ func miFetchHosts(filename string) (ctx *miSyncContent, err error) {
 			idc:    h.Detail.Idc,
 		}
 		for k, v := range host.tags {
-			host.tags[k] = TagToNew(v)
+			host.tags[k] = models.TagToNew(v)
 		}
 
 		for _, t := range h.Tags {
@@ -289,7 +299,7 @@ func miFetchHosts(filename string) (ctx *miSyncContent, err error) {
 				n = len(t)
 			}
 
-			node := ctx.getNode(TagToNew(t[:n]))
+			node := ctx.getNode(models.TagToNew(t[:n]))
 			node.host = append(node.host, host)
 		}
 		ctx.host[host.name] = host
@@ -306,7 +316,7 @@ func getLocalHosts() (hm map[string]*Host) {
 	hm = make(map[string]*Host)
 
 	for i := 0; ; i++ {
-		n, err := ctrl.Orm.Ctrl.Raw("select id, uuid, name, type, status, loc, idc, pause, maintain_begin, maintain_end, create_time from host limit ? offset ?", 100, 100*i).QueryRows(&ha)
+		n, err := ctrl.Orm.Ctrl.Raw("select id, uuid, name, type, status, loc, idc, pause, create_time from host limit ? offset ?", 100, 100*i).QueryRows(&ha)
 		if err != nil || n == 0 {
 			break
 		}
@@ -367,13 +377,13 @@ func syncHosts(src map[string]*miHost, dst map[string]*Host) {
 }
 
 func syncWorker(url string, interval int, ctx context.Context) {
-	miNornsUrl = url
-	miSyncer.localhosts = make(map[string]*Host)
+	module.miNornsUrl = url
+	module.miSyncer.localhosts = make(map[string]*Host)
 	go func() {
-		miSyncer.localhosts = getLocalHosts()
+		module.miSyncer.localhosts = getLocalHosts()
 		if ctx, err := miFetchHosts(""); err == nil {
-			miSyncer.ctx = ctx
-			syncHosts(miSyncer.ctx.host, miSyncer.localhosts)
+			module.miSyncer.ctx = ctx
+			syncHosts(module.miSyncer.ctx.host, module.miSyncer.localhosts)
 		}
 		ticker := time.NewTicker(time.Minute * time.Duration(interval)).C
 		for {
@@ -382,8 +392,8 @@ func syncWorker(url string, interval int, ctx context.Context) {
 				return
 			case <-ticker:
 				if ctx, err := miFetchHosts(""); err == nil {
-					miSyncer.ctx = ctx
-					syncHosts(miSyncer.ctx.host, miSyncer.localhosts)
+					module.miSyncer.ctx = ctx
+					syncHosts(module.miSyncer.ctx.host, module.miSyncer.localhosts)
 				}
 			}
 		}

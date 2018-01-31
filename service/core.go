@@ -21,15 +21,16 @@ const (
 	FLUSH_DISK_STEP         = 1    //s
 	DEFAULT_HISTORY_SIZE    = 3
 	CONN_RETRY              = 2
-	CACHE_SIZE              = 1 << 4
-	CACHE_SIZE_MASK         = CACHE_SIZE - 1
+	CACHE_DATA_SIZE         = 1 << 4
+	CACHE_DATA_SIZE_MASK    = CACHE_DATA_SIZE - 1
 	DATA_TIMESTAMP_REGULATE = false
 	INDEX_QPS               = 100
 	INDEX_UPDATE_INTERVAL   = 3600 * 24
-	INDEX_EXPIRE_TIME       = 3600 * 26
-	DEBUG_MULTIPLES         = 20    // demo 时间倍数
-	DEBUG_STEP              = 60    //
-	DEBUG_SAMPLE_NB         = 18000 //单周期生成样本数量
+	CACHE_EXPIRE_TIME       = 3600 * 26 // 超时时间 (s)
+	CACHE_CLEAN_INTERVAL    = 3600      // 回收检查间隔时间 (s)
+	DEBUG_MULTIPLES         = 20        // demo 时间倍数
+	DEBUG_STEP              = 60        //
+	DEBUG_SAMPLE_NB         = 18000     //单周期生成样本数量
 	DEBUG_STAT_STEP         = 60
 	MODULE_NAME             = "\x1B[36m[SERVICE]\x1B[0m"
 	CTRL_STEP               = 360
@@ -82,7 +83,7 @@ type Service struct {
 	status uint32
 
 	//shardModule
-	shard *ShardModule
+	cache *CacheModule
 
 	// tsdb
 	tsdb *TsdbModule

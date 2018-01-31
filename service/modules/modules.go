@@ -15,12 +15,12 @@ func init() {
 	falcon.RegisterModule(&service.Service{}, "service",
 		falcon.GetType(config.Service{}))
 
-	service.RegisterModule(&service.TsdbModule{})
-	service.RegisterModule(&service.ShardModule{})
-	service.RegisterModule(&service.ApiModule{})
-	service.RegisterModule(&service.ApiGwModule{})
 	service.RegisterModule(&service.TimerModule{})
+	service.RegisterModule(&service.TsdbModule{})
+	service.RegisterModule(&service.CacheModule{})
 	service.RegisterModule(&service.TriggerModule{})
 	service.RegisterModule(&service.ClientModule{})
+	service.RegisterModule(&service.ApiModule{})
+	service.RegisterModule(&service.ApiGwModule{})
 
 }

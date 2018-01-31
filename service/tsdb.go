@@ -7,7 +7,6 @@ package service
 
 import (
 	"fmt"
-	"log"
 	"math/rand"
 	"os"
 	"sort"
@@ -16,6 +15,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/golang/glog"
 	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/lib/tsdb"
 	"golang.org/x/net/context"
@@ -23,7 +23,6 @@ import (
 
 const (
 	dataDirectory = "/tmp/tsdb"
-	shardNum      = tsdb.GORILLA_SHARDS
 )
 
 var (
@@ -54,7 +53,6 @@ var (
 // shard -> bucket -> item
 type TsdbModule struct {
 	sync.RWMutex
-	service *Service
 	buckets map[int]*tsdb.BucketMap
 
 	ctx    context.Context
@@ -85,7 +83,6 @@ func (g *GetResponse) PrintForDebug() string {
 
 func (t *TsdbModule) prestart(s *Service) error {
 	s.tsdb = t
-	t.service = s
 	return nil
 }
 
@@ -104,7 +101,7 @@ func (t *TsdbModule) start(s *Service) (err error) {
 	}
 
 	t.buckets = make(map[int]*tsdb.BucketMap)
-	for shardId := 0; shardId < shardNum; shardId++ {
+	for shardId := 0; shardId < falcon.SHARD_NUM; shardId++ {
 		k := keyWriters[rand.Intn(len(keyWriters))]
 		b := bucketLogWriters[rand.Intn(len(bucketLogWriters))]
 		if err := createShardPath(shardId); err != nil {
@@ -114,7 +111,7 @@ func (t *TsdbModule) start(s *Service) (err error) {
 			dataDirectory, k, b, tsdb.UNOWNED)
 	}
 
-	t.reload(t.service)
+	t.reload(s)
 
 	go t.cleanWorker()
 	go t.finalizeBucketWorker()
@@ -174,11 +171,11 @@ func (t *TsdbModule) put(req *PutRequest) (*PutResponse, error) {
 	for _, dp := range req.Data {
 		m := t.buckets[int(dp.Key.ShardId)]
 		if m == nil {
-			return res, falcon.EEXIST
+			return res, falcon.ErrNoExits
 		}
 
 		// Adjust 0, late, or early timestamps to now. Disable only for testing.
-		now := time.Now().Unix()
+		now := timer.now()
 		if adjustTimestamp {
 			if dp.Value.Timestamp == 0 || dp.Value.Timestamp < now-int64(allowTimestampBehind) ||
 				dp.Value.Timestamp > now+int64(allowTimestampAhead) {
@@ -230,11 +227,11 @@ func (t *TsdbModule) _get(key *tsdb.Key, start, end int64) (res []*tsdb.TimeValu
 		}
 
 		if state == tsdb.READING_BLOCK_DATA {
-			log.Printf("Shard %d in process", key.ShardId)
+			glog.V(1).Infof("Shard %d in process", key.ShardId)
 		}
 
 		if start < m.GetReliableDataStartTime() {
-			log.Printf("missing too much data")
+			glog.V(1).Infof("missing too much data")
 		}
 
 		return res, nil
@@ -276,13 +273,13 @@ func (t *TsdbModule) cleanWorker() {
 					v.CompactKeyList()
 					err := v.DeleteOldBlockFiles()
 					if err != nil {
-						log.Println(err)
+						glog.Infof("%s %v", MODULE_NAME, err)
 						continue
 					}
 				} else if state == tsdb.PRE_UNOWNED {
 					err := v.SetState(tsdb.UNOWNED)
 					if err != nil {
-						log.Println(err)
+						glog.Infof("%s %v", MODULE_NAME, err)
 						continue
 					}
 				}
@@ -299,7 +296,7 @@ func (t *TsdbModule) finalizeBucketWorker() {
 		case <-t.ctx.Done():
 			return
 		case <-ticker:
-			timestamp := time.Now().Unix() - int64(allowTimestampAhead+allowTimestampBehind) -
+			timestamp := timer.now() - int64(allowTimestampAhead+allowTimestampBehind) -
 				int64(tsdb.Duration(1, bucketSize))
 			t.finalizeBucket(timestamp)
 		}
@@ -313,7 +310,7 @@ func (t *TsdbModule) addShard(shards []int) {
 	for _, shardId := range shards {
 		m := t.buckets[shardId]
 		if m == nil {
-			log.Printf("Invalid shardId :%d", shardId)
+			glog.Infof("%s Invalid shardId :%d", MODULE_NAME, shardId)
 			continue
 		}
 
@@ -322,17 +319,17 @@ func (t *TsdbModule) addShard(shards []int) {
 		}
 
 		if err := m.SetState(tsdb.PRE_OWNED); err != nil {
-			log.Println(err)
+			glog.Infof("%s %v", MODULE_NAME, err)
 			continue
 		}
 
 		if err := m.ReadKeyList(); err != nil {
-			log.Println(err)
+			glog.Infof("%s %v", MODULE_NAME, err)
 			continue
 		}
 
 		if err := m.ReadData(); err != nil {
-			log.Println(err)
+			glog.Infof("%s %v", MODULE_NAME, err)
 			continue
 		}
 	}
@@ -341,7 +338,7 @@ func (t *TsdbModule) addShard(shards []int) {
 		for _, shardId := range shards {
 			m := t.buckets[shardId]
 			if m == nil {
-				log.Printf("Invalid shardId :%d", shardId)
+				glog.Infof("%s Invalid shardId :%d", MODULE_NAME, shardId)
 				continue
 			}
 
@@ -351,14 +348,14 @@ func (t *TsdbModule) addShard(shards []int) {
 
 			more, err := m.ReadBlockFiles()
 			if err != nil {
-				log.Println(err)
+				glog.Infof("%s %v", MODULE_NAME, err)
 				continue
 			}
 
 			for more {
 				more, err = m.ReadBlockFiles()
 				if err != nil {
-					log.Println(err)
+					glog.Infof("%s %v", MODULE_NAME, err)
 					break
 				}
 			}
@@ -374,7 +371,7 @@ func (t *TsdbModule) dropShard(shards []int) error {
 	for _, shardId := range shards {
 		m := t.buckets[shardId]
 		if m == nil {
-			log.Printf("Invalid shardId :%d", shardId)
+			glog.Infof("%s Invalid shardId :%d", MODULE_NAME, shardId)
 			continue
 		}
 
@@ -383,7 +380,7 @@ func (t *TsdbModule) dropShard(shards []int) error {
 		}
 
 		if err := m.SetState(tsdb.PRE_UNOWNED); err != nil {
-			log.Println(err)
+			glog.Infof("%s %v", MODULE_NAME, err)
 			continue
 		}
 	}
@@ -400,7 +397,7 @@ func (t *TsdbModule) finalizeBucket(timestamp int64) {
 			bucketToFinalize := bucket.Bucket(timestamp)
 			_, err := bucket.FinalizeBuckets(bucketToFinalize)
 			if err != nil {
-				log.Println(err)
+				glog.Infof("%s %v", MODULE_NAME, err)
 				continue
 			}
 		}

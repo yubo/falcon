@@ -38,6 +38,7 @@ func (p *ApiModule) Get(ctx context.Context,
 func (p *ApiModule) Put(ctx context.Context,
 	in *PutRequest) (res *PutResponse, err error) {
 
+	//TODO
 	glog.V(4).Infof("%s rx put %v", MODULE_NAME, len(in.Data))
 	res, err = p.service.tsdb.put(in)
 	if err != nil {

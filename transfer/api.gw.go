@@ -24,13 +24,15 @@ type ApiGwModule struct {
 }
 
 func (p *ApiGwModule) prestart(transfer *Transfer) error {
-	p.upstream = transfer.Conf.Configer.Str(C_API_ADDR)
-	p.address = transfer.Conf.Configer.Str(C_HTTP_ADDR)
-	p.disable = falcon.AddrIsDisable(p.address)
 	return nil
 }
 
 func (p *ApiGwModule) start(transfer *Transfer) error {
+	conf := &transfer.Conf.Configer
+	p.upstream = conf.Str(C_API_ADDR)
+	p.address = conf.Str(C_HTTP_ADDR)
+	p.disable = falcon.AddrIsDisable(p.address)
+
 	if p.disable {
 		glog.Info(MODULE_NAME + "http disable")
 		return nil

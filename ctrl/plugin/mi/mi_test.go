@@ -11,7 +11,7 @@ import (
 )
 
 func testMi(t *testing.T) {
-	miSyncer.ctx, _ = miFetchHosts("/home/yubo/tmp/hostinfos")
+	module.miSyncer.ctx, _ = miFetchHosts("/home/yubo/tmp/hostinfos")
 	h, err := miGetTagHost("cop=xiaomi,owt=dba,pdl=huyu,service=game-stat", "",
 		true, 0, 0)
 	fmt.Println(len(h), h, err)

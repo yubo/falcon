@@ -55,7 +55,7 @@ func init() {
 func testTirggerDb(t *testing.T) {
 	var (
 		err           error
-		shard         *ShardModule
+		shard         *CacheModule
 		trigger       *Trigger
 		treeNodes     []*Node
 		tagHosts      []*TagHost
@@ -67,9 +67,7 @@ func testTirggerDb(t *testing.T) {
 		return
 	}
 
-	shard = &ShardModule{
-		bucketMap: make(map[int32]*bucketEntry),
-	}
+	shard = &CacheModule{buckets: make([]*cacheBucket, falcon.SHARD_NUM)}
 
 	trigger = &Trigger{}
 
@@ -94,24 +92,12 @@ func testTirggerDb(t *testing.T) {
 		t.Error(err)
 	}
 
-	if err = setServiceShards(shard, trigger); err != nil {
+	if err = setServiceBuckets(shard, trigger); err != nil {
 		t.Error(err)
 	}
 }
 
-func testGenerateShard() *ShardModule {
-
-	shard := &ShardModule{
-		bucketMap: make(map[int32]*bucketEntry),
-	}
-	shard.putQueue.init()
-	shard.idxQueue.init()
-	shard.bucketMap[0] = &bucketEntry{dpEntryMap: make(map[string]*dpEntry)}
-
-	return shard
-}
-
-func testFillDps(shard *ShardModule, keys []*tsdb.Key, vs []*tsdb.TimeValuePair, t *testing.T) {
+func testFillDps(shard *CacheModule, keys []*tsdb.Key, vs []*tsdb.TimeValuePair, t *testing.T) {
 	for _, key := range keys {
 		for _, v := range vs {
 			if _, err := shard.put(&tsdb.DataPoint{Key: key, Value: v}); err != nil {
@@ -143,7 +129,7 @@ func testTriggerExprProcess(trigger *Trigger) int {
 	}()
 
 	for _, node := range trigger.nodes {
-		judgeTagNode(node, eventCh)
+		judgeTagNode(cache.buckets, node, eventCh)
 	}
 
 	time.Sleep(time.Millisecond * 100)
@@ -153,6 +139,11 @@ func testTriggerExprProcess(trigger *Trigger) int {
 }
 
 func testTrigger(t *testing.T) {
+	test_cache_init()
+	cache.prestart(cacheApp)
+	cache.start(cacheApp)
+	defer cache.stop(cacheApp)
+
 	treeNodes := []*Node{
 		{2, "cop=xiaomi", 1, nil, nil, nil},
 		{3, "cop=xiaomi,owt=inf", 2, nil, nil, nil},
@@ -192,9 +183,8 @@ func testTrigger(t *testing.T) {
 	}
 
 	trigger := &Trigger{}
-	shard := testGenerateShard()
 
-	testFillDps(shard, testKeys, testVs, t)
+	testFillDps(cache, testKeys, testVs, t)
 
 	if err = setNodes(treeNodes, trigger); err != nil {
 		t.Error(err)
@@ -205,7 +195,7 @@ func testTrigger(t *testing.T) {
 	if err = setEventTriggers(eventTriggers, trigger); err != nil {
 		t.Error(err)
 	}
-	if err = setServiceShards(shard, trigger); err != nil {
+	if err = setServiceBuckets(cache, trigger); err != nil {
 		t.Error(err)
 	}
 
@@ -229,7 +219,7 @@ func testTrigger(t *testing.T) {
 				glog.V(5).Infof("    %s %s msg '%s' tags '%s'\n",
 					trigger.Metric, trigger.Expr,
 					trigger.Msg, trigger.Tags)
-				for _, item := range trigger.items {
+				for _, item := range trigger.entries {
 					cnt[0]++
 					glog.V(5).Infof("        %s %s %s\n", item.endpoint, item.metric, item.tags)
 				}

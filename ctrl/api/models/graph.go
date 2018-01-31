@@ -27,9 +27,7 @@ type Endpoint struct {
 type EndpointCounter struct {
 	Id         uint      `json:"-"`
 	EndpointId int64     `json:"-"`
-	Counter    string    `json:"counter"`
-	Step       int       `json:"step"`
-	Type       string    `json:"type"`
+	Counter    string    `json:"counter"` // metric/tags/type
 	Ts         int       `json:"-"`
 	TCreate    time.Time `json:"-"`
 	TModify    time.Time `json:"-"`
@@ -76,7 +74,7 @@ func (op *Operator) GetEndpointCounter(query string, ids []string, limit int) (r
 			args = append(args, strings.TrimSpace(q))
 		}
 	}
-	sql := fmt.Sprintf("select counter, step, type from endpoint_counter WHERE %s group by counter order by counter LIMIT %d",
+	sql := fmt.Sprintf("select counter from endpoint_counter WHERE %s group by counter order by counter LIMIT %d",
 		strings.Join(sql2, " AND "), limit)
 	_, err = Db.Idx.Raw(sql, args...).QueryRows(&ret)
 	return
