@@ -35,12 +35,9 @@ func indexUpdateTagEndpoint(tags_ string, lastTs int64, db orm.Ormer, hid int64)
 	return
 }
 
-func indexUpdateEndpointCounter(counter, tags, typ string, ts int64, db orm.Ormer, hid int64) (err error) {
-	if len(tags) > 0 {
-		counter += "/" + tags
-	}
+func indexUpdateEndpointCounter(metric, tags, typ string, ts int64, db orm.Ormer, hid int64) (err error) {
 
-	_, err = db.Raw("INSERT INTO endpoint_counter(endpoint_id,counter,type,ts,t_create) VALUES (?,?,?,?,now()) ON DUPLICATE KEY UPDATE ts=?, type=?,t_modify=now()", hid, counter, typ, ts, ts, typ).Exec()
+	_, err = db.Raw("INSERT INTO endpoint_counter(endpoint_id,counter,ts,t_create) VALUES (?,?,?,now()) ON DUPLICATE KEY UPDATE ts=?, t_modify=now()", hid, metric+"/"+tags+"/"+typ, ts, ts).Exec()
 	if err != nil {
 		statsInc(ST_INDEX_COUNTER_INSERT_ERR, 1)
 	}

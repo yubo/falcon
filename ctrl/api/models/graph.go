@@ -33,6 +33,21 @@ type EndpointCounter struct {
 	TModify    time.Time `json:"-"`
 }
 
+type CounterDataApiGet struct {
+	Counters  []string `json:"counters"`
+	Endpoints []string `json:"hostnames"`
+	ConsolFun string   `json:"consol_fun"`
+	Start     int64    `json:"start_time"`
+	End       int64    `json:"end_time"`
+}
+
+type CounterDataApiGetResponse struct {
+	Endpoint string           `json:"endpoint"`
+	Counter  string           `json:"counter"`
+	DsType   string           `json:"dstype"`
+	Values   [][2]interface{} `json:"Values"` //为了减少数据传输量，将map转为slice
+}
+
 type DataPointApiGet struct {
 	Keys      []string `json:"keys"`
 	ConsolFun string   `json:"consol_fun"`

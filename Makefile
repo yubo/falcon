@@ -67,7 +67,7 @@ deploy: $(DEPENDS)
 	cd dist && ../scripts/deploy.sh
 
 start:
-	rm -f ./var/*.rpc; ./dist/bin/falcon start -config ./docs/etc/falcon.example.conf 2>&1
+	rm -f /tmp/falcon/*.sock; ./dist/bin/falcon start -config ./docs/etc/falcon.example.conf 2>&1
 
 reload:
 	./dist/bin/falcon reload -config ./docs/etc/falcon.example.conf 2>&1

@@ -33,11 +33,24 @@ func (p *OrmModule) Start(ctrl *Ctrl) (err error) {
 	dbMaxConn, _ := conf.Int(C_DB_MAX_CONN)
 	dbMaxIdle, _ := conf.Int(C_DB_MAX_IDLE)
 
-	if p.Ctrl, p.CtrlDb, err = falcon.NewOrm("ctrl_falcon",
-		conf.Str(C_DSN), dbMaxIdle,
-		dbMaxConn); err != nil {
+	orm.RegisterDriver("mysql", orm.DRMySQL)
+	err = orm.RegisterDataBase("default", "mysql", conf.Str(C_DSN), dbMaxIdle, dbMaxConn)
+	if err != nil {
 		return err
 	}
+	p.Ctrl = orm.NewOrm()
+	p.CtrlDb, err = orm.GetDB()
+	if err != nil {
+		return err
+	}
+
+	/*
+		if p.Ctrl, p.CtrlDb, err = falcon.NewOrm("ctrl_falcon",
+			conf.Str(C_DSN), dbMaxIdle,
+			dbMaxConn); err != nil {
+			return err
+		}
+	*/
 	if p.Idx, _, err = falcon.NewOrm("ctrl_index",
 		conf.Str(C_IDX_DSN), dbMaxIdle,
 		dbMaxConn); err != nil {

@@ -15,9 +15,6 @@ import (
 
 const (
 	MODULE_NAME          = "\x1B[31m[ALARM]\x1B[0m"
-	CONN_RETRY           = 2
-	DEBUG_STAT_STEP      = 60
-	CTRL_STEP            = 360
 	EVENT_CLEAN_INTERVAL = 2 // second
 
 	C_API_ADDR          = "apiaddr"

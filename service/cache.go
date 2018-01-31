@@ -49,7 +49,7 @@ func (p *CacheModule) start(s *Service) (err error) {
 
 	dbmaxidle, _ := conf.Int(C_DB_MAX_IDLE)
 	dbmaxconn, _ := conf.Int(C_DB_MAX_CONN)
-	db, _, err := falcon.NewOrm("service_index", conf.Str(C_DSN),
+	db, _, err := falcon.NewOrm("service_index", conf.Str(C_IDX_DSN),
 		dbmaxidle, dbmaxconn)
 	if err != nil {
 		return err
@@ -151,7 +151,7 @@ func (p *CacheModule) cleanWorker() {
 			return
 		case <-ticker:
 			for _, bucket := range p.buckets {
-				bucket.clean(CACHE_EXPIRE_TIME)
+				bucket.clean(CACHE_EXPIRE_TIME, &p.idxQueue)
 			}
 		}
 	}

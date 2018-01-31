@@ -71,3 +71,10 @@ func (p *queue) moveTail(entry *list.ListHead) {
 	p.head.MoveTail(entry)
 	//p.size++
 }
+
+func (p *queue) del(entry *list.ListHead) {
+	p.Lock()
+	defer p.Unlock()
+
+	entry.DelInit()
+}

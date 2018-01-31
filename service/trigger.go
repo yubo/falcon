@@ -58,19 +58,19 @@ func (p *TriggerModule) start(s *Service) (err error) {
 	conf := &s.Conf.Configer
 	dbmaxidle, _ := conf.Int(C_DB_MAX_IDLE)
 	dbmaxconn, _ := conf.Int(C_DB_MAX_CONN)
-	syncInterval, _ := conf.Int(C_SYNC_INTERVAL)
+	confInterval, _ := conf.Int(C_CONF_INTERVAL)
 	judgeInterval, _ := conf.Int(C_JUDGE_INTERVAL)
 	judgeNum, _ := conf.Int(C_JUDGE_NUM)
 	eventChan := s.eventChan
 	p.trigger = &Trigger{}
 
-	db, _, err := falcon.NewOrm("service_sync", conf.Str(C_SYNC_DSN),
+	db, _, err := falcon.NewOrm("service_trigger", conf.Str(C_DSN),
 		dbmaxidle, dbmaxconn)
 	if err != nil {
 		return err
 	}
 
-	go p.syncWorker(syncInterval, db)
+	go p.confWorker(confInterval, db)
 	go p.judgeWorker(judgeInterval, judgeNum, eventChan)
 
 	return nil
@@ -296,7 +296,7 @@ func (p *TriggerModule) triggerSync(db orm.Ormer) {
 
 }
 
-func (p *TriggerModule) syncWorker(interval int, db orm.Ormer) {
+func (p *TriggerModule) confWorker(interval int, db orm.Ormer) {
 	ticker := time.NewTicker(time.Second * time.Duration(interval)).C
 	p.triggerSync(db)
 

@@ -14,14 +14,12 @@ import (
 )
 
 const (
-	MODULE_NAME     = "\x1B[35m[TRANSFER]\x1B[0m"
-	CONN_RETRY      = 2
-	DEBUG_STAT_STEP = 60
-	CTRL_STEP       = 360
-	C_API_ADDR      = "apiaddr"
-	C_HTTP_ADDR     = "httpaddr"
-	C_CALL_TIMEOUT  = "calltimeout"
-	C_BURST_SIZE    = "burstsize"
+	MODULE_NAME = "\x1B[35m[TRANSFER]\x1B[0m"
+
+	C_API_ADDR     = "apiaddr"
+	C_HTTP_ADDR    = "httpaddr"
+	C_CALL_TIMEOUT = "calltimeout"
+	C_BURST_SIZE   = "burstsize"
 )
 
 var (

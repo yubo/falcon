@@ -1202,7 +1202,7 @@
                         "description": "api query graph draw data",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.APIQueryGraphDrawData"
+                            "$ref": "#/definitions/models.DataPointApiGet"
                         }
                     }
                 ],
@@ -1210,10 +1210,38 @@
                     "200": {
                         "description": "\"graph query response\"",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.GraphQueryResponse"
-                            }
+                            "$ref": "#/definitions/.GetResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "string error"
+                    }
+                }
+            }
+        },
+        "/graph/datapoint": {
+            "post": {
+                "tags": [
+                    "graph"
+                ],
+                "description": "get tmp graph",
+                "operationId": "GraphController.Get Counters Data for draw lines",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "api query graph draw data",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.DataPointApiGet"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "\"graph query response\"",
+                        "schema": {
+                            "$ref": "#/definitions/.GetResponse"
                         }
                     },
                     "400": {
@@ -1324,7 +1352,7 @@
                         "description": "body for host content",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.HostUpdate"
+                            "$ref": "#/definitions/.HostUpdate"
                         }
                     }
                 ],
@@ -1353,7 +1381,7 @@
                         "description": "body for host content",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.HostCreate"
+                            "$ref": "#/definitions/.HostCreate"
                         }
                     }
                 ],
@@ -1681,7 +1709,7 @@
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.TagHostApiGet"
+                                "$ref": "#/definitions/.TagHostApiGet"
                             }
                         }
                     },
@@ -2021,7 +2049,7 @@
                         "description": "body for role content",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.RoleUpdate"
+                            "$ref": "#/definitions/.RoleUpdate"
                         }
                     }
                 ],
@@ -2050,7 +2078,7 @@
                         "description": "body for role content",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.RoleCreate"
+                            "$ref": "#/definitions/.RoleCreate"
                         }
                     }
                 ],
@@ -2337,7 +2365,7 @@
                         "description": "body for user content",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.UserProfileUpdate"
+                            "$ref": "#/definitions/.UserProfileUpdate"
                         }
                     }
                 ],
@@ -2626,7 +2654,7 @@
                         "description": "body for token content",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.TokenUpdate"
+                            "$ref": "#/definitions/.TokenUpdate"
                         }
                     }
                 ],
@@ -2655,7 +2683,7 @@
                         "description": "body for token content",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.TokenCreate"
+                            "$ref": "#/definitions/.TokenCreate"
                         }
                     }
                 ],
@@ -3603,10 +3631,37 @@
         }
     },
     "definitions": {
+        ".GetResponse": {
+            "type": "object"
+        },
+        ".HostCreate": {
+            "type": "object"
+        },
+        ".HostUpdate": {
+            "type": "object"
+        },
         ".Obj": {
             "type": "object"
         },
+        ".RoleCreate": {
+            "type": "object"
+        },
+        ".RoleUpdate": {
+            "type": "object"
+        },
+        ".TagHostApiGet": {
+            "type": "object"
+        },
+        ".TokenCreate": {
+            "type": "object"
+        },
+        ".TokenUpdate": {
+            "type": "object"
+        },
         ".Trigger": {
+            "type": "object"
+        },
+        ".UserProfileUpdate": {
             "type": "object"
         },
         ".false": {
@@ -3667,39 +3722,6 @@
                     "items": {
                         "$ref": "#/definitions/models.APIGraph"
                     }
-                }
-            }
-        },
-        "models.APIQueryGraphDrawData": {
-            "title": "APIQueryGraphDrawData",
-            "type": "object",
-            "properties": {
-                "consol_fun": {
-                    "type": "string"
-                },
-                "counters": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "end_time": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "hostnames": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "start_time": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "step": {
-                    "type": "integer",
-                    "format": "int64"
                 }
             }
         },
@@ -3921,6 +3943,29 @@
                 }
             }
         },
+        "models.DataPointApiGet": {
+            "title": "DataPointApiGet",
+            "type": "object",
+            "properties": {
+                "consol_fun": {
+                    "type": "string"
+                },
+                "end": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "keys": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "start": {
+                    "type": "integer",
+                    "format": "int64"
+                }
+            }
+        },
         "models.Endpoint": {
             "title": "Endpoint",
             "type": "object",
@@ -3939,13 +3984,6 @@
             "type": "object",
             "properties": {
                 "counter": {
-                    "type": "string"
-                },
-                "step": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "type": {
                     "type": "string"
                 }
             }
@@ -4133,31 +4171,6 @@
                 }
             }
         },
-        "models.GraphQueryResponse": {
-            "title": "GraphQueryResponse",
-            "type": "object",
-            "properties": {
-                "Values": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.RRDData"
-                    }
-                },
-                "counter": {
-                    "type": "string"
-                },
-                "dstype": {
-                    "type": "string"
-                },
-                "endpoint": {
-                    "type": "string"
-                },
-                "step": {
-                    "type": "integer",
-                    "format": "int64"
-                }
-            }
-        },
         "models.Host": {
             "title": "Host",
             "type": "object",
@@ -4171,90 +4184,6 @@
                 },
                 "loc": {
                     "type": "string"
-                },
-                "maintain_begin": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "maintain_end": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "pause": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "status": {
-                    "type": "string"
-                },
-                "typ": {
-                    "type": "string"
-                },
-                "uuid": {
-                    "type": "string"
-                }
-            }
-        },
-        "models.HostCreate": {
-            "title": "HostCreate",
-            "type": "object",
-            "properties": {
-                "idc": {
-                    "type": "string"
-                },
-                "loc": {
-                    "type": "string"
-                },
-                "maintain_begin": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "maintain_end": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "pause": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "status": {
-                    "type": "string"
-                },
-                "typ": {
-                    "type": "string"
-                },
-                "uuid": {
-                    "type": "string"
-                }
-            }
-        },
-        "models.HostUpdate": {
-            "title": "HostUpdate",
-            "type": "object",
-            "properties": {
-                "id": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "idc": {
-                    "type": "string"
-                },
-                "loc": {
-                    "type": "string"
-                },
-                "maintain_begin": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "maintain_end": {
-                    "type": "integer",
-                    "format": "int64"
                 },
                 "name": {
                     "type": "string"
@@ -4389,56 +4318,8 @@
                 }
             }
         },
-        "models.RRDData": {
-            "title": "RRDData",
-            "type": "object",
-            "properties": {
-                "timestamp": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "value": {
-                    "type": "number",
-                    "format": "double"
-                }
-            }
-        },
         "models.Role": {
             "title": "Role",
-            "type": "object",
-            "properties": {
-                "cname": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "note": {
-                    "type": "string"
-                }
-            }
-        },
-        "models.RoleCreate": {
-            "title": "RoleCreate",
-            "type": "object",
-            "properties": {
-                "cname": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "note": {
-                    "type": "string"
-                }
-            }
-        },
-        "models.RoleUpdate": {
-            "title": "RoleUpdate",
             "type": "object",
             "properties": {
                 "cname": {
@@ -4524,42 +4405,6 @@
                 "tag_id": {
                     "type": "integer",
                     "format": "int64"
-                }
-            }
-        },
-        "models.TagHostApiGet": {
-            "title": "TagHostApiGet",
-            "type": "object",
-            "properties": {
-                "host_id": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "host_name": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "maintain_begin": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "maintain_end": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "pause": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "tag_id": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "tag_name": {
-                    "type": "string"
                 }
             }
         },
@@ -4659,7 +4504,7 @@
                 "role_token": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/37099.0xc42038eff0.false"
+                        "$ref": "#/definitions/37111.0xc420391b60.false"
                     }
                 },
                 "tag_id": {
@@ -4699,7 +4544,7 @@
                 "role_user": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/111863.0xc4204aa900.false"
+                        "$ref": "#/definitions/111021.0xc4204b4f90.false"
                     }
                 },
                 "tag_id": {
@@ -4710,40 +4555,6 @@
         },
         "models.Token": {
             "title": "Token",
-            "type": "object",
-            "properties": {
-                "cname": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "note": {
-                    "type": "string"
-                }
-            }
-        },
-        "models.TokenCreate": {
-            "title": "TokenCreate",
-            "type": "object",
-            "properties": {
-                "cname": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "note": {
-                    "type": "string"
-                }
-            }
-        },
-        "models.TokenUpdate": {
-            "title": "TokenUpdate",
             "type": "object",
             "properties": {
                 "cname": {
@@ -4905,27 +4716,6 @@
                     "type": "string"
                 },
                 "uuid": {
-                    "type": "string"
-                }
-            }
-        },
-        "models.UserProfileUpdate": {
-            "title": "UserProfileUpdate",
-            "type": "object",
-            "properties": {
-                "cname": {
-                    "type": "string"
-                },
-                "email": {
-                    "type": "string"
-                },
-                "extra": {
-                    "type": "string"
-                },
-                "phone": {
-                    "type": "string"
-                },
-                "qq": {
                     "type": "string"
                 }
             }

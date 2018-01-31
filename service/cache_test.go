@@ -28,7 +28,7 @@ func newDp(i int) *tsdb.DataPoint {
 			ShardId: 0,
 		},
 		Value: &tsdb.TimeValuePair{
-			Timestamp: int64(i) * DEBUG_STEP,
+			Timestamp: int64(i) * 60,
 			Value:     float64(i),
 		},
 	}
@@ -86,14 +86,14 @@ func testCache(t *testing.T) {
 	}
 
 	// unlink
-	bucket.delEntry(string(dp.Key.Key))
+	bucket.delEntry(string(dp.Key.Key), &cache.idxQueue)
 	if len(bucket.entries) != 1 {
 		t.Errorf(" size error size %d want 1", len(bucket.entries))
 	}
 	fmt.Printf("c.unlink success\n")
 
 	for k, _ := range bucket.entries {
-		bucket.delEntry(k)
+		bucket.delEntry(k, &cache.idxQueue)
 	}
 	fmt.Printf("all c.unlink success\n")
 }

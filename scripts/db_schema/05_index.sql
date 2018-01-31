@@ -16,7 +16,7 @@ DROP TABLE if exists `idx`.`endpoint_counter`;
 CREATE TABLE `idx`.`endpoint_counter` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `endpoint_id` int(10) unsigned NOT NULL,
-  `counter` varchar(255) NOT NULL DEFAULT '',
+  `counter` varchar(255) NOT NULL DEFAULT '' COMMENT 'metric/tags/typ',
   `ts` int(11) DEFAULT NULL,
   `t_create` DATETIME NOT NULL COMMENT 'create time',
   `t_modify` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'last modify time',

@@ -62,7 +62,7 @@ func (p *cacheBucket) getCacheEntry(key string) (*cacheEntry, error) {
 	return nil, falcon.ErrNoExits
 }
 
-func (p *cacheBucket) delEntry(key string) *cacheEntry {
+func (p *cacheBucket) delEntry(key string, q *queue) *cacheEntry {
 	p.Lock()
 
 	e, ok := p.entries[key]
@@ -73,14 +73,12 @@ func (p *cacheBucket) delEntry(key string) *cacheEntry {
 	delete(p.entries, key)
 	p.Unlock()
 
-	e.Lock()
-	e.list.DelInit()
-	e.Unlock()
+	q.del(&e.list)
 
 	return e
 }
 
-func (p *cacheBucket) _delEntry(key string) *cacheEntry {
+func (p *cacheBucket) _delEntry(key string, q *queue) *cacheEntry {
 
 	e, ok := p.entries[key]
 	if !ok {
@@ -88,14 +86,12 @@ func (p *cacheBucket) _delEntry(key string) *cacheEntry {
 	}
 	delete(p.entries, key)
 
-	e.Lock()
-	e.list.DelInit()
-	e.Unlock()
+	q.del(&e.list)
 
 	return e
 }
 
-func (p *cacheBucket) clean(timeout int64) {
+func (p *cacheBucket) clean(timeout int64, q *queue) {
 	if p.getState() == CACHE_BUCKET_ENABLE {
 		// clean expire entry
 		now := timer.now()
@@ -110,7 +106,7 @@ func (p *cacheBucket) clean(timeout int64) {
 
 		p.Lock()
 		for _, key := range keys {
-			p._delEntry(key)
+			p._delEntry(key, q)
 
 		}
 		p.Unlock()
@@ -118,7 +114,7 @@ func (p *cacheBucket) clean(timeout int64) {
 		// clean all entry
 		p.Lock()
 		for key, _ := range p.entries {
-			p._delEntry(key)
+			p._delEntry(key, q)
 		}
 		p.Unlock()
 	}

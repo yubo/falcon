@@ -44,6 +44,9 @@ func (p *ApiModule) Put(ctx context.Context,
 	if err != nil {
 		glog.V(4).Infof("%s rx put err %v", MODULE_NAME, err)
 	}
+	for i := int32(0); i < res.N; i++ {
+		p.service.cache.put(in.Data[i])
+	}
 
 	statsInc(ST_RX_PUT_ITERS, 1)
 	statsInc(ST_RX_PUT_ITEMS, int(res.N))

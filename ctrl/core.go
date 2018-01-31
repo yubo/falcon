@@ -16,9 +16,7 @@ import (
 )
 
 const (
-	MODULE_NAME     = "\x1B[33m[CTRL]\x1B[0m"
-	CONN_RETRY      = 2
-	DEBUG_STAT_STEP = 60
+	MODULE_NAME = "\x1B[33m[CTRL]\x1B[0m"
 
 	C_MASTER_MODE             = "mastermode"
 	C_MI_MODE                 = "mimode"

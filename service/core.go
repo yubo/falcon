@@ -16,34 +16,23 @@ import (
 )
 
 const (
-	CACHE_TIME              = 1800 //s
-	FIRST_FLUSH_DISK        = 1    //s
-	FLUSH_DISK_STEP         = 1    //s
-	DEFAULT_HISTORY_SIZE    = 3
-	CONN_RETRY              = 2
-	CACHE_DATA_SIZE         = 1 << 4
-	CACHE_DATA_SIZE_MASK    = CACHE_DATA_SIZE - 1
-	DATA_TIMESTAMP_REGULATE = false
-	INDEX_QPS               = 100
-	INDEX_UPDATE_INTERVAL   = 3600 * 24
-	CACHE_EXPIRE_TIME       = 3600 * 26 // 超时时间 (s)
-	CACHE_CLEAN_INTERVAL    = 3600      // 回收检查间隔时间 (s)
-	DEBUG_MULTIPLES         = 20        // demo 时间倍数
-	DEBUG_STEP              = 60        //
-	DEBUG_SAMPLE_NB         = 18000     //单周期生成样本数量
-	DEBUG_STAT_STEP         = 60
-	MODULE_NAME             = "\x1B[36m[SERVICE]\x1B[0m"
-	CTRL_STEP               = 360
+	CACHE_DATA_SIZE       = 1 << 4
+	CACHE_DATA_SIZE_MASK  = CACHE_DATA_SIZE - 1
+	INDEX_QPS             = 100
+	INDEX_UPDATE_INTERVAL = 3600 * 24
+	CACHE_EXPIRE_TIME     = 3600 * 26 // 超时时间 (s)
+	CACHE_CLEAN_INTERVAL  = 3600      // 回收检查间隔时间 (s)
+	MODULE_NAME           = "\x1B[36m[SERVICE]\x1B[0m"
 
 	C_CALL_TIMEOUT   = "calltimeout"
 	C_API_ADDR       = "apiaddr"
 	C_HTTP_ADDR      = "httpaddr"
 	C_IDX            = "idx"
+	C_DSN            = "dsn"
+	C_IDX_DSN        = "idxdsn"
 	C_DB_MAX_IDLE    = "dbmaxidle"
 	C_DB_MAX_CONN    = "dbmaxconn"
-	C_DSN            = "dsn"
-	C_SYNC_DSN       = "syncdsn"
-	C_SYNC_INTERVAL  = "syncinterval"
+	C_CONF_INTERVAL  = "confinterval"
 	C_SHARD_IDS      = "shardids"
 	C_JUDGE_INTERVAL = "judgeinterval"
 	C_JUDGE_NUM      = "judgenum"
@@ -61,7 +50,7 @@ var (
 		C_DB_MAX_CONN:   "4",
 		C_JUDGE_NUM:     "8",
 		C_BURST_SIZE:    "32",
-		C_SYNC_INTERVAL: "600",
+		C_CONF_INTERVAL: "600",
 	}
 )
 

@@ -55,7 +55,7 @@ func (p *ClientModule) worker(transferAddr string) error {
 	go func() {
 		conn, _, err := falcon.DialRr(p.ctx, transferAddr, true)
 		if err != nil {
-			return
+			glog.Fatal(err)
 		}
 		defer conn.Close()
 

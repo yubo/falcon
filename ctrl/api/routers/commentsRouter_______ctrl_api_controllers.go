@@ -314,6 +314,14 @@ func init() {
 	beego.GlobalControllerRouter["github.com/yubo/falcon/cmd/vendor/github.com/yubo/falcon/ctrl/api/controllers:GraphController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/cmd/vendor/github.com/yubo/falcon/ctrl/api/controllers:GraphController"],
 		beego.ControllerComments{
 			Method: "GetCounterData",
+			Router: `/counter_data`,
+			AllowHTTPMethods: []string{"post"},
+			MethodParams: param.Make(),
+			Params: nil})
+
+	beego.GlobalControllerRouter["github.com/yubo/falcon/cmd/vendor/github.com/yubo/falcon/ctrl/api/controllers:GraphController"] = append(beego.GlobalControllerRouter["github.com/yubo/falcon/cmd/vendor/github.com/yubo/falcon/ctrl/api/controllers:GraphController"],
+		beego.ControllerComments{
+			Method: "GetDataPoint",
 			Router: `/datapoint`,
 			AllowHTTPMethods: []string{"post"},
 			MethodParams: param.Make(),
