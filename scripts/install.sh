@@ -27,9 +27,6 @@ force_install_file()
 	chmod $mod $des
 }
 
-
-ldconfig 
-
 tar cf -  -C ./dist/ --exclude etc/init.d . | tar xvf - -C /
 
 if [ -f /etc/lsb-release ]; then
