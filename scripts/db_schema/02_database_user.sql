@@ -1,4 +1,3 @@
--- CREATE DATABASE falcon
 -- DEFAULT CHARACTER SET utf8
 -- DEFAULT COLLATE utf8_general_ci;
 CREATE USER falcon@localhost IDENTIFIED BY '1234';

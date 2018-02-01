@@ -33,6 +33,7 @@ var text = []byte(`
 	lastTsthreshold		30;		// 最近活动时间阈值，超过的数据项会被忽略
 	indexTimeout		3600*26;
 	indexUpdateCycleTime	3600*24;
+	tsdbDir			/opt/falcon/tsdb;
 };
 `)
 

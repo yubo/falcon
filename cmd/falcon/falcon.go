@@ -24,9 +24,8 @@ import (
 	_ "github.com/yubo/falcon/ctrl/modules"
 	_ "github.com/yubo/falcon/service/modules"
 	_ "github.com/yubo/falcon/transfer/modules"
-
-	"net/http"
-	_ "net/http/pprof"
+	//"net/http"
+	//_ "net/http/pprof"
 )
 
 var opts falcon.CmdOpts
@@ -40,6 +39,7 @@ func init() {
 
 	cmd := flags.NewCommand("start", "start falcon", start, flag.ExitOnError)
 	cmd.StringVar(&opts.ConfigFile, "config", "/etc/falcon/falcon.conf", "falcon config file")
+	cmd.BoolVar(&opts.Daemon, "d", false, "daemon mode")
 
 	cmd = flags.NewCommand("parse", "just parse falcon ConfigFile", parseHandle, flag.ExitOnError)
 	cmd.StringVar(&opts.ConfigFile, "config", "/etc/falcon/falcon.conf", "falcon config file")
@@ -78,7 +78,7 @@ func signalNotify(p *falcon.Process) {
 	atomic.StoreUint32(&p.Status, falcon.APP_STATUS_RUNNING)
 
 	glog.Infof("%s [%d] register signal notify", MODULE_NAME, p.Pid)
-	go http.ListenAndServe(":8008", nil)
+	//go http.ListenAndServe(":8008", nil)
 
 	for {
 		s := <-sigs
@@ -157,7 +157,11 @@ func start(arg interface{}) {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	app.Start()
-	signalNotify(app)
+	if opts.Daemon {
+		go signalNotify(app)
+	} else {
+		signalNotify(app)
+	}
 }
 
 func stop(arg interface{}) {

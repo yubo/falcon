@@ -1,0 +1,3197 @@
+swagger: "2.0"
+info:
+  title: falcon ctrl API
+  description: Open-Falcon 是小米运维部开源的一款互联网企业级监控系统解决方案.
+  version: 1.0.0
+  termsOfService: http://open-falcon.org/
+  contact:
+    email: yubo@xiaomi.com
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+basePath: /v1.0
+paths:
+  /action/trigger:
+    put:
+      tags:
+      - action
+      description: update the trigger
+      operationId: ActionController.update action trigger
+      parameters:
+      - in: body
+        name: body
+        description: body for action trigger content
+        required: true
+        schema:
+          $ref: '#/definitions/models.ActionTriggerApiUpdate'
+      responses:
+        "200":
+          description: trigger info
+          schema:
+            $ref: '#/definitions/.Trigger'
+        "400":
+          description: string error
+    post:
+      tags:
+      - action
+      description: create action trigger
+      operationId: ActionController.Create action trigger
+      parameters:
+      - in: body
+        name: body
+        description: body for trigger content
+        required: true
+        schema:
+          $ref: '#/definitions/models.ActionTriggerApiAdd'
+      responses:
+        "200":
+          description: Id
+          schema:
+            $ref: '#/definitions/models.Id'
+        "400":
+          description: string error
+    delete:
+      tags:
+      - action
+      description: delete the action trigger
+      operationId: ActionController.delete action trigger
+      parameters:
+      - in: body
+        name: body
+        description: body for delete action trigger content
+        required: true
+        schema:
+          $ref: '#/definitions/models.ActionTriggerApiDel'
+      responses:
+        "200":
+          description: api call result
+          schema:
+            $ref: '#/definitions/models.Stats'
+        "400":
+          description: '{object} models.Stats api call result'
+  /action/trigger/cnt:
+    get:
+      tags:
+      - action
+      description: get action triggers number
+      operationId: ActionController.Get action triggers Cnt
+      parameters:
+      - in: query
+        name: tag_id
+        description: tag id
+        type: integer
+        format: int64
+      - in: query
+        name: deep
+        description: '0: cur tag, 1: include parent , 2: include child'
+        type: integer
+        format: int64
+      - in: query
+        name: query
+        description: trigger name
+        type: string
+      responses:
+        "200":
+          description: total number
+          schema:
+            $ref: '#/definitions/models.Total'
+        "400":
+          description: string error
+  /action/trigger/search:
+    get:
+      tags:
+      - action
+      description: get all action triggers
+      operationId: ActionController.Get action triggers
+      parameters:
+      - in: query
+        name: tag_id
+        description: tag id
+        type: integer
+        format: int64
+      - in: query
+        name: deep
+        description: '0: cur tag, 1: include parent , 2: include child'
+        type: integer
+        format: int64
+      - in: query
+        name: query
+        description: trigger name
+        type: string
+      - in: query
+        name: limit
+        description: limit page number
+        type: integer
+        format: int64
+      - in: query
+        name: offset
+        description: offset  number
+        type: integer
+        format: int64
+      responses:
+        "200":
+          description: triggers ui info
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/models.ActionTriggerApiGet'
+        "400":
+          description: string error
+  /admin/config/{module}:
+    get:
+      tags:
+      - admin
+      description: get module config
+      operationId: AdminController.Get config
+      parameters:
+      - in: path
+        name: module
+        description: module name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: '[3]map[string]string {defualt{}, conf{}, configfile{}}'
+        "400":
+          description: string error
+    put:
+      tags:
+      - admin
+      description: get tag role user
+      operationId: AdminController.update config
+      parameters:
+      - in: path
+        name: module
+        description: module
+        required: true
+        type: string
+      - in: body
+        name: body
+        description: map[string]string
+        required: true
+        schema:
+          $ref: '#/definitions/.Obj'
+      responses:
+        "200":
+          description: '{string} success'
+        "400":
+          description: string error
+  /admin/config/list/etcd:
+    get:
+      tags:
+      - admin
+      description: list etcd Description
+      operationId: AdminController.Get config
+      responses:
+        "200":
+          description: map[string]string map[string]string etcd map string
+        "400":
+          description: string error
+  /admin/config/list/module:
+    get:
+      tags:
+      - admin
+      description: list module config api Description
+      operationId: AdminController.Get config
+      responses:
+        "200":
+          description: map[string]string map[string]string etcd map string
+        "400":
+          description: string error
+  /admin/debug/{action}:
+    get:
+      tags:
+      - admin
+      description: get tag role user
+      operationId: AdminController.Get config
+      parameters:
+      - in: path
+        name: action
+        description: action
+        required: true
+        type: string
+      responses:
+        "200":
+          description: '{string} result'
+        "400":
+          description: string error
+  /admin/expansion/{module}:
+    get:
+      tags:
+      - admin
+      description: graph expansion config
+      operationId: AdminController.Get expansion status
+      parameters:
+      - in: path
+        name: module
+        description: module name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: expansion status
+          schema:
+            $ref: '#/definitions/models.ExpansionStatus'
+        "400":
+          description: string error
+    put:
+      tags:
+      - admin
+      description: expansion set
+      operationId: AdminController.set expansion (add endpoint)
+      parameters:
+      - in: path
+        name: module
+        description: module name
+        required: true
+        type: string
+      - in: body
+        name: body
+        description: body for endpoints content
+        required: true
+        schema:
+          $ref: '#/definitions/models.ExpansionStatus'
+      responses:
+        "200":
+          description: string success
+        "400":
+          description: string error
+  /admin/online/{module}:
+    get:
+      tags:
+      - admin
+      description: get online endpoint
+      operationId: AdminController.Get online endpoint
+      parameters:
+      - in: path
+        name: module
+        description: module name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: map[string]string map[string]string online endpoint list
+        "400":
+          description: string error
+  /auth/callback/{module}:
+    get:
+      tags:
+      - auth
+      description: Auth module callback handle
+      operationId: AuthController.OAuth module callback handle
+      parameters:
+      - in: path
+        name: module
+        description: the module you want to use
+        required: true
+        type: string
+      responses:
+        "302":
+          description: redirect to RedirectUrl(default "/")
+        "406":
+          description: not acceptable
+  /auth/info:
+    get:
+      tags:
+      - auth
+      description: auth login, such as ldap auth
+      operationId: AuthController.AuthLogin
+      responses:
+        "200":
+          description: operator info, reload user's tokens
+          schema:
+            $ref: '#/definitions/models.OperatorInfo'
+        "406":
+          description: not acceptable
+  /auth/login:
+    post:
+      tags:
+      - auth
+      description: auth login, such as ldap auth
+      operationId: AuthController.AuthLogin
+      parameters:
+      - in: query
+        name: username
+        description: username for login
+        type: string
+      - in: query
+        name: password
+        description: passworld for login
+        type: string
+      - in: query
+        name: method
+        description: login method
+        required: true
+        type: string
+      responses:
+        "200":
+          description: operator info
+          schema:
+            $ref: '#/definitions/models.OperatorInfo'
+        "406":
+          description: not acceptable
+  /auth/login/{module}:
+    get:
+      tags:
+      - auth
+      description: auth login
+      operationId: AuthController.OAuth Login
+      parameters:
+      - in: path
+        name: module
+        description: the module you want to use(github/google)
+        required: true
+        type: string
+      responses:
+        "302":
+          description: redirect
+        "405":
+          description: string error
+  /auth/logout:
+    get:
+      tags:
+      - auth
+      description: user logout, reset cookie
+      operationId: AuthController.Auth Logout
+      responses:
+        "200":
+          description: '{string} logout success!'
+        "405":
+          description: Method Not Allowed
+  /auth/modules:
+    get:
+      tags:
+      - auth
+      description: get support auth modules
+      operationId: AuthController.get support auth modules
+      responses:
+        "200":
+          description: modules list
+          schema:
+            type: array
+            items:
+              type: string
+        "405":
+          description: string error
+  /dashboard/graph:
+    post:
+      tags:
+      - dashboard
+      description: create graph, .endpoints and .counters is []string
+      operationId: DashboardController.CreateGraph
+      parameters:
+      - in: body
+        name: body
+        description: body for graph content
+        required: true
+        schema:
+          $ref: '#/definitions/models.APIGraph'
+      responses:
+        "200":
+          description: Id
+          schema:
+            $ref: '#/definitions/models.Id'
+        "400":
+          description: string error
+  /dashboard/graph/{id}:
+    get:
+      tags:
+      - dashboard
+      description: get graph
+      operationId: DashboardController.GetGraph
+      parameters:
+      - in: path
+        name: id
+        description: The id of graph
+        required: true
+        type: integer
+        format: int64
+      responses:
+        "200":
+          description: graph info
+          schema:
+            $ref: '#/definitions/models.APIGraph'
+        "400":
+          description: string error
+    put:
+      tags:
+      - dashboard
+      description: update graph, .endpoints and .counters is []string
+      operationId: DashboardController.update Graph
+      parameters:
+      - in: body
+        name: body
+        description: body for graph content
+        required: true
+        schema:
+          $ref: '#/definitions/models.APIGraph'
+      responses:
+        "200":
+          description: DashboardGraph
+          schema:
+            $ref: '#/definitions/models.DashboardGraph'
+        "400":
+          description: string error
+    delete:
+      tags:
+      - dashboard
+      description: delete the graph
+      operationId: DashboardController.DeleteGraph
+      parameters:
+      - in: path
+        name: id
+        description: The id you want to delete
+        required: true
+        type: string
+      responses:
+        "200":
+          description: '{string} "delete success!"'
+        "400":
+          description: string error
+  /dashboard/graph/screen/{screen_id}:
+    get:
+      tags:
+      - dashboard
+      description: get graph by screen
+      operationId: DashboardController.GetGraph by screen
+      parameters:
+      - in: path
+        name: screen_id
+        description: The id of screen
+        required: true
+        type: integer
+        format: int64
+      responses:
+        "200":
+          description: graph info
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/models.APIGraph'
+        "400":
+          description: string error
+  /dashboard/graphs:
+    put:
+      tags:
+      - dashboard
+      description: update graph, .endpoints and .counters is []string
+      operationId: DashboardController.update Graphs
+      parameters:
+      - in: body
+        name: body
+        description: body for graph content
+        required: true
+        schema:
+          $ref: '#/definitions/models.APIGraphs'
+      responses:
+        "200":
+          description: DashboardGraph
+          schema:
+            $ref: '#/definitions/models.Stats'
+        "400":
+          description: '{object}  models.Stats DashboardGraph'
+  /dashboard/screen:
+    post:
+      tags:
+      - dashboard
+      description: create screen
+      operationId: DashboardController.CreateScreen
+      parameters:
+      - in: body
+        name: body
+        description: body for tmpGraph content
+        required: true
+        schema:
+          $ref: '#/definitions/models.AddDashboardScreen'
+      responses:
+        "200":
+          description: screen id
+          schema:
+            $ref: '#/definitions/models.Id'
+        "400":
+          description: string error
+  /dashboard/screen/{id}:
+    get:
+      tags:
+      - dashboard
+      description: get screen
+      operationId: DashboardController.Get screen
+      parameters:
+      - in: path
+        name: id
+        description: The id of screen
+        type: integer
+        format: int64
+      - in: query
+        name: limit
+        description: limit number
+        type: integer
+        format: int64
+      responses:
+        "200":
+          description: screen info
+          schema:
+            $ref: '#/definitions/models.DashboardScreen'
+        "400":
+          description: string error
+    put:
+      tags:
+      - dashboard
+      description: update Screen
+      operationId: DashboardController.update Screen
+      parameters:
+      - in: path
+        name: id
+        description: The id you want to modify
+        required: true
+        type: string
+      - in: body
+        name: body
+        description: body for screen content
+        required: true
+        schema:
+          $ref: '#/definitions/models.DashboardScreen'
+      responses:
+        "200":
+          description: DashboardScreen
+          schema:
+            $ref: '#/definitions/models.DashboardScreen'
+        "400":
+          description: string error
+    delete:
+      tags:
+      - dashboard
+      description: delete the screen
+      operationId: DashboardController.DeleteScreen
+      parameters:
+      - in: path
+        name: id
+        description: The id you want to delete
+        required: true
+        type: string
+      responses:
+        "200":
+          description: '{string} "delete success!"'
+        "400":
+          description: string error
+  /dashboard/screen/pid/{pid}:
+    get:
+      tags:
+      - dashboard
+      description: get screen by pid
+      operationId: DashboardController.Get screen by pid
+      parameters:
+      - in: path
+        name: pid
+        description: The pid of screen
+        required: true
+        type: integer
+        format: int64
+      responses:
+        "200":
+          description: screen info
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/models.DashboardScreen'
+        "400":
+          description: string error
+  /dashboard/tmpgraph:
+    post:
+      tags:
+      - dashboard
+      description: create tmp graph
+      operationId: DashboardController.CreateTmpGraph
+      parameters:
+      - in: body
+        name: body
+        description: body for tmpGraph content
+        required: true
+        schema:
+          $ref: '#/definitions/models.APITmpGraph'
+      responses:
+        "200":
+          description: Id
+          schema:
+            $ref: '#/definitions/models.Id'
+        "400":
+          description: string error
+  /dashboard/tmpgraph/{id}:
+    get:
+      tags:
+      - dashboard
+      description: get tmp graph
+      operationId: DashboardController.GetTmpGraph
+      parameters:
+      - in: path
+        name: id
+        description: The id of tmp graph
+        required: true
+        type: integer
+        format: int64
+      responses:
+        "200":
+          description: tmpgraph info
+          schema:
+            $ref: '#/definitions/models.APITmpGraph'
+        "400":
+          description: string error
+  /event/trigger:
+    put:
+      tags:
+      - event
+      description: update the trigger
+      operationId: EventController.update event trigger
+      parameters:
+      - in: body
+        name: body
+        description: body for event trigger content
+        required: true
+        schema:
+          $ref: '#/definitions/models.EventTriggerApiUpdate'
+      responses:
+        "200":
+          description: trigger info
+          schema:
+            $ref: '#/definitions/.Trigger'
+        "400":
+          description: string error
+    post:
+      tags:
+      - event
+      description: create event trigger
+      operationId: EventController.Create event trigger
+      parameters:
+      - in: body
+        name: body
+        description: body for trigger content
+        required: true
+        schema:
+          $ref: '#/definitions/models.EventTriggerApiAdd'
+      responses:
+        "200":
+          description: Id
+          schema:
+            $ref: '#/definitions/models.Id'
+        "400":
+          description: string error
+    delete:
+      tags:
+      - event
+      description: delete the event trigger
+      operationId: EventController.delete event trigger
+      parameters:
+      - in: body
+        name: body
+        description: body for delete event trigger content
+        required: true
+        schema:
+          $ref: '#/definitions/models.EventTriggerApiDel'
+      responses:
+        '{code:400,':
+          description: msg:string}
+        "200":
+          description: api call result
+          schema:
+            $ref: '#/definitions/models.Stats'
+  /event/trigger/clone:
+    post:
+      tags:
+      - event
+      description: clone event triggers to tag node
+      operationId: EventController.clone event triggers to tag node
+      parameters:
+      - in: body
+        name: body
+        description: body for clone event trigger content
+        required: true
+        schema:
+          $ref: '#/definitions/models.EventTriggerApiClone'
+      responses:
+        "200":
+          description: api call result
+          schema:
+            $ref: '#/definitions/models.Stats'
+        "400":
+          description: api call result
+          schema:
+            $ref: '#/definitions/models.Stats'
+  /event/trigger/cnt:
+    get:
+      tags:
+      - event
+      description: get event triggers number
+      operationId: EventController.Get event triggers Cnt
+      parameters:
+      - in: query
+        name: tag_id
+        description: tag id
+        type: integer
+        format: int64
+      - in: query
+        name: deep
+        description: '0: cur tag, 1: include parent , 2: include child'
+        type: integer
+        format: int64
+      - in: query
+        name: query
+        description: trigger name
+        type: string
+      responses:
+        "200":
+          description: total number
+          schema:
+            $ref: '#/definitions/models.Total'
+        "400":
+          description: string error
+  /event/trigger/search:
+    get:
+      tags:
+      - event
+      description: get all event triggers
+      operationId: EventController.Get event triggers
+      parameters:
+      - in: query
+        name: tag_id
+        description: tag id
+        type: integer
+        format: int64
+      - in: query
+        name: deep
+        description: '0: cur tag, 1: include parent , 2: include child'
+        type: integer
+        format: int64
+      - in: query
+        name: query
+        description: trigger name
+        type: string
+      - in: query
+        name: limit
+        description: limit page number
+        type: integer
+        format: int64
+      - in: query
+        name: offset
+        description: offset  number
+        type: integer
+        format: int64
+      responses:
+        "200":
+          description: triggers ui info
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/models.EventTriggerApiGet'
+        "400":
+          description: string error
+  /graph/counter_data:
+    post:
+      tags:
+      - graph
+      description: get tmp graph
+      operationId: GraphController.Get Counters Data for draw lines
+      parameters:
+      - in: body
+        name: body
+        description: api query graph draw data
+        required: true
+        schema:
+          $ref: '#/definitions/models.DataPointApiGet'
+      responses:
+        "200":
+          description: '"graph query response"'
+          schema:
+            $ref: '#/definitions/.GetResponse'
+        "400":
+          description: string error
+  /graph/datapoint:
+    post:
+      tags:
+      - graph
+      description: get tmp graph
+      operationId: GraphController.Get Counters Data for draw lines
+      parameters:
+      - in: body
+        name: body
+        description: api query graph draw data
+        required: true
+        schema:
+          $ref: '#/definitions/models.DataPointApiGet'
+      responses:
+        "200":
+          description: '"graph query response"'
+          schema:
+            $ref: '#/definitions/.GetResponse'
+        "400":
+          description: string error
+  /graph/endpoint:
+    get:
+      tags:
+      - graph
+      description: get endpoint
+      operationId: GraphController.GetEndpoint
+      parameters:
+      - in: query
+        name: query
+        description: endpoint name
+        type: string
+      - in: query
+        name: tag
+        description: tag name(a=b[,c=d])
+        type: string
+      - in: query
+        name: limit
+        description: limit number
+        type: integer
+        format: int64
+      responses:
+        "200":
+          description: endpoints info
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/models.Endpoint'
+        "400":
+          description: string error
+  /graph/endpoint_counter:
+    get:
+      tags:
+      - graph
+      description: get endpoint's counter
+      operationId: GraphController.GetEndpointCounter
+      parameters:
+      - in: query
+        name: ids
+        description: endpoint id ... eg(1,2,4,5)
+        type: string
+      - in: query
+        name: query
+        description: counter name
+        type: string
+      - in: query
+        name: limit
+        description: limit number
+        type: integer
+        format: int64
+      responses:
+        "200":
+          description: endpointsCounter info
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/models.EndpointCounter'
+        "400":
+          description: string error
+  /host/:
+    put:
+      tags:
+      - host
+      description: update the host
+      operationId: HostController.UpdateHost
+      parameters:
+      - in: body
+        name: body
+        description: body for host content
+        required: true
+        schema:
+          $ref: '#/definitions/.HostUpdate'
+      responses:
+        "200":
+          description: host info
+          schema:
+            $ref: '#/definitions/models.Host'
+        "400":
+          description: string error
+    post:
+      tags:
+      - host
+      description: create hosts
+      operationId: HostController.CreateHost
+      parameters:
+      - in: body
+        name: body
+        description: body for host content
+        required: true
+        schema:
+          $ref: '#/definitions/.HostCreate'
+      responses:
+        "200":
+          description: id
+          schema:
+            $ref: '#/definitions/models.Id'
+        "400":
+          description: string error
+    delete:
+      tags:
+      - host
+      description: delete the hosts
+      operationId: HostController.DeleteHosts
+      parameters:
+      - in: body
+        name: body
+        description: The []id you want to delete
+        required: true
+        type: array
+        items:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          description: api call result
+          schema:
+            $ref: '#/definitions/models.Stats'
+        "400":
+          description: '{object} models.Stats api call result'
+  /host/{id}:
+    get:
+      tags:
+      - host
+      description: get host by id
+      operationId: HostController.GetHost
+      parameters:
+      - in: path
+        name: id
+        description: The key for staticblock
+        required: true
+        type: integer
+        format: int64
+      responses:
+        "200":
+          description: host info
+          schema:
+            $ref: '#/definitions/models.Host'
+        "400":
+          description: string error
+    delete:
+      tags:
+      - host
+      description: delete the host
+      operationId: HostController.DeleteHost
+      parameters:
+      - in: path
+        name: id
+        description: The id you want to delete
+        required: true
+        type: string
+      responses:
+        "200":
+          description: '{string} "delete success!"'
+        "400":
+          description: string error
+  /host/cnt:
+    get:
+      tags:
+      - host
+      description: get Hosts number
+      operationId: HostController.GetHostsCnt
+      parameters:
+      - in: query
+        name: query
+        description: host name
+        type: string
+      responses:
+        "200":
+          description: host total number
+          schema:
+            $ref: '#/definitions/models.Total'
+        "400":
+          description: string error
+  /host/search:
+    get:
+      tags:
+      - host
+      description: get all Hosts
+      operationId: HostController.GetHosts
+      parameters:
+      - in: query
+        name: query
+        description: host name
+        type: string
+      - in: query
+        name: limit
+        description: limit page number
+        type: integer
+        format: int64
+      - in: query
+        name: offset
+        description: offset  number
+        type: integer
+        format: int64
+      responses:
+        "200":
+          description: hosts info
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/models.Host'
+        "400":
+          description: string error
+  /host/tag:
+    post:
+      tags:
+      - host
+      description: create tag/hosts relation
+      operationId: HostController.create tag host relation
+      parameters:
+      - in: body
+        name: body
+        description: "true"
+        schema:
+          $ref: '#/definitions/models.TagHostsApiAdd'
+      responses:
+        "200":
+          description: affected number
+          schema:
+            $ref: '#/definitions/models.Total'
+        "400":
+          description: string error
+    delete:
+      tags:
+      - host
+      description: delete tag/hosts relation
+      operationId: HostController.delete tag host relation
+      parameters:
+      - in: body
+        name: body
+        description: unbind tag_id host_id relation
+        required: true
+        schema:
+          $ref: '#/definitions/models.TagHostsApiDel'
+      responses:
+        "200":
+          description: affected number
+          schema:
+            $ref: '#/definitions/models.Total'
+        "400":
+          description: string error
+  /host/tag/cnt:
+    get:
+      tags:
+      - host
+      description: get Tag-Host number
+      operationId: HostController.GetTagHostCnt
+      parameters:
+      - in: query
+        name: tag_id
+        description: tag id
+        type: integer
+        format: int64
+      - in: query
+        name: query
+        description: host name
+        type: string
+      - in: query
+        name: deep
+        description: search sub tag
+        type: boolean
+      responses:
+        "200":
+          description: total number
+          schema:
+            $ref: '#/definitions/models.Total'
+        "400":
+          description: string error
+  /host/tag/s:
+    post:
+      tags:
+      - host
+      description: create tag/host relation
+      operationId: HostController.create tag host relation
+      parameters:
+      - in: body
+        name: body
+        description: "true"
+        schema:
+          $ref: '#/definitions/models.TagHostApiAdd'
+      responses:
+        "200":
+          description: affected number
+          schema:
+            $ref: '#/definitions/models.Total'
+        "400":
+          description: string error
+    delete:
+      tags:
+      - host
+      description: delete tag/host relation
+      operationId: HostController.delete tag host relation
+      parameters:
+      - in: body
+        name: body
+        description: unbind tag_id host_id relation
+        required: true
+        schema:
+          $ref: '#/definitions/models.TagHostApiDel'
+      responses:
+        "200":
+          description: affected number
+          schema:
+            $ref: '#/definitions/models.Total'
+        "400":
+          description: string error
+  /host/tag/search:
+    get:
+      tags:
+      - host
+      description: get all Host
+      operationId: HostController.GetHost
+      parameters:
+      - in: query
+        name: tag_id
+        description: tag id
+        type: integer
+        format: int64
+      - in: query
+        name: query
+        description: host name
+        type: string
+      - in: query
+        name: deep
+        description: search sub tag
+        type: boolean
+      - in: query
+        name: limit
+        description: limit page number
+        type: integer
+        format: int64
+      - in: query
+        name: offset
+        description: offset  number
+        type: integer
+        format: int64
+      responses:
+        "200":
+          description: tag host info
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/.TagHostApiGet'
+        "400":
+          description: string error
+  /metric/cnt:
+    get:
+      tags:
+      - metric
+      description: get Metrics number
+      operationId: MetricController.GetMetricsCnt
+      parameters:
+      - in: query
+        name: query
+        description: metric name
+        type: string
+      responses:
+        "200":
+          description: Metric total number
+          schema:
+            $ref: '#/definitions/models.Total'
+        "400":
+          description: string error
+  /metric/search:
+    get:
+      tags:
+      - metric
+      description: get all Metrics
+      operationId: MetricController.GetMetrics
+      parameters:
+      - in: query
+        name: query
+        description: metric name
+        type: string
+      - in: query
+        name: limit
+        description: limit page number
+        type: integer
+        format: int64
+      - in: query
+        name: offset
+        description: offset  number
+        type: integer
+        format: int64
+      responses:
+        "200":
+          description: metrics info
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/models.Metric'
+        "400":
+          description: string error
+  /plugin/tag/plugindir:
+    post:
+      tags:
+      - plugin
+      description: create tag/template relation
+      operationId: PluginController.create tag template relation
+      parameters:
+      - in: body
+        name: body
+        description: "true"
+        schema:
+          $ref: '#/definitions/models.PluginDirPost'
+      responses:
+        "200":
+          description: Id
+          schema:
+            $ref: '#/definitions/models.Id'
+        "400":
+          description: string error
+    delete:
+      tags:
+      - plugin
+      description: delete the plugin
+      operationId: PluginController.Delete tag plugin
+      parameters:
+      - in: query
+        name: tag_id
+        description: tag id
+        required: true
+        type: integer
+        format: int64
+      - in: query
+        name: id
+        description: The id you want to delete
+        required: true
+        type: integer
+        format: int64
+      responses:
+        "200":
+          description: total number
+          schema:
+            $ref: '#/definitions/models.Total'
+        "400":
+          description: string error
+  /plugin/tag/plugindir/cnt:
+    get:
+      tags:
+      - plugin
+      description: get Tag-plugin number
+      operationId: PluginController.GetTagPluginCnt
+      parameters:
+      - in: query
+        name: tag_id
+        description: tag id
+        required: true
+        type: integer
+        format: int64
+      - in: query
+        name: deep
+        description: include child tag(default:true)
+        type: boolean
+      responses:
+        "200":
+          description: total number
+          schema:
+            $ref: '#/definitions/models.Total'
+        "400":
+          description: string error
+  /plugin/tag/plugindir/search:
+    get:
+      tags:
+      - plugin
+      description: get all Template
+      operationId: PluginController.Get plugin dir
+      parameters:
+      - in: query
+        name: tag_id
+        description: tag id
+        required: true
+        type: integer
+        format: int64
+      - in: query
+        name: deep
+        description: include child tag(default:true)
+        type: boolean
+      - in: query
+        name: limit
+        description: per page number
+        type: integer
+        format: int64
+      - in: query
+        name: offset
+        description: offset  number
+        type: integer
+        format: int64
+      responses:
+        "200":
+          description: plugin info
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/models.PluginDirGet'
+        "400":
+          description: string error
+  /pub/config/ctrl:
+    get:
+      tags:
+      - pub
+      description: get ctrl modules config
+      operationId: PubController.Get config
+      responses:
+        "200":
+          description: map[string]interface{} ctrl server config
+        "400":
+          description: string error
+  /pub/stats:
+    get:
+      tags:
+      - pub
+      description: get ctrl modules config
+      operationId: PubController.Get stats
+      responses:
+        "200":
+          description: map[string]interface{} ctrl server config
+        "400":
+          description: string error
+  /role/:
+    put:
+      tags:
+      - role
+      description: update the role
+      operationId: RoleController.UpdateRole
+      parameters:
+      - in: body
+        name: body
+        description: body for role content
+        required: true
+        schema:
+          $ref: '#/definitions/.RoleUpdate'
+      responses:
+        "200":
+          description: role info
+          schema:
+            $ref: '#/definitions/models.Role'
+        "400":
+          description: string error
+    post:
+      tags:
+      - role
+      description: create roles
+      operationId: RoleController.CreateRole
+      parameters:
+      - in: body
+        name: body
+        description: body for role content
+        required: true
+        schema:
+          $ref: '#/definitions/.RoleCreate'
+      responses:
+        "200":
+          description: Id
+          schema:
+            $ref: '#/definitions/models.Id'
+        "400":
+          description: string error
+  /role/{id}:
+    get:
+      tags:
+      - role
+      description: get role by id
+      operationId: RoleController.Get
+      parameters:
+      - in: path
+        name: id
+        description: The key for staticblock
+        required: true
+        type: integer
+        format: int64
+      responses:
+        "200":
+          description: role info
+          schema:
+            $ref: '#/definitions/models.Role'
+        "400":
+          description: string error
+    delete:
+      tags:
+      - role
+      description: delete the role
+      operationId: RoleController.DeleteRole
+      parameters:
+      - in: path
+        name: id
+        description: The id you want to delete
+        required: true
+        type: string
+      responses:
+        "200":
+          description: '{string} delete success!'
+        "400":
+          description: string error
+  /role/cnt:
+    get:
+      tags:
+      - role
+      description: get Roles number
+      operationId: RoleController.GetRolesCnt
+      parameters:
+      - in: query
+        name: query
+        description: role name
+        type: string
+      responses:
+        "200":
+          description: role number
+          schema:
+            $ref: '#/definitions/models.Total'
+        "400":
+          description: string error
+  /role/search:
+    get:
+      tags:
+      - role
+      description: get all Roles
+      operationId: RoleController.GetRoles
+      parameters:
+      - in: query
+        name: query
+        description: role name
+        type: string
+      - in: query
+        name: limit
+        description: limit page number
+        type: integer
+        format: int64
+      - in: query
+        name: offset
+        description: offset  number
+        type: integer
+        format: int64
+      responses:
+        "200":
+          description: roles info
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/models.Role'
+        "400":
+          description: string error
+  /settings/config/{module}:
+    get:
+      tags:
+      - settings
+      description: get modules config
+      operationId: SetController.Get config
+      parameters:
+      - in: path
+        name: module
+        description: module name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: map[string]string {defualt{}, conf{}, configfile{}}
+        "400":
+          description: string error
+  /settings/log/cnt:
+    get:
+      tags:
+      - settings
+      description: get logs number
+      operationId: SetController.GetLogsCnt
+      parameters:
+      - in: query
+        name: begin
+        description: end time(YYYY-MM-DD HH:mm:ss)
+        type: string
+      - in: query
+        name: end
+        description: begin time(YYYY-MM-DD HH:mm:ss)
+        type: string
+      responses:
+        "200":
+          description: total number
+          schema:
+            $ref: '#/definitions/models.Total'
+        "400":
+          description: string error
+  /settings/log/search:
+    get:
+      tags:
+      - settings
+      description: get all Logs
+      operationId: SetController.GetLogs
+      parameters:
+      - in: query
+        name: begin
+        description: end time(YYYY-MM-DD HH:mm:ss)
+        type: string
+      - in: query
+        name: end
+        description: begin time(YYYY-MM-DD HH:mm:ss)
+        type: string
+      - in: query
+        name: limit
+        description: limit page number
+        type: integer
+        format: int64
+      - in: query
+        name: offset
+        description: offset  number
+        type: integer
+        format: int64
+      responses:
+        "200":
+          description: logs info
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/models.LogApiGet'
+        "400":
+          description: string error
+  /settings/profile:
+    get:
+      tags:
+      - settings
+      description: get profile
+      operationId: SetController.Get
+      responses:
+        "200":
+          description: user info
+          schema:
+            $ref: '#/definitions/models.User'
+        "400":
+          description: string error
+    put:
+      tags:
+      - settings
+      description: update profile
+      operationId: SetController.Profile update
+      parameters:
+      - in: body
+        name: body
+        description: body for user content
+        required: true
+        schema:
+          $ref: '#/definitions/.UserProfileUpdate'
+      responses:
+        "200":
+          description: user info
+          schema:
+            $ref: '#/definitions/models.User'
+        "400":
+          description: string error
+  /tag/:
+    post:
+      tags:
+      - tag
+      description: create tags
+      operationId: TagController.CreateTag
+      parameters:
+      - in: body
+        name: body
+        description: body for tag content
+        required: true
+        schema:
+          $ref: '#/definitions/models.TagCreate'
+      responses:
+        "200":
+          description: Id
+          schema:
+            $ref: '#/definitions/models.Id'
+        "400":
+          description: string error
+  /tag/{id}:
+    get:
+      tags:
+      - tag
+      description: get tag by id
+      operationId: TagController.Get
+      parameters:
+      - in: path
+        name: id
+        description: The key for staticblock
+        required: true
+        type: integer
+        format: int64
+      responses:
+        "200":
+          description: tag info
+          schema:
+            $ref: '#/definitions/models.Tag'
+        "400":
+          description: string error
+    delete:
+      tags:
+      - tag
+      description: delete the tag
+      operationId: TagController.DeleteTag
+      parameters:
+      - in: path
+        name: id
+        description: The id you want to delete
+        required: true
+        type: string
+      responses:
+        "200":
+          description: '{string} "delete success!"'
+        "400":
+          description: string error
+  /tag/cnt:
+    get:
+      tags:
+      - tag
+      description: get Tags number
+      operationId: TagController.GetTagsCnt
+      parameters:
+      - in: query
+        name: query
+        description: tag name
+        type: string
+      responses:
+        "200":
+          description: tag total number
+          schema:
+            $ref: '#/definitions/models.Total'
+        "400":
+          description: string error
+  /tag/node:
+    get:
+      tags:
+      - tag
+      description: get node and it's children
+      operationId: TagController.Get tree's node
+      parameters:
+      - in: query
+        name: id
+        description: tag id default root(1)
+        type: integer
+        format: int64
+      - in: query
+        name: depth
+        description: depth levels default -1(no limit)
+        type: integer
+        format: int64
+      responses:
+        "200":
+          description: all nodes of the tree(read)
+          schema:
+            $ref: '#/definitions/models.TreeNode'
+        "400":
+          description: string error
+  /tag/operate:
+    get:
+      tags:
+      - tag
+      description: get has operate token tags
+      operationId: TagController.Get tags(operate)
+      parameters:
+      - in: query
+        name: expand
+        description: include child tag(default:false)
+        type: boolean
+      responses:
+        "200":
+          description: all ids of the node that can be operated
+          schema:
+            type: array
+            items:
+              format: int64
+              type: integer
+        "400":
+          description: string error
+  /tag/read:
+    get:
+      tags:
+      - tag
+      description: get has read token tags
+      operationId: TagController.Get tags(read)
+      parameters:
+      - in: query
+        name: expand
+        description: include child tag(default:false)
+        type: boolean
+      responses:
+        "200":
+          description: all ids of the node that can be read
+          schema:
+            type: array
+            items:
+              format: int64
+              type: integer
+        "400":
+          description: string error
+  /tag/search:
+    get:
+      tags:
+      - tag
+      description: get all Tags
+      operationId: TagController.GetTags
+      parameters:
+      - in: query
+        name: query
+        description: tag name
+        type: string
+      - in: query
+        name: limit
+        description: limit page number
+        type: integer
+        format: int64
+      - in: query
+        name: offset
+        description: offset  number
+        type: integer
+        format: int64
+      responses:
+        "200":
+          description: tags info
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/models.Tag'
+        "400":
+          description: "string\terror"
+  /token/:
+    put:
+      tags:
+      - token
+      description: update the token
+      operationId: TokenController.UpdateToken
+      parameters:
+      - in: body
+        name: body
+        description: body for token content
+        required: true
+        schema:
+          $ref: '#/definitions/.TokenUpdate'
+      responses:
+        "200":
+          description: token info
+          schema:
+            $ref: '#/definitions/models.Token'
+        "400":
+          description: string error
+    post:
+      tags:
+      - token
+      description: create tokens
+      operationId: TokenController.CreateToken
+      parameters:
+      - in: body
+        name: body
+        description: body for token content
+        required: true
+        schema:
+          $ref: '#/definitions/.TokenCreate'
+      responses:
+        "200":
+          description: Id
+          schema:
+            $ref: '#/definitions/models.Id'
+        "400":
+          description: string error
+  /token/{id}:
+    get:
+      tags:
+      - token
+      description: get token by id
+      operationId: TokenController.Get
+      parameters:
+      - in: path
+        name: id
+        description: The key for staticblock
+        required: true
+        type: integer
+        format: int64
+      responses:
+        "200":
+          description: token info
+          schema:
+            $ref: '#/definitions/models.Token'
+        "400":
+          description: string error
+    delete:
+      tags:
+      - token
+      description: delete the token
+      operationId: TokenController.DeleteToken
+      parameters:
+      - in: path
+        name: id
+        description: The id you want to delete
+        required: true
+        type: string
+      responses:
+        '{code:200,':
+          description: data:"delete success!"} delete success!
+        '{code:400,':
+          description: msg:string}
+  /token/cnt:
+    get:
+      tags:
+      - token
+      description: get Tokens number
+      operationId: TokenController.GetTokensCnt
+      parameters:
+      - in: query
+        name: query
+        description: token name
+        type: string
+      responses:
+        "200":
+          description: token total number
+          schema:
+            $ref: '#/definitions/models.Total'
+        "400":
+          description: string error
+  /token/m/tag/roles:
+    post:
+      tags:
+      - token
+      description: create tag/role/tokens relation
+      operationId: TokenController.create tag role tokens relation
+      parameters:
+      - in: body
+        name: body
+        description: "true"
+        schema:
+          $ref: '#/definitions/models.TagRolesTokensApiAdd'
+      responses:
+        "200":
+          description: affected number
+          schema:
+            $ref: '#/definitions/models.Total'
+        "400":
+          description: string error
+    delete:
+      tags:
+      - token
+      description: delete tag/role/token relation
+      operationId: TokenController.delete tag role token relation
+      parameters:
+      - in: body
+        name: body
+        description: "true"
+        schema:
+          $ref: '#/definitions/models.TagRolesTokensApiDel'
+      responses:
+        "200":
+          description: affected number
+          schema:
+            $ref: '#/definitions/models.Total'
+        "400":
+          description: string error
+  /token/search:
+    get:
+      tags:
+      - token
+      description: get all Tokens
+      operationId: TokenController.GetTokens
+      parameters:
+      - in: query
+        name: query
+        description: token name
+        type: string
+      - in: query
+        name: limit
+        description: limit page number
+        type: integer
+        format: int64
+      - in: query
+        name: offset
+        description: offset  number
+        type: integer
+        format: int64
+      responses:
+        "200":
+          description: tokens info
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/models.Token'
+        "400":
+          description: string error
+  /token/tag/role/cnt:
+    get:
+      tags:
+      - token
+      description: get tag role token number
+      operationId: TokenController.GetTagRoleTokenCnt
+      parameters:
+      - in: query
+        name: query
+        description: token name
+        type: string
+      - in: query
+        name: tag_id
+        description: tag id
+        required: true
+        type: integer
+        format: int64
+      - in: query
+        name: deep
+        description: search sub tag
+        type: boolean
+      responses:
+        "200":
+          description: affected number
+          schema:
+            $ref: '#/definitions/models.Total'
+        "400":
+          description: string error
+  /token/tag/role/search:
+    get:
+      tags:
+      - token
+      description: get tag role token
+      operationId: TokenController.GetTagRoleToken
+      parameters:
+      - in: query
+        name: tag_id
+        description: tag id
+        required: true
+        type: integer
+        format: int64
+      - in: query
+        name: query
+        description: token name
+        type: string
+      - in: query
+        name: deep
+        description: search sub tag
+        type: boolean
+      - in: query
+        name: limit
+        description: limit page number
+        type: integer
+        format: int64
+      - in: query
+        name: offset
+        description: offset  number
+        type: integer
+        format: int64
+      responses:
+        "200":
+          description: hosts info
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/models.Host'
+        "400":
+          description: string error
+  /user/:
+    put:
+      tags:
+      - user
+      description: update user information
+      operationId: UserController.Update
+      parameters:
+      - in: body
+        name: body
+        description: body for user content
+        required: true
+        schema:
+          $ref: '#/definitions/models.UserApiUpdate'
+      responses:
+        "200":
+          description: user info
+          schema:
+            $ref: '#/definitions/models.User'
+        "400":
+          description: string error
+    post:
+      tags:
+      - user
+      description: create users
+      operationId: UserController.CreateUser
+      parameters:
+      - in: body
+        name: body
+        description: body for user content
+        required: true
+        schema:
+          $ref: '#/definitions/models.UserApiAdd'
+      responses:
+        "200":
+          description: Id
+          schema:
+            $ref: '#/definitions/models.Id'
+        "400":
+          description: string error
+    delete:
+      tags:
+      - user
+      description: delete the user
+      operationId: UserController.Delete
+      parameters:
+      - in: body
+        name: body
+        description: The []id you want to delete
+        required: true
+        type: array
+        items:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          description: api call result
+          schema:
+            $ref: '#/definitions/models.Stats'
+        "400":
+          description: string error
+  /user/{id}:
+    get:
+      tags:
+      - user
+      description: get user by id
+      operationId: UserController.Get
+      parameters:
+      - in: path
+        name: id
+        description: user id
+        required: true
+        type: integer
+        format: int64
+      responses:
+        "200":
+          description: user info
+          schema:
+            $ref: '#/definitions/models.User'
+        "400":
+          description: string error
+    delete:
+      tags:
+      - user
+      description: delete the user
+      operationId: UserController.Delete
+      parameters:
+      - in: path
+        name: id
+        description: The id you want to delete
+        required: true
+        type: string
+      responses:
+        '{code:200,':
+          description: data:string} delete success!
+        "400":
+          description: string error
+  /user/binded/{id}:
+    get:
+      tags:
+      - user
+      description: get all Users
+      operationId: UserController.GetBindedUsers
+      parameters:
+      - in: path
+        name: id
+        description: user id
+        required: true
+        type: integer
+        format: int64
+      responses:
+        "200":
+          description: users info
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/models.User'
+        "400":
+          description: string error
+  /user/cnt:
+    get:
+      tags:
+      - user
+      description: get Users number
+      operationId: UserController.GetUsersCnt
+      parameters:
+      - in: query
+        name: query
+        description: user name/email
+        type: string
+      responses:
+        "200":
+          description: user total number
+          schema:
+            $ref: '#/definitions/models.Total'
+        "400":
+          description: string error
+  /user/search:
+    get:
+      tags:
+      - user
+      description: get all Users
+      operationId: UserController.GetUsers
+      parameters:
+      - in: query
+        name: query
+        description: user name/email
+        type: string
+      - in: query
+        name: limit
+        description: limit page number
+        type: integer
+        format: int64
+      - in: query
+        name: offset
+        description: offset  number
+        type: integer
+        format: int64
+      responses:
+        "200":
+          description: users info
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/models.User'
+        "400":
+          description: string error
+  /user/tag/role:
+    post:
+      tags:
+      - user
+      description: create tag/roles/users relation
+      operationId: UserController.create tag role users relation
+      parameters:
+      - in: body
+        name: body
+        description: "true"
+        schema:
+          $ref: '#/definitions/models.TagRolesUsersApiAdd'
+      responses:
+        "200":
+          description: affected number
+          schema:
+            $ref: '#/definitions/models.Total'
+        "400":
+          description: string error
+    delete:
+      tags:
+      - user
+      description: delete tag/roles/users relation
+      operationId: UserController.delete tag role user relation
+      parameters:
+      - in: body
+        name: body
+        description: "true"
+        schema:
+          $ref: '#/definitions/models.TagRolesUsersApiDel'
+      responses:
+        "200":
+          description: affected number
+          schema:
+            $ref: '#/definitions/models.Total'
+        "400":
+          description: string error
+  /user/tag/role/cnt:
+    get:
+      tags:
+      - user
+      description: get tag role user number
+      operationId: UserController.GetTagRoleUserCnt
+      parameters:
+      - in: query
+        name: query
+        description: user name
+        type: string
+      - in: query
+        name: tag_id
+        description: tag id
+        required: true
+        type: integer
+        format: int64
+      - in: query
+        name: deep
+        description: search sub tag
+        type: boolean
+      responses:
+        "200":
+          description: user total number
+          schema:
+            $ref: '#/definitions/models.Total'
+        "400":
+          description: string error
+  /user/tag/role/search:
+    get:
+      tags:
+      - user
+      description: get tag role user
+      operationId: UserController.GetTagRoleUser
+      parameters:
+      - in: query
+        name: tag_id
+        description: tag id
+        required: true
+        type: integer
+        format: int64
+      - in: query
+        name: query
+        description: user name
+        type: string
+      - in: query
+        name: deep
+        description: search sub tag
+        type: boolean
+      - in: query
+        name: limit
+        description: limit page number
+        type: integer
+        format: int64
+      - in: query
+        name: offset
+        description: offset  number
+        type: integer
+        format: int64
+      responses:
+        "200":
+          description: tag role user info
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/models.TagRoleUserApiGet'
+        "400":
+          description: string error
+  /user/unbind/{id}:
+    get:
+      tags:
+      - user
+      description: unbind user
+      operationId: UserController.unbind User
+      parameters:
+      - in: path
+        name: id
+        description: user id
+        required: true
+        type: integer
+        format: int64
+      responses:
+        "200":
+          description: string success
+        "400":
+          description: string error
+  /weapp/authqr:
+    get:
+      tags:
+      - weapp
+      description: get auth task qrcode
+      operationId: WeappController.create get auth task qrcode
+      responses:
+        "200":
+          description: qr code image(encode by base64)
+          schema:
+            $ref: '#/definitions/models.QrTask'
+        "400":
+          description: string error
+  /weapp/bindqr:
+    get:
+      tags:
+      - weapp
+      description: bind weapp to cur user
+      operationId: 'WeappController.create bind weapp to falcon user task(acl: falcon
+        session login)'
+      responses:
+        "200":
+          description: qr code image(encode by base64)
+          schema:
+            $ref: '#/definitions/models.QrTask'
+        "400":
+          description: string error
+  /weapp/login:
+    get:
+      tags:
+      - weapp
+      description: wexin app login api
+      operationId: 'WeappController.login (acl: pub)'
+      responses:
+        "200":
+          description: string success
+        "400":
+          description: string error
+  /weapp/openid:
+    get:
+      tags:
+      - weapp
+      description: wexin app api
+      operationId: 'WeappController.openid (acl: pub)'
+      parameters:
+      - in: query
+        name: code
+        description: code from weapp wx.login()
+        required: true
+        type: string
+      responses:
+        "200":
+          description: string success
+        "400":
+          description: string error
+  /weapp/task:
+    get:
+      tags:
+      - weapp
+      description: get task states
+      operationId: WeappController.get task states
+      parameters:
+      - in: query
+        name: key
+        description: task key
+        required: true
+        type: string
+      responses:
+        "200":
+          description: '{string} states'
+        "400":
+          description: string error
+  /weapp/taskack:
+    get:
+      tags:
+      - weapp
+      description: bind weapp to cur user
+      operationId: 'WeappController.ack auth to falcon request(acl: weapp login &&
+        binded)'
+      parameters:
+      - in: query
+        name: key
+        description: task key
+        required: true
+        type: string
+      responses:
+        "200":
+          description: bind to falcon user
+          schema:
+            $ref: '#/definitions/models.User'
+        "400":
+          description: string error
+  /weapp/templateMessage:
+    get:
+      tags:
+      - weapp
+      description: wexin app api
+      operationId: WeappController.templateMessage
+      responses:
+        "200":
+          description: string success
+        "400":
+          description: string error
+  /weapp/testRequest:
+    get:
+      tags:
+      - weapp
+      description: wexin app api
+      operationId: 'WeappController.testRequest (acl: weapp skey)'
+      responses:
+        "200":
+          description: string success
+        "400":
+          description: string error
+  /weapp/tunnel:
+    get:
+      tags:
+      - weapp
+      description: wexin app api
+      operationId: WeappController.tunnel
+      responses:
+        "200":
+          description: string success
+        "400":
+          description: string error
+  /weapp/upload:
+    post:
+      tags:
+      - weapp
+      description: wexin app api
+      operationId: WeappController.upload
+      responses:
+        "200":
+          description: string success
+        "400":
+          description: string error
+definitions:
+  .GetResponse:
+    type: object
+  .HostCreate:
+    type: object
+  .HostUpdate:
+    type: object
+  .Obj:
+    type: object
+  .RoleCreate:
+    type: object
+  .RoleUpdate:
+    type: object
+  .TagHostApiGet:
+    type: object
+  .TokenCreate:
+    type: object
+  .TokenUpdate:
+    type: object
+  .Trigger:
+    type: object
+  .UserProfileUpdate:
+    type: object
+  .false:
+    type: object
+  models.APIGraph:
+    title: APIGraph
+    type: object
+    properties:
+      counters:
+        type: array
+        items:
+          type: string
+      endpoints:
+        type: array
+        items:
+          type: string
+      falcon_tags:
+        type: string
+      graph_id:
+        type: integer
+        format: int64
+      graph_type:
+        type: string
+      method:
+        type: string
+      position:
+        type: integer
+        format: int64
+      screen_id:
+        type: integer
+        format: int64
+      timespan:
+        type: integer
+        format: int64
+      title:
+        type: string
+  models.APIGraphs:
+    title: APIGraphs
+    type: object
+    properties:
+      Gs:
+        type: array
+        items:
+          $ref: '#/definitions/models.APIGraph'
+  models.APITmpGraph:
+    title: APITmpGraph
+    type: object
+    properties:
+      counters:
+        type: array
+        items:
+          type: string
+      endpoints:
+        type: array
+        items:
+          type: string
+  models.ActionTriggerApiAdd:
+    title: ActionTriggerApiAdd
+    type: object
+    properties:
+      action_script:
+        type: string
+      email:
+        type: boolean
+      expr:
+        type: string
+      order_id:
+        type: integer
+        format: int64
+      script:
+        type: boolean
+      sms:
+        type: boolean
+      tag_id:
+        type: integer
+        format: int64
+      token_id:
+        type: integer
+        format: int64
+  models.ActionTriggerApiDel:
+    title: ActionTriggerApiDel
+    type: object
+    properties:
+      action_trigger_ids:
+        type: array
+        items:
+          type: integer
+          format: int64
+      tag_id:
+        type: integer
+        format: int64
+  models.ActionTriggerApiGet:
+    title: ActionTriggerApiGet
+    type: object
+    properties:
+      action_script:
+        type: string
+      email:
+        type: boolean
+      expr:
+        type: string
+      id:
+        type: integer
+        format: int64
+      order_id:
+        type: integer
+        format: int64
+      script:
+        type: boolean
+      sms:
+        type: boolean
+      tag_id:
+        type: integer
+        format: int64
+      tag_name:
+        type: string
+      token_id:
+        type: integer
+        format: int64
+      token_name:
+        type: string
+  models.ActionTriggerApiUpdate:
+    title: ActionTriggerApiUpdate
+    type: object
+    properties:
+      action_script:
+        type: string
+      email:
+        type: boolean
+      expr:
+        type: string
+      id:
+        type: integer
+        format: int64
+      order_id:
+        type: integer
+        format: int64
+      script:
+        type: boolean
+      sms:
+        type: boolean
+      tag_id:
+        type: integer
+        format: int64
+      token_id:
+        type: integer
+        format: int64
+  models.AddDashboardScreen:
+    title: AddDashboardScreen
+    type: object
+    properties:
+      name:
+        type: string
+      pid:
+        type: integer
+        format: int64
+  models.DashboardGraph:
+    title: DashboardGraph
+    type: object
+    properties:
+      counters:
+        type: string
+      falcon_tags:
+        type: string
+      graph_type:
+        type: string
+      hosts:
+        type: string
+      id:
+        type: integer
+        format: int64
+      method:
+        type: string
+      position:
+        type: integer
+        format: int64
+      screen_id:
+        type: integer
+        format: int64
+      timespan:
+        type: integer
+        format: int64
+      title:
+        type: string
+  models.DashboardScreen:
+    title: DashboardScreen
+    type: object
+    properties:
+      id:
+        type: integer
+        format: int64
+      name:
+        type: string
+      pid:
+        type: integer
+        format: int64
+  models.DataPointApiGet:
+    title: DataPointApiGet
+    type: object
+    properties:
+      consol_fun:
+        type: string
+      end:
+        type: integer
+        format: int64
+      keys:
+        type: array
+        items:
+          type: string
+      start:
+        type: integer
+        format: int64
+  models.Endpoint:
+    title: Endpoint
+    type: object
+    properties:
+      endpoint:
+        type: string
+      id:
+        type: integer
+        format: int64
+  models.EndpointCounter:
+    title: EndpointCounter
+    type: object
+    properties:
+      counter:
+        type: string
+  models.EventTriggerApiAdd:
+    title: EventTriggerApiAdd
+    type: object
+    properties:
+      expr:
+        type: string
+      metric:
+        type: string
+      msg:
+        type: string
+      name:
+        type: string
+      parent_id:
+        type: integer
+        format: int64
+      priority:
+        type: integer
+        format: int64
+      tag_id:
+        type: integer
+        format: int64
+      tags:
+        type: string
+  models.EventTriggerApiClone:
+    title: EventTriggerApiClone
+    type: object
+    properties:
+      event_trigger_ids:
+        type: array
+        items:
+          type: integer
+          format: int64
+      tag_id:
+        type: integer
+        format: int64
+  models.EventTriggerApiDel:
+    title: EventTriggerApiDel
+    type: object
+    properties:
+      event_trigger_ids:
+        type: array
+        items:
+          type: integer
+          format: int64
+      tag_id:
+        type: integer
+        format: int64
+  models.EventTriggerApiGet:
+    title: EventTriggerApiGet
+    type: object
+    properties:
+      children:
+        type: array
+        items:
+          $ref: '#/definitions/models.EventTriggerApiGet'
+      expr:
+        type: string
+      id:
+        type: integer
+        format: int64
+      metric:
+        type: string
+      msg:
+        type: string
+      name:
+        type: string
+      parent_id:
+        type: integer
+        format: int64
+      parent_name:
+        type: string
+      priority:
+        type: integer
+        format: int64
+      refcnt:
+        type: integer
+        format: int64
+      tag_id:
+        type: integer
+        format: int64
+      tag_name:
+        type: string
+      tags:
+        type: string
+      tpl_id:
+        type: integer
+        format: int64
+      tpl_name:
+        type: string
+      version:
+        type: integer
+        format: int64
+  models.EventTriggerApiUpdate:
+    title: EventTriggerApiUpdate
+    type: object
+    properties:
+      expr:
+        type: string
+      id:
+        type: integer
+        format: int64
+      metric:
+        type: string
+      msg:
+        type: string
+      name:
+        type: string
+      priority:
+        type: integer
+        format: int64
+      tag_id:
+        type: integer
+        format: int64
+      tags:
+        type: string
+      tpl_id:
+        type: integer
+        format: int64
+  models.ExpansionStatus:
+    title: ExpansionStatus
+    type: object
+    properties:
+      graph_cluster:
+        type: string
+      migrating:
+        type: boolean
+      new_endpoint:
+        type: string
+  models.Host:
+    title: Host
+    type: object
+    properties:
+      id:
+        type: integer
+        format: int64
+      idc:
+        type: string
+      loc:
+        type: string
+      name:
+        type: string
+      pause:
+        type: integer
+        format: int64
+      status:
+        type: string
+      typ:
+        type: string
+      uuid:
+        type: string
+  models.Id:
+    title: Id
+    type: object
+    properties:
+      id:
+        type: integer
+        format: int64
+  models.LogApiGet:
+    title: LogApiGet
+    type: object
+    properties:
+      action:
+        type: string
+      data:
+        type: string
+      id:
+        type: integer
+        format: int64
+      module:
+        type: string
+      tid:
+        type: integer
+        format: int64
+      time:
+        type: string
+        format: string
+      user:
+        type: string
+  models.Metric:
+    title: Metric
+    type: object
+    properties:
+      name:
+        type: string
+  models.OperatorInfo:
+    title: OperatorInfo
+    type: object
+    properties:
+      admin:
+        type: boolean
+      operator:
+        type: boolean
+      reader:
+        type: boolean
+      user:
+        $ref: '#/definitions/models.User'
+  models.PluginDirGet:
+    title: PluginDirGet
+    type: object
+    properties:
+      creator:
+        type: string
+      dir:
+        type: string
+      id:
+        type: integer
+        format: int64
+      tag_id:
+        type: integer
+        format: int64
+      tag_name:
+        type: string
+  models.PluginDirPost:
+    title: PluginDirPost
+    type: object
+    properties:
+      dir:
+        type: string
+      tag_id:
+        type: integer
+        format: int64
+  models.QrTask:
+    title: QrTask
+    type: object
+    properties:
+      img:
+        type: string
+      key:
+        type: string
+  models.Role:
+    title: Role
+    type: object
+    properties:
+      cname:
+        type: string
+      id:
+        type: integer
+        format: int64
+      name:
+        type: string
+      note:
+        type: string
+  models.Stats:
+    title: Stats
+    type: object
+    properties:
+      err:
+        type: string
+      success:
+        type: integer
+        format: int64
+  models.Tag:
+    title: Tag
+    type: object
+    properties:
+      id:
+        type: integer
+        format: int64
+      name:
+        type: string
+      type:
+        type: integer
+        format: int64
+  models.TagCreate:
+    title: TagCreate
+    type: object
+    properties:
+      name:
+        type: string
+  models.TagHostApiAdd:
+    title: TagHostApiAdd
+    type: object
+    properties:
+      host_id:
+        type: integer
+        format: int64
+      src_tag_id:
+        type: integer
+        format: int64
+      tag_id:
+        type: integer
+        format: int64
+  models.TagHostApiDel:
+    title: TagHostApiDel
+    type: object
+    properties:
+      host_id:
+        type: integer
+        format: int64
+      tag_id:
+        type: integer
+        format: int64
+  models.TagHostsApiAdd:
+    title: TagHostsApiAdd
+    type: object
+    properties:
+      host_ids:
+        type: array
+        items:
+          type: integer
+          format: int64
+      src_tag_id:
+        type: integer
+        format: int64
+      tag_id:
+        type: integer
+        format: int64
+  models.TagHostsApiDel:
+    title: TagHostsApiDel
+    type: object
+    properties:
+      host_ids:
+        type: array
+        items:
+          type: integer
+          format: int64
+      tag_id:
+        type: integer
+        format: int64
+  models.TagRoleUserApiGet:
+    title: TagRoleUserApiGet
+    type: object
+    properties:
+      role_id:
+        type: integer
+        format: int64
+      role_name:
+        type: string
+      tag_id:
+        type: integer
+        format: int64
+      tag_name:
+        type: string
+      user_id:
+        type: integer
+        format: int64
+      user_name:
+        type: string
+  models.TagRolesTokensApiAdd:
+    title: TagRolesTokensApiAdd
+    type: object
+    properties:
+      role_ids:
+        type: array
+        items:
+          type: integer
+          format: int64
+      tag_id:
+        type: integer
+        format: int64
+      token_ids:
+        type: array
+        items:
+          type: integer
+          format: int64
+  models.TagRolesTokensApiDel:
+    title: TagRolesTokensApiDel
+    type: object
+    properties:
+      role_token:
+        type: array
+        items:
+          $ref: '#/definitions/37111.0xc420391b60.false'
+      tag_id:
+        type: integer
+        format: int64
+  models.TagRolesUsersApiAdd:
+    title: TagRolesUsersApiAdd
+    type: object
+    properties:
+      role_ids:
+        type: array
+        items:
+          type: integer
+          format: int64
+      tag_id:
+        type: integer
+        format: int64
+      user_ids:
+        type: array
+        items:
+          type: integer
+          format: int64
+  models.TagRolesUsersApiDel:
+    title: TagRolesUsersApiDel
+    type: object
+    properties:
+      role_user:
+        type: array
+        items:
+          $ref: '#/definitions/111021.0xc4204b4f90.false'
+      tag_id:
+        type: integer
+        format: int64
+  models.Token:
+    title: Token
+    type: object
+    properties:
+      cname:
+        type: string
+      id:
+        type: integer
+        format: int64
+      name:
+        type: string
+      note:
+        type: string
+  models.Total:
+    title: Total
+    type: object
+    properties:
+      total:
+        type: integer
+        format: int64
+  models.TreeNode:
+    title: TreeNode
+    type: object
+    properties:
+      children:
+        type: array
+        items:
+          $ref: '#/definitions/models.TreeNode'
+      id:
+        type: integer
+        format: int64
+      label:
+        type: string
+      name:
+        type: string
+      read:
+        type: boolean
+  models.User:
+    title: User
+    type: object
+    properties:
+      avatarurl:
+        type: string
+      cname:
+        type: string
+      disabled:
+        type: integer
+        format: int64
+      email:
+        type: string
+      extra:
+        type: string
+      id:
+        type: integer
+        format: int64
+      mname:
+        type: string
+      muid:
+        type: integer
+        format: int64
+      name:
+        type: string
+      phone:
+        type: string
+      qq:
+        type: string
+      uuid:
+        type: string
+  models.UserApiAdd:
+    title: UserApiAdd
+    type: object
+    properties:
+      avatarurl:
+        type: string
+      cname:
+        type: string
+      email:
+        type: string
+      extra:
+        type: string
+      name:
+        type: string
+      phone:
+        type: string
+      qq:
+        type: string
+      uuid:
+        type: string
+  models.UserApiUpdate:
+    title: UserApiUpdate
+    type: object
+    properties:
+      avatarurl:
+        type: string
+      cname:
+        type: string
+      disabled:
+        type: integer
+        format: int64
+      email:
+        type: string
+      extra:
+        type: string
+      id:
+        type: integer
+        format: int64
+      name:
+        type: string
+      phone:
+        type: string
+      qq:
+        type: string
+      uuid:
+        type: string
+tags:
+- name: auth
+  description: |
+    Operations about Auth
+- name: host
+  description: |
+    Operations about Hosts
+- name: role
+  description: |
+    Operations about Roles
+- name: tag
+  description: |
+    Operations about Tags
+- name: user
+  description: |
+    Operations about Users
+- name: token
+  description: |
+    Operations about Tokens
+- name: settings
+  description: |
+    Operations about porfile/config/info
+- name: metric
+  description: |
+    Operations about Metrics
+- name: admin
+  description: |
+    Operations about porfile/config/info
+- name: dashboard
+  description: |
+    Operations about dashboard
+- name: graph
+  description: |
+    Operations about idx
+- name: pub
+  description: |
+    Operations about porfile/config/info
+- name: weapp
+  description: |
+    Operations about weixin app
+- name: event
+  description: |
+    Operations about event
+- name: action
+  description: |
+    Operations about action (trigger/filter)

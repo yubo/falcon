@@ -1,0 +1,63 @@
+#!/bin/sh
+#
+# Startup script for the falcon daemon
+#
+# processname:falcon 
+# pidfile: /var/run/falcon.pid
+# config: /etc/falcon/falcon.conf
+# chkconfig: - 21 79
+# description: Start and stop falcon
+
+# Source function library
+. /etc/rc.d/init.d/functions
+
+# Source configuration file (we set FALCON_OPTIONS there)
+. /etc/default/falcon
+
+RETVAL=0
+
+prog="falcon"
+
+start() {
+    echo -n $"Starting $prog: "
+    daemon falcon ${FALCON_OPTIONS}
+    RETVAL=$?
+    echo
+    [ $RETVAL -eq 0 ] && touch /var/lock/subsys/$prog
+}
+
+stop() {
+    echo -n $"Stopping $prog: "
+    killproc falcon
+    RETVAL=$?
+    echo
+    [ $RETVAL -eq 0 ] && rm -f /var/lock/subsys/$prog
+}
+
+testconfig() {
+    echo -n $"Reloading $prog: "
+    killproc falcon -1
+    RETVAL=$?
+    echo
+}
+
+# See how we were called.
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    test)
+        testconfig
+        ;;
+    status)
+        status falcon
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|test|status}"
+        exit 1
+esac
+
+exit $RETVAL

@@ -1,18 +1,16 @@
-.PHONY: clean parse doc deploy start vendor stats update
+.PHONY: clean parse doc deploy start vendor stats update dev
 
-all: dist/bin/falcon
+all: dist/sbin/falcon dist/sbin/agent
 
 MODULES=falcon
 SUBMODULES=ctrl agent transfer service alarm
 PBFILES=$(shell find . -name "*.proto" -type f -not -path "./cmd*")
-DOCFILES=dist/etc/falcon.example.conf \
-	dist/etc/metric_names \
-	dist/html/ctrl.swagger.json \
-	dist/html/transfer.swagger.json \
-	dist/html/service.swagger.json \
-	dist/html/agent.swagger.json \
-	dist/html/alarm.swagger.json \
-	dist/html/api_reference.md
+DOCFILES=dist/html/doc/ctrl.swagger.json \
+	dist/html/doc/transfer.swagger.json \
+	dist/html/doc/service.swagger.json \
+	dist/html/doc/agent.swagger.json \
+	dist/html/doc/alarm.swagger.json \
+	dist/html/doc/api_reference.md
 GOFILES=$(shell find . -name "*.go" -type f -not -path "./cmd*") \
 	transfer/transfer.pb.go transfer/transfer.pb.gw.go \
 	lib/tsdb/tsdb.pb.go \
@@ -21,62 +19,69 @@ GOFILES=$(shell find . -name "*.go" -type f -not -path "./cmd*") \
 	parse/parse.go $(SUBMODULES:%=%/config/parse.go) \
 	gitlog.go
 DEPENDS=dist $(GOFILES) $(DOCFILES)
-TARGETS=dist dist/bin/falcon $(DOCFILES)
 
-dist/bin/falcon: $(DEPENDS) cmd/falcon/*.go
-	go build -o $@ ./cmd/falcon
+dist/sbin/falcon: $(DEPENDS) cmd/falcon/*.go
+	export GOPATH=$(PWD)/gopath && go build -o $@ ./cmd/falcon
 
-dist/html/ctrl.swagger.json: docs/ctrl.swagger.json
+dist/sbin/agent: $(DEPENDS) cmd/agent/*.go
+	export GOPATH=$(PWD)/gopath && go build -o $@ ./cmd/agent
+
+dist/html/doc/ctrl.swagger.json: docs/ctrl.swagger.json
 	cp -f $< $@
 
-dist/html/transfer.swagger.json: transfer/transfer.swagger.json
+dist/html/doc/transfer.swagger.json: transfer/transfer.swagger.json
 	cp -f $< $@
 
-dist/html/service.swagger.json: service/service.swagger.json
+dist/html/doc/service.swagger.json: service/service.swagger.json
 	cp -f $< $@
 
-dist/html/agent.swagger.json: agent/agent.swagger.json
+dist/html/doc/agent.swagger.json: agent/agent.swagger.json
 	cp -f $< $@
 
-dist/html/alarm.swagger.json: alarm/alarm.swagger.json
+dist/html/doc/alarm.swagger.json: alarm/alarm.swagger.json
 	cp -f $< $@
 
-dist/html/api_reference.md: docs/api_reference.md
+dist/html/doc/api_reference.md: docs/api_reference.md
+	cp -f $< $@
+
+dist/etc/doc/falcon.example.conf: docs/samples/falcon/falcon.example.conf
 	cp -f $< $@
 
 gitlog.go:
 	./scripts/git.sh
 
 dist:
-	mkdir -p dist/bin dist/etc dist/html
-
-dist/etc/falcon.example.conf: docs/etc/falcon.example.conf dist
-	cp docs/etc/falcon.example.conf $@
-
-dist/etc/metric_names: dist
-	cp docs/etc/metric_names dist/etc/metric_names
+	mkdir -p dist/sbin dist/etc && \
+	cp -a docs/html dist/ && \
+	cp -a docs/samples/init.d dist/etc/ && \
+	cp -a docs/samples/default dist/etc/ && \
+	cp -a docs/samples/falcon dist/etc/ && \
+	cp -a docs/samples/nginx dist/etc/
 
 clean:
 	rm -rf ./dist
 
 
-install: $(TARGETS)
+install: dist/sbin/falcon
 	./scripts/install.sh
 
 deploy: $(DEPENDS)
 	cd dist && ../scripts/deploy.sh
 
 start:
-	rm -f /tmp/falcon/*.sock; ./dist/bin/falcon start -config ./docs/etc/falcon.example.conf 2>&1
+	rm -f /tmp/falcon/*.sock; ./dist/sbin/falcon start -config ./docs/samples/falcon/falcon.example.conf 2>&1
+
+dev:
+	rm -f /opt/falcon/*.sock; ./dist/sbin/falcon start -config ./docs/samples/falcon/falcon.dev01.conf 2>&1
 
 reload:
-	./dist/bin/falcon reload -config ./docs/etc/falcon.example.conf 2>&1
+	./dist/sbin/falcon reload -config ./docs/etc/falcon.example.conf 2>&1
 
 usr2:
 	cat ./falcon.pid | xargs kill -USR2
 
-parse: $(TARGETS)
-	./dist/bin/falcon parse -config ./docs/etc/falcon.example.conf 2>&1
+parse: dist/sbin/falcon
+	./dist/sbin/falcon parse -config ./docs/etc/falcon.example.conf 2>&1
 
 coverage: $(DEPENDS)
 	./scripts/test_coverage.sh
@@ -92,7 +97,7 @@ doc:
 	./scripts/generate_doc.sh
 
 stats:
-	./dist/bin/falcon stats -config ./docs/etc/falcon.example.conf 
+	./dist/sbin/falcon stats -config ./docs/etc/falcon.example.conf 
 
 update:
 	git submodule update --recursive --init

@@ -1,0 +1,16 @@
+# Options for falcon. See `falcon --help' output and falcon(8) and
+# falcon.conf(5) man pages for a list of all options. Here are the most
+# common ones :
+#
+# -l <core1,..>	core list
+# -c <file>	set config file(default: /etc/falcon/falcon.conf)
+# -p <file>	set pid file(default: /var/run/falcon.pid)
+# -P		test config file
+# -I		test config file and init 
+# -d		daemon mode
+# 
+#
+
+FALCON_OPTIONS="-config /etc/falcon/falcon.conf"
+ULIMIT="-c unlimited"
+

@@ -1,4 +1,3 @@
-USE alarm;
 SET NAMES utf8;
 
 /*

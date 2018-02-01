@@ -24,6 +24,7 @@ const (
 	CACHE_CLEAN_INTERVAL  = 3600      // 回收检查间隔时间 (s)
 	MODULE_NAME           = "\x1B[36m[SERVICE]\x1B[0m"
 
+	C_TSDB_DIR       = "tsdbdir"
 	C_CALL_TIMEOUT   = "calltimeout"
 	C_API_ADDR       = "apiaddr"
 	C_HTTP_ADDR      = "httpaddr"
@@ -51,6 +52,7 @@ var (
 		C_JUDGE_NUM:     "8",
 		C_BURST_SIZE:    "32",
 		C_CONF_INTERVAL: "600",
+		C_TSDB_DIR:      "/tmp/tsdb",
 	}
 )
 

@@ -30,6 +30,7 @@ const (
 type CmdOpts struct {
 	ConfigFile string
 	Module     string
+	Daemon     bool
 }
 
 var (

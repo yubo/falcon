@@ -21,10 +21,6 @@ import (
 	"golang.org/x/net/context"
 )
 
-const (
-	dataDirectory = "/tmp/tsdb"
-)
-
 var (
 	// 13*2h
 	bucketNum uint8 = 13
@@ -87,6 +83,7 @@ func (t *TsdbModule) prestart(s *Service) error {
 }
 
 func (t *TsdbModule) start(s *Service) (err error) {
+	dataDirectory := s.Conf.Configer.Str(C_TSDB_DIR)
 	t.ctx, t.cancel = context.WithCancel(context.Background())
 
 	keyWriters := make([]*tsdb.KeyListWriter, keyWriterNum)
@@ -104,7 +101,7 @@ func (t *TsdbModule) start(s *Service) (err error) {
 	for shardId := 0; shardId < falcon.SHARD_NUM; shardId++ {
 		k := keyWriters[rand.Intn(len(keyWriters))]
 		b := bucketLogWriters[rand.Intn(len(bucketLogWriters))]
-		if err := createShardPath(shardId); err != nil {
+		if err := createShardPath(shardId, dataDirectory); err != nil {
 			return err
 		}
 		t.buckets[shardId] = tsdb.NewBucketMap(bucketNum, bucketSize, int32(shardId),
@@ -252,7 +249,7 @@ func (t *TsdbModule) get(req *GetRequest) (res *GetResponse, err error) {
 	return
 }
 
-func createShardPath(shardId int) error {
+func createShardPath(shardId int, dataDirectory string) error {
 	return os.MkdirAll(fmt.Sprintf("%s/%d", dataDirectory, shardId), 0755)
 }
 

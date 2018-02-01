@@ -1,0 +1,143 @@
+#! /bin/sh
+### BEGIN INIT INFO
+# Provides:          falcon
+# Required-Start:    $remote_fs
+# Required-Stop:     $local_fs
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: falcon Daemon
+# Description:       falcon Daemon
+### END INIT INFO
+
+# Author: Yu Bo <yubo@yubo.org>
+
+PATH=/sbin:/usr/sbin:/bin:/usr/bin:$GOPATH/bin
+NAME=falcon
+DESC=falcon
+DAEMON=/usr/sbin/falcon
+PID=/var/run/"$NAME".pid
+
+# Read configuration variable file if it is present
+[ -r /etc/default/"$NAME" ] && . /etc/default/"$NAME"
+DAEMON_OPTS=$FALCON_OPTIONS
+
+# Exit if the package is not installed
+[ -x "$DAEMON" ] || exit 0
+
+
+. /lib/init/vars.sh
+. /lib/lsb/init-functions
+
+
+#
+# Function that starts the daemon/service
+#
+do_start()
+{
+	# Return
+	#   0 if daemon has been started
+	#   1 if daemon was already running
+	#   2 if daemon could not be started
+        if [ -n "$ULIMIT" ]; then  
+		# Set the ulimits  
+		ulimit $ULIMIT  
+	fi  
+	start-stop-daemon --start --quiet --pidfile $PID --exec $DAEMON --test > /dev/null \
+		|| return 1
+	start-stop-daemon --start --quiet --pidfile $PID --exec $DAEMON -- \
+		$DAEMON_OPTS 2>/dev/null \
+		|| return 2
+}
+
+test_falcon_config() {
+	$DAEMON -P $DAEMON_OPTS >/dev/null 2>&1
+}
+
+#
+# Function that stops the daemon/service
+#
+do_stop()
+{
+	# Return
+	#   0 if daemon has been stopped
+	#   1 if daemon was already stopped
+	#   2 if daemon could not be stopped
+	#   other if a failure occurred
+        if [ -n "$ULIMIT" ]; then  
+		# Set the ulimits  
+		ulimit $ULIMIT  
+	fi  
+	start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 --pidfile $PID --name $NAME
+	RETVAL="$?"
+
+	sleep 1
+	return "$RETVAL"
+}
+
+case "$1" in
+	start)
+		[ "$VERBOSE" != no ] && log_daemon_msg "Starting $DESC" "$NAME"
+		do_start
+		case "$?" in
+			0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
+			2) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
+		esac
+		;;
+	stop)
+		[ "$VERBOSE" != no ] && log_daemon_msg "Stopping $DESC" "$NAME"
+		do_stop
+		case "$?" in
+			0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
+			2) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
+		esac
+		;;
+	restart)
+		log_daemon_msg "Restarting $DESC" "$NAME"
+
+		# Check configuration before stopping falcon
+		if ! test_falcon_config; then
+			log_end_msg 1 # Configuration error
+			exit 0
+		fi
+
+		do_stop
+		case "$?" in
+			0|1)
+				do_start
+				case "$?" in
+					0) log_end_msg 0 ;;
+					1) log_end_msg 1 ;; # Old process is still running
+					*) log_end_msg 1 ;; # Failed to start
+				esac
+				;;
+			*)
+				# Failed to stop
+				log_end_msg 1
+				;;
+		esac
+		;;
+	test)
+		log_daemon_msg "test $DESC configuration" "$NAME"
+
+		# Check configuration before reload falcon
+		#
+		# This is not entirely correct since the on-disk falcon binary
+		# may differ from the in-memory one, but that's not common.
+		# We prefer to check the configuration and return an error
+		# to the administrator.
+		if ! test_falcon_config; then
+			log_end_msg 1 # Configuration error
+			exit 0
+		fi
+
+		;;
+	status)
+		status_of_proc -p $PID "$DAEMON" "$NAME" && exit 0 || exit $?
+		;;
+	*)
+		echo "Usage: $NAME {start|stop|restart|test|status}" >&2
+		exit 3
+		;;
+esac
+
+:

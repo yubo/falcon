@@ -1,0 +1,17 @@
+server {
+	listen       7000;
+	server_name  c3-op-mon-dev01.bj;
+	access_log   off;
+
+	location ^~ / {
+		proxy_pass http://mbp:3000;
+	}
+	# location / {
+	#       root /home/yubo/var/html/;
+	#       try_files $uri /index.html;
+	# }
+	location ^~ /v1.0 {
+		proxy_pass http://127.0.0.1:8801;
+	}
+}
+
