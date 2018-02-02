@@ -38,7 +38,13 @@ func (op *Operator) AddDashboardTmpGraph(inputs *APITmpGraph) (id int64, err err
 	cs_string := strings.Join(cs, TMP_GRAPH_FILED_DELIMITER)
 	ck := falcon.Md5sum([]byte(es_string + ":" + cs_string))
 
-	res, err := op.O.Raw("INSERT INTO `tmp_graph` (endpoints, counters, ck) values(?, ?, ?) ON DUPLICATE KEY UPDATE ck = ?", es_string, cs_string, ck, ck).Exec()
+	err = op.O.Raw("SELECT id FROM tmp_graph WHERE ck = ?", ck).QueryRow(&id)
+	if err == nil {
+		return
+	}
+
+	// maybe not inconsistent
+	res, err := op.O.Raw("INSERT INTO tmp_graph (endpoints, counters, ck) values(?, ?, ?)", es_string, cs_string, ck).Exec()
 	if err != nil {
 		return 0, err
 	}

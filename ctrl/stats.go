@@ -57,7 +57,7 @@ func StatsGets() []uint64 {
 	return cnt
 }
 
-func (p *Ctrl) Stats(conf interface{}) (s string) {
+func (p *Ctrl) Stats(conf interface{}) (s string, err error) {
 	// http api
 	var stats []uint64
 
@@ -68,12 +68,12 @@ func (p *Ctrl) Stats(conf interface{}) (s string) {
 	url += "/v1.0/pub/stats"
 
 	if err := falcon.GetJson(url, &stats, time.Duration(200)*time.Millisecond); err != nil {
-		return ""
+		return "", err
 	}
 
 	for i := 0; i < ST_ARRAY_SIZE; i++ {
 		s += fmt.Sprintf("%-30s %d\n",
 			statsCounterName[i], stats[i])
 	}
-	return
+	return s, nil
 }

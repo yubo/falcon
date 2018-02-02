@@ -28,9 +28,10 @@ const (
 )
 
 type CmdOpts struct {
-	ConfigFile string
-	Module     string
-	Daemon     bool
+	ConfigFile  string
+	Module      string
+	CpuProfile  bool
+	HeapProfile bool
 }
 
 var (

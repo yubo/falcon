@@ -84,22 +84,22 @@ func statsGets() []uint64 {
 	return cnt
 }
 
-func (p *Transfer) Stats(conf interface{}) (s string) {
+func (p *Transfer) Stats(conf interface{}) (s string, err error) {
 	ctx, _ := context.WithTimeout(context.Background(), time.Duration(200)*time.Millisecond)
 	conn, _, err := falcon.DialRr(ctx, conf.(*config.Transfer).Configer.Str(C_API_ADDR), false)
 	if err != nil {
-		return ""
+		return "", err
 	}
 	defer conn.Close()
 
 	client := service.NewServiceClient(conn)
 	stats, err := client.GetStats(context.Background(), &service.Empty{})
 	if err != nil {
-		return ""
+		return "", err
 	}
 
 	for i := 0; i < ST_ARRAY_SIZE; i++ {
 		s += fmt.Sprintf("%-30s %d\n", statsCounterName_[i], stats.Counter[i])
 	}
-	return
+	return s, nil
 }

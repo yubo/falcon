@@ -28,7 +28,7 @@ type Module interface {
 	String() string
 	Name() string
 	Parse(text []byte, filename string, lino int) ModuleConf
-	Stats(config interface{}) string
+	Stats(config interface{}) (string, error)
 }
 
 // reload not support add/del/disable module
@@ -114,11 +114,11 @@ func (p *Process) Start() {
 	}
 }
 
-func (p *Process) Stats(module string) {
+func (p *Process) Stats(module string) error {
 	for i := 0; i < len(p.Config.Conf); i++ {
 		m, ok := ModuleTpls[GetType(p.Config.Conf[i])]
 		if !ok {
-			glog.Exitf("%s's module not support", GetType(p.Config.Conf[i]))
+			return fmt.Errorf("%s's module not support", GetType(p.Config.Conf[i]))
 		}
 		p.Module[i] = m.New(p.Config.Conf[i])
 	}
@@ -126,10 +126,14 @@ func (p *Process) Stats(module string) {
 	for i := 0; i < len(p.Module); i++ {
 		m := p.Module[i]
 		if module == "all" || module == "" || module == m.Name() {
-			fmt.Printf("%s\n", m.Name())
-			fmt.Printf("%s\n", m.Stats(p.Config.Conf[i]))
+			stats, err := m.Stats(p.Config.Conf[i])
+			if err != nil {
+				return err
+			}
+			fmt.Printf("%s\n%s\n", m.Name(), stats)
 		}
 	}
+	return nil
 }
 
 func RegisterModule(m Module, name, tpl string) error {

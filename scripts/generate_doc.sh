@@ -27,3 +27,49 @@ protodoc --directories="tsdb=service_message,agent=service_message,alarm=service
 cd -
 cp -f ${tempdir}/api_reference.md ${GOPATH}/src/github.com/yubo/falcon/docs/api_reference.md
 rm -rf ${tempdir}
+
+
+## md -> html
+render='github-markdown-render'
+if ! type $render > /dev/null; then
+	sudo npm install --global $render
+fi
+
+docs=$(find ./docs -name "*.md" -not -path "./docs/html/*")
+#docs='./docs/api_reference.md'
+
+for doc in $docs
+do
+	doc=${doc#"./docs/"}
+#	doc=${doc%".md"}
+
+	src="docs/${doc}"
+	dst="docs/html/docs/${doc}"
+	echo "creating $dst"
+	mkdir -p $(dirname $dst)
+	echo '<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/github-markdown-css/2.10.0/github-markdown.min.css">
+<style>
+	.markdown-body {
+		box-sizing: border-box;
+		min-width: 200px;
+		max-width: 980px;
+		margin: 0 auto;
+		padding: 45px;
+	}
+
+	@media (max-width: 767px) {
+		.markdown-body {
+			padding: 15px;
+		}
+	}
+</style> </head>
+<body> <article class="markdown-body">
+' > $dst
+	cat $src | $render >> $dst
+	echo '</article></body>' >> $dst
+done
+

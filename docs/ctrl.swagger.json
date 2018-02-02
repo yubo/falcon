@@ -4504,7 +4504,7 @@
                 "role_token": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/37111.0xc4203bc120.false"
+                        "$ref": "#/definitions/37111.0xc4203af1d0.false"
                     }
                 },
                 "tag_id": {
@@ -4544,7 +4544,7 @@
                 "role_user": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/111021.0xc4202868a0.false"
+                        "$ref": "#/definitions/111021.0xc420277a70.false"
                     }
                 },
                 "tag_id": {
