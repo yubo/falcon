@@ -18,7 +18,8 @@ GOFILES=$(shell find . -name "*.go" -type f -not -path "./cmd*") \
 	alarm/alarm.pb.go alarm/alarm.pb.gw.go \
 	parse/parse.go $(SUBMODULES:%=%/config/parse.go) \
 	gitlog.go
-DEPENDS=dist $(GOFILES) $(DOCFILES)
+#DEPENDS=dist $(GOFILES) $(DOCFILES)
+DEPENDS=dist $(GOFILES)
 
 all: $(EXEC_OUTPUT_PATH)/falcon $(EXEC_OUTPUT_PATH)/agent
 
@@ -103,4 +104,4 @@ stats:
 update:
 	git submodule update --recursive --init
 
-include ./scripts/falcon.mk
+#include ./scripts/falcon.mk
