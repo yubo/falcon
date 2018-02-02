@@ -98,14 +98,16 @@ func (t *TsdbModule) start(s *Service) (err error) {
 	}
 
 	t.buckets = make(map[int]*tsdb.BucketMap)
-	for shardId := 0; shardId < falcon.SHARD_NUM; shardId++ {
+	for i := 0; i < falcon.SHARD_NUM; i++ {
 		k := keyWriters[rand.Intn(len(keyWriters))]
 		b := bucketLogWriters[rand.Intn(len(bucketLogWriters))]
-		if err := createShardPath(shardId, dataDirectory); err != nil {
+		if err := createShardPath(i, dataDirectory); err != nil {
 			return err
 		}
-		t.buckets[shardId] = tsdb.NewBucketMap(bucketNum, bucketSize, int32(shardId),
+		newMap := tsdb.NewBucketMap(bucketNum, bucketSize, int32(i),
 			dataDirectory, k, b, tsdb.UNOWNED)
+
+		t.buckets[i] = newMap
 	}
 
 	t.reload(s)
@@ -180,7 +182,7 @@ func (t *TsdbModule) put(req *PutRequest) (*PutResponse, error) {
 			}
 		}
 
-		newRows, dataPoints, err := m.Put(string(dp.Key.Key), tsdb.TimeValuePair{Value: dp.Value.Value,
+		newRows, dataPoints, err := m.Put(string(dp.Key.Key), &tsdb.TimeValuePair{Value: dp.Value.Value,
 			Timestamp: dp.Value.Timestamp}, 0, false)
 		if err != nil {
 			return res, err

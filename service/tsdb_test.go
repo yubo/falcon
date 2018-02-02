@@ -22,6 +22,7 @@ func test_init() *TsdbModule {
 	}
 	s.Conf.Configer.Set(falcon.APP_CONF_FILE, map[string]string{
 		"shardIds": "1,2,3,4",
+		"tsdbdir":  "/tmp/tsdb",
 	})
 
 	tm := &TsdbModule{}
@@ -37,7 +38,7 @@ func TestPut(t *testing.T) {
 	defer tm.stop(s)
 
 	num := 10
-	putReq := dataGenerator(0, 1, num,1)
+	putReq := dataGenerator(0, 1, num, 1)
 
 	time.Sleep(100 * time.Millisecond)
 
