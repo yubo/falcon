@@ -210,8 +210,8 @@ func reload(arg interface{}) {
 func parseHandle(arg interface{}) {
 	c := parse.Parse(opts.ConfigFile)
 	dir, _ := os.Getwd()
-	glog.Infof("work dir :%s", dir)
-	glog.Infof("\n%s", c)
+	fmt.Printf("work dir :%s", dir)
+	fmt.Printf("\n%s", c)
 }
 
 func version(arg interface{}) {
@@ -236,7 +236,7 @@ func stats(arg interface{}) {
 	c := parse.Parse(opts.ConfigFile)
 	err := falcon.NewProcess(c).Stats(opts.Module)
 	if err != nil {
-		glog.Fatal(err)
+		os.Exit(1)
 	}
 }
 

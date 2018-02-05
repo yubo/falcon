@@ -6,6 +6,7 @@
 package agent
 
 import (
+	"context"
 	"sort"
 	"strings"
 	"time"
@@ -14,7 +15,6 @@ import (
 	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/lib/tsdb"
 	"github.com/yubo/falcon/transfer"
-	"golang.org/x/net/context"
 )
 
 var (
@@ -23,10 +23,8 @@ var (
 )
 
 type Collector interface {
-	GName() string
-	Name() string
+	Name() (name, gname string)
 	Start(context.Context, *Agent) error
-	Reset()
 	Collect() ([]*transfer.DataPoint, error)
 }
 
@@ -35,10 +33,11 @@ func init() {
 }
 
 func RegisterCollector(c Collector) {
-	if _, ok := collectorGroups[c.GName()]; !ok {
-		collectorGroups[c.GName()] = make(map[string]Collector)
+	name, gname := c.Name()
+	if _, ok := collectorGroups[gname]; !ok {
+		collectorGroups[gname] = make(map[string]Collector)
 	}
-	collectorGroups[c.GName()][c.Name()] = c
+	collectorGroups[gname][name] = c
 }
 
 type CollectModule struct {
@@ -53,7 +52,6 @@ func (p *CollectModule) prestart(agent *Agent) error {
 func (p *CollectModule) start(agent *Agent) error {
 	interval, _ := agent.Conf.Configer.Int(C_INTERVAL)
 	collectors := getCollectors(strings.Split(agent.Conf.Configer.Str(C_PLUGINS), ","))
-	putChan := agent.putChan
 	hostName = agent.Conf.Host
 
 	p.ctx, p.cancel = context.WithCancel(context.Background())
@@ -66,7 +64,7 @@ func (p *CollectModule) start(agent *Agent) error {
 		}
 	}
 
-	go p.collectWorker(putChan, collectors, interval)
+	go p.collectWorker(agent.PutChan, collectors, interval)
 
 	return nil
 }
@@ -82,7 +80,7 @@ func (p *CollectModule) reload(agent *Agent) error {
 	return p.start(agent)
 }
 
-func (p *CollectModule) collectWorker(putChan chan *putContext, collectors []Collector, interval int) {
+func (p *CollectModule) collectWorker(putChan chan *PutRequest, collectors []Collector, interval int) {
 	ticker := time.NewTicker(time.Second * time.Duration(interval)).C
 	for {
 		select {
@@ -91,7 +89,7 @@ func (p *CollectModule) collectWorker(putChan chan *putContext, collectors []Col
 		case <-ticker:
 			for _, c := range collectors {
 				if dps, err := c.Collect(); err == nil {
-					putChan <- &putContext{dps: dps}
+					putChan <- &PutRequest{Dps: dps}
 				}
 			}
 		}

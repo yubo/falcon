@@ -18,9 +18,9 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
-type putContext struct {
-	dps  []*transfer.DataPoint
-	done chan *transfer.PutResponse
+type PutRequest struct {
+	Dps  []*transfer.DataPoint
+	Done chan *transfer.PutResponse
 }
 
 type ApiModule struct {
@@ -28,20 +28,20 @@ type ApiModule struct {
 	ctx     context.Context
 	cancel  context.CancelFunc
 	address string
-	putChan chan *putContext
+	putChan chan *PutRequest
 }
 
 func (p *ApiModule) Put(ctx context.Context, in *transfer.PutRequest) (*transfer.PutResponse,
 	error) {
 
 	glog.V(5).Infof("%s rx put %v", MODULE_NAME, in)
-	put := &putContext{
-		dps:  in.Data,
-		done: make(chan *transfer.PutResponse),
+	put := &PutRequest{
+		Dps:  in.Data,
+		Done: make(chan *transfer.PutResponse),
 	}
 
 	p.putChan <- put
-	resp := <-put.done
+	resp := <-put.Done
 	return resp, nil
 }
 
@@ -63,7 +63,7 @@ func (p *ApiModule) GetStatsName(ctx context.Context, in *transfer.Empty) (*tran
 func (p *ApiModule) prestart(agent *Agent) error {
 	p.address = agent.Conf.Configer.Str(C_API_ADDR)
 	p.disable = falcon.AddrIsDisable(p.address)
-	p.putChan = agent.putChan
+	p.putChan = agent.PutChan
 	return nil
 }
 
@@ -74,7 +74,7 @@ func (p *ApiModule) start(agent *Agent) error {
 
 	p.ctx, p.cancel = context.WithCancel(context.Background())
 
-	ln, err := net.Listen(falcon.ParseAddr(p.address))
+	ln, err := net.Listen(falcon.CleanSockFile(falcon.ParseAddr(p.address)))
 	if err != nil {
 		return err
 	}

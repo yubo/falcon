@@ -1,4 +1,82 @@
-## profile
+## write a agent plugin
+
+1. first, define a struct for agent.Collector interface, and rigister it
+
+github.com/example/plugin/demo.cos.go
+
+```golang
+func init() {
+	agent.RegisterCollector(&cosCollector{})
+}
+
+type cosCollector struct{}
+
+func (p *cosCollector) Name() (name, gname string) {
+	return "cos", "demo"
+}
+
+func (p *cosCollector) Start(ctx context.Context, a *agent.Agent) error {
+	interval, _ := a.Conf.Configer.Int(agent.C_INTERVAL)
+	ticker := time.NewTicker(time.Second * time.Duration(interval)).C
+	ch := a.PutChan
+
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker:
+				ch <- &agent.PutRequest{
+					Dps: []*transfer.DataPoint{
+						agent.GaugeValue("cos.ticker.demo",
+							math.Cos(x*(float64(time.Now().Unix())+1800))),
+					},
+				}
+			}
+		}
+	}()
+	return nil
+}
+
+func (p *cosCollector) Collect() (ret []*transfer.DataPoint, err error) {
+	return []*transfer.DataPoint{
+		agent.GaugeValue("cos.collect.demo",
+			math.Cos(x*float64(time.Now().Unix()))),
+	}, nil
+
+}
+```
+
+2.  import in your code
+
+
+```golang
+import _ "github.com/example/plugin/demo.cos.go"
+
+```
+
+
+3. add it's group name in the configuration file agent/plugins
+
+falcon/etc/falcon.conf
+
+```
+agent {
+	...
+	plugins		"...,demo";
+}
+
+```
+
+## write 
+
+
+
+## 
+
+## DEBUG
+
+#### profile
 
 ```
 falcon start -cpu/heap
@@ -18,7 +96,4 @@ Dropped 94 nodes (cum <= 231.75ms)
          0     0% 99.72%    46330ms   100%  runtime.goexit
 ```
 
-see also
-```
-https://blog.golang.org/profiling-go-programs
-```
+see also [profiling-go-programs](https://blog.golang.org/profiling-go-programs)

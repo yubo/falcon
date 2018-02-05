@@ -22,7 +22,7 @@ import (
 	"github.com/yubo/falcon/ctrl/api/models"
 )
 
-func init() {
+func Init() {
 
 	beego.InsertFilter("/v1.0/*", beego.BeforeRouter, profileFilter)
 	beego.InsertFilter("/v1.0/*", beego.BeforeRouter, accessFilter)

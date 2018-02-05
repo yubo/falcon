@@ -41,7 +41,7 @@ func clientPut(client transfer.TransferClient, dps []*transfer.DataPoint, timeou
 	}
 }
 
-func (p *ClientModule) txWorker(ch chan *putContext, upstream string,
+func (p *ClientModule) txWorker(ch chan *PutRequest, upstream string,
 	callTimeout, burstSize int) error {
 
 	if upstream == "stdout" {
@@ -52,13 +52,13 @@ func (p *ClientModule) txWorker(ch chan *putContext, upstream string,
 					return
 				case put := <-ch:
 
-					for _, dp := range put.dps {
+					for _, dp := range put.Dps {
 						fmt.Printf("%s TX PUT %10.4f %s\n",
 							MODULE_NAME, dp.Value.Value,
 							string(dp.Key))
 					}
-					if put.done != nil {
-						put.done <- &transfer.PutResponse{N: int32(len(put.dps))}
+					if put.Done != nil {
+						put.Done <- &transfer.PutResponse{N: int32(len(put.Dps))}
 					}
 				}
 			}
@@ -82,9 +82,9 @@ func (p *ClientModule) txWorker(ch chan *putContext, upstream string,
 			case <-p.ctx.Done():
 				return
 			case put := <-ch:
-				glog.V(5).Infof("%s tx put %d\n", MODULE_NAME, len(put.dps))
+				glog.V(5).Infof("%s tx put %d\n", MODULE_NAME, len(put.Dps))
 				n := 0
-				for _, dp := range put.dps {
+				for _, dp := range put.Dps {
 
 					// TODO check
 					glog.V(6).Infof("%s TX PUT %d %10.4f %s\n",
@@ -100,8 +100,8 @@ func (p *ClientModule) txWorker(ch chan *putContext, upstream string,
 						i = 0
 					}
 				}
-				if put.done != nil {
-					put.done <- &transfer.PutResponse{N: int32(n)}
+				if put.Done != nil {
+					put.Done <- &transfer.PutResponse{N: int32(n)}
 				}
 			case <-time.After(time.Second):
 				if i > 0 {
@@ -127,7 +127,7 @@ func (p *ClientModule) start(agent *Agent) error {
 	burstSize, _ := conf.Int(C_BURST_SIZE)
 	p.ctx, p.cancel = context.WithCancel(context.Background())
 
-	if err := p.txWorker(agent.putChan, upstream,
+	if err := p.txWorker(agent.PutChan, upstream,
 		callTimeout, burstSize); err != nil {
 		return err
 	}

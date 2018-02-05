@@ -361,7 +361,7 @@ func (op *Operator) ResetDb(populate bool) (interface{}, error) {
 
 	// reset cache
 	// ugly hack
-	initCache(conf)
+	InitCache(conf)
 
 	if populate {
 		return op.populate()

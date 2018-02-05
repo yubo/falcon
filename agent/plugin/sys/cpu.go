@@ -8,6 +8,7 @@ package sys
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -19,7 +20,6 @@ import (
 	"github.com/golang/glog"
 	"github.com/yubo/falcon/agent"
 	"github.com/yubo/falcon/transfer"
-	"golang.org/x/net/context"
 )
 
 const (
@@ -94,10 +94,7 @@ func (p *cpuStatSample) String() string {
 }
 
 func init() {
-	agent.RegisterCollector(&cpuCollector{
-		name:  "cpu",
-		gname: "sys",
-	})
+	agent.RegisterCollector(&cpuCollector{name: "cpu", gname: "sys"})
 }
 
 type cpuCollector struct {
@@ -107,17 +104,8 @@ type cpuCollector struct {
 	gname string
 }
 
-func (p *cpuCollector) GName() string {
-	return p.gname
-}
-
-func (p *cpuCollector) Name() string {
-	return p.name
-}
-
-func (p *cpuCollector) Reset() {
-	p.cur = nil
-	p.last = nil
+func (p *cpuCollector) Name() (string, string) {
+	return p.name, p.gname
 }
 
 func (p *cpuCollector) Start(ctx context.Context, agent *agent.Agent) error {

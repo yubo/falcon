@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/yubo/falcon"
-	"github.com/yubo/falcon/service"
 	"github.com/yubo/falcon/transfer/config"
 	"golang.org/x/net/context"
 )
@@ -92,8 +91,8 @@ func (p *Transfer) Stats(conf interface{}) (s string, err error) {
 	}
 	defer conn.Close()
 
-	client := service.NewServiceClient(conn)
-	stats, err := client.GetStats(context.Background(), &service.Empty{})
+	client := NewTransferClient(conn)
+	stats, err := client.GetStats(context.Background(), &Empty{})
 	if err != nil {
 		return "", err
 	}

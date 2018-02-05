@@ -26,6 +26,8 @@ const (
 	C_PLUGINS      = "plugins"
 	C_EMU_ENABLE   = "emuenable"
 	C_EMU_TPL_DIR  = "emutpldir"
+
+	PUT_REQUEST_SIZE = 144
 )
 
 var (
@@ -54,13 +56,13 @@ type Agent struct {
 	oldConf *config.Agent
 	// runtime
 	status  uint32
-	putChan chan *putContext
+	PutChan chan *PutRequest
 }
 
 func (p *Agent) New(conf interface{}) falcon.Module {
 	return &Agent{
 		Conf:    conf.(*config.Agent),
-		putChan: make(chan *putContext, 144),
+		PutChan: make(chan *PutRequest, PUT_REQUEST_SIZE),
 	}
 }
 

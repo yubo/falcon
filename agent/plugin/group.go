@@ -6,6 +6,7 @@
 package plugin
 
 import (
+	_ "github.com/yubo/falcon/agent/plugin/demo"
 	_ "github.com/yubo/falcon/agent/plugin/emulator"
 	_ "github.com/yubo/falcon/agent/plugin/sys"
 )

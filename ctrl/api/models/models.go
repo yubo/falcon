@@ -136,7 +136,7 @@ func (op *Operator) log(module, module_id, action int64, data_ interface{}) {
 	op.O.Raw("insert log (user_id, module, module_id, action, data) values (?, ?, ?, ?, ?)", op.User.Id, module, module_id, action, data).Exec()
 }
 
-func initAuth(conf *falcon.Configer) error {
+func InitAuth(conf *falcon.Configer) error {
 	Auths = make(map[string]AuthInterface)
 	for _, name := range strings.Split(conf.Str(ctrl.C_AUTH_MODULE), ",") {
 		if auth, ok := allAuths[name]; ok {
@@ -159,7 +159,7 @@ func initConfigAdmin(conf *falcon.Configer) map[string]bool {
 // called by (p *Ctrl) Init()
 // already load file config and def config
 // will load db config
-func initConfig(conf *falcon.Configer) error {
+func InitConfig(conf *falcon.Configer) error {
 	var err error
 
 	// set default
@@ -181,7 +181,7 @@ func initConfig(conf *falcon.Configer) error {
 }
 
 /* called by initModels() */
-func initCache(conf *falcon.Configer) error {
+func InitCache(conf *falcon.Configer) error {
 	for _, module := range strings.Split(
 		conf.Str(ctrl.C_CACHE_MODULE), ",") {
 		for k, v := range ModuleName {
@@ -245,7 +245,7 @@ func initCache(conf *falcon.Configer) error {
 	return nil
 }
 
-func putEtcdConfig() error {
+func PutEtcdConfig() error {
 	put := make(map[string]string)
 	for module, kv := range EtcdMap {
 		ks := make(map[string]bool)

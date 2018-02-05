@@ -40,7 +40,7 @@ func init() {
 	ctrl.RegisterModule(&ctrl.EtcdCliModule{})
 	ctrl.RegisterModule(&ctrl.OrmModule{})
 	ctrl.RegisterModule(&models.ModelsModule{})
-	ctrl.RegisterModule(&ctrl.ApiModule{Dev: true})
+	//ctrl.RegisterModule(&ctrl.ApiModule{Dev: true})
 
 	flags.CommandLine.Usage = fmt.Sprintf("Usage: %s COMMAND start|stop|reload|stats\n", os.Args[0])
 

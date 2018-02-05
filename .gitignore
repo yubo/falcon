@@ -13,7 +13,8 @@
 var/
 dist/
 tmp/
+etc
 
 .gdbinit
-cmd/vendor
 falcon.pid.*
+cmd/vendor

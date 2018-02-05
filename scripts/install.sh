@@ -27,13 +27,15 @@ force_install_file()
 	chmod $mod $des
 }
 
-tar cf -  -C ./dist/ --exclude etc/init.d . | tar xvf - -C /
+mkdir -p /opt/falcon
+tar cf -  -C ./dist/ . | tar xvf - -C /opt/falcon
 
 if [ -f /etc/lsb-release ]; then
-	force_install_file ./dist/etc/init.d/falcon.lsb.init /etc/init.d/falcon 0755
+	ln -s /opt/falcon/docs/samples/init.d/falcon.lsb.init /etc/init.d/falcon
+	#force_install_file ./docs/samples/init.d/falcon.lsb.init /etc/init.d/falcon 0755
 	update-rc.d falcon defaults 80
 elif [ -f /etc/redhat-release ]; then
-	force_install_file ./dist/etc/init.d/falcon.redhat.init /etc/init.d/falcon 0755
+	force_install_file ./docs/samples/init.d/falcon.redhat.init /etc/init.d/falcon 0755
 	chkconfig --add falcon 
 	chkconfig falcon on
 fi

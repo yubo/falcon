@@ -2,7 +2,7 @@ server {
 	listen		7000;
 	#server_name	c3-op-mon-dev01.bj;
 	#access_log	off;
-	root		/opt/falcon/html;
+	root		/opt/falcon/var/html;
 
 
 	location ^~ /v1.0 {

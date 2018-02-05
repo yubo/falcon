@@ -19,6 +19,7 @@ import (
 	"math/rand"
 	"net"
 	"net/http"
+	"os"
 	"path"
 	"reflect"
 	"regexp"
@@ -149,6 +150,21 @@ func AddrIsDisable(addr string) bool {
 func Dialer(addr string, timeout time.Duration) (net.Conn, error) {
 	d := net.Dialer{Timeout: timeout}
 	return d.Dial(ParseAddr(addr))
+}
+
+func IsFile(file string) bool {
+	f, e := os.Stat(file)
+	if e != nil {
+		return false
+	}
+	return !f.IsDir()
+}
+
+func CleanSockFile(net, addr string) (string, string) {
+	if net == "unix" && IsFile(addr) {
+		os.Remove(addr)
+	}
+	return net, addr
 }
 
 func ParseAddr(url string) (net, addr string) {

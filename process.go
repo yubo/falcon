@@ -128,6 +128,7 @@ func (p *Process) Stats(module string) error {
 		if module == "all" || module == "" || module == m.Name() {
 			stats, err := m.Stats(p.Config.Conf[i])
 			if err != nil {
+				fmt.Printf("%s %s\n", m.Name(), err.Error())
 				return err
 			}
 			fmt.Printf("%s\n%s\n", m.Name(), stats)

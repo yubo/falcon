@@ -6,6 +6,7 @@
 package emulator
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"time"
@@ -13,13 +14,12 @@ import (
 	"github.com/golang/glog"
 	"github.com/yubo/falcon/agent"
 	"github.com/yubo/falcon/transfer"
-	"golang.org/x/net/context"
 )
 
 func init() {
 	agent.RegisterCollector(&emulator{
-		gname: "emulator",
 		name:  "main",
+		gname: "emulator",
 		tpl:   make(map[string]tpl),
 	})
 }
@@ -74,12 +74,8 @@ func (p *tpl) emuValue(ts int64) float64 {
 		p.n]-p.v[idx])/float64(p.interval))
 }
 
-func (p *emulator) Name() string {
-	return p.name
-}
-
-func (p *emulator) GName() string {
-	return p.gname
+func (p *emulator) Name() (string, string) {
+	return p.name, p.gname
 }
 
 func (p *emulator) Start(ctx context.Context, ag *agent.Agent) (err error) {
@@ -122,7 +118,4 @@ func (p *emulator) Collect() (ret []*transfer.DataPoint, err error) {
 	}
 
 	return ret, nil
-}
-
-func (p *emulator) Reset() {
 }

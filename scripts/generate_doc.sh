@@ -35,16 +35,16 @@ if ! type $render > /dev/null; then
 	sudo npm install --global $render
 fi
 
-docs=$(find ./docs -name "*.md" -not -path "./docs/html/*")
+docs=$(find ./docs -name "*.md")
 #docs='./docs/api_reference.md'
 
 for doc in $docs
 do
-	doc=${doc#"./docs/"}
-#	doc=${doc%".md"}
+	doc=${doc#"./"}
+	#doc=${doc%".md"}
 
-	src="docs/${doc}"
-	dst="docs/html/docs/${doc}"
+	src="${doc}"
+	dst="var/html/${doc}"
 	echo "creating $dst"
 	mkdir -p $(dirname $dst)
 	echo '<html lang="en">

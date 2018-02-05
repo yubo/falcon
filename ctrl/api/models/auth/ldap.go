@@ -9,7 +9,6 @@ import (
 	"crypto/tls"
 	"fmt"
 
-	"github.com/astaxie/beego"
 	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/ctrl"
 	"github.com/yubo/falcon/ctrl/api/controllers"
@@ -24,6 +23,7 @@ type ldapAuth struct {
 	bindPwd string
 	filter  string
 	tls     bool
+	debug   bool
 }
 
 const (
@@ -35,6 +35,7 @@ func init() {
 }
 
 func (p *ldapAuth) Init(conf *falcon.Configer) error {
+	p.debug = conf.DefaultBool(ctrl.C_DEV_MODE, false)
 	p.addr = conf.Str(ctrl.C_LDAP_ADDR)
 	p.baseDN = conf.Str(ctrl.C_LDAP_BASE_DN)
 	p.bindDN = conf.Str(ctrl.C_LDAP_BIND_DN)
@@ -48,7 +49,7 @@ func (p *ldapAuth) Verify(_c interface{}) (bool, string, error) {
 	username := c.GetString("username")
 	password := c.GetString("password")
 
-	if beego.BConfig.RunMode == "dev" && username[:4] == "test" {
+	if p.debug && username[:4] == "test" {
 		return true, username, nil
 	}
 
@@ -56,7 +57,7 @@ func (p *ldapAuth) Verify(_c interface{}) (bool, string, error) {
 		username, password,
 		p.bindDN, p.bindPwd, p.tls)
 	if success {
-		uuid = fmt.Sprintf("%s@%s", uuid, LDAP_NAME)
+		uuid = uuid + "@" + LDAP_NAME
 	}
 
 	return success, uuid, err
@@ -88,7 +89,7 @@ func ldapUserAuthentication(addr, baseDN, filter, username, password, binduserna
 	if TLS {
 		err = l.StartTLS(&tls.Config{InsecureSkipVerify: true})
 		if err != nil {
-			beego.Warning(err)
+			return
 		}
 	}
 

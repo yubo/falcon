@@ -176,6 +176,7 @@ func (p *Ctrl) Start() (err error) {
 
 	// connect db, can not register db twice  :(
 	// get ctrl config from db
+	RunMode = 0
 	if conf.DefaultBool(C_MASTER_MODE, false) {
 		RunMode |= CTL_RUNMODE_MASTER
 	}

@@ -113,7 +113,7 @@ func (p *ApiModule) start(transfer *Transfer) (err error) {
 	p.disable = falcon.AddrIsDisable(p.address)
 	p.ctx, p.cancel = context.WithCancel(context.Background())
 
-	ln, err := net.Listen(falcon.ParseAddr(p.address))
+	ln, err := net.Listen(falcon.CleanSockFile(falcon.ParseAddr(p.address)))
 	if err != nil {
 		return err
 	}

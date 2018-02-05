@@ -1,12 +1,13 @@
 ## install && start
 
 ```
+## falcon
 git clone git@git.n.xiaomi.com:falcon/falcon-lite.git
 cd falcon-lite
 make
 make install
 
-## config nginx
+## nginx
 sudo apt-get install nginx
 mv /etc/nginx/conf.d/falcon.conf.example /etc/nginx/conf.d/falcon.conf
 #edit /etc/nginx/conf.d/falcon.conf

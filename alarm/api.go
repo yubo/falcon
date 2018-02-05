@@ -70,7 +70,7 @@ func (p *ApiModule) start(a *Alarm) (err error) {
 
 	p.ctx, p.cancel = context.WithCancel(context.Background())
 
-	ln, err := net.Listen(falcon.ParseAddr(p.address))
+	ln, err := net.Listen(falcon.CleanSockFile(falcon.ParseAddr(p.address)))
 	if err != nil {
 		return err
 	}
