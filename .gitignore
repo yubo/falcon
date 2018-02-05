@@ -10,7 +10,8 @@
 *.pid
 *.sh
 
-var/
+var/run/
+var/tsdb/
 dist/
 tmp/
 etc

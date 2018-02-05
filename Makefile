@@ -26,8 +26,9 @@ gitlog.go:
 	./scripts/git.sh
 
 dist:
-	mkdir -p $(EXEC_OUTPUT_PATH) dist/var \
+	mkdir -p $(EXEC_OUTPUT_PATH) dist/var dist/scripts \
 	dist/etc dist/run dist/log && \
+	cp -a scripts/db_schema dist/scripts && \
 	cp -a docs dist/ && \
 	cp -a var/html/ui dist/var/html && \
 	cp -a var/html/docs dist/var/html/ && \
