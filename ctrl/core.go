@@ -21,6 +21,7 @@ const (
 	C_MASTER_MODE             = "mastermode"
 	C_MI_MODE                 = "mimode"
 	C_DEV_MODE                = "devmode"
+	C_BEEGODEV_MODE           = "beegodevmode"
 	C_SESSION_GC_MAX_LIFETIME = "sessiongcmaxlifetime"
 	C_SESSION_COOKIE_LIFETIME = "sessioncookielifetime"
 	C_AUTH_MODULE             = "authmodule"
@@ -61,6 +62,7 @@ var (
 		C_MASTER_MODE:             "true",
 		C_MI_MODE:                 "false",
 		C_DEV_MODE:                "false",
+		C_BEEGODEV_MODE:           "false",
 		C_SESSION_GC_MAX_LIFETIME: "86400",
 		C_SESSION_COOKIE_LIFETIME: "86400",
 		C_AUTH_MODULE:             "ldap",
@@ -98,6 +100,7 @@ var (
 const (
 	CTL_RUNMODE_MASTER = 1 << iota
 	CTL_RUNMODE_DEV
+	CTL_RUNMODE_BEEGODEV
 	CTL_RUNMODE_MI
 )
 

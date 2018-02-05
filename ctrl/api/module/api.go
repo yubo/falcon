@@ -23,7 +23,7 @@ type ApiModule struct {
 func (p *ApiModule) PreStart(c *ctrl.Ctrl) error {
 	conf := &c.Conf.Ctrl
 
-	if conf.DefaultBool(ctrl.C_DEV_MODE, false) {
+	if conf.DefaultBool(ctrl.C_BEEGODEV_MODE, false) {
 		orm.Debug = true
 		beego.BConfig.RunMode = beego.DEV
 		beego.BConfig.WebConfig.EnableDocs = true

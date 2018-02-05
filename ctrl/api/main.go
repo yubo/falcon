@@ -17,7 +17,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/ctrl"
-	"github.com/yubo/falcon/ctrl/api/models"
+	"github.com/yubo/falcon/ctrl/api/module"
 	"github.com/yubo/falcon/ctrl/config"
 	"github.com/yubo/falcon/parse"
 	"github.com/yubo/gotool/flags"
@@ -25,7 +25,6 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/yubo/falcon/ctrl/api/models/auth"
 	_ "github.com/yubo/falcon/ctrl/api/models/session"
-	_ "github.com/yubo/falcon/ctrl/api/routers"
 )
 
 var opts falcon.CmdOpts
@@ -39,8 +38,8 @@ func init() {
 	ctrl.RegisterModule(&ctrl.ClientModule{})
 	ctrl.RegisterModule(&ctrl.EtcdCliModule{})
 	ctrl.RegisterModule(&ctrl.OrmModule{})
-	ctrl.RegisterModule(&models.ModelsModule{})
-	//ctrl.RegisterModule(&ctrl.ApiModule{Dev: true})
+	ctrl.RegisterModule(&module.ModelsModule{})
+	ctrl.RegisterModule(&module.ApiModule{Dev: true})
 
 	flags.CommandLine.Usage = fmt.Sprintf("Usage: %s COMMAND start|stop|reload|stats\n", os.Args[0])
 
