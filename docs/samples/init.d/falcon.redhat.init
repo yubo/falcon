@@ -33,7 +33,7 @@ STOPTIMEOUT=60
 start(){
     [ -x $exec ] || exit 5
     # check to see if it's already running
-    RESPONSE=`$COMMAND stats 2>&1`
+    RESPONSE=`$COMMAND satats 2>&1`
     if [ $? = 0 ]; then
 	# already running, do nothing
 	action $"Starting $prog: " /bin/true
@@ -129,6 +129,10 @@ condrestart(){
     [ -e $LOCKFILE ] && restart || :
 }
 
+reload(){
+    $COMMAND reload 2>&1
+}
+
 
 # See how we were called.
 case "$1" in
@@ -147,11 +151,8 @@ case "$1" in
   condrestart|try-restart)
     condrestart
     ;;
-  reload)
-    exit 3
-    ;;
-  force-reload)
-    restart
+  reload|force-reload)
+    reload
     ;;
   *)
     echo $"Usage: $0 {start|stop|status|restart|condrestart|try-restart|reload|force-reload}"

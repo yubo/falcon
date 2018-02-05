@@ -1,143 +1,179 @@
-#! /bin/sh
+#!/bin/bash
+#
 ### BEGIN INIT INFO
-# Provides:          falcon
-# Required-Start:    $remote_fs
-# Required-Stop:     $local_fs
+# Provides:         falcon 
+# Required-Start:    $remote_fs $syslog
+# Required-Stop:     $remote_fs $syslog
+# Should-Start:      $network $time
+# Should-Stop:       $network $time
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
-# Short-Description: falcon Daemon
-# Description:       falcon Daemon
+# Short-Description: Start and stop the falcon server daemon
+# Description:       Controls the main FALCON server daemon "falcon"
 ### END INIT INFO
+#
+set -e
+set -u
+${DEBIAN_SCRIPT_DEBUG:+ set -v -x}
 
-# Author: Yu Bo <yubo@yubo.org>
+ROOT=/opt/falcon
+EXEC=$ROOT/bin/falcon
 
-PATH=/sbin:/usr/sbin:/bin:/usr/bin:$GOPATH/bin
-NAME=falcon
-DESC=falcon
-DAEMON=/usr/sbin/falcon
-PID=/var/run/"$NAME".pid
+test -x $EXEC || exit 0
 
-# Read configuration variable file if it is present
-[ -r /etc/default/"$NAME" ] && . /etc/default/"$NAME"
-DAEMON_OPTS=$FALCON_OPTIONS
-
-# Exit if the package is not installed
-[ -x "$DAEMON" ] || exit 0
-
-
-. /lib/init/vars.sh
 . /lib/lsb/init-functions
 
+SELF=$(cd $(dirname $0); pwd -P)/$(basename $0)
+CONFFILE=$ROOT/etc/falcon.conf
+COMMAND="$EXEC -config $CONFFILE"
+DATADIR=$ROOT/var
+PIDFILE=$ROOT/run/falcon.pid
+LOGFILE=$ROOT/log/stdout.log
 
-#
-# Function that starts the daemon/service
-#
-do_start()
-{
-	# Return
-	#   0 if daemon has been started
-	#   1 if daemon was already running
-	#   2 if daemon could not be started
-        if [ -n "$ULIMIT" ]; then  
-		# Set the ulimits  
-		ulimit $ULIMIT  
-	fi  
-	start-stop-daemon --start --quiet --pidfile $PID --exec $DAEMON --test > /dev/null \
-		|| return 1
-	start-stop-daemon --start --quiet --pidfile $PID --exec $DAEMON -- \
-		$DAEMON_OPTS 2>/dev/null \
-		|| return 2
+# priority can be overriden and "-s" adds output to stderr
+ERR_LOGGER="logger -p daemon.err -t /etc/init.d/falcon -i"
+
+# Safeguard (relative paths, core dumps..)
+cd /
+umask 077
+
+# falconadmin likes to read /root/.my.cnf. This is usually not what I want
+# as many admins e.g. only store a password without a username there and
+# so break my scripts.
+export HOME=$ROOT
+
+## Do some sanity checks before even trying to start falcon.
+sanity_checks() {
+  # check for config file
+  if [ ! -r "$CONFFILE" ]; then
+    log_warning_msg "$0: WARNING: $CONFFILE cannot be read. See README.md"
+    echo                "WARNING: $CONFFILE cannot be read. See README.md" | $ERR_LOGGER
+  fi
+
+  # check for diskspace shortage
+  if LC_ALL=C BLOCKSIZE= df --portability $DATADIR/. | tail -n 1 | awk '{ exit ($4>4096) }'; then
+                log_end_msg 0
+    log_failure_msg "$0: ERROR: The partition with $DATADIR is too full!"
+    echo                "ERROR: The partition with $DATADIR is too full!" | $ERR_LOGGER
+    exit 1
+  fi
 }
 
-test_falcon_config() {
-	$DAEMON -P $DAEMON_OPTS >/dev/null 2>&1
+## Checks if there is a server running and if so if it is accessible.
+#
+# check_alive insists on a stats able server
+# check_dead also fails if there is a lost falcon in the process list
+#
+# Usage: boolean falcon_status [check_alive|check_dead] [warn|nowarn]
+falcon_status () {
+    stats_output=`$COMMAND stats 2>&1`; stats_alive=$(( ! $? ))
+
+    ps_alive=0
+    if [ -f "$PIDFILE" ] && ps `cat $PIDFILE` >/dev/null 2>&1; then ps_alive=1; fi
+    
+    if [ "$1" = "check_alive"  -a  $stats_alive = 1 ] ||
+       [ "$1" = "check_dead"   -a  $stats_alive = 0  -a  $ps_alive = 0 ]; then
+	return 0 # EXIT_SUCCESS
+    else
+  	if [ "$2" = "warn" ]; then
+  	    echo -e "$ps_alive processes alive and '$COMMAND stats' resulted in\n$stats_output\n" | $ERR_LOGGER -p daemon.debug
+	fi
+  	return 1 # EXIT_FAILURE
+    fi
 }
 
 #
-# Function that stops the daemon/service
+# main()
 #
-do_stop()
-{
-	# Return
-	#   0 if daemon has been stopped
-	#   1 if daemon was already stopped
-	#   2 if daemon could not be stopped
-	#   other if a failure occurred
-        if [ -n "$ULIMIT" ]; then  
-		# Set the ulimits  
-		ulimit $ULIMIT  
-	fi  
-	start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 --pidfile $PID --name $NAME
-	RETVAL="$?"
 
-	sleep 1
-	return "$RETVAL"
-}
+case "${1:-''}" in
+  'start')
+	sanity_checks;
+	# Start daemon
+	log_daemon_msg "Starting FALCON server" "falcon"
+	if falcon_status check_alive nowarn; then
+	   log_progress_msg "already running"
+	   log_end_msg 0
+	else
+	    # Could be removed during boot
+	    #test -e /var/run/falcon || install -m 755 -o falcon -g root -d /var/runfalcon/
 
-case "$1" in
-	start)
-		[ "$VERBOSE" != no ] && log_daemon_msg "Starting $DESC" "$NAME"
-		do_start
-		case "$?" in
-			0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
-			2) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
-		esac
-		;;
-	stop)
-		[ "$VERBOSE" != no ] && log_daemon_msg "Stopping $DESC" "$NAME"
-		do_stop
-		case "$?" in
-			0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
-			2) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
-		esac
-		;;
-	restart)
-		log_daemon_msg "Restarting $DESC" "$NAME"
+	    # Start FALCON! 
+  	    /bin/sh -c "$COMMAND start >> /opt/falcon/log/stdout.log 2>&1 &"
 
-		# Check configuration before stopping falcon
-		if ! test_falcon_config; then
-			log_end_msg 1 # Configuration error
-			exit 0
-		fi
+	    # 6s was reported in #352070 to be too few when using ndbcluster
+	    # 14s was reported in #736452 to be too few with large installs
+	    for i in $(seq 1 30); do
+                sleep 1
+	        if falcon_status check_alive nowarn ; then break; fi
+		log_progress_msg "."
+	    done
+	    if falcon_status check_alive warn ; then
+                log_end_msg 0
+	    else
+	        log_end_msg 1
+		log_failure_msg "Please take a look at the syslog"
+	    fi
+	fi
+	;;
 
-		do_stop
-		case "$?" in
-			0|1)
-				do_start
-				case "$?" in
-					0) log_end_msg 0 ;;
-					1) log_end_msg 1 ;; # Old process is still running
-					*) log_end_msg 1 ;; # Failed to start
-				esac
-				;;
-			*)
-				# Failed to stop
-				log_end_msg 1
-				;;
-		esac
-		;;
-	test)
-		log_daemon_msg "test $DESC configuration" "$NAME"
+  'stop')
+	# * As a passwordless falconadmin (e.g. via ~/.my.cnf) must be possible
+	# at least for cron, we can rely on it here, too. (although we have 
+	# to specify it explicit as e.g. sudo environments points to the normal
+	# users home and not /root)
+	log_daemon_msg "Stopping FALCON server" "falcon"
+	if ! falcon_status check_dead nowarn; then
+	  set +e
+	  shutdown_out=`$COMMAND stop 2>&1`; r=$?
+	  set -e
+	  if [ "$r" -ne 0 ]; then
+	    log_end_msg 1
+	    [ "$VERBOSE" != "no" ] && log_failure_msg "Error: $shutdown_out"
+	    log_daemon_msg "Killing FALCON server by signal" "falcon"
+	    killall -15 falcon 
+            server_down=
+	    for i in 1 2 3 4 5 6 7 8 9 10; do
+              sleep 1
+              if falcon_status check_dead nowarn; then server_down=1; break; fi
+            done
+          if test -z "$server_down"; then killall -9 falcon; fi
+	  fi
+        fi
 
-		# Check configuration before reload falcon
-		#
-		# This is not entirely correct since the on-disk falcon binary
-		# may differ from the in-memory one, but that's not common.
-		# We prefer to check the configuration and return an error
-		# to the administrator.
-		if ! test_falcon_config; then
-			log_end_msg 1 # Configuration error
-			exit 0
-		fi
+        if ! falcon_status check_dead warn; then
+	  log_end_msg 1
+	  log_failure_msg "Please stop FALCON manually and read /usr/share/doc/falcon-server-5.7/README.Debian.gz!"
+	  exit -1
+	else
+	  log_end_msg 0
+        fi
+	;;
 
-		;;
-	status)
-		status_of_proc -p $PID "$DAEMON" "$NAME" && exit 0 || exit $?
-		;;
-	*)
-		echo "Usage: $NAME {start|stop|restart|test|status}" >&2
-		exit 3
-		;;
+  'restart')
+	set +e; $SELF stop; set -e
+	$SELF start 
+	;;
+
+  'reload'|'force-reload')
+  	log_daemon_msg "Reloading FALCON server" "falcon"
+	$COMMAND reload
+	log_end_msg 0
+	;;
+
+  'status')
+	if falcon_status check_alive nowarn; then
+	  log_action_msg "$($COMMAND version)"
+	else
+	  log_action_msg "FALCON is stopped."
+	  exit 3
+	fi
+  	;;
+
+  *)
+	echo "Usage: $SELF start|stop|restart|reload|force-reload|status"
+	exit 1
+	;;
 esac
 
-:
+exit 0
