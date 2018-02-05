@@ -21,6 +21,8 @@
 <body> <article class="markdown-body">
 
 <h2>
+<a id="user-content-falcon-qucik-start" class="anchor" href="#falcon-qucik-start" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Falcon Qucik Start</h2>
+<h2>
 <a id="user-content-install--start" class="anchor" href="#install--start" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>install &amp;&amp; start</h2>
 <pre><code>## falcon
 git clone git@git.n.xiaomi.com:falcon/falcon-lite.git

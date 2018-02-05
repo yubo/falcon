@@ -2,7 +2,7 @@
 
 export GOPATH=${PWD}/gopath
 src=${GOPATH}/src/github.com/yubo/falcon/ctrl/api/swagger/swagger.json
-dst=${GOPATH}/src/github.com/yubo/falcon/docs/ctrl.swagger.json
+dst=${GOPATH}/src/github.com/yubo/falcon/ctrl/ctrl.swagger.json
 
 cd ${GOPATH}/src/github.com/yubo/falcon/ctrl/api && \
 mkdir -p $(dirname $dst) && \
