@@ -185,42 +185,42 @@ func sortTags(s []byte) []byte {
 	return []byte(strings.Join(tags, ","))
 }
 
-func Override(dst, src interface{}) error {
-	srv := reflect.ValueOf(src).Elem()
-	srt := srv.Type()
+func Override(target, over interface{}) error {
+	ov := reflect.ValueOf(over).Elem()
+	ot := ov.Type()
 
-	drv := reflect.ValueOf(dst).Elem()
-	drt := drv.Type()
+	tv := reflect.ValueOf(target).Elem()
+	tt := tv.Type()
 
-	if !drv.CanSet() {
-		return errors.New("dst can't set")
+	if !tv.CanSet() {
+		return errors.New("target can't set")
 	}
 
-	for i := 0; i < srv.NumField(); i++ {
-		fname := srt.Field(i).Name
+	for i := 0; i < ov.NumField(); i++ {
+		fname := ot.Field(i).Name
 
-		if _, ok := drt.FieldByName(fname); !ok {
+		if _, ok := tt.FieldByName(fname); !ok {
 			continue
 		}
 
-		sf := srv.Field(i)
-		df := drv.FieldByName(fname)
+		of := ov.Field(i)
+		tf := tv.FieldByName(fname)
 
-		if !df.CanSet() {
+		if !tf.CanSet() {
+			fmt.Printf("fname %s\n", fname)
 			continue
 		}
 
-		if sf.Type().Kind() != df.Type().Kind() {
+		if of.Type().Kind() != tf.Type().Kind() {
 			continue
 		}
 
-		switch df.Type().Kind() {
+		switch tf.Type().Kind() {
 		case reflect.Struct, reflect.Map:
 			// skip
 		default:
-			df.Set(sf)
+			tf.Set(of)
 		}
-
 	}
 	return nil
 }

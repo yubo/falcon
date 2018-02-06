@@ -71,6 +71,7 @@ func (p *ApiModule) Put(ctx context.Context,
 	for _, dp := range in.Data {
 		tdp, err := dp.Adjust()
 		if err != nil {
+			statsInc(ST_RX_PUT_FMT_ERR, 1)
 			return nil, err
 		}
 

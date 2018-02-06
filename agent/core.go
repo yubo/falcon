@@ -24,8 +24,8 @@ const (
 	C_BURST_SIZE   = "burstsize"
 	C_IFACE_PREFIX = "ifaceprefix"
 	C_PLUGINS      = "plugins"
-	C_EMU_ENABLE   = "emuenable"
 	C_EMU_TPL_DIR  = "emutpldir"
+	C_IPC_ENABLE   = "ipcenable"
 
 	PUT_REQUEST_SIZE = 144
 )

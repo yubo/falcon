@@ -1,9 +1,8 @@
 /*
-	address  string
  * Copyright 2016,2017 falcon Author. All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
-*/
+ */
 package agent
 
 import (
@@ -24,19 +23,30 @@ type PutRequest struct {
 }
 
 type ApiModule struct {
-	disable bool
-	ctx     context.Context
-	cancel  context.CancelFunc
-	address string
-	putChan chan *PutRequest
+	disable  bool
+	ctx      context.Context
+	cancel   context.CancelFunc
+	putChan  chan *PutRequest
+	endpoint string
 }
 
 func (p *ApiModule) Put(ctx context.Context, in *transfer.PutRequest) (*transfer.PutResponse,
 	error) {
+	var dps []*transfer.DataPoint
 
 	glog.V(5).Infof("%s rx put %v", MODULE_NAME, in)
+
+	for _, dp := range in.Data {
+		if counterFmtOk(string(dp.Key)) {
+			dp.Key = []byte(p.endpoint + "/" + string(dp.Key))
+			dps = append(dps, dp)
+		} else {
+			statsInc(ST_RX_PUT_FMT_ERR, 1)
+		}
+	}
+
 	put := &PutRequest{
-		Dps:  in.Data,
+		Dps:  dps,
 		Done: make(chan *transfer.PutResponse),
 	}
 
@@ -61,8 +71,7 @@ func (p *ApiModule) GetStatsName(ctx context.Context, in *transfer.Empty) (*tran
 }
 
 func (p *ApiModule) prestart(agent *Agent) error {
-	p.address = agent.Conf.Configer.Str(C_API_ADDR)
-	p.disable = falcon.AddrIsDisable(p.address)
+	p.disable = falcon.AddrIsDisable(agent.Conf.Configer.Str(C_API_ADDR))
 	p.putChan = agent.PutChan
 	return nil
 }
@@ -73,8 +82,10 @@ func (p *ApiModule) start(agent *Agent) error {
 	}
 
 	p.ctx, p.cancel = context.WithCancel(context.Background())
+	p.endpoint = agent.Conf.Host
+	address := agent.Conf.Configer.Str(C_API_ADDR)
 
-	ln, err := net.Listen(falcon.CleanSockFile(falcon.ParseAddr(p.address)))
+	ln, err := net.Listen(falcon.CleanSockFile(falcon.ParseAddr(address)))
 	if err != nil {
 		return err
 	}
@@ -103,16 +114,15 @@ func (p *ApiModule) stop(agent *Agent) error {
 		return nil
 	}
 	p.cancel()
+
 	return nil
 }
 
 func (p *ApiModule) reload(agent *Agent) error {
-	return nil
+	p.stop(agent)
 
-	if !p.disable {
-		p.stop(agent)
-		time.Sleep(time.Second)
-	}
-	p.prestart(agent)
+	time.Sleep(time.Second)
+	p.disable = falcon.AddrIsDisable(agent.Conf.Configer.Str(C_API_ADDR))
+
 	return p.start(agent)
 }
