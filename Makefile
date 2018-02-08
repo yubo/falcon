@@ -26,13 +26,14 @@ gitlog.go:
 	./scripts/git.sh
 
 dist:
-	mkdir -p $(EXEC_OUTPUT_PATH) dist/var dist/scripts \
-	dist/etc dist/run dist/log && \
-	cp -a scripts/db_schema dist/scripts && \
-	cp -a docs dist/ && \
-	cp -a var/html/ui dist/var/html && \
-	cp -a var/html/docs dist/var/html/ && \
-	cp -a var/emu_tpl dist/var/ && \
+	mkdir -p $(EXEC_OUTPUT_PATH) dist/scripts \
+	dist/etc dist/run dist/log dist/var/html/docs && \
+	cp -a scripts/db_schema	dist/scripts && \
+	cp -a docs		dist/ && \
+	cp -a docs/img		dist/var/html/docs/ && \
+	cp -a var/html/ui	dist/var/html && \
+	cp -a var/html/docs	dist/var/html/ && \
+	cp -a var/emu_tpl	dist/var/ && \
 	cp -a docs/samples/falcon/* dist/etc/
 
 clean:

@@ -33,7 +33,7 @@ STOPTIMEOUT=60
 start(){
     [ -x $exec ] || exit 5
     # check to see if it's already running
-    RESPONSE=`$COMMAND satats 2>&1`
+    RESPONSE=`$COMMAND stats 2>&1`
     if [ $? = 0 ]; then
 	# already running, do nothing
 	action $"Starting $prog: " /bin/true

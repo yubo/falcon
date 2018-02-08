@@ -10,7 +10,7 @@ server {
 	}
 
 	location ^~ /docs {
-		index index.html index.htm index.md;
+		index index.html index.htm README.md ;
 		autoindex on;
 	}
 

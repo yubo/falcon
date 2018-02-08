@@ -1,12 +1,30 @@
 ## Falcon Qucik Start
 
+## overview
+![](img/falcon-overview.svg?raw=true)
 
 ## install && start
 
 ```
-## falcon
-git clone git@git.n.xiaomi.com:falcon/falcon-lite.git
-cd falcon-lite
+#install gcc make automak libtool golang ...
+
+# install protoc
+wget https://github.com/google/protobuf/archive/v3.4.1.tar.gz
+tar xzvf v3.4.1.tar.gz
+cd protobuf-3.4.1
+./autogen.sh
+./configure
+make
+sudo make install
+
+go get -u github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
+go get -u github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger
+go get -u github.com/golang/protobuf/protoc-gen-go
+go get -u github.com/beego/bee
+
+# build falcon
+git clone https://github.com/yubo/falcon
+cd falcon
 make
 make install
 
@@ -30,6 +48,28 @@ mysql -u falcon -p1234 idx < ./scripts/db_schema/05_index.sql
 cp /etc/falcon/falcon.example.conf /etc/falcon/falcon.conf
 sudo service falcon start
 ```
+
+## API flow
+![](img/falcon-api.svg?raw=true)
+
+## trigger
+
+#### event
+![](img/falcon-event.svg?raw=true)
+
+#### action
+![](img/falcon-action.svg?raw=true)
+
+
+
+## benchmark
+
+```
+cd backend
+go test -bench=Add -benchtime=20s
+go test -bench=.
+```
+
 
 ## file/dir list
 

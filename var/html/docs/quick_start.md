@@ -23,10 +23,29 @@
 <h2>
 <a id="user-content-falcon-qucik-start" class="anchor" href="#falcon-qucik-start" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Falcon Qucik Start</h2>
 <h2>
+<a id="user-content-overview" class="anchor" href="#overview" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>overview</h2>
+<p><a href="img/falcon-overview.svg?raw=true" target="_blank"><img src="img/falcon-overview.svg?raw=true" alt="" style="max-width:100%;"></a></p>
+<h2>
 <a id="user-content-install--start" class="anchor" href="#install--start" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>install &amp;&amp; start</h2>
-<pre><code>## falcon
-git clone git@git.n.xiaomi.com:falcon/falcon-lite.git
-cd falcon-lite
+<pre><code>#install gcc make automak libtool golang ...
+
+# install protoc
+wget https://github.com/google/protobuf/archive/v3.4.1.tar.gz
+tar xzvf v3.4.1.tar.gz
+cd protobuf-3.4.1
+./autogen.sh
+./configure
+make
+sudo make install
+
+go get -u github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
+go get -u github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger
+go get -u github.com/golang/protobuf/protoc-gen-go
+go get -u github.com/beego/bee
+
+# build falcon
+git clone https://github.com/yubo/falcon
+cd falcon
 make
 make install
 
@@ -49,6 +68,23 @@ mysql -u falcon -p1234 idx &lt; ./scripts/db_schema/05_index.sql
 ## start falcon
 cp /etc/falcon/falcon.example.conf /etc/falcon/falcon.conf
 sudo service falcon start
+</code></pre>
+<h2>
+<a id="user-content-api-flow" class="anchor" href="#api-flow" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>API flow</h2>
+<p><a href="img/falcon-api.svg?raw=true" target="_blank"><img src="img/falcon-api.svg?raw=true" alt="" style="max-width:100%;"></a></p>
+<h2>
+<a id="user-content-trigger" class="anchor" href="#trigger" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>trigger</h2>
+<h4>
+<a id="user-content-event" class="anchor" href="#event" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>event</h4>
+<p><a href="img/falcon-event.svg?raw=true" target="_blank"><img src="img/falcon-event.svg?raw=true" alt="" style="max-width:100%;"></a></p>
+<h4>
+<a id="user-content-action" class="anchor" href="#action" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>action</h4>
+<p><a href="img/falcon-action.svg?raw=true" target="_blank"><img src="img/falcon-action.svg?raw=true" alt="" style="max-width:100%;"></a></p>
+<h2>
+<a id="user-content-benchmark" class="anchor" href="#benchmark" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>benchmark</h2>
+<pre><code>cd backend
+go test -bench=Add -benchtime=20s
+go test -bench=.
 </code></pre>
 <h2>
 <a id="user-content-filedir-list" class="anchor" href="#filedir-list" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>file/dir list</h2>

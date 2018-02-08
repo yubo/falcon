@@ -35,8 +35,8 @@ if ! type $render > /dev/null; then
 	sudo npm install --global $render
 fi
 
+docs='./docs/api_reference.md'
 docs=$(find ./docs -name "*.md")
-#docs='./docs/api_reference.md'
 
 for doc in $docs
 do
