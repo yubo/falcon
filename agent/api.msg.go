@@ -10,8 +10,15 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/yubo/falcon/lib/ipc"
 	"github.com/yubo/falcon/lib/tsdb"
 	"github.com/yubo/falcon/transfer"
+)
+
+const (
+	IPC_MQ_MODE = 0666
+	IPC_MQ_KEY  = 0x1234
+	IPC_MQ_TYPE = 1
 )
 
 type ApiMsgModule struct {
@@ -34,13 +41,13 @@ func (p *ApiMsgModule) start(agent *Agent) error {
 	ch := agent.PutChan
 
 	go func() {
-		msqid := MsgGet(IPC_MQ_KEY, IPC_MQ_MODE)
+		msqid := ipc.MsgGet(IPC_MQ_KEY, IPC_MQ_MODE)
 		for {
 			select {
 			case <-p.ctx.Done():
 				return
 			default:
-				msg, err := MsgRcv(msqid, IPC_MQ_TYPE, 0)
+				msg, err := ipc.MsgRcv(msqid, IPC_MQ_TYPE, 0)
 				if err != nil {
 					continue
 				}

@@ -3,7 +3,7 @@
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
-package agent
+package ipc
 
 /*
 #include "msg.h"
@@ -16,12 +16,6 @@ import (
 
 // MSGMAX Maximum size of a message text, in bytes (default value: 8192 bytes). /proc/sys/kernel/msgmax
 // MSGMNB Maximum number of bytes that can be held in a message queue (default value: 16384 bytes). /proc/sys/kernel/msgmnb
-
-const (
-	IPC_MQ_MODE = 0666
-	IPC_MQ_KEY  = 0x1234
-	IPC_MQ_TYPE = 1
-)
 
 func MsgGet(key, mode int) int {
 	return int(C.msgGet(C.key_t(key), C.int(mode|C.IPC_CREAT)))
