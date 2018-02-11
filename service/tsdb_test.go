@@ -91,7 +91,7 @@ func TestPutAndRecover(t *testing.T) {
 	tm := test_init()
 	tm.start(s)
 
-	num := 1000
+	num := 10
 	numOfKeys := 10
 	beginTimestamp := time.Now().Unix() - int64(num*60)
 	putReq := dataGenerator(beginTimestamp, numOfKeys, num, 1)
@@ -119,6 +119,7 @@ func TestPutAndRecover(t *testing.T) {
 	// log.Println("lastFinalizedBucket_: ", tm.buckets[1].GetLastFinalizedBucket())
 
 	tm.stop(s)
+	time.Sleep(time.Second)
 
 	// recover data from disk
 	t2 := test_init()
@@ -148,7 +149,7 @@ func TestPutAndRecover(t *testing.T) {
 	}
 
 	if num != len(getRes.Data[0].Values) {
-		t.Fatalf("Length of getRes(%d) and num(%d) not equal!", len(getRes.Data), num)
+		t.Fatalf("Length of getRes(%d) and num(%d) not equal!", len(getRes.Data[0].Values), num)
 	}
 
 	for i := 0; i < num; i++ {

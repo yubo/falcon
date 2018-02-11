@@ -120,6 +120,16 @@ func (t *TsdbModule) start(s *Service) (err error) {
 
 func (t *TsdbModule) stop(s *Service) error {
 	t.cancel()
+
+	var shardToBeDropped []int
+	for k, v := range t.buckets {
+		if v.GetState() != tsdb.UNOWNED {
+			shardToBeDropped = append(shardToBeDropped, k)
+		}
+	}
+
+	t.dropShard(shardToBeDropped)
+
 	return nil
 }
 
