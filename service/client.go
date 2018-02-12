@@ -20,6 +20,10 @@ import (
 // servicegroup: upstream container
 // upstream: connection to the
 
+const (
+	CLIENT_BURST_SIZE = 32
+)
+
 type rpcClient struct {
 	addr string
 	conn *grpc.ClientConn
@@ -110,10 +114,9 @@ func (p *ClientModule) start(s *Service) (err error) {
 	p.ctx, p.cancel = context.WithCancel(context.Background())
 	upstreamAddr := s.Conf.Configer.Str(C_ALARM_ADDR)
 	callTimeout, _ := s.Conf.Configer.Int(C_CALL_TIMEOUT)
-	burstSize, _ := s.Conf.Configer.Int(C_BURST_SIZE)
 
 	if err := p.mainLoop(upstreamAddr, s.eventChan, callTimeout,
-		burstSize); err != nil {
+		CLIENT_BURST_SIZE); err != nil {
 		return err
 	}
 	return nil

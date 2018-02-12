@@ -30,6 +30,8 @@ type CacheModule struct {
 
 func (p *CacheModule) prestart(s *Service) error {
 	p.service = s
+	p.idxQueue.init()
+
 	s.cache = p
 	return nil
 }
@@ -44,8 +46,6 @@ func (p *CacheModule) start(s *Service) (err error) {
 	}
 
 	p.reload(s)
-
-	p.idxQueue.init()
 
 	dbmaxidle, _ := conf.Int(C_DB_MAX_IDLE)
 	dbmaxconn, _ := conf.Int(C_DB_MAX_CONN)
@@ -108,7 +108,7 @@ func (p *CacheModule) put(dp *tsdb.DataPoint) (*cacheEntry, error) {
 		if err != nil {
 			return nil, err
 		}
-		p.idxQueue.addHead(&e.list)
+		p.idxQueue.enqueue(&e.list)
 	}
 	return e, e.put(dp)
 }
@@ -151,7 +151,7 @@ func (p *CacheModule) cleanWorker() {
 			return
 		case <-ticker:
 			for _, bucket := range p.buckets {
-				bucket.clean(CACHE_EXPIRE_TIME, &p.idxQueue)
+				bucket.clean(CACHE_EXPIRE_TIME)
 			}
 		}
 	}
@@ -174,17 +174,7 @@ func (p *CacheModule) indexWorker(db orm.Ormer) {
 			}
 
 			e := list_entry(l)
-			now := timer.now()
-
-			if now-e.idxTs > INDEX_UPDATE_INTERVAL {
-				// update
-				e.idxTs = now
-				p.idxQueue.enqueue(l)
-				indexUpdate(e, db)
-			} else {
-				p.idxQueue.addHead(l)
-				time.Sleep(time.Second)
-			}
+			indexUpdate(e, db)
 		}
 	}
 }

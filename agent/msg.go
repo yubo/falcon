@@ -21,18 +21,18 @@ const (
 	IPC_MQ_TYPE = 1
 )
 
-type ApiMsgModule struct {
+type MsgModule struct {
 	disable bool
 
 	ctx    context.Context
 	cancel context.CancelFunc
 }
 
-func (p *ApiMsgModule) prestart(agent *Agent) error {
+func (p *MsgModule) prestart(agent *Agent) error {
 	p.disable = !agent.Conf.Configer.DefaultBool(C_IPC_ENABLE, false)
 	return nil
 }
-func (p *ApiMsgModule) start(agent *Agent) error {
+func (p *MsgModule) start(agent *Agent) error {
 	if p.disable {
 		return nil
 	}
@@ -62,14 +62,14 @@ func (p *ApiMsgModule) start(agent *Agent) error {
 	return nil
 }
 
-func (p *ApiMsgModule) stop(agent *Agent) error {
+func (p *MsgModule) stop(agent *Agent) error {
 	if p.disable {
 		return nil
 	}
 	p.cancel()
 	return nil
 }
-func (p *ApiMsgModule) reload(agent *Agent) error {
+func (p *MsgModule) reload(agent *Agent) error {
 	p.stop(agent)
 	p.disable = !agent.Conf.Configer.DefaultBool(C_IPC_ENABLE, false)
 	return p.start(agent)

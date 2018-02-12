@@ -15,25 +15,27 @@ var text = []byte(`
 {
 	SERVICE_ADDR	= unix:./var/service.rpc;
 	FALCON_DSN	= falcon:1234@tcp(localhost:3306)/falcon?loc=Local&parseTime=true;
+	TSDB_DIR	= "var/tsdb";
 
 	debug;
-	leasekey		"/open-falcon/service/online/test.falcon";
-	leasettl		20;
-	apiAddr			${SERVICE_ADDR};
-	httpAddr		${SERVICE_ADDR}.gw;
-	dsn			${FALCON_DSN};
-	idxDsn			${INDEX_DSN};
-	dbMaxIdle		4;
-	callTimeout		5000;	// 请求超时时间
-	workerProcesses		2;	// 数据迁移时连接目标服务器的并发数量
-	hdisk			"./var/data/hd01";
-	confInterval		600;	// 同步配置间隔时间
-	judgeInterval		60;	// 事件触发器扫描间隔时间
-	shardIds		"0,1,2,3,4,5,6,7,8,9";
-	lastTsthreshold		30;		// 最近活动时间阈值，超过的数据项会被忽略
-	indexTimeout		3600*26;
-	indexUpdateCycleTime	3600*24;
-	tsdbDir			/opt/falcon/tsdb;
+	leasekey	"/open-falcon/service/online/test.falcon";
+	leasettl	20;
+	apiAddr		${SERVICE_ADDR};
+	httpAddr	${SERVICE_ADDR}.gw;
+	dsn		${FALCON_DSN};
+	idxDsn		${INDEX_DSN};
+	dbMaxIdle	4;
+	callTimeout	5000;	// 请求超时时间
+	confInterval	600;	// 同步配置间隔时间
+	judgeInterval	60;	// 事件触发器扫描间隔时间
+	shardNum	10;
+	shardIds	"0,1,2,3,4,5,6,7,8,9";
+	cacheTimeout	24*3600;
+	rrdTimeout	31*24*3600;
+	tsdbBucketNum	13;
+	tsdbBucketSize	2*3600;	// time (second)
+	//tsdbTimeout	26*3600;// tsdbBucketNum * tsdbBucketSize
+	tsdbDir		${TSDB_DIR};
 };
 `)
 

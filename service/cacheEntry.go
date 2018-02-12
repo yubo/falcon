@@ -26,8 +26,8 @@ type cacheEntry struct {
 	key    *tsdb.Key
 	values []*tsdb.TimeValuePair
 
-	flag     uint32
-	idxTs    int64
+	flag uint32
+	//idxTs    int64
 	commitTs int64
 	createTs int64
 	lastTs   int64

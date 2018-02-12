@@ -78,7 +78,7 @@ func (p *cacheBucket) delEntry(key string, q *queue) *cacheEntry {
 	return e
 }
 
-func (p *cacheBucket) _delEntry(key string, q *queue) *cacheEntry {
+func (p *cacheBucket) _delEntry(key string) *cacheEntry {
 
 	e, ok := p.entries[key]
 	if !ok {
@@ -86,12 +86,10 @@ func (p *cacheBucket) _delEntry(key string, q *queue) *cacheEntry {
 	}
 	delete(p.entries, key)
 
-	q.del(&e.list)
-
 	return e
 }
 
-func (p *cacheBucket) clean(timeout int64, q *queue) {
+func (p *cacheBucket) clean(timeout int64) {
 	if p.getState() == CACHE_BUCKET_ENABLE {
 		// clean expire entry
 		now := timer.now()
@@ -106,15 +104,14 @@ func (p *cacheBucket) clean(timeout int64, q *queue) {
 
 		p.Lock()
 		for _, key := range keys {
-			p._delEntry(key, q)
-
+			p._delEntry(key)
 		}
 		p.Unlock()
 	} else {
 		// clean all entry
 		p.Lock()
 		for key, _ := range p.entries {
-			p._delEntry(key, q)
+			p._delEntry(key)
 		}
 		p.Unlock()
 	}

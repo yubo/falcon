@@ -83,7 +83,11 @@ func (t *TsdbModule) prestart(s *Service) error {
 }
 
 func (t *TsdbModule) start(s *Service) (err error) {
-	dataDirectory := s.Conf.Configer.Str(C_TSDB_DIR)
+	conf := &s.Conf.Configer
+	dataDirectory := conf.Str(C_TSDB_DIR)
+	//bucketNum, _ := conf.Int(C_TSDB_BUCKET_NUM)
+	//bucketSize, _ := conf.Int(C_TSDB_BUCKET_SIZE)
+
 	t.ctx, t.cancel = context.WithCancel(context.Background())
 
 	keyWriters := make([]*tsdb.KeyListWriter, keyWriterNum)

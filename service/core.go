@@ -24,35 +24,37 @@ const (
 	CACHE_CLEAN_INTERVAL  = 3600      // 回收检查间隔时间 (s)
 	MODULE_NAME           = "\x1B[36m[SERVICE]\x1B[0m"
 
-	C_TSDB_DIR       = "tsdbdir"
-	C_CALL_TIMEOUT   = "calltimeout"
-	C_API_ADDR       = "apiaddr"
-	C_HTTP_ADDR      = "httpaddr"
-	C_IDX            = "idx"
-	C_DSN            = "dsn"
-	C_IDX_DSN        = "idxdsn"
-	C_DB_MAX_IDLE    = "dbmaxidle"
-	C_DB_MAX_CONN    = "dbmaxconn"
-	C_CONF_INTERVAL  = "confinterval"
-	C_SHARD_IDS      = "shardids"
-	C_JUDGE_INTERVAL = "judgeinterval"
-	C_JUDGE_NUM      = "judgenum"
-	C_ALARM_ADDR     = "alarmaddr"
-	C_UPSTREAM       = "upstream"
-	C_BURST_SIZE     = "burstsize"
+	C_CALL_TIMEOUT     = "calltimeout"
+	C_API_ADDR         = "apiaddr"
+	C_HTTP_ADDR        = "httpaddr"
+	C_IDX              = "idx"
+	C_DSN              = "dsn"
+	C_IDX_DSN          = "idxdsn"
+	C_DB_MAX_IDLE      = "dbmaxidle"
+	C_DB_MAX_CONN      = "dbmaxconn"
+	C_CONF_INTERVAL    = "confinterval"
+	C_SHARD_IDS        = "shardids"
+	C_JUDGE_INTERVAL   = "judgeinterval"
+	C_JUDGE_NUM        = "judgenum"
+	C_ALARM_ADDR       = "alarmaddr"
+	C_UPSTREAM         = "upstream"
+	C_TSDB_BUCKET_NUM  = "tsdbbucketnum"
+	C_TSDB_BUCKET_SIZE = "tsdbbucketsize"
+	C_TSDB_DIR         = "tsdbdir"
 )
 
 var (
 	modules     []module
 	ConfDefault = map[string]string{
-		C_CALL_TIMEOUT:  "5000",
-		C_IDX:           "true",
-		C_DB_MAX_IDLE:   "4",
-		C_DB_MAX_CONN:   "4",
-		C_JUDGE_NUM:     "8",
-		C_BURST_SIZE:    "32",
-		C_CONF_INTERVAL: "600",
-		C_TSDB_DIR:      "/tmp/tsdb",
+		C_CALL_TIMEOUT:     "5000",
+		C_IDX:              "true",
+		C_DB_MAX_IDLE:      "4",
+		C_DB_MAX_CONN:      "4",
+		C_JUDGE_NUM:        "8",
+		C_CONF_INTERVAL:    "600",
+		C_TSDB_BUCKET_NUM:  "13",
+		C_TSDB_BUCKET_SIZE: "7200",
+		C_TSDB_DIR:         "/tmp/tsdb",
 	}
 )
 
