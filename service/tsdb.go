@@ -119,7 +119,6 @@ func (t *TsdbModule) start(s *Service) (err error) {
 }
 
 func (t *TsdbModule) stop(s *Service) error {
-	t.cancel()
 
 	var shardToBeDropped []int
 	for k, v := range t.buckets {
@@ -128,8 +127,10 @@ func (t *TsdbModule) stop(s *Service) error {
 		}
 	}
 
-	t.dropShard(shardToBeDropped)
+	t.stopShard(shardToBeDropped)
+	time.Sleep(100 * time.Millisecond)
 
+	t.cancel()
 	return nil
 }
 
@@ -395,6 +396,21 @@ func (t *TsdbModule) dropShard(shards []int) error {
 	}
 
 	return nil
+}
+
+func (t *TsdbModule) stopShard(shards []int) {
+	t.RLock()
+	defer t.RUnlock()
+
+	for _, shardId := range shards {
+		m := t.buckets[shardId]
+		if m == nil {
+			glog.Infof("%s Invalid shardId :%d", MODULE_NAME, shardId)
+			continue
+		}
+
+		m.StopShard()
+	}
 }
 
 func (t *TsdbModule) finalizeBucket(timestamp int64) {
