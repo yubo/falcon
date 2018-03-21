@@ -1,4 +1,4 @@
-.PHONY: clean parse doc deploy start vendor stats update dev gen
+.PHONY: clean parse doc deploy start vendor stats update dev gen tools
 
 EXEC_OUTPUT_PATH=dist/bin
 SWAGGER_DIR=dist/var/html/docs/swagger
@@ -80,14 +80,10 @@ update:
 tools:
 	go get -u github.com/tcnksm/ghr
 
-targz:
-	rm -rf ${OUTPUT_DIR}/dist
-	mv dist ${OUTPUT_DIR}/
-
 shasums:
-	cd ${OUTPUT_DIR}/dist; shasum bin/* > ./SHASUMS
+	shasum dist/bin/* > ./dist/SHASUMS
 
 release:
-	ghr --delete --prerelease -u yubo -r falcon pre-release ${OUTPUT_DIR}/dist
+	ghr --delete --prerelease -u yubo -r falcon pre-release ./dist
 
 
