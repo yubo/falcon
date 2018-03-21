@@ -4,6 +4,8 @@ export GOPATH=${PWD}/gopath
 src=${GOPATH}/src/github.com/yubo/falcon/ctrl/api/swagger/swagger.json
 dst=${GOPATH}/src/github.com/yubo/falcon/ctrl/ctrl.swagger.json
 
+go get -u github.com/beego/bee
+
 cd ${GOPATH}/src/github.com/yubo/falcon/ctrl/api && \
 mkdir -p $(dirname $dst) && \
 bee generate docs && \
@@ -11,7 +13,8 @@ cp -f $src $dst
 cd -
 
 ## api_reference.md
-tempdir=$(mktemp -d -p .)
+#tempdir=$(mktemp -d -p .)
+tempdir='tmp_doc'
 mkdir -p ${tempdir}/{tsdb,agent,alarm,service,transfer}
 cd  ${tempdir}
 cp -f ../lib/tsdb/tsdb.proto tsdb/tsdb.proto

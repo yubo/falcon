@@ -9,24 +9,24 @@ DEPENDS=dist $(GOFILES) $(DOCFILES)
 #DEPENDS=dist $(GOFILES)
 
 all: $(EXEC_OUTPUT_PATH)/falcon $(EXEC_OUTPUT_PATH)/agent
-	for name in `find -maxdepth 2 -name \*.swagger.json`; \
+	@for name in `find . -maxdepth 2 -name \*.swagger.json`; \
 	do \
 		cp -f "$$name" $(SWAGGER_DIR)/$$(basename "$$name"); \
 	done
 
 $(EXEC_OUTPUT_PATH)/falcon: $(DEPENDS) cmd/falcon/*.go
-	export GOPATH=$(PWD)/gopath && go build -o $@ ./cmd/falcon
-	#echo > $@
+	@echo > $@
+	@export GOPATH=$(PWD)/gopath && go build -o $@ ./cmd/falcon
 
 $(EXEC_OUTPUT_PATH)/agent: $(DEPENDS) cmd/agent/*.go
-	export GOPATH=$(PWD)/gopath && go build -o $@ ./cmd/agent
-	#echo > $@
+	@echo > $@
+	@export GOPATH=$(PWD)/gopath && go build -o $@ ./cmd/agent
 
 gitlog.go:
 	./scripts/git.sh
 
 dist:
-	mkdir -p $(EXEC_OUTPUT_PATH) dist/scripts \
+	@mkdir -p $(EXEC_OUTPUT_PATH) dist/scripts \
 	dist/etc dist/run dist/log dist/var/html/docs && \
 	cp -a scripts/db_schema	dist/scripts && \
 	cp -a docs		dist/ && \
@@ -59,7 +59,7 @@ parse:
 	$(EXEC_OUTPUT_PATH)/falcon -config ./etc/falcon.example.conf parse 2>&1
 
 coverage: $(DEPENDS)
-	./scripts/test_coverage.sh
+	export GOPATH=$(PWD)/gopath && ./scripts/test_coverage.sh
 	curl -s https://codecov.io/bash | bash
 
 vendor:
@@ -76,3 +76,18 @@ stats:
 
 update:
 	git submodule update --recursive --init
+
+tools:
+	go get -u github.com/tcnksm/ghr
+
+targz:
+	rm -rf ${OUTPUT_DIR}/dist
+	mv dist ${OUTPUT_DIR}/
+
+shasums:
+	cd ${OUTPUT_DIR}/dist; shasum bin/* > ./SHASUMS
+
+release:
+	ghr --delete --prerelease -u yubo -r falcon pre-release ${OUTPUT_DIR}/dist
+
+

@@ -27,7 +27,7 @@
 <p><a href="img/falcon-overview.svg?raw=true" target="_blank"><img src="img/falcon-overview.svg?raw=true" alt="" style="max-width:100%;"></a></p>
 <h2>
 <a id="user-content-install--start" class="anchor" href="#install--start" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>install &amp;&amp; start</h2>
-<pre><code>#install gcc make automak libtool golang ...
+<pre><code>#install gcc make automake libtool golang ...
 
 # install protoc
 wget https://github.com/google/protobuf/archive/v3.4.1.tar.gz
@@ -41,6 +41,7 @@ sudo make install
 go get -u github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
 go get -u github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger
 go get -u github.com/golang/protobuf/protoc-gen-go
+go get -u github.com/coreos/protodoc
 go get -u github.com/beego/bee
 
 # build falcon

@@ -1,0 +1,32 @@
+box: golang:1.9.0
+
+build:
+  steps:
+    - setup-go-workspace
+    - script:
+        name: prepare
+        code: make update
+#   - script:
+#       name: coverage
+#       code: make coverage
+    - script:
+        name: compile
+        code: make
+    - script:
+        name: store Makefile
+        code: cp Makefile $WERCKER_CACHE_DIR/
+
+deploy:
+  steps:      
+    - script:     
+        name: tools       
+        code: make tools
+    - script:     
+        name: targz       
+        code: make targz OUTPUT_DIR=$WERCKER_CACHE_DIR
+    - script:     
+        name: shasums     
+        code: make shasums OUTPUT_DIR=$WERCKER_CACHE_DIR
+    - script:     
+        name: release     
+        code: make release OUTPUT_DIR=$WERCKER_CACHE_DIR

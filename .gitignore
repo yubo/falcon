@@ -9,6 +9,7 @@
 *.tmp
 *.pid
 *.sh
+*.txt
 
 var/run/
 var/tsdb/

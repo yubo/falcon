@@ -20,5 +20,4 @@ func init() {
 	agent.RegisterModule(&agent.ClientModule{})
 	agent.RegisterModule(&agent.ApiModule{})
 	agent.RegisterModule(&agent.ApiGwModule{})
-	agent.RegisterModule(&agent.MsgModule{})
 }
