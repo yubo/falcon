@@ -13,20 +13,11 @@ build:
         name: compile
         code: make
     - script:
-        name: store Makefile
-        code: cp Makefile $WERCKER_CACHE_DIR/
-
-deploy:
-  steps:      
-    - script:     
-        name: tools       
+        name: tools
         code: make tools
-    - script:     
-        name: targz       
-        code: make targz OUTPUT_DIR=$WERCKER_CACHE_DIR
-    - script:     
-        name: shasums     
-        code: make shasums OUTPUT_DIR=$WERCKER_CACHE_DIR
-    - script:     
-        name: release     
-        code: make release OUTPUT_DIR=$WERCKER_CACHE_DIR
+    - script:
+        name: shasums
+        code: make shasums
+    - script:
+        name: release
+        code: make release

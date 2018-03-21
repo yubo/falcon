@@ -10,6 +10,7 @@
 *.pid
 *.sh
 *.txt
+*.tar.gz
 
 var/run/
 var/tsdb/
