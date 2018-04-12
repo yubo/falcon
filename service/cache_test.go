@@ -10,14 +10,12 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/lib/tsdb"
-	"github.com/yubo/falcon/service/config"
 )
 
 var (
 	cacheApp *Service
-	cache    *CacheModule
+	cache    *cacheModule
 	err      error
 )
 
@@ -36,16 +34,9 @@ func newDp(i int) *tsdb.DataPoint {
 
 func test_cache_init() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	cacheApp = &Service{
-		Conf: &config.Service{
-			Name: "cacheApp",
-		},
-	}
-	cacheApp.Conf.Configer.Set(falcon.APP_CONF_FILE, map[string]string{
-		"shardIds": "0",
-	})
+	cacheApp = &Service{}
 
-	cache = &CacheModule{}
+	cache = &cacheModule{}
 }
 
 func testCache(t *testing.T) {

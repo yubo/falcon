@@ -1,0 +1,11 @@
+foo1: b_bar1
+foo2: b_bar2
+foo3: b_bar3
+
+foos:
+  - b_foo1
+  - b_foo2
+  - b_foo3
+
+ 
+

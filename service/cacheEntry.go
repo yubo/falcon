@@ -47,7 +47,7 @@ func newCacheEntry(dp *tsdb.DataPoint) (*cacheEntry, error) {
 	e := &cacheEntry{
 		key:      dp.Key,
 		values:   make([]*tsdb.TimeValuePair, CACHE_DATA_SIZE),
-		createTs: timer.now(),
+		createTs: now(),
 		endpoint: endpoint,
 		metric:   metric,
 		tags:     tags,
@@ -79,13 +79,13 @@ func (p *cacheEntry) Get(isNum bool, num, shift_time_ int) (ret []float64) {
 
 	var i uint32
 
-	now := timer.now()
+	ts := now()
 	shift_time := int64(shift_time_)
 	id := p.dataId - 1
 
 	if isNum {
 		for i = 0; i < CACHE_DATA_SIZE; i++ {
-			if now-p.values[(id-i)&CACHE_DATA_SIZE_MASK].Timestamp >= shift_time {
+			if ts-p.values[(id-i)&CACHE_DATA_SIZE_MASK].Timestamp >= shift_time {
 				break
 			}
 		}
@@ -103,13 +103,13 @@ func (p *cacheEntry) Get(isNum bool, num, shift_time_ int) (ret []float64) {
 	// isSec
 	sec := int64(num) + int64(shift_time)
 	for i = 0; i < CACHE_DATA_SIZE; i++ {
-		if now-p.values[(id-i)&CACHE_DATA_SIZE_MASK].Timestamp >= shift_time {
+		if ts-p.values[(id-i)&CACHE_DATA_SIZE_MASK].Timestamp >= shift_time {
 			break
 		}
 	}
 	for ; i < CACHE_DATA_SIZE; i++ {
 		v := p.values[(id-i)&CACHE_DATA_SIZE_MASK]
-		if now-v.Timestamp >= sec || v.Timestamp == 0 {
+		if ts-v.Timestamp >= sec || v.Timestamp == 0 {
 			break
 		}
 		ret = append(ret, v.Value)
@@ -118,7 +118,7 @@ func (p *cacheEntry) Get(isNum bool, num, shift_time_ int) (ret []float64) {
 }
 
 func (p *cacheEntry) Nodata(isNum bool, args []float64, get expr.GetHandle) float64 {
-	if timer.now()-p.lastTs <= int64(args[0]) {
+	if now()-p.lastTs <= int64(args[0]) {
 		return 1
 	}
 	return 0

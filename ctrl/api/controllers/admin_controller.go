@@ -10,9 +10,8 @@ import (
 	"fmt"
 
 	"github.com/astaxie/beego"
-	"github.com/yubo/falcon"
-	"github.com/yubo/falcon/ctrl"
 	"github.com/yubo/falcon/ctrl/api/models"
+	"github.com/yubo/falcon/lib/core"
 )
 
 // Operations about porfile/config/info
@@ -90,7 +89,7 @@ func (c *AdminController) UpdateConfig() {
 
 	module := c.GetString(":module")
 
-	c.SendMsg(400, falcon.EACCES.Error())
+	c.SendMsg(400, core.EACCES.Error())
 	return
 
 	beego.Debug(string(c.Ctx.Input.RequestBody))
@@ -120,23 +119,13 @@ func (c *AdminController) GetDebugAction() {
 	action := c.GetString(":action")
 	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
 
-	conf, err := op.ConfigerGet("ctrl")
-	if err != nil {
-		c.SendMsg(400, err.Error())
-		return
-	}
-	if conf.DefaultBool(ctrl.C_DEV_MODE, false) == false {
-		c.SendMsg(400, "just for dev mode")
-		return
-	}
-
 	switch action {
 	case "populate":
 		obj, err = op.ResetDb(true)
 	case "reset_db":
 		obj, err = op.ResetDb(false)
 	default:
-		err = fmt.Errorf("%s %s", falcon.ErrUnsupported.Error(), action)
+		err = fmt.Errorf("%s %s", core.ErrUnsupported.Error(), action)
 	}
 
 	if err != nil {
@@ -197,7 +186,7 @@ func (c *AdminController) SetExpansion() {
 		goto out
 	}
 
-	err = falcon.ErrParam
+	err = core.ErrParam
 out:
 	if err != nil {
 		c.SendMsg(400, err.Error())

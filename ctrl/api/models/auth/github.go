@@ -13,9 +13,8 @@ import (
 	"net/url"
 
 	"github.com/astaxie/beego/context"
-	"github.com/yubo/falcon"
-	"github.com/yubo/falcon/ctrl"
 	"github.com/yubo/falcon/ctrl/api/models"
+	"github.com/yubo/falcon/lib/core"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/github"
 )
@@ -33,19 +32,19 @@ func init() {
 	models.RegisterAuth(GITHUB_NAME, &githubAuth{})
 }
 
-func (p *githubAuth) Init(conf *falcon.Configer) error {
+func (p *githubAuth) Init(conf *core.Configer) error {
 	p.config = oauth2.Config{
 		Endpoint:     github.Endpoint,
 		Scopes:       []string{"user:email"},
-		ClientID:     conf.Str(ctrl.C_GITHUB_CLIENT_ID),
-		ClientSecret: conf.Str(ctrl.C_GITHUB_CLIENT_SECRET),
-		RedirectURL:  conf.Str(ctrl.C_GITHUB_REDIRECT_URL),
+		ClientID:     conf.GetStr("client_id"),
+		ClientSecret: conf.GetStr("client_secret"),
+		RedirectURL:  conf.GetStr("RedirectURL"),
 	}
 	return nil
 }
 
 func (p *githubAuth) Verify(c interface{}) (bool, string, error) {
-	return false, "", falcon.EPERM
+	return false, "", core.EPERM
 }
 
 func (p *githubAuth) AuthorizeUrl(c interface{}) string {
@@ -56,7 +55,7 @@ func (p *githubAuth) AuthorizeUrl(c interface{}) string {
 
 	conf := p.config
 	conf.RedirectURL = fmt.Sprintf("%s?%s", conf.RedirectURL, v.Encode())
-	return conf.AuthCodeURL(falcon.RandString(8))
+	return conf.AuthCodeURL(core.RandString(8))
 }
 
 func (p *githubAuth) LoginCb(c interface{}) (uuid string, err error) {

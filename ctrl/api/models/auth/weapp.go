@@ -6,8 +6,8 @@
 package auth
 
 import (
-	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/ctrl/api/models"
+	"github.com/yubo/falcon/lib/core"
 )
 
 type weappAuth struct {
@@ -21,7 +21,7 @@ func init() {
 	models.RegisterAuth(WEAPP_NAME, &weappAuth{})
 }
 
-func (p *weappAuth) Init(conf *falcon.Configer) error {
+func (p *weappAuth) Init(conf *core.Configer) error {
 	return nil
 }
 
@@ -34,7 +34,7 @@ func (p *weappAuth) AuthorizeUrl(c interface{}) string {
 }
 
 func (p *weappAuth) LoginCb(c interface{}) (uuid string, err error) {
-	return "", falcon.EPERM
+	return "", core.EPERM
 }
 
 func (p *weappAuth) LogoutCb(c interface{}) {

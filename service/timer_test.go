@@ -17,11 +17,11 @@ import (
 )
 
 var (
-	testTimer *TimerModule
+	testTimer *timerModule
 )
 
 func init() {
-	testTimer = &TimerModule{}
+	testTimer = &timerModule{}
 	testTimer.prestart(nil)
 	testTimer.start(nil)
 }
@@ -34,6 +34,6 @@ func BenchmarkTimerSysNow(b *testing.B) {
 
 func BenchmarkTimerNow(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		testTimer.now()
+		now()
 	}
 }

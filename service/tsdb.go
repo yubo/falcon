@@ -10,13 +10,12 @@ import (
 	"math/rand"
 	"os"
 	"sort"
-	"strconv"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/golang/glog"
 	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/lib/core"
 	"github.com/yubo/falcon/lib/tsdb"
 	"golang.org/x/net/context"
 )
@@ -47,7 +46,7 @@ var (
 )
 
 // shard -> bucket -> item
-type TsdbModule struct {
+type tsdbModule struct {
 	sync.RWMutex
 	buckets map[int]*tsdb.BucketMap
 
@@ -77,16 +76,16 @@ func (g *GetResponse) PrintForDebug() string {
 	return res
 }
 
-func (t *TsdbModule) prestart(s *Service) error {
+func (t *tsdbModule) prestart(s *Service) error {
 	s.tsdb = t
 	return nil
 }
 
-func (t *TsdbModule) start(s *Service) (err error) {
-	conf := &s.Conf.Configer
-	dataDirectory := conf.Str(C_TSDB_DIR)
-	//bucketNum, _ := conf.Int(C_TSDB_BUCKET_NUM)
-	//bucketSize, _ := conf.Int(C_TSDB_BUCKET_SIZE)
+func (t *tsdbModule) start(s *Service) (err error) {
+	conf := s.Conf
+	dataDirectory := conf.TsdbDir
+	//bucketNum = int8(conf.TsdbBucketNum)
+	//bucketSize = int64(conf.TsdbBucketSize)
 
 	t.ctx, t.cancel = context.WithCancel(context.Background())
 
@@ -122,7 +121,7 @@ func (t *TsdbModule) start(s *Service) (err error) {
 	return nil
 }
 
-func (t *TsdbModule) stop(s *Service) error {
+func (t *tsdbModule) stop(s *Service) error {
 
 	var shardToBeDropped []int
 	for k, v := range t.buckets {
@@ -138,17 +137,13 @@ func (t *TsdbModule) stop(s *Service) error {
 	return nil
 }
 
-func (t *TsdbModule) reload(s *Service) error {
+func (t *tsdbModule) reload(s *Service) error {
 	t.RLock()
 	defer t.RUnlock()
 
-	ids := strings.Split(s.Conf.Configer.Str(C_SHARD_IDS), ",")
+	ids := s.Conf.ShardIds
 	newMap := make(map[int]bool, len(ids))
-	for i := 0; i < len(ids); i++ {
-		id, err := strconv.Atoi(ids[i])
-		if err != nil {
-			return err
-		}
+	for _, id := range ids {
 		newMap[id] = true
 	}
 
@@ -177,7 +172,7 @@ func (t *TsdbModule) reload(s *Service) error {
 	return nil
 }
 
-func (t *TsdbModule) put(req *PutRequest) (*PutResponse, error) {
+func (t *tsdbModule) put(req *PutRequest) (*PutResponse, error) {
 	t.RLock()
 	defer t.RUnlock()
 
@@ -185,15 +180,15 @@ func (t *TsdbModule) put(req *PutRequest) (*PutResponse, error) {
 	for _, dp := range req.Data {
 		m := t.buckets[int(dp.Key.ShardId)]
 		if m == nil {
-			return res, falcon.ErrNoExits
+			return res, core.ErrNoExits
 		}
 
 		// Adjust 0, late, or early timestamps to now. Disable only for testing.
-		now := timer.now()
+		ts := now()
 		if adjustTimestamp {
-			if dp.Value.Timestamp == 0 || dp.Value.Timestamp < now-int64(allowTimestampBehind) ||
-				dp.Value.Timestamp > now+int64(allowTimestampAhead) {
-				dp.Value.Timestamp = now
+			if dp.Value.Timestamp == 0 || dp.Value.Timestamp < ts-int64(allowTimestampBehind) ||
+				dp.Value.Timestamp > ts+int64(allowTimestampAhead) {
+				dp.Value.Timestamp = ts
 			}
 		}
 
@@ -213,13 +208,13 @@ func (t *TsdbModule) put(req *PutRequest) (*PutResponse, error) {
 	return res, nil
 }
 
-func (t *TsdbModule) _get(key *tsdb.Key, start, end int64) (res []*tsdb.TimeValuePair, err error) {
+func (t *tsdbModule) _get(key *tsdb.Key, start, end int64) (res []*tsdb.TimeValuePair, err error) {
 	t.RLock()
 	defer t.RUnlock()
 
 	m := t.buckets[int(key.ShardId)]
 	if m == nil {
-		return nil, falcon.EEXIST
+		return nil, core.EEXIST
 	}
 
 	state := m.GetState()
@@ -253,7 +248,7 @@ func (t *TsdbModule) _get(key *tsdb.Key, start, end int64) (res []*tsdb.TimeValu
 	}
 }
 
-func (t *TsdbModule) get(req *GetRequest) (res *GetResponse, err error) {
+func (t *tsdbModule) get(req *GetRequest) (res *GetResponse, err error) {
 
 	res = &GetResponse{Data: make([]*tsdb.DataPoints, len(req.Keys))}
 	for i, key := range req.Keys {
@@ -270,7 +265,7 @@ func createShardPath(shardId int, dataDirectory string) error {
 	return os.MkdirAll(fmt.Sprintf("%s/%d", dataDirectory, shardId), 0755)
 }
 
-func (t *TsdbModule) cleanWorker() {
+func (t *tsdbModule) cleanWorker() {
 	ticker := time.NewTicker(cleanInterval).C
 
 	for {
@@ -302,7 +297,7 @@ func (t *TsdbModule) cleanWorker() {
 	}
 }
 
-func (t *TsdbModule) finalizeBucketWorker() {
+func (t *tsdbModule) finalizeBucketWorker() {
 	ticker := time.NewTicker(finalizeInterval).C
 
 	for {
@@ -310,14 +305,14 @@ func (t *TsdbModule) finalizeBucketWorker() {
 		case <-t.ctx.Done():
 			return
 		case <-ticker:
-			timestamp := timer.now() - int64(allowTimestampAhead+allowTimestampBehind) -
+			timestamp := now() - int64(allowTimestampAhead+allowTimestampBehind) -
 				int64(tsdb.Duration(1, bucketSize))
 			t.finalizeBucket(timestamp)
 		}
 	}
 }
 
-func (t *TsdbModule) addShard(shards []int) {
+func (t *tsdbModule) addShard(shards []int) {
 	t.RLock()
 	t.RUnlock()
 
@@ -378,7 +373,7 @@ func (t *TsdbModule) addShard(shards []int) {
 	}()
 }
 
-func (t *TsdbModule) dropShard(shards []int) error {
+func (t *tsdbModule) dropShard(shards []int) error {
 	t.RLock()
 	defer t.RUnlock()
 
@@ -402,7 +397,7 @@ func (t *TsdbModule) dropShard(shards []int) error {
 	return nil
 }
 
-func (t *TsdbModule) stopShard(shards []int) {
+func (t *tsdbModule) stopShard(shards []int) {
 	t.RLock()
 	defer t.RUnlock()
 
@@ -417,7 +412,7 @@ func (t *TsdbModule) stopShard(shards []int) {
 	}
 }
 
-func (t *TsdbModule) finalizeBucket(timestamp int64) {
+func (t *tsdbModule) finalizeBucket(timestamp int64) {
 	go func() {
 		t.RLock()
 		defer t.RUnlock()

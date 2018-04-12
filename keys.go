@@ -5,7 +5,6 @@
  */
 package falcon
 
-/*
 const (
 	//C_ENABLE_DOCS             = "enabledocs"
 	//C_HTTP_ENABLE             = "httpenable"
@@ -168,4 +167,3 @@ const (
 	C_TRANSFER_MAXCONNS      = "transfer_maxconns"
 	C_TRANSFER_MAXIDLE       = "transfer_maxidle"
 )
-*/

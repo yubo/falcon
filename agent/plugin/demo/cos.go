@@ -29,8 +29,7 @@ func (p *cosCollector) Name() (name, gname string) {
 }
 
 func (p *cosCollector) Start(ctx context.Context, a *agent.Agent) error {
-	interval, _ := a.Conf.Configer.Int(agent.C_INTERVAL)
-	ticker := time.NewTicker(time.Second * time.Duration(interval)).C
+	ticker := time.NewTicker(time.Second * time.Duration(a.Conf.Interval)).C
 	ch := a.PutChan
 
 	go func() {

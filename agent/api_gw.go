@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/lib/core"
 	"github.com/yubo/falcon/transfer"
 	"golang.org/x/net/context"
 )
@@ -24,9 +24,9 @@ type ApiGwModule struct {
 }
 
 func (p *ApiGwModule) prestart(agent *Agent) error {
-	p.upstream = agent.Conf.Configer.Str(C_API_ADDR)
-	p.address = agent.Conf.Configer.Str(C_HTTP_ADDR)
-	p.disable = falcon.AddrIsDisable(p.address)
+	p.upstream = agent.Conf.ApiAddr
+	p.address = agent.Conf.HttpAddr
+	p.disable = core.AddrIsDisable(p.address)
 	return nil
 }
 
@@ -38,7 +38,7 @@ func (p *ApiGwModule) start(agent *Agent) error {
 
 	mux := http.NewServeMux()
 
-	err := falcon.Gateway(transfer.RegisterTransferHandlerFromEndpoint, p.ctx, mux, p.upstream)
+	err := core.Gateway(transfer.RegisterTransferHandlerFromEndpoint, p.ctx, mux, p.upstream)
 	if err != nil {
 		return nil
 	}

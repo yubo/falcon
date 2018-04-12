@@ -15,8 +15,7 @@ all: $(EXEC_OUTPUT_PATH)/falcon
 	done
 
 $(EXEC_OUTPUT_PATH)/falcon: $(DEPENDS) cmd/falcon/*.go
-	@echo > $@
-	@export GOPATH=$(PWD)/gopath && go build -o $@ ./cmd/falcon
+	go build -o $@ ./cmd/falcon
 
 $(EXEC_OUTPUT_PATH)/agent: $(DEPENDS) cmd/agent/*.go
 	@echo > $@
@@ -47,16 +46,16 @@ deploy: $(DEPENDS)
 	cd dist && ../scripts/deploy.sh
 
 start:
-	$(EXEC_OUTPUT_PATH)/falcon -config ./etc/falcon.example.conf start 2>&1
+	$(EXEC_OUTPUT_PATH)/falcon -logtostderr -v 6 -f ./etc/values.example.yaml -config ./etc/falcon.example.yaml start 2>&1
 
 reload:
-	$(EXEC_OUTPUT_PATH)/falcon -config ./etc/falcon.example.conf reload 2>&1
+	$(EXEC_OUTPUT_PATH)/falcon -config ./etc/falcon.example.yaml reload 2>&1
 
 usr2:
 	cat ./falcon.pid | xargs kill -USR2
 
 parse:
-	$(EXEC_OUTPUT_PATH)/falcon -config ./etc/falcon.example.conf parse 2>&1
+	$(EXEC_OUTPUT_PATH)/falcon -f ./etc/values.example.yaml -config ./etc/falcon.example.yaml parse 2>&1
 
 coverage: $(DEPENDS)
 	export GOPATH=$(PWD)/gopath && ./scripts/test_coverage.sh
@@ -72,7 +71,7 @@ gen:
 	make -f scripts/generate.mk
 
 stats:
-	$(EXEC_OUTPUT_PATH)/falcon  -config ./etc/falcon.example.conf stats
+	$(EXEC_OUTPUT_PATH)/falcon -f ./etc/values.example.yaml -config ./etc/falcon.example.conf stats
 
 update:
 	git submodule update --recursive --init

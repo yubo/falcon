@@ -27,9 +27,8 @@ func (p *TaskModule) prestart(alarm *Alarm) error {
 
 func (p *TaskModule) start(alarm *Alarm) (err error) {
 	p.ctx, p.cancel = context.WithCancel(context.Background())
-	expireTime, _ := alarm.Conf.Configer.Int64(C_EVENT_EXPIRE_TIME)
 
-	go p.cleanWorker(alarm.delEventEntryChan, &alarm.lru, expireTime)
+	go p.cleanWorker(alarm.delEventEntryChan, &alarm.lru, int64(alarm.Conf.EventExpireTime))
 	return nil
 }
 

@@ -16,6 +16,7 @@ var/run/
 var/tsdb/
 dist/
 tmp/
+swagger/
 etc
 
 .gdbinit

@@ -5,27 +5,22 @@ import (
 	"testing"
 	"time"
 
-	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/lib/tsdb"
-	"github.com/yubo/falcon/service/config"
 )
 
 var (
 	s *Service
 )
 
-func test_init() *TsdbModule {
+func test_init() *tsdbModule {
 	s = &Service{
-		Conf: &config.Service{
-			Name: "cacheApp",
+		Conf: &ServiceConfig{
+			ShardIds: []int{1, 2, 3, 4},
+			TsdbDir:  "/tmp/tsdb",
 		},
 	}
-	s.Conf.Configer.Set(falcon.APP_CONF_FILE, map[string]string{
-		"shardIds": "1,2,3,4",
-		"tsdbdir":  "/tmp/tsdb",
-	})
 
-	tm := &TsdbModule{}
+	tm := &tsdbModule{}
 	tm.prestart(s)
 
 	return tm

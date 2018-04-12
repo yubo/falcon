@@ -13,51 +13,38 @@ import (
 )
 
 var (
-	timer *TimerModule
+	_timerTs int64
 )
 
-func init() {
-	timer = &TimerModule{}
-}
-
-type TimerModule struct {
+type timerModule struct {
 	ctx    context.Context
 	cancel context.CancelFunc
-	ts     int64
 }
 
-func (p *TimerModule) now() int64 {
-	ts := atomic.LoadInt64(&p.ts)
-	if ts != 0 {
-		return ts
-	}
-	return time.Now().Unix()
-}
-
-func (p *TimerModule) prestart(s *Service) error {
+func (p *timerModule) prestart(s *Service) error {
 	p.ctx, p.cancel = context.WithCancel(context.Background())
-	timer = p
 	return nil
 }
 
-func (p *TimerModule) start(s *Service) error {
+func (p *timerModule) start(s *Service) error {
 	//start := time.Now().Unix()
 	ticker := time.NewTicker(time.Second).C
 	go func() {
 		for {
 			select {
 			case <-p.ctx.Done():
+				atomic.StoreInt64(&_timerTs, 0)
 				return
 
 			case <-ticker:
 				now := time.Now().Unix()
-				atomic.StoreInt64(&p.ts, now)
+				atomic.StoreInt64(&_timerTs, now)
 				/*
 					if s.Conf.Debug > 1 {
-						atomic.StoreInt64(&p.ts,
+						atomic.StoreInt64(&_timerTs,
 							start+(now-start)*DEBUG_MULTIPLES)
 					} else {
-						atomic.StoreInt64(&p.ts, now)
+						atomic.StoreInt64(&_timerTs, now)
 					}
 				*/
 			}
@@ -66,12 +53,19 @@ func (p *TimerModule) start(s *Service) error {
 	return nil
 }
 
-func (p *TimerModule) stop(s *Service) error {
+func (p *timerModule) stop(s *Service) error {
 	p.cancel()
-	atomic.StoreInt64(&p.ts, 0)
 	return nil
 }
 
-func (p *TimerModule) reload(s *Service) error {
+func (p *timerModule) reload(s *Service) error {
 	return nil
+}
+
+func now() int64 {
+	ts := atomic.LoadInt64(&_timerTs)
+	if ts != 0 {
+		return ts
+	}
+	return time.Now().Unix()
 }

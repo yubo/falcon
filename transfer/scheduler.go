@@ -5,21 +5,11 @@
  */
 package transfer
 
-import "github.com/yubo/falcon"
-
-var (
-	shardNum int
+import (
+	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/lib/core"
 )
 
-type SchedulerModule struct {
-	BaseModule
-}
-
-func (p *SchedulerModule) start(transfer *Transfer) (err error) {
-	shardNum = falcon.SHARD_NUM
-	return nil
-}
-
 func scheduler(key []byte) int {
-	return int(falcon.Sum64(key) % uint64(shardNum))
+	return int(core.Sum64(key) % uint64(falcon.SHARD_NUM))
 }

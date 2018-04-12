@@ -9,8 +9,8 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/ctrl/api/models"
+	"github.com/yubo/falcon/lib/core"
 )
 
 // Operations about Users
@@ -156,7 +156,7 @@ func (c *UserController) UpdateUser() {
 	}
 
 	user := *p
-	falcon.Override(&user, &input)
+	core.Override(&user, &input)
 
 	if ret, err := op.UpdateUser(&user); err != nil {
 		c.SendMsg(400, err.Error())

@@ -8,14 +8,14 @@ package agent
 import (
 	"strings"
 
-	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/lib/core"
 )
 
 func counterAttr(key string) (string, string, string, error) {
 	var err error
 	s := strings.Split(key, "/")
 	if len(s) != 3 {
-		err = falcon.EINVAL
+		err = core.EINVAL
 	}
 
 	return string(s[0]), string(s[1]), string(s[2]), err

@@ -9,35 +9,17 @@ import (
 	"os"
 
 	"github.com/golang/glog"
-	"github.com/yubo/falcon"
-	"github.com/yubo/falcon/agent/config"
+	"github.com/yubo/falcon/lib/core"
 )
 
 const (
-	MODULE_NAME = "\x1B[32m[AGENT]\x1B[0m"
-
-	C_UPSTREAM     = "upstream"
-	C_CALL_TIMEOUT = "calltimeout"
-	C_API_ADDR     = "apiaddr"
-	C_HTTP_ADDR    = "httpaddr"
-	C_INTERVAL     = "interval"
-	C_BURST_SIZE   = "burstsize"
-	C_IFACE_PREFIX = "ifaceprefix"
-	C_PLUGINS      = "plugins"
-	C_EMU_TPL_DIR  = "emutpldir"
-	C_IPC_ENABLE   = "ipcenable"
-
+	//MODULE_NAME = "\x1B[32m[AGENT]\x1B[0m"
+	MODULE_NAME      = "agent"
 	PUT_REQUEST_SIZE = 144
 )
 
 var (
-	modules     []module
-	ConfDefault = map[string]string{
-		C_CALL_TIMEOUT: "5000",
-		C_INTERVAL:     "60",
-		C_BURST_SIZE:   "16",
-		C_IFACE_PREFIX: "eth,em",
-	}
+	modules []module
 )
 
 type module interface {
@@ -47,45 +29,61 @@ type module interface {
 	reload(*Agent) error   // try to keep the data, refresh configure
 }
 
+func init() {
+	RegisterModule(&CollectModule{})
+	RegisterModule(&ClientModule{})
+	RegisterModule(&ApiModule{})
+	RegisterModule(&ApiGwModule{})
+}
+
 func RegisterModule(m module) {
 	modules = append(modules, m)
 }
 
+type AgentConfig struct {
+	Disable         bool                   `json:"disable"`
+	Debug           bool                   `json:"debug"`
+	ApiAddr         string                 `json:"api_addr"`
+	HttpAddr        string                 `json:"http_addr"`
+	Burstsize       int                    `json:"burst_size"`
+	WorkerProcesses int                    `json:"worker_processes"`
+	CallTimeout     int                    `json:"call_timeout"`
+	Host            string                 `json:"hostname"`
+	Interval        int                    `json:"interval"`
+	IfacePrefix     []string               `json:"iface_prefix"`
+	Upstream        string                 `json:"upstream"`
+	EmuTplDir       string                 `json:"emu_tpl_dir"`
+	Plugins         []string               `json:"plugins"`
+	IpcEnable       bool                   `json:"ipc_enable"`
+	PluginsConfig   map[string]interface{} `json:"plugins_config"`
+	EtcdClient      *core.EtcdCliConfig    `json:"etcd_client"`
+}
+
 type Agent struct {
-	Conf    *config.Agent
-	oldConf *config.Agent
+	Conf    *AgentConfig
+	oldConf *AgentConfig
 	// runtime
 	status  uint32
 	PutChan chan *PutRequest
 }
 
-func (p *Agent) New(conf interface{}) falcon.Module {
-	return &Agent{
-		Conf:    conf.(*config.Agent),
-		PutChan: make(chan *PutRequest, PUT_REQUEST_SIZE),
+func (p *Agent) ReadConfig(conf *core.Configer) error {
+	p.Conf = &AgentConfig{Disable: true}
+
+	err := conf.Read(MODULE_NAME, p.Conf)
+	if err == core.ErrNoExits {
+		return nil
 	}
-}
 
-func (p *Agent) Name() string {
-	return p.Conf.Name
-}
-
-func (p *Agent) Parse(text []byte, filename string, lino int) falcon.ModuleConf {
-	p.Conf = config.Parse(text, filename, lino).(*config.Agent)
-	p.Conf.Configer.Set(falcon.APP_CONF_DEFAULT, ConfDefault)
-	return p.Conf
-}
-
-func (p *Agent) String() string {
-	return p.Conf.String()
+	return err
 }
 
 func (p *Agent) Prestart() (err error) {
 	glog.V(3).Infof("%s Prestart()", MODULE_NAME)
-	p.status = falcon.APP_STATUS_INIT
+	p.status = core.APP_STATUS_INIT
 
 	for i := 0; i < len(modules); i++ {
-		glog.V(4).Infof("%s %s.prestart()", MODULE_NAME, falcon.GetType(modules[i]))
+		glog.V(4).Infof("%s %s.prestart()", MODULE_NAME, core.GetType(modules[i]))
 		if err = modules[i].prestart(p); err != nil {
 			glog.Fatal(err)
 		}
@@ -95,24 +93,24 @@ func (p *Agent) Prestart() (err error) {
 
 func (p *Agent) Start() (err error) {
 	glog.V(3).Infof("%s Start()", MODULE_NAME)
-	p.status = falcon.APP_STATUS_PENDING
+	p.status = core.APP_STATUS_PENDING
 
 	for i := 0; i < len(modules); i++ {
-		glog.V(4).Infof("%s %s.start()", MODULE_NAME, falcon.GetType(modules[i]))
+		glog.V(4).Infof("%s %s.start()", MODULE_NAME, core.GetType(modules[i]))
 		if err = modules[i].start(p); err != nil {
 			glog.Fatal(err)
 		}
 	}
-	p.status = falcon.APP_STATUS_RUNNING
+	p.status = core.APP_STATUS_RUNNING
 
 	return err
 }
 
 func (p *Agent) Stop() (err error) {
 	glog.V(3).Infof("%s Stop()", MODULE_NAME)
-	p.status = falcon.APP_STATUS_EXIT
+	p.status = core.APP_STATUS_EXIT
 	for n, i := len(modules), 0; i < n; i++ {
-		glog.V(4).Infof("%s %s.stop()", MODULE_NAME, falcon.GetType(modules[n-i-1]))
+		glog.V(4).Infof("%s %s.stop()", MODULE_NAME, core.GetType(modules[n-i-1]))
 		if err = modules[n-i-1].stop(p); err != nil {
 			glog.Fatal(err)
 		}
@@ -121,16 +119,22 @@ func (p *Agent) Stop() (err error) {
 	return err
 }
 
-func (p *Agent) Reload(c interface{}) (err error) {
+func (p *Agent) Reload(conf *core.Configer) (err error) {
 	glog.V(3).Infof("%s Reload()", MODULE_NAME)
 
+	newConfig := &AgentConfig{}
+	err = conf.Read(MODULE_NAME, newConfig)
+	if err != nil {
+		return err
+	}
+
 	p.oldConf = p.Conf
-	p.Conf = c.(*config.Agent)
+	p.Conf = newConfig
 
 	for i := 0; i < len(modules); i++ {
-		glog.V(4).Infof("%s %s.reload()", MODULE_NAME, falcon.GetType(modules[i]))
+		glog.V(4).Infof("%s %s.reload()", MODULE_NAME, core.GetType(modules[i]))
 		if err = modules[i].reload(p); err != nil {
-			glog.Error(err)
+			glog.Fatal(err)
 		}
 	}
 

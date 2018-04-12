@@ -10,12 +10,12 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/lib/core"
 
 	"golang.org/x/net/context"
 )
 
-type ApiGwModule struct {
+type apiGwModule struct {
 	disable  bool
 	ctx      context.Context
 	cancel   context.CancelFunc
@@ -23,14 +23,14 @@ type ApiGwModule struct {
 	address  string
 }
 
-func (p *ApiGwModule) prestart(service *Service) error {
-	p.upstream = service.Conf.Configer.Str(C_API_ADDR)
-	p.address = service.Conf.Configer.Str(C_HTTP_ADDR)
-	p.disable = falcon.AddrIsDisable(p.address)
+func (p *apiGwModule) prestart(service *Service) error {
+	p.upstream = service.Conf.ApiAddr
+	p.address = service.Conf.HttpAddr
+	p.disable = core.AddrIsDisable(p.address)
 	return nil
 }
 
-func (p *ApiGwModule) start(service *Service) error {
+func (p *apiGwModule) start(service *Service) error {
 	if p.disable {
 		return nil
 	}
@@ -39,7 +39,7 @@ func (p *ApiGwModule) start(service *Service) error {
 
 	mux := http.NewServeMux()
 
-	err := falcon.Gateway(RegisterServiceHandlerFromEndpoint, p.ctx, mux, p.upstream)
+	err := core.Gateway(RegisterServiceHandlerFromEndpoint, p.ctx, mux, p.upstream)
 	if err != nil {
 		return nil
 	}
@@ -62,7 +62,7 @@ func (p *ApiGwModule) start(service *Service) error {
 	return nil
 }
 
-func (p *ApiGwModule) stop(service *Service) error {
+func (p *apiGwModule) stop(service *Service) error {
 	if p.disable {
 		return nil
 	}
@@ -70,7 +70,7 @@ func (p *ApiGwModule) stop(service *Service) error {
 	return nil
 }
 
-func (p *ApiGwModule) reload(service *Service) error {
+func (p *apiGwModule) reload(service *Service) error {
 	return nil
 
 	if !p.disable {

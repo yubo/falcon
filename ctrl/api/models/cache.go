@@ -92,7 +92,7 @@ func (tree *cacheTreeT) _build() {
 
 	glog.V(10).Infof("%s cacheTree build entering", MODULE_NAME)
 
-	_, err := Db.Ctrl.Raw("SELECT a.tag_id, a.sup_tag_id, b.name FROM tag_rel a JOIN tag b ON a.tag_id = b.id WHERE a.offset = 1 and b.type = 0 ORDER BY tag_id").QueryRows(&ns)
+	_, err := _models.db.Ctrl.Raw("SELECT a.tag_id, a.sup_tag_id, b.name FROM tag_rel a JOIN tag b ON a.tag_id = b.id WHERE a.offset = 1 and b.type = 0 ORDER BY tag_id").QueryRows(&ns)
 	if err != nil {
 		return
 	}

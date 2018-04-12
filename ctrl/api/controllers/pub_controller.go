@@ -6,8 +6,8 @@
 package controllers
 
 import (
-	"github.com/yubo/falcon/ctrl"
 	"github.com/yubo/falcon/ctrl/api/models"
+	"github.com/yubo/falcon/ctrl/stats"
 )
 
 // Operations about porfile/config/info
@@ -21,25 +21,7 @@ type PubController struct {
 // @Failure 400 string error
 // @router /config/ctrl [get]
 func (c *PubController) GetConfig() {
-	var err error
-	op, _ := c.Ctx.Input.GetData("op").(*models.Operator)
-
-	conf, err := op.ConfigerGet("ctrl")
-	if err != nil {
-		c.SendMsg(400, err.Error())
-		return
-	}
-
-	// config filter
-	ret := map[string]interface{}{
-		ctrl.C_AUTH_MODULE: conf.Str(ctrl.C_AUTH_MODULE),
-		ctrl.C_MASTER_MODE: conf.DefaultBool(ctrl.C_MASTER_MODE, false),
-		ctrl.C_DEV_MODE:    conf.DefaultBool(ctrl.C_DEV_MODE, false),
-		ctrl.C_MI_MODE:     conf.DefaultBool(ctrl.C_MI_MODE, false),
-		ctrl.C_TAG_SCHEMA:  conf.Str(ctrl.C_TAG_SCHEMA),
-	}
-
-	c.SendMsg(200, ret)
+	c.SendMsg(200, models.GetConfig())
 }
 
 // @Title Get stats
@@ -48,5 +30,5 @@ func (c *PubController) GetConfig() {
 // @Failure 400 string error
 // @router /stats [get]
 func (c *PubController) GetStats() {
-	c.SendMsg(200, ctrl.StatsGets())
+	c.SendMsg(200, stats.Gets())
 }

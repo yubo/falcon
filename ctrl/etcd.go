@@ -6,59 +6,35 @@
 package ctrl
 
 import (
-	"github.com/coreos/etcd/clientv3"
-	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/lib/core"
 )
 
-var (
-	etcdCli *EtcdCliModule
-)
-
-type EtcdCliModule struct {
-	cli *falcon.EtcdCli
+type etcdCliModule struct {
 }
 
-func EtcdPuts(kvs map[string]string) error {
-	if etcdCli == nil {
-		return falcon.EPERM
-	}
-	return etcdCli.cli.Puts(kvs)
-}
-
-func EtcdGetPrefix(key string) (resp *clientv3.GetResponse, err error) {
-	if etcdCli == nil {
-		return nil, falcon.EPERM
-	}
-	return etcdCli.cli.GetPrefix(key)
-}
-
-func EtcdGet(key string) (string, error) {
-	if etcdCli == nil {
-		return "", falcon.EPERM
-	}
-	return etcdCli.cli.Get(key)
-}
-
-func (p *EtcdCliModule) PreStart(ctrl *Ctrl) error {
-	etcdCli = p
+func (p *etcdCliModule) PreStart(ctrl *Ctrl) error {
 	return nil
 }
 
-func (p *EtcdCliModule) Start(ctrl *Ctrl) error {
-	conf := &ctrl.Conf.Ctrl
-	p.cli = falcon.NewEtcdCli(conf)
-	p.cli.Prestart()
-	p.cli.Start()
+func (p *etcdCliModule) Start(ctrl *Ctrl) error {
+	cli := core.NewEtcdCli(ctrl.Conf.EtcdClient)
+	cli.Prestart()
+	cli.Start()
+	ctrl.etcdCli = cli
 	return nil
 }
 
-func (p *EtcdCliModule) Stop(ctrl *Ctrl) error {
-	p.cli.Stop()
+func (p *etcdCliModule) Stop(ctrl *Ctrl) error {
+	ctrl.etcdCli.Stop()
 	return nil
 }
 
-func (p *EtcdCliModule) Reload(ctrl *Ctrl) error {
-	conf := &ctrl.Conf.Ctrl
-	p.cli.Reload(conf)
+func (p *etcdCliModule) Reload(ctrl *Ctrl) error {
+	return nil
+
+	/* TODO
+	p.Stop(ctrl)
+	time.Sleep(time.Second)
 	return p.Start(ctrl)
+	*/
 }

@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
-	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/lib/core"
 )
 
 type TagCreate struct {
@@ -79,7 +79,7 @@ func NewTagSchema(tag string) (*TagSchema, error) {
 	for i, j = 0, 0; j < len(tag); j++ {
 		if tag[j] == ',' {
 			if i >= j {
-				return nil, falcon.ErrParam
+				return nil, core.ErrParam
 			}
 			ret.nodes = append(ret.nodes, TagNode{
 				Key:  strings.TrimSpace(tag[i:j]),
@@ -88,7 +88,7 @@ func NewTagSchema(tag string) (*TagSchema, error) {
 			i = j + 1
 		} else if tag[j] == ';' {
 			if i >= j {
-				return nil, falcon.ErrParam
+				return nil, core.ErrParam
 			}
 			ret.nodes = append(ret.nodes, TagNode{
 				Key:  strings.TrimSpace(tag[i:j]),
@@ -98,7 +98,7 @@ func NewTagSchema(tag string) (*TagSchema, error) {
 		}
 	}
 	if i != j || i == 0 {
-		return nil, falcon.ErrParam
+		return nil, core.ErrParam
 	}
 
 	return ret, nil
@@ -123,7 +123,7 @@ func tagMap(tag string) (map[string]string, error) {
 				ret[k] = v
 				k, v = "", ""
 			} else {
-				return ret, falcon.ErrParam
+				return ret, core.ErrParam
 			}
 			i = j + 1
 			keyZone = true
@@ -135,7 +135,7 @@ func tagMap(tag string) (map[string]string, error) {
 		ret[k] = v
 		return ret, nil
 	} else {
-		return ret, falcon.ErrParam
+		return ret, core.ErrParam
 	}
 }
 
@@ -158,7 +158,7 @@ func (ts *TagSchema) Fmt(tag string, force bool) (string, error) {
 			ret += fmt.Sprintf("%s=%s,", node.Key, v)
 			n++
 		} else if !force && node.Must {
-			return ret, falcon.ErrParam
+			return ret, core.ErrParam
 		}
 
 		// done
@@ -172,7 +172,7 @@ func (ts *TagSchema) Fmt(tag string, force bool) (string, error) {
 		return ret[0 : len(ret)-1], nil
 	}
 
-	return ret, falcon.ErrParam
+	return ret, core.ErrParam
 }
 
 func TagRelation(t string) (ret []string) {
@@ -277,7 +277,7 @@ func (op *Operator) createTag(t *TagCreate, schema *TagSchema) (id int64, err er
 }
 
 func (op *Operator) CreateTag(t *TagCreate) (id int64, err error) {
-	if id, err = op.createTag(t, sysTagSchema); err != nil {
+	if id, err = op.createTag(t, _models.sysTagSchema); err != nil {
 		return
 	}
 	if cacheTree != nil {

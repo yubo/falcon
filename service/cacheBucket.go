@@ -8,7 +8,7 @@ package service
 import (
 	"sync"
 
-	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/lib/core"
 	"github.com/yubo/falcon/lib/tsdb"
 )
 
@@ -31,7 +31,7 @@ func (p *cacheBucket) getState() int {
 
 func (p *cacheBucket) setState(state int) error {
 	if state < CACHE_BUCKET_DISABLE || state > CACHE_BUCKET_ENABLE {
-		return falcon.EINVAL
+		return core.EINVAL
 	}
 	p.Lock()
 	p.state = state
@@ -59,7 +59,7 @@ func (p *cacheBucket) getCacheEntry(key string) (*cacheEntry, error) {
 	if e, ok := p.entries[key]; ok {
 		return e, nil
 	}
-	return nil, falcon.ErrNoExits
+	return nil, core.ErrNoExits
 }
 
 func (p *cacheBucket) delEntry(key string, q *queue) *cacheEntry {
@@ -92,11 +92,11 @@ func (p *cacheBucket) _delEntry(key string) *cacheEntry {
 func (p *cacheBucket) clean(timeout int64) {
 	if p.getState() == CACHE_BUCKET_ENABLE {
 		// clean expire entry
-		now := timer.now()
+		ts := now()
 		p.RLock()
 		keys := make([]string, 0)
 		for key, e := range p.entries {
-			if now-e.lastTs > timeout {
+			if ts-e.lastTs > timeout {
 				keys = append(keys, key)
 			}
 		}

@@ -9,8 +9,8 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/ctrl/api/models"
+	"github.com/yubo/falcon/lib/core"
 )
 
 // Operations about idx
@@ -110,7 +110,7 @@ func (c *GraphController) GetCounterData() {
 	ret := []*models.CounterDataApiGetResponse{}
 
 	for _, data := range resp.Data {
-		endpoint, counter, tags, typ, err := falcon.KeyAttr(data.Key)
+		endpoint, counter, tags, typ, err := core.KeyAttr(data.Key)
 		if err != nil {
 			continue
 		}

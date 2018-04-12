@@ -1,0 +1,8 @@
+foo2: v_bar2
+
+foos:
+  - v_foo1
+  - v_foo2
+  - v_foo3
+
+home: {{ env "HOME" }}

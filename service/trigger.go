@@ -12,8 +12,8 @@ import (
 	"github.com/astaxie/beego/orm"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/golang/glog"
-	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/alarm"
+	"github.com/yubo/falcon/lib/core"
 	"golang.org/x/net/context"
 )
 
@@ -37,7 +37,7 @@ type Trigger struct {
 	hostNodes map[string][]*Node // map[hostname]
 }
 
-type TriggerModule struct {
+type triggerModule struct {
 	sync.RWMutex
 
 	eventChan chan *alarm.Event
@@ -47,41 +47,35 @@ type TriggerModule struct {
 	service   *Service
 }
 
-func (p *TriggerModule) prestart(s *Service) error {
+func (p *triggerModule) prestart(s *Service) error {
 	p.service = s
 	return nil
 }
 
-func (p *TriggerModule) start(s *Service) (err error) {
+func (p *triggerModule) start(s *Service) (err error) {
 	p.ctx, p.cancel = context.WithCancel(context.Background())
 
-	conf := &s.Conf.Configer
-	dbmaxidle, _ := conf.Int(C_DB_MAX_IDLE)
-	dbmaxconn, _ := conf.Int(C_DB_MAX_CONN)
-	confInterval, _ := conf.Int(C_CONF_INTERVAL)
-	judgeInterval, _ := conf.Int(C_JUDGE_INTERVAL)
-	judgeNum, _ := conf.Int(C_JUDGE_NUM)
-	eventChan := s.eventChan
+	c := s.Conf
 	p.trigger = &Trigger{}
 
-	db, _, err := falcon.NewOrm("service_trigger", conf.Str(C_DSN),
-		dbmaxidle, dbmaxconn)
+	db, _, err := core.NewOrm("service_trigger",
+		c.Dsn, c.DbMaxIdle, c.DbMaxConn)
 	if err != nil {
 		return err
 	}
 
-	go p.confWorker(confInterval, db)
-	go p.judgeWorker(judgeInterval, judgeNum, eventChan)
+	go p.confWorker(c.ConfInterval, db)
+	go p.judgeWorker(c.JudgeInterval, c.JudgeNum, s.eventChan)
 
 	return nil
 }
 
-func (p *TriggerModule) stop(s *Service) error {
+func (p *triggerModule) stop(s *Service) error {
 	p.cancel()
 	return nil
 }
 
-func (p *TriggerModule) reload(s *Service) error {
+func (p *triggerModule) reload(s *Service) error {
 	return nil
 }
 
@@ -233,7 +227,7 @@ func setServiceEntries(entries map[string]*cacheEntry, trigger *Trigger) error {
 	return nil
 }
 
-func setServiceBuckets(cache *CacheModule, trigger *Trigger) error {
+func setServiceBuckets(cache *cacheModule, trigger *Trigger) error {
 
 	// copy it first
 	for _, bucket := range cache.buckets {
@@ -280,7 +274,7 @@ func (p *Trigger) updateEventTrigger() error {
 	}
 }
 
-func (p *TriggerModule) triggerSync(db orm.Ormer) {
+func (p *triggerModule) triggerSync(db orm.Ormer) {
 	glog.V(3).Infof("%s sync", MODULE_NAME)
 	// nodes
 	t := &Trigger{db: db}
@@ -296,7 +290,7 @@ func (p *TriggerModule) triggerSync(db orm.Ormer) {
 
 }
 
-func (p *TriggerModule) confWorker(interval int, db orm.Ormer) {
+func (p *triggerModule) confWorker(interval int, db orm.Ormer) {
 	ticker := time.NewTicker(time.Second * time.Duration(interval)).C
 	p.triggerSync(db)
 
@@ -332,7 +326,7 @@ func judgeTagNode(buckets []*cacheBucket, node *Node, eventChan chan *alarm.Even
 	}
 }
 
-func (p *TriggerModule) judgeWorker(interval, n int, ch chan *alarm.Event) {
+func (p *triggerModule) judgeWorker(interval, n int, ch chan *alarm.Event) {
 	ticker := time.NewTicker(time.Second * time.Duration(interval)).C
 	taskCh := make(chan *Node, n)
 	buckets := p.service.cache.buckets

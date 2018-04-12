@@ -9,9 +9,8 @@ import (
 	"fmt"
 
 	"github.com/astaxie/beego/context"
-	"github.com/yubo/falcon"
-	"github.com/yubo/falcon/ctrl"
 	"github.com/yubo/falcon/ctrl/api/models"
+	"github.com/yubo/falcon/lib/core"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	googleOauth2 "google.golang.org/api/oauth2/v1"
@@ -29,26 +28,26 @@ func init() {
 	models.RegisterAuth(GOOGLE_NAME, &googleAuth{})
 }
 
-func (p *googleAuth) Init(conf *falcon.Configer) error {
+func (p *googleAuth) Init(conf *core.Configer) error {
 	p.config = oauth2.Config{
 		Endpoint:     google.Endpoint,
 		Scopes:       []string{googleOauth2.PlusMeScope, googleOauth2.UserinfoEmailScope},
-		ClientID:     conf.Str(ctrl.C_GOOGLE_CLIENT_ID),
-		ClientSecret: conf.Str(ctrl.C_GOOGLE_CLIENT_SECRET),
-		RedirectURL:  conf.Str(ctrl.C_GOOGLE_REDIRECT_URL),
+		ClientID:     conf.GetStr("client_id"),
+		ClientSecret: conf.GetStr("client_secret"),
+		RedirectURL:  conf.GetStr("RedirectURL"),
 	}
 	return nil
 }
 
 func (p *googleAuth) Verify(_c interface{}) (bool, string, error) {
-	return false, "", falcon.EPERM
+	return false, "", core.EPERM
 }
 
 func (p *googleAuth) AuthorizeUrl(c interface{}) string {
 	// not support cb param
 
 	conf := p.config
-	return conf.AuthCodeURL(falcon.RandString(8))
+	return conf.AuthCodeURL(core.RandString(8))
 }
 
 func (p *googleAuth) LoginCb(c interface{}) (uuid string, err error) {

@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/lib/core"
 )
 
 const TMP_GRAPH_FILED_DELIMITER = "|"
@@ -36,7 +36,7 @@ func (op *Operator) AddDashboardTmpGraph(inputs *APITmpGraph) (id int64, err err
 
 	es_string := strings.Join(es, TMP_GRAPH_FILED_DELIMITER)
 	cs_string := strings.Join(cs, TMP_GRAPH_FILED_DELIMITER)
-	ck := falcon.Md5sum([]byte(es_string + ":" + cs_string))
+	ck := core.Md5sum([]byte(es_string + ":" + cs_string))
 
 	err = op.O.Raw("SELECT id FROM tmp_graph WHERE ck = ?", ck).QueryRow(&id)
 	if err == nil {

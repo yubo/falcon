@@ -17,12 +17,18 @@ import (
 	"github.com/astaxie/beego/context"
 	"github.com/astaxie/beego/orm"
 	"github.com/golang/glog"
-	"github.com/yubo/falcon/ctrl"
 	"github.com/yubo/falcon/ctrl/api/controllers"
 	"github.com/yubo/falcon/ctrl/api/models"
 )
 
-func Init() {
+var (
+	miMode           bool
+	RateLimitsAccess func(*context.Context) bool
+)
+
+func Init(miMode_ bool) {
+
+	miMode = miMode_
 
 	beego.InsertFilter("/v1.0/*", beego.BeforeRouter, profileFilter)
 	beego.InsertFilter("/v1.0/*", beego.BeforeRouter, accessFilter)
@@ -53,8 +59,8 @@ func accessFilter(ctx *context.Context) {
 
 	//time.Sleep(time.Millisecond * 100)
 
-	if ctrl.Hooks.RateLimitsAccess != nil {
-		if !ctrl.Hooks.RateLimitsAccess(ctx) {
+	if RateLimitsAccess != nil {
+		if !RateLimitsAccess(ctx) {
 			return
 		}
 	}
@@ -92,7 +98,7 @@ func accessFilter(ctx *context.Context) {
 			beego.Debug("TOKEN ", op.Token)
 			http.Error(ctx.ResponseWriter, "permission denied, operate", 403)
 		}
-		if ctrl.RunMode&ctrl.CTL_RUNMODE_MI != 0 {
+		if miMode {
 			if strings.HasPrefix(ctx.Request.RequestURI, "/v1.0/host") &&
 				ctx.Request.Method == "PUT" {
 				return

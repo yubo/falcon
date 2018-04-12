@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/lib/core"
 	"golang.org/x/net/context"
 )
 
@@ -22,14 +22,14 @@ type ApiGwModule struct {
 	address  string
 }
 
-func (p *ApiGwModule) prestart(transfer *Alarm) error {
-	p.upstream = transfer.Conf.Configer.Str(C_API_ADDR)
-	p.address = transfer.Conf.Configer.Str(C_HTTP_ADDR)
-	p.disable = falcon.AddrIsDisable(p.address)
+func (p *ApiGwModule) prestart(a *Alarm) error {
+	p.upstream = a.Conf.ApiAddr
+	p.address = a.Conf.HttpAddr
+	p.disable = core.AddrIsDisable(p.address)
 	return nil
 }
 
-func (p *ApiGwModule) start(transfer *Alarm) error {
+func (p *ApiGwModule) start(a *Alarm) error {
 	if p.disable {
 		glog.Info(MODULE_NAME + "http disable")
 		return nil
@@ -39,7 +39,7 @@ func (p *ApiGwModule) start(transfer *Alarm) error {
 
 	mux := http.NewServeMux()
 
-	err := falcon.Gateway(RegisterAlarmHandlerFromEndpoint, p.ctx, mux, p.upstream)
+	err := core.Gateway(RegisterAlarmHandlerFromEndpoint, p.ctx, mux, p.upstream)
 	if err != nil {
 		return nil
 	}

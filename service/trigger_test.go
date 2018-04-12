@@ -15,6 +15,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/alarm"
+	"github.com/yubo/falcon/lib/core"
 	"github.com/yubo/falcon/lib/tsdb"
 	"golang.org/x/net/context"
 )
@@ -45,7 +46,7 @@ func init() {
 	netAddr := fmt.Sprintf("%s(%s)", prot, addr)
 	dsn := fmt.Sprintf("%s:%s@%s/%s?timeout=30s&strict=true", user, pass, netAddr, dbname)
 
-	test_db, _, err = falcon.NewOrm("test_service_sync", dsn, 10, 10)
+	test_db, _, err = core.NewOrm("test_service_sync", dsn, 10, 10)
 	if err != nil {
 		return
 	}
@@ -55,7 +56,7 @@ func init() {
 func testTirggerDb(t *testing.T) {
 	var (
 		err           error
-		shard         *CacheModule
+		shard         *cacheModule
 		trigger       *Trigger
 		treeNodes     []*Node
 		tagHosts      []*TagHost
@@ -67,7 +68,7 @@ func testTirggerDb(t *testing.T) {
 		return
 	}
 
-	shard = &CacheModule{buckets: make([]*cacheBucket, falcon.SHARD_NUM)}
+	shard = &cacheModule{buckets: make([]*cacheBucket, falcon.SHARD_NUM)}
 
 	trigger = &Trigger{}
 
@@ -97,7 +98,7 @@ func testTirggerDb(t *testing.T) {
 	}
 }
 
-func testFillDps(shard *CacheModule, keys []*tsdb.Key, vs []*tsdb.TimeValuePair, t *testing.T) {
+func testFillDps(shard *cacheModule, keys []*tsdb.Key, vs []*tsdb.TimeValuePair, t *testing.T) {
 	for _, key := range keys {
 		for _, v := range vs {
 			if _, err := shard.put(&tsdb.DataPoint{Key: key, Value: v}); err != nil {

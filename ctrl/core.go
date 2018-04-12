@@ -7,93 +7,21 @@ package ctrl
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
+	"strings"
+	"time"
 
 	"github.com/astaxie/beego/orm"
 	"github.com/golang/glog"
-	"github.com/yubo/falcon"
-	"github.com/yubo/falcon/ctrl/config"
+	"github.com/yubo/falcon/ctrl/api/models"
+	"github.com/yubo/falcon/ctrl/stats"
+	"github.com/yubo/falcon/lib/core"
+	"github.com/yubo/falcon/transfer"
 )
 
 const (
-	MODULE_NAME = "\x1B[33m[CTRL]\x1B[0m"
-
-	C_MASTER_MODE             = "mastermode"
-	C_MI_MODE                 = "mimode"
-	C_DEV_MODE                = "devmode"
-	C_BEEGODEV_MODE           = "beegodevmode"
-	C_SESSION_GC_MAX_LIFETIME = "sessiongcmaxlifetime"
-	C_SESSION_COOKIE_LIFETIME = "sessioncookielifetime"
-	C_AUTH_MODULE             = "authmodule"
-	C_CACHE_MODULE            = "cachemodule"
-	C_LDAP_ADDR               = "ldapaddr"
-	C_LDAP_BASE_DN            = "ldapbasedn"
-	C_LDAP_BIND_DN            = "ldapbinddn"
-	C_LDAP_BIND_PWD           = "ldapbindpwd"
-	C_LDAP_FILTER             = "ldapfilter"
-	C_MISSO_REDIRECT_URL      = "missoredirecturl"
-	C_GITHUB_CLIENT_ID        = "githubclientid"
-	C_GITHUB_CLIENT_SECRET    = "githubclientsecret"
-	C_GITHUB_REDIRECT_URL     = "githubredirecturl"
-	C_GOOGLE_CLIENT_ID        = "googleclientid"
-	C_GOOGLE_CLIENT_SECRET    = "googleclientsecret"
-	C_GOOGLE_REDIRECT_URL     = "googleredirecturl"
-	C_HTTP_ADDR               = "httpaddr"
-	C_DB_SCHEMA               = "dbschema"
-	C_DB_MAX_CONN             = "dbmaxconn"
-	C_DB_MAX_IDLE             = "dbmaxidle"
-	C_ADMIN                   = "admin"
-	C_DSN                     = "dsn"
-	C_IDX_DSN                 = "idxdsn"
-	C_ALARM_DSN               = "alarmdsn"
-	C_TAG_SCHEMA              = "tagschema"
-	C_WEIXIN_APP_ID           = "wxappid"
-	C_WEIXIN_APP_SECRET       = "wxappsecret"
-	C_TRANSFER_ADDR           = "transferaddr"
-	C_CALL_TIMEOUT            = "calltimeout"
-)
-
-var (
-	modules   []module
-	Configure *config.Ctrl
-	RunMode   uint32
-
-	ConfDefault = map[string]string{
-		C_MASTER_MODE:             "true",
-		C_MI_MODE:                 "false",
-		C_DEV_MODE:                "false",
-		C_BEEGODEV_MODE:           "false",
-		C_SESSION_GC_MAX_LIFETIME: "86400",
-		C_SESSION_COOKIE_LIFETIME: "86400",
-		C_AUTH_MODULE:             "ldap",
-		C_CACHE_MODULE:            "host,role,system,tag,user",
-		C_DB_MAX_CONN:             "30",
-		C_DB_MAX_IDLE:             "30",
-		C_CALL_TIMEOUT:            "5000",
-	}
-
-	ConfDesc = map[string]string{
-		//ctrl.C_ENABLE_DOCS:             "ture/false",
-		C_MASTER_MODE:             "bool",
-		C_MI_MODE:                 "bool",
-		C_DEV_MODE:                "bool",
-		C_SESSION_GC_MAX_LIFETIME: "int",
-		C_SESSION_COOKIE_LIFETIME: "int",
-		C_AUTH_MODULE:             "ldap/misso/github/google",
-		C_CACHE_MODULE:            "string",
-		C_LDAP_ADDR:               "string",
-		C_LDAP_BASE_DN:            "string",
-		C_LDAP_BIND_DN:            "string",
-		C_LDAP_BIND_PWD:           "string",
-		C_LDAP_FILTER:             "string",
-		C_MISSO_REDIRECT_URL:      "string",
-		C_GITHUB_CLIENT_ID:        "string",
-		C_GITHUB_CLIENT_SECRET:    "string",
-		C_GITHUB_REDIRECT_URL:     "string",
-		C_GOOGLE_CLIENT_ID:        "string",
-		C_GOOGLE_CLIENT_SECRET:    "string",
-		C_GOOGLE_REDIRECT_URL:     "string",
-	}
+	MODULE_NAME = "ctrl"
 )
 
 // ctl runmode name
@@ -102,6 +30,11 @@ const (
 	CTL_RUNMODE_DEV
 	CTL_RUNMODE_BEEGODEV
 	CTL_RUNMODE_MI
+)
+
+var (
+	modules []module
+	//Configure *config.Ctrl
 )
 
 type Kv struct {
@@ -117,100 +50,153 @@ type module interface {
 	Reload(*Ctrl) error   // try to keep the data, refresh configure
 }
 
+func init() {
+	RegisterModule(&dbModule{})
+	RegisterModule(&etcdCliModule{})
+	RegisterModule(&clientModule{})
+	RegisterModule(&modelsModule{})
+	RegisterModule(&rateLimitsModule{})
+	RegisterModule(&apiModule{})
+}
+
 func RegisterModule(m module) {
 	modules = append(modules, m)
 }
 
+type CtrlConfig struct {
+	Configer              *core.Configer      `json:"-"`
+	Disable               bool                `json:"disable"`
+	EtcdClient            *core.EtcdCliConfig `json:"etcd_client"`
+	MasterMode            bool                `json:"master_mode"`
+	MiMode                bool                `json:"mi_mode"`
+	DevMode               bool                `json:"dev_mode"`
+	BeeMode               bool                `json:"bee_mode"`
+	BeegoDevMode          bool                `json:"beego_dev_mode"`
+	Debug                 int                 `json:"debug"`
+	Dsn                   string              `json:"dsn"`
+	IdxDsn                string              `json:"idx_dsn"`
+	AlarmDsn              string              `json:"alarm_dsn"`
+	EtcdEndpoints         string              `json:"etcd_endpoints"`
+	TransferAddr          string              `json:"transfer_addr"`
+	HttpAddr              string              `json:"http_addr"`
+	SessionGcMaxLifetime  int                 `json:"session_gc_max_lifetime"`
+	SessionCookieLifetime int                 `json:"session_cookie_lifetime"`
+	CallTimeout           int                 `json:"call_timeout"`
+	DbMaxIdle             int                 `json:"db_max_idle"`
+	DbMaxConn             int                 `json:"db_max_conn"`
+	DbSchema              string              `json:"db_schema"`
+	EnableDocs            bool                `json:"enable_docs"`
+	PluginAlarm           bool                `json:"plugin_alarm"`
+	MiNornsUrl            string              `json:"mi_norns_url"`
+	MiNornsInterval       int                 `json:"mi_norns_interval"`
+	WxAppId               string              `json:"wx_app_id"`
+	WxAppSecret           string              `json:"wx_app_secret"`
+	HttpRateLimit         struct {
+		Enable     bool `json:"enable"`
+		Limit      int  `json:"limit"`
+		Accuracy   int  `json:"accuracy"`
+		GcTimeout  int  `json:"gc_timeout"`
+		GcInterval int  `json:"gc_interval"`
+	} `json:"http_rate_limit"`
+	/*
+		Auth       struct {
+			Ldap struct {
+				Addr    string `json:"addr"`
+				baseDn  string `json:"base_dn"`
+				bindDn  string `json:"bind_dn"`
+				bindPwd string `json:"bind_pwd"`
+				filter  string `json:"filter"`
+			} `json:"ldap"`
+			Misso struct {
+				RedirectUrl string `json:"redirect_url"`
+			} `json:"misso"`
+			Google struct {
+				ClientId     string `json:"client_id"`
+				ClientSecret string `json:"client_secret"`
+				RedirectUrl  string `json:"redirect_url"`
+			} `json:"google"`
+			Github struct {
+				ClientId     string `json:"client_id"`
+				ClientSecret string `json:"client_secret"`
+				RedirectUrl  string `json:"redirect_url"`
+			} `json:"github"`
+			Fw struct {
+				ClientId     string `json:"client_id"`
+				ClientSecret string `json:"client_secret"`
+				RedirectUrl  string `json:"redirect_url"`
+			} `json:"fw"`
+		} `json:"auth"`
+	*/
+}
+
 type Ctrl struct {
-	Conf    *config.Ctrl
-	oldConf *config.Ctrl
-	// runtime
-	status uint32
+	// TODO Conf -> conf
+	Conf    *CtrlConfig
+	oldConf *CtrlConfig
+	status  uint32 // runtime
+
+	// for moduels
+	db          *models.CtrlDb // orm module
+	transferCli transfer.TransferClient
+	etcdCli     *core.EtcdCli
 	// rpcListener  *net.TCPListener
 	// httpListener *net.TCPListener
 	// httpMux      *http.ServeMux
 }
 
-func (p *Ctrl) New(conf interface{}) falcon.Module {
-	return &Ctrl{
-		Conf: conf.(*config.Ctrl),
+func (p *Ctrl) ReadConfig(conf *core.Configer) error {
+	p.Conf = &CtrlConfig{Disable: true}
+
+	err := conf.Read(MODULE_NAME, p.Conf)
+	if err == core.ErrNoExits {
+		return nil
 	}
-}
+	p.Conf.Configer = core.ToConfiger(conf.GetRaw(MODULE_NAME))
 
-func (p *Ctrl) Name() string {
-	return p.Conf.Name
-}
-
-func (p *Ctrl) Parse(text []byte, filename string, lino int) falcon.ModuleConf {
-	p.Conf = config.Parse(text, filename, lino).(*config.Ctrl)
-	/* TODO: fill agent, transfer, backend, graph */
-	p.Conf.Ctrl.Set(falcon.APP_CONF_DEFAULT, ConfDefault)
-	return p.Conf
-}
-
-func (p *Ctrl) String() string {
-	return p.Conf.String()
+	return err
 }
 
 // ugly hack
 // should called by main package
 func (p *Ctrl) Prestart() (err error) {
 	glog.V(3).Infof("%s Prestart()", MODULE_NAME)
-	Configure = p.Conf
-	p.status = falcon.APP_STATUS_INIT
+
+	//Configure = p.Conf
+	p.status = core.APP_STATUS_INIT
+	//core.Sort(modules)
 
 	for i := 0; i < len(modules); i++ {
-		glog.V(4).Infof("%s %s.prestart()", MODULE_NAME, falcon.GetType(modules[i]))
-		if e := modules[i].PreStart(p); e != nil {
-			err = e
-			glog.Error(err)
+		glog.V(4).Infof("%s %s.prestart()", MODULE_NAME, core.GetType(modules[i]))
+		if err = modules[i].PreStart(p); err != nil {
+			glog.Fatal(err)
 		}
 	}
 	return err
 }
 
-func (p *Ctrl) Start() (err error) {
+func (p *Ctrl) Start() error {
 	glog.V(3).Infof("%s Start()", MODULE_NAME)
-	p.status = falcon.APP_STATUS_PENDING
-
-	conf := &p.Conf.Ctrl
-	// ctrl config
-	conf.Set(falcon.APP_CONF_DEFAULT, ConfDefault)
-
-	// connect db, can not register db twice  :(
-	// get ctrl config from db
-	RunMode = 0
-	if conf.DefaultBool(C_MASTER_MODE, false) {
-		RunMode |= CTL_RUNMODE_MASTER
-	}
-	if conf.DefaultBool(C_MI_MODE, false) {
-		RunMode |= CTL_RUNMODE_MI
-	}
-	if conf.DefaultBool(C_DEV_MODE, false) {
-		RunMode |= CTL_RUNMODE_DEV
-	}
+	p.status = core.APP_STATUS_PENDING
 
 	for i := 0; i < len(modules); i++ {
-		glog.V(4).Infof("%s %s.start()", MODULE_NAME, falcon.GetType(modules[i]))
-		if e := modules[i].Start(p); e != nil {
-			err = e
-			glog.Error(err)
+		glog.V(4).Infof("%s %s.start()", MODULE_NAME, core.GetType(modules[i]))
+		if err := modules[i].Start(p); err != nil {
+			glog.Fatal(err)
 		}
 	}
 
-	p.status = falcon.APP_STATUS_RUNNING
-	return err
+	p.status = core.APP_STATUS_RUNNING
+	return nil
 }
 
 func (p *Ctrl) Stop() (err error) {
 	glog.V(3).Infof("%s Stop()", MODULE_NAME)
-	p.status = falcon.APP_STATUS_EXIT
+	p.status = core.APP_STATUS_EXIT
 
 	for n, i := len(modules), 0; i < n; i++ {
-		glog.V(4).Infof("%s %s.stop()", MODULE_NAME, falcon.GetType(modules[n-i-1]))
-		if e := modules[n-i-1].Stop(p); e != nil {
-			err = e
-			glog.Error(err)
+		glog.V(4).Infof("%s %s.stop()", MODULE_NAME, core.GetType(modules[n-i-1]))
+		if err = modules[n-i-1].Stop(p); err != nil {
+			glog.Fatal(err)
 		}
 	}
 
@@ -218,15 +204,23 @@ func (p *Ctrl) Stop() (err error) {
 }
 
 // TODO: reload is not yet implemented
-func (p *Ctrl) Reload(c interface{}) (err error) {
+func (p *Ctrl) Reload(conf *core.Configer) (err error) {
 
 	return nil
 
 	glog.V(3).Infof("%s Reload()", MODULE_NAME)
-	p.Conf = c.(*config.Ctrl)
+	newConfig := &CtrlConfig{}
+	err = conf.Read(MODULE_NAME, newConfig)
+	if err != nil {
+		return err
+	}
+	newConfig.Configer = core.ToConfiger(conf.GetRaw(MODULE_NAME))
+
+	p.oldConf = p.Conf
+	p.Conf = newConfig
 
 	for i := 0; i < len(modules); i++ {
-		glog.V(4).Infof("%s %s.reload()", MODULE_NAME, falcon.GetType(modules[i]))
+		glog.V(4).Infof("%s %s.reload()", MODULE_NAME, core.GetType(modules[i]))
 		if e := modules[i].Reload(p); e != nil {
 			err = e
 			glog.Error(err)
@@ -238,6 +232,27 @@ func (p *Ctrl) Reload(c interface{}) (err error) {
 func (p *Ctrl) Signal(sig os.Signal) error {
 	glog.Infof("%s recv signal %#v", MODULE_NAME, sig)
 	return nil
+}
+
+func (p *Ctrl) Stats(conf *core.Configer) (s string, err error) {
+	// http api
+	var counter []uint64
+
+	url := conf.GetStr(fmt.Sprintf("%s.http_addr", MODULE_NAME))
+	if strings.HasPrefix(url, ":") {
+		url = "http://localhost" + url
+	}
+	url += "/v1.0/pub/stats"
+
+	if err := core.GetJson(url, &counter, time.Duration(200)*time.Millisecond); err != nil {
+		return "", err
+	}
+
+	for i := 0; i < stats.ST_ARRAY_SIZE; i++ {
+		s += fmt.Sprintf("%-30s %d\n",
+			stats.CounterName[i], counter[i])
+	}
+	return s, nil
 }
 
 func GetDbConfig(o orm.Ormer, module string) (ret map[string]string, err error) {

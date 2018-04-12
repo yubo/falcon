@@ -78,9 +78,9 @@ func (p *emulator) Name() (string, string) {
 	return p.name, p.gname
 }
 
-func (p *emulator) Start(ctx context.Context, ag *agent.Agent) (err error) {
+func (p *emulator) Start(ctx context.Context, a *agent.Agent) (err error) {
 
-	dir := ag.Conf.Configer.Str(agent.C_EMU_TPL_DIR)
+	dir := a.Conf.EmuTplDir
 
 	fd, err := os.Open(dir)
 	if err != nil {

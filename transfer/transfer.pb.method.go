@@ -10,13 +10,13 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/lib/core"
 	"github.com/yubo/falcon/lib/tsdb"
 	"github.com/yubo/falcon/service"
 )
 
 func adjustKey(key []byte) ([]byte, error) {
-	endpoint, metric, tags, typ, err := falcon.KeyAttr(key)
+	endpoint, metric, tags, typ, err := core.KeyAttr(key)
 	if err != nil {
 		return key, err
 	}

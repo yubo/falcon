@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/lib/core"
 	"github.com/yubo/falcon/lib/tsdb"
 	"github.com/yubo/falcon/transfer"
 )
@@ -50,16 +50,16 @@ func (p *CollectModule) prestart(agent *Agent) error {
 }
 
 func (p *CollectModule) start(agent *Agent) error {
-	interval, _ := agent.Conf.Configer.Int(C_INTERVAL)
-	collectors := getCollectors(strings.Split(agent.Conf.Configer.Str(C_PLUGINS), ","))
+	interval := agent.Conf.Interval
+	collectors := getCollectors(agent.Conf.Plugins)
 	hostName = agent.Conf.Host
 
 	p.ctx, p.cancel = context.WithCancel(context.Background())
 
 	for _, c := range collectors {
-		glog.V(4).Infof("%s plugins %s.Start()", MODULE_NAME, falcon.GetType(c))
+		glog.V(4).Infof("%s plugins %s.Start()", MODULE_NAME, core.GetType(c))
 		if err := c.Start(p.ctx, agent); err != nil {
-			glog.V(4).Infof("%s plugins %s.Start() err %v", MODULE_NAME, falcon.GetType(c), err)
+			glog.V(4).Infof("%s plugins %s.Start() err %v", MODULE_NAME, core.GetType(c), err)
 			return err
 		}
 	}
@@ -130,7 +130,7 @@ func NewMetricValue(metric string,
 	}
 
 	return &transfer.DataPoint{
-		Key: falcon.AttrKey(hostName, metric, tags_, typ),
+		Key: core.AttrKey(hostName, metric, tags_, typ),
 		Value: &tsdb.TimeValuePair{
 			Timestamp: time.Now().Unix(),
 			Value:     val,

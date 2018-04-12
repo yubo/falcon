@@ -1,0 +1,18 @@
+falcon_dsn: falcon:1234@tcp(localhost:3306)/falcon?loc=Local&parseTime=true
+index_dsn: falcon:1234@tcp(localhost:3306)/idx?loc=Local&parseTime=true
+alarm_dsn: falcon:1234@tcp(localhost:3306)/alarm?loc=Local&parseTime=true
+agent_addr: unix:var/run/agent.sock
+transfer_addr: unix:var/run/transfer.sock
+service_addr: unix:var/run/service.sock
+alarm_addr: unix:var/run/alarm.sock
+emu_tpl_dir: /opt/falcon/var/emu_tpl
+tsdb_dir: /opt/falcon/var/tsdb
+db_schema: /opt/falcon/scripts/db_schema/03_falcon.sql
+root: /opt/falcon
+agent_http_addr: ":18001"
+transfer_http_addr: ":18002"
+service_http_addr: ":18003"
+alarm_http_addr: ":18004"
+ctrl_http_addr: ":18005"
+
+

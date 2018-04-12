@@ -6,20 +6,19 @@
 package service
 
 import (
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/astaxie/beego/orm"
 	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/lib/core"
 	"github.com/yubo/falcon/lib/tsdb"
 	"golang.org/x/net/context"
 )
 
 // shard -> bucket -> item
-type CacheModule struct {
+type cacheModule struct {
 	//sync.RWMutex
-	service *Service
+	//service *Service
 	buckets []*cacheBucket
 
 	idxQueue queue //index update queue
@@ -28,8 +27,8 @@ type CacheModule struct {
 	cancel context.CancelFunc
 }
 
-func (p *CacheModule) prestart(s *Service) error {
-	p.service = s
+func (p *cacheModule) prestart(s *Service) error {
+	//p.service = s
 	p.idxQueue.init()
 
 	s.cache = p
@@ -37,9 +36,7 @@ func (p *CacheModule) prestart(s *Service) error {
 }
 
 // TODO
-func (p *CacheModule) start(s *Service) (err error) {
-	conf := &s.Conf.Configer
-
+func (p *cacheModule) start(s *Service) (err error) {
 	p.buckets = make([]*cacheBucket, falcon.SHARD_NUM)
 	for i := 0; i < falcon.SHARD_NUM; i++ {
 		p.buckets[i] = &cacheBucket{entries: make(map[string]*cacheEntry)}
@@ -47,10 +44,8 @@ func (p *CacheModule) start(s *Service) (err error) {
 
 	p.reload(s)
 
-	dbmaxidle, _ := conf.Int(C_DB_MAX_IDLE)
-	dbmaxconn, _ := conf.Int(C_DB_MAX_CONN)
-	db, _, err := falcon.NewOrm("service_index", conf.Str(C_IDX_DSN),
-		dbmaxidle, dbmaxconn)
+	db, _, err := core.NewOrm("service_index", s.Conf.IdxDsn,
+		s.Conf.DbMaxIdle, s.Conf.DbMaxConn)
 	if err != nil {
 		return err
 	}
@@ -63,24 +58,19 @@ func (p *CacheModule) start(s *Service) (err error) {
 	return nil
 }
 
-func (p *CacheModule) stop(s *Service) error {
+func (p *cacheModule) stop(s *Service) error {
 	p.cancel()
 	return nil
 }
 
-func (p *CacheModule) reload(s *Service) error {
-	conf := &s.Conf.Configer
-
-	ids := strings.Split(conf.Str(C_SHARD_IDS), ",")
+func (p *cacheModule) reload(s *Service) error {
+	ids := s.Conf.ShardIds
 	idmap := make(map[int]bool, len(ids))
 
 	for i := 0; i < len(ids); i++ {
-		id, err := strconv.Atoi(ids[i])
-		if err != nil {
-			return err
-		}
+		id := ids[i]
 		if id < 0 || id >= falcon.SHARD_NUM {
-			return falcon.EINVAL
+			return core.EINVAL
 		}
 		idmap[id] = true
 	}
@@ -96,7 +86,7 @@ func (p *CacheModule) reload(s *Service) error {
 	return nil
 }
 
-func (p *CacheModule) put(dp *tsdb.DataPoint) (*cacheEntry, error) {
+func (p *cacheModule) put(dp *tsdb.DataPoint) (*cacheEntry, error) {
 	bucket, err := p.getBucket(dp.Key.ShardId)
 	if err != nil {
 		return nil, err
@@ -113,7 +103,7 @@ func (p *CacheModule) put(dp *tsdb.DataPoint) (*cacheEntry, error) {
 	return e, e.put(dp)
 }
 
-func (p *CacheModule) get(key *tsdb.Key, start, end int64) (*tsdb.DataPoints, error) {
+func (p *cacheModule) get(key *tsdb.Key, start, end int64) (*tsdb.DataPoints, error) {
 	bucket, err := p.getBucket(key.ShardId)
 	if err != nil {
 		return nil, err
@@ -130,19 +120,19 @@ func (p *CacheModule) get(key *tsdb.Key, start, end int64) (*tsdb.DataPoints, er
 	}, nil
 }
 
-func (p *CacheModule) getBucket(shardId int32) (*cacheBucket, error) {
+func (p *cacheModule) getBucket(shardId int32) (*cacheBucket, error) {
 	if shardId < 0 || shardId >= falcon.SHARD_NUM {
-		return nil, falcon.ErrNoExits
+		return nil, core.ErrNoExits
 	}
 	bucket := p.buckets[shardId]
 
 	if bucket.getState() != CACHE_BUCKET_ENABLE {
-		return nil, falcon.ErrNoExits
+		return nil, core.ErrNoExits
 	}
 	return bucket, nil
 }
 
-func (p *CacheModule) cleanWorker() {
+func (p *cacheModule) cleanWorker() {
 	ticker := time.NewTicker(time.Second * CACHE_CLEAN_INTERVAL).C
 
 	for {
@@ -157,7 +147,7 @@ func (p *CacheModule) cleanWorker() {
 	}
 }
 
-func (p *CacheModule) indexWorker(db orm.Ormer) {
+func (p *cacheModule) indexWorker(db orm.Ormer) {
 	//ticker := falconTicker(time.Second/INDEX_QPS, b.Conf.Debug)
 	ticker := time.NewTicker(time.Second / INDEX_QPS).C
 

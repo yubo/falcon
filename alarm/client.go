@@ -26,8 +26,8 @@ type ClientModule struct {
 }
 
 func (p *ClientModule) prestart(alarm *Alarm) error {
-	p.callTimeout, _ = alarm.Conf.Configer.Int(C_CALL_TIMEOUT)
-	p.workerProcesses, _ = alarm.Conf.Configer.Int(C_WORKER_PROCESSES)
+	p.callTimeout = alarm.Conf.CallTimeout
+	p.workerProcesses = alarm.Conf.WorkerProcesses
 	p.actionChan = alarm.actionChan
 	return nil
 }

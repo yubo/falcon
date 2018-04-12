@@ -10,24 +10,16 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/yubo/falcon"
-	"github.com/yubo/falcon/transfer/config"
+	"github.com/yubo/falcon/lib/core"
 )
 
 const (
-	MODULE_NAME = "\x1B[35m[TRANSFER]\x1B[0m"
-
-	C_API_ADDR     = "apiaddr"
-	C_HTTP_ADDR    = "httpaddr"
-	C_CALL_TIMEOUT = "calltimeout"
-	C_BURST_SIZE   = "burstsize"
+	//MODULE_NAME = "\x1B[35m[TRANSFER]\x1B[0m"
+	MODULE_NAME = "transfer"
 )
 
 var (
-	modules     []module
-	ConfDefault = map[string]string{
-		C_CALL_TIMEOUT: "5000",
-		C_BURST_SIZE:   "16",
-	}
+	modules []module
 )
 
 type module interface {
@@ -37,8 +29,27 @@ type module interface {
 	reload(*Transfer) error   // try to keep the data, refresh configure
 }
 
-func RegisterModule(m module) {
+func init() {
+	registerModule(&clientModule{})
+	registerModule(&apiModule{})
+	registerModule(&apiGwModule{})
+}
+
+func registerModule(m module) {
 	modules = append(modules, m)
+}
+
+type TransferConfig struct {
+	Disable         bool                `json:"disable"`
+	Debug           bool                `json:"debug"`
+	ApiAddr         string              `json:"api_addr"`
+	HttpAddr        string              `json:"http_addr"`
+	WorkerProcesses int                 `json:"worker_processes"`
+	CallTimeout     int                 `json:"call_timeout"`
+	ShardNum        int                 `json:"shard_num"`
+	ShardMap        []string            `json:"shard_map"`
+	BurstSize       int                 `json:"burst_size"`
+	EtcdClient      *core.EtcdCliConfig `json:"etcd_client"`
 }
 
 type reqPayload struct {
@@ -49,44 +60,35 @@ type reqPayload struct {
 }
 
 type Transfer struct {
-	Conf    *config.Transfer
-	oldConf *config.Transfer
+	Conf    *TransferConfig
+	oldConf *TransferConfig
 	// runtime
 	status uint32
 	//appPutChan chan *service.Item // upstreams
 	shardmap []chan *reqPayload
 }
 
-func (p *Transfer) New(conf interface{}) falcon.Module {
-	return &Transfer{
-		Conf: conf.(*config.Transfer),
+func (p *Transfer) ReadConfig(conf *core.Configer) error {
+	p.Conf = &TransferConfig{Disable: true}
+
+	err := conf.Read(MODULE_NAME, p.Conf)
+	if err == core.ErrNoExits {
+		return nil
 	}
-}
 
-func (p *Transfer) Name() string {
-	return p.Conf.Name
-}
-
-func (p *Transfer) Parse(text []byte, filename string, lino int) falcon.ModuleConf {
-	p.Conf = config.Parse(text, filename, lino).(*config.Transfer)
-	p.Conf.Configer.Set(falcon.APP_CONF_DEFAULT, ConfDefault)
-	return p.Conf
-}
-
-func (p *Transfer) String() string {
-	return p.Conf.String()
+	return err
 }
 
 func (p *Transfer) Prestart() (err error) {
 	glog.V(3).Infof("%s Prestart()", MODULE_NAME)
-	p.status = falcon.APP_STATUS_INIT
+	p.status = core.APP_STATUS_INIT
+
 	p.shardmap = make([]chan *reqPayload, falcon.SHARD_NUM)
 
 	for i := 0; i < len(modules); i++ {
-		glog.V(4).Infof("%s %s.prestart()", MODULE_NAME, falcon.GetType(modules[i]))
-		if e := modules[i].prestart(p); e != nil {
-			err = e
-			glog.Error(err)
+		glog.V(4).Infof("%s %s.prestart()", MODULE_NAME, core.GetType(modules[i]))
+		if err = modules[i].prestart(p); err != nil {
+			glog.Fatal(err)
 		}
 	}
 	return err
@@ -94,46 +96,49 @@ func (p *Transfer) Prestart() (err error) {
 
 func (p *Transfer) Start() (err error) {
 	glog.V(3).Infof("%s Start()", MODULE_NAME)
-	p.status = falcon.APP_STATUS_PENDING
+	p.status = core.APP_STATUS_PENDING
 
 	for i := 0; i < len(modules); i++ {
-		glog.V(4).Infof("%s %s.start()", MODULE_NAME, falcon.GetType(modules[i]))
-		if e := modules[i].start(p); e != nil {
-			err = e
-			glog.Error(err)
+		glog.V(4).Infof("%s %s.start()", MODULE_NAME, core.GetType(modules[i]))
+		if err = modules[i].start(p); err != nil {
+			glog.Fatal(err)
 		}
 	}
 
-	p.status = falcon.APP_STATUS_RUNNING
+	p.status = core.APP_STATUS_RUNNING
 	return err
 }
 
 func (p *Transfer) Stop() (err error) {
 	glog.V(3).Infof("%s Stop()", MODULE_NAME)
-	p.status = falcon.APP_STATUS_EXIT
+	p.status = core.APP_STATUS_EXIT
 
 	for n, i := len(modules), 0; i < n; i++ {
-		glog.V(4).Infof("%s %s.stop()", MODULE_NAME, falcon.GetType(modules[n-i-1]))
-		if e := modules[n-i-1].stop(p); e != nil {
-			err = e
-			glog.Error(err)
+		glog.V(4).Infof("%s %s.stop()", MODULE_NAME, core.GetType(modules[n-i-1]))
+		if err = modules[n-i-1].stop(p); err != nil {
+			glog.Fatal(err)
 		}
 	}
 
 	return err
 }
 
-func (p *Transfer) Reload(c interface{}) (err error) {
+func (p *Transfer) Reload(conf *core.Configer) (err error) {
 	glog.V(3).Infof("%s Reload()", MODULE_NAME)
 
+	newConfig := &TransferConfig{}
+	err = conf.Read(MODULE_NAME, newConfig)
+	if err != nil {
+		return err
+	}
+
 	p.oldConf = p.Conf
-	p.Conf = c.(*config.Transfer)
+	p.Conf = newConfig
 
 	for i := 0; i < len(modules); i++ {
-		glog.V(4).Infof("%s %s.reload()", MODULE_NAME, falcon.GetType(modules[i]))
-		if e := modules[i].reload(p); e != nil {
-			err = e
-			glog.Error(err)
+		glog.V(4).Infof("%s %s.reload()", MODULE_NAME, core.GetType(modules[i]))
+		if err = modules[i].reload(p); err != nil {
+			glog.Fatal(err)
 		}
 	}
 	return err
@@ -144,10 +149,3 @@ func (p *Transfer) Signal(sig os.Signal) (err error) {
 	glog.Infof("%s recv signal %#v", MODULE_NAME, sig)
 	return err
 }
-
-type BaseModule struct{}
-
-func (p *BaseModule) prestart(transfer *Transfer) error { return nil }
-func (p *BaseModule) start(transfer *Transfer) error    { return nil }
-func (p *BaseModule) stop(transfer *Transfer) error     { return nil }
-func (p *BaseModule) reload(transfer *Transfer) error   { return nil }

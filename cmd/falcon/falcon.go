@@ -10,69 +10,88 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"runtime"
-	"runtime/pprof"
+	"strings"
 	"sync/atomic"
 	"syscall"
 
 	"github.com/golang/glog"
 	"github.com/yubo/falcon"
-	"github.com/yubo/falcon/parse"
+	"github.com/yubo/falcon/agent"
+	"github.com/yubo/falcon/alarm"
+	"github.com/yubo/falcon/ctrl"
+	"github.com/yubo/falcon/lib/core"
+	"github.com/yubo/falcon/service"
+	"github.com/yubo/falcon/sys"
+	"github.com/yubo/falcon/transfer"
 	"github.com/yubo/gotool/flags"
 
-	"net/http"
-	_ "net/http/pprof"
-
-	_ "github.com/yubo/falcon/agent/modules"
-	_ "github.com/yubo/falcon/alarm/modules"
-	_ "github.com/yubo/falcon/ctrl/modules"
-	_ "github.com/yubo/falcon/service/modules"
-	_ "github.com/yubo/falcon/transfer/modules"
-)
-
-var (
-	opts      falcon.CmdOpts
-	cpu_prof  *os.File
-	heap_prof *os.File
+	_ "github.com/yubo/falcon/agent/plugin"
 )
 
 const (
-	MODULE_NAME    = "\x1B[34m[MAIN]\x1B[0m"
-	CPU_PROF_FILE  = "/tmp/cpu.prof"
-	HEAP_PROF_FILE = "/tmp/heap.prof"
+	PROCESS_NAME = "falcon"
+)
+
+type arrayString []string
+
+func (i *arrayString) String() string {
+	return strings.Join([]string(*i), ",")
+}
+
+func (i *arrayString) Set(value string) error {
+	*i = append(*i, value)
+	return nil
+}
+
+var (
+	opts struct {
+		ValueFiles arrayString
+		ConfigFile string
+		Module     string
+	}
 )
 
 func init() {
-	flag.StringVar(&opts.ConfigFile, "config", "/etc/falcon/falcon.conf", "falcon config file")
 
+	core.RegisterModule(&agent.Agent{})
+	core.RegisterModule(&alarm.Alarm{})
+	core.RegisterModule(&ctrl.Ctrl{})
+	core.RegisterModule(&service.Service{})
+	core.RegisterModule(&sys.Sys{})
+	core.RegisterModule(&transfer.Transfer{})
+
+	flag.StringVar(&opts.ConfigFile, "config", fmt.Sprintf("./%s.yaml", PROCESS_NAME), "app config file")
+	flag.Var(&opts.ValueFiles, "f", "app values file")
 	flags.CommandLine.Usage = fmt.Sprintf("Usage: %s COMMAND start|stop|reload|stats\n", os.Args[0])
 
-	cmd := flags.NewCommand("start", "start falcon", start, flag.ExitOnError)
-	cmd.BoolVar(&opts.CpuProfile, "cpu", false, "cpu profile(/tmp/cpu.prof)")
-	cmd.BoolVar(&opts.HeapProfile, "heap", false, "heap profile(/tmp/heap.prof)")
+	flags.NewCommand("start", "start falcon", startHandle, flag.ExitOnError)
+	flags.NewCommand("stop", "stop falcon", stopHandle, flag.ExitOnError)
+	flags.NewCommand("reload", "reload falcon", reloadHandle, flag.ExitOnError)
 
-	cmd = flags.NewCommand("stats", "show falcon modules stats", stats, flag.ExitOnError)
+	cmd := flags.NewCommand("stats", "show falcon modules stats", statsHandle, flag.ExitOnError)
 	cmd.StringVar(&opts.Module, "m", "all", "module name")
 
 	flags.NewCommand("parse", "just parse falcon ConfigFile", parseHandle, flag.ExitOnError)
-	flags.NewCommand("reload", "reload falcon", reload, flag.ExitOnError)
 	flags.NewCommand("help", "show help information", helpHandle, flag.ExitOnError)
-	flags.NewCommand("stop", "stop falcon", stop, flag.ExitOnError)
-	flags.NewCommand("version", "show falcon version information", version, flag.ExitOnError)
-	flags.NewCommand("git", "show falcon git version information", git, flag.ExitOnError)
-	flags.NewCommand("changelog", "show falcon changelog information", changelog, flag.ExitOnError)
-	flags.NewCommand("modules", "show falcon modules information", modules, flag.ExitOnError)
+	flags.NewCommand("version", "show falcon version information", versionHandle, flag.ExitOnError)
+	flags.NewCommand("git", "show falcon git version information", gitHandle, flag.ExitOnError)
+	flags.NewCommand("changelog", "show falcon changelog information", changelogHandle, flag.ExitOnError)
 
 }
 
-func helpHandle(arg interface{}) {
-	flags.Usage()
+func main() {
+	flags.Parse()
+	if len(os.Args) == 1 {
+		startHandle(nil)
+	} else {
+		flags.Exec()
+	}
 }
 
-func signalNotify(p *falcon.Process) {
+func signalNotify(p *core.Process) {
 	sigs := make(chan os.Signal, 1)
 
-	glog.Infof("%s [%d] register signal notify", MODULE_NAME, p.Pid)
+	glog.Infof("[%d] register signal notify", p.Pid)
 	signal.Notify(sigs,
 		syscall.SIGINT,
 		syscall.SIGTERM,
@@ -80,167 +99,131 @@ func signalNotify(p *falcon.Process) {
 		syscall.SIGUSR1,
 		syscall.SIGUSR2,
 	)
-	atomic.StoreUint32(&p.Status, falcon.APP_STATUS_RUNNING)
-
-	glog.Infof("%s [%d] register signal notify", MODULE_NAME, p.Pid)
-
-	go http.ListenAndServe(":18008", nil)
+	atomic.StoreUint32(&p.Status, core.APP_STATUS_RUNNING)
 
 	for {
 		s := <-sigs
-		glog.Infof("%s recv %v", MODULE_NAME, s)
+		glog.Infof("recv %v", s)
 
 		switch s {
 		case syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
-			pidfile := fmt.Sprintf("%s.%d", p.Config.PidFile, p.Pid)
-			glog.Infof("%s exiting", MODULE_NAME)
-			atomic.StoreUint32(&p.Status, falcon.APP_STATUS_EXIT)
-			os.Rename(p.Config.PidFile, pidfile)
-			if opts.CpuProfile {
-				pprof.StopCPUProfile()
-				cpu_prof.Close()
-			}
-			if opts.HeapProfile {
-				heap_prof.Close()
-			}
-
-			for i, n := 0, len(p.Module); i < n; i++ {
-				p.Module[n-i-1].Stop()
-			}
-
-			glog.Infof("%s pid:%d exit", MODULE_NAME, p.Pid)
-			os.Remove(pidfile)
+			atomic.StoreUint32(&p.Status, core.APP_STATUS_EXIT)
+			p.Stop()
 			os.Exit(0)
 		case syscall.SIGUSR1:
-			glog.Infof("%s reload", MODULE_NAME)
+			glog.Infof("reload")
 
-			// reparse config, get new config
-			// newConfig := parse.Parse(p.Config.ConfigFile, false)
-			newConfig := parse.Parse(p.Config.ConfigFile)
-
-			// check config diff
-			if len(newConfig.Conf) != len(p.Config.Conf) {
-				glog.Error("not support add/del module\n")
-				break
+			atomic.StoreUint32(&p.Status, core.APP_STATUS_RELOAD)
+			if err := p.Reload(); err != nil {
+				glog.Errorf("not support add/del module\n")
 			}
-
-			for i, config := range newConfig.Conf {
-				m, ok := falcon.ModuleTpls[falcon.GetType(config)]
-				if !ok {
-					glog.Exitf("%s's module not support, you should"+
-						" import module ", falcon.GetType(config))
-					break
-				}
-				newM := m.New(config)
-				if newM.Name() != p.Module[i].Name() {
-					glog.Exitf("%s's module not support,"+
-						" not support add/del/disable module",
-						falcon.GetType(config))
-					break
-				}
-			}
-
-			// do it
-			atomic.StoreUint32(&p.Status, falcon.APP_STATUS_RELOAD)
-			falcon.SetGlog(newConfig)
-			for i, m := range p.Module {
-				m.Reload(newConfig.Conf[i])
-			}
-			atomic.StoreUint32(&p.Status, falcon.APP_STATUS_RUNNING)
+			atomic.StoreUint32(&p.Status, core.APP_STATUS_RUNNING)
 		default:
-			for _, m := range p.Module {
-				m.Signal(s)
+			p.Signal(s)
+		}
+	}
+
+}
+
+/* handle */
+func startHandle(arg interface{}) {
+	app, err := core.NewProcess(opts.ConfigFile, falcon.BaseConf, []string(opts.ValueFiles))
+	if err != nil {
+		glog.Fatal(err)
+	}
+
+	if err := app.Start(); err != nil {
+		glog.Fatal(err)
+	}
+
+	sigs := make(chan os.Signal, 1)
+
+	glog.Infof("[%d] register signal notify", app.Pid)
+	signal.Notify(sigs,
+		syscall.SIGINT,
+		syscall.SIGTERM,
+		syscall.SIGQUIT,
+		syscall.SIGUSR1,
+		syscall.SIGUSR2,
+	)
+	atomic.StoreUint32(&app.Status, core.APP_STATUS_RUNNING)
+
+	for {
+		s := <-sigs
+		glog.Infof("recv %v", s)
+
+		switch s {
+		case syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
+			atomic.StoreUint32(&app.Status, core.APP_STATUS_EXIT)
+			app.Stop()
+			os.Exit(0)
+		case syscall.SIGUSR1:
+			glog.Infof("reload")
+
+			atomic.StoreUint32(&app.Status, core.APP_STATUS_RELOAD)
+			if err := app.Reload(); err != nil {
+				glog.Errorf("not support add/del module\n")
 			}
+			atomic.StoreUint32(&app.Status, core.APP_STATUS_RUNNING)
+		default:
+			app.Signal(s)
 		}
 	}
-
 }
 
-func start(arg interface{}) {
-	var err error
-
-	c := parse.Parse(opts.ConfigFile)
-	app := falcon.NewProcess(c)
-
-	if err = app.Check(); err != nil {
+func stopHandle(arg interface{}) {
+	app, err := core.NewProcess(opts.ConfigFile, falcon.BaseConf, []string(opts.ValueFiles))
+	if err != nil {
 		glog.Fatal(err)
 	}
-	if err = app.Save(); err != nil {
-		glog.Fatal(err)
-	}
-
-	runtime.GOMAXPROCS(runtime.NumCPU())
-
-	if opts.CpuProfile {
-		if cpu_prof, err = os.OpenFile(CPU_PROF_FILE, os.O_RDWR|os.O_CREATE, 0644); err != nil {
-			glog.Fatal(err)
-		}
-		pprof.StartCPUProfile(cpu_prof)
-	}
-
-	if opts.HeapProfile {
-		if heap_prof, err = os.OpenFile(HEAP_PROF_FILE, os.O_RDWR|os.O_CREATE, 0644); err != nil {
-			glog.Fatal(err)
-		}
-		pprof.WriteHeapProfile(heap_prof)
-	}
-
-	app.Start()
-	signalNotify(app)
-}
-
-func stop(arg interface{}) {
-	c := parse.Parse(opts.ConfigFile)
-	app := falcon.NewProcess(c)
-
 	if err := app.Kill(syscall.SIGTERM); err != nil {
 		glog.Fatal(err)
 	}
 }
 
-func reload(arg interface{}) {
-	c := parse.Parse(opts.ConfigFile)
-	app := falcon.NewProcess(c)
+func reloadHandle(arg interface{}) {
+	app, err := core.NewProcess(opts.ConfigFile, falcon.BaseConf, []string(opts.ValueFiles))
+	if err != nil {
+		glog.Fatal(err)
+	}
 
 	if err := app.Kill(syscall.SIGUSR1); err != nil {
 		glog.Fatal(err)
 	}
 }
 
-func parseHandle(arg interface{}) {
-	c := parse.Parse(opts.ConfigFile)
-	dir, _ := os.Getwd()
-	fmt.Printf("work dir :%s", dir)
-	fmt.Printf("\n%s", c)
+func helpHandle(arg interface{}) {
+	flags.Usage()
 }
 
-func version(arg interface{}) {
+func parseHandle(arg interface{}) {
+	app, err := core.NewProcess(opts.ConfigFile, falcon.BaseConf, []string(opts.ValueFiles))
+	if err != nil {
+		glog.Fatal(err)
+	}
+	fmt.Printf("%s\n", app.Configer)
+}
+
+func versionHandle(arg interface{}) {
 	fmt.Printf("%s\n", falcon.VERSION)
 }
 
-func git(arg interface{}) {
+func gitHandle(arg interface{}) {
 	fmt.Println(falcon.COMMIT)
 }
 
-func changelog(arg interface{}) {
+func changelogHandle(arg interface{}) {
 	fmt.Println(falcon.CHANGELOG)
 }
 
-func modules(arg interface{}) {
-	for m, _ := range falcon.Modules {
-		fmt.Printf("%s\n", m)
-	}
-}
-
-func stats(arg interface{}) {
-	c := parse.Parse(opts.ConfigFile)
-	err := falcon.NewProcess(c).Stats(opts.Module)
+func statsHandle(arg interface{}) {
+	app, err := core.NewProcess(opts.ConfigFile, falcon.BaseConf, []string(opts.ValueFiles))
 	if err != nil {
-		os.Exit(1)
+		glog.Fatal(err)
 	}
-}
 
-func main() {
-	flags.Parse()
-	flags.Exec()
+	err = app.Stats(opts.Module)
+	if err != nil {
+		glog.Fatal(err)
+	}
 }

@@ -8,7 +8,7 @@ package models
 import (
 	"testing"
 
-	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/lib/core"
 )
 
 func testNewTagSchema(t *testing.T) {
@@ -17,7 +17,7 @@ func testNewTagSchema(t *testing.T) {
 		schema string
 		want   error
 	}{
-		{"1", "cop,owt", falcon.ErrParam},
+		{"1", "cop,owt", core.ErrParam},
 		{"2", "", nil},
 		{"3", XIAOMI_SCHEMA, nil},
 	}
@@ -34,12 +34,12 @@ func testTagMap(t *testing.T) {
 		tag  string
 		want error
 	}{
-		{"empty string", "", falcon.ErrParam},
-		{"incomplete kv", "a=b,", falcon.ErrParam},
-		{"incomplete value1", "a=", falcon.ErrParam},
-		{"incomplete value2", "a=b,c=", falcon.ErrParam},
-		{"incomplete key1", "=b", falcon.ErrParam},
-		{"incomplete key2", "a=b,=d", falcon.ErrParam},
+		{"empty string", "", core.ErrParam},
+		{"incomplete kv", "a=b,", core.ErrParam},
+		{"incomplete value1", "a=", core.ErrParam},
+		{"incomplete value2", "a=b,c=", core.ErrParam},
+		{"incomplete key1", "=b", core.ErrParam},
+		{"incomplete key2", "a=b,=d", core.ErrParam},
 		{"sample tag1", "a=b", nil},
 		{"sample tag2", "a=b,c=d", nil},
 		{"sample tag2", "a=b=b,c=d", nil},
@@ -61,14 +61,14 @@ func testTagFmtErr(t *testing.T) {
 		tag   string
 		want  error
 	}{
-		{"1", false, "b=1", falcon.ErrParam},
-		{"2", false, "a=1,c=1", falcon.ErrParam},
-		{"3", false, "g=1", falcon.ErrParam},
-		{"4", false, "a=1,g=1", falcon.ErrParam},
+		{"1", false, "b=1", core.ErrParam},
+		{"2", false, "a=1,c=1", core.ErrParam},
+		{"3", false, "g=1", core.ErrParam},
+		{"4", false, "a=1,g=1", core.ErrParam},
 
 		{"5", true, "b=1", nil},
 		{"6", true, "a=1,c=1", nil},
-		{"7", true, "g=1", falcon.ErrParam},
+		{"7", true, "g=1", core.ErrParam},
 		{"8", true, "a=1,g=1", nil},
 	}
 	for _, tc := range cases {

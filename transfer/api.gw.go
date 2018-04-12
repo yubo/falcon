@@ -10,12 +10,12 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/lib/core"
 	"github.com/yubo/falcon/service"
 	"golang.org/x/net/context"
 )
 
-type ApiGwModule struct {
+type apiGwModule struct {
 	disable  bool
 	ctx      context.Context
 	cancel   context.CancelFunc
@@ -23,15 +23,15 @@ type ApiGwModule struct {
 	address  string
 }
 
-func (p *ApiGwModule) prestart(transfer *Transfer) error {
+func (p *apiGwModule) prestart(transfer *Transfer) error {
 	return nil
 }
 
-func (p *ApiGwModule) start(transfer *Transfer) error {
-	conf := &transfer.Conf.Configer
-	p.upstream = conf.Str(C_API_ADDR)
-	p.address = conf.Str(C_HTTP_ADDR)
-	p.disable = falcon.AddrIsDisable(p.address)
+func (p *apiGwModule) start(transfer *Transfer) error {
+	conf := transfer.Conf
+	p.upstream = conf.ApiAddr
+	p.address = conf.HttpAddr
+	p.disable = core.AddrIsDisable(p.address)
 
 	if p.disable {
 		glog.Info(MODULE_NAME + "http disable")
@@ -43,7 +43,7 @@ func (p *ApiGwModule) start(transfer *Transfer) error {
 
 	mux := http.NewServeMux()
 
-	err := falcon.Gateway(service.RegisterServiceHandlerFromEndpoint, p.ctx, mux, p.upstream)
+	err := core.Gateway(service.RegisterServiceHandlerFromEndpoint, p.ctx, mux, p.upstream)
 	if err != nil {
 		return err
 	}
@@ -66,7 +66,7 @@ func (p *ApiGwModule) start(transfer *Transfer) error {
 	return nil
 }
 
-func (p *ApiGwModule) stop(transfer *Transfer) error {
+func (p *apiGwModule) stop(transfer *Transfer) error {
 	if p.disable {
 		return nil
 	}
@@ -74,7 +74,7 @@ func (p *ApiGwModule) stop(transfer *Transfer) error {
 	return nil
 }
 
-func (p *ApiGwModule) reload(transfer *Transfer) error {
+func (p *apiGwModule) reload(transfer *Transfer) error {
 	return nil
 
 	if !p.disable {

@@ -23,7 +23,7 @@ import (
 
 	"github.com/golang/glog"
 	qrcode "github.com/skip2/go-qrcode"
-	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/lib/core"
 )
 
 const (
@@ -128,7 +128,7 @@ func (p *weapp_t) delTask(key string) (*WeappTask, error) {
 	p.Lock()
 	defer p.Unlock()
 	if t, ok := p.tasks[key]; !ok {
-		return nil, falcon.ErrNoExits
+		return nil, core.ErrNoExits
 	} else {
 		delete(p.tasks, key)
 		return t, nil
@@ -139,7 +139,7 @@ func (p *weapp_t) getTask(key string) (*WeappTask, error) {
 	p.RLock()
 	defer p.RUnlock()
 	if t, ok := p.tasks[key]; !ok {
-		return nil, falcon.ErrNoExits
+		return nil, core.ErrNoExits
 	} else {
 		return t, nil
 	}
@@ -160,12 +160,12 @@ func GetTask(key string, c SetSession) (string, error) {
 		return "pending", nil
 	case WEAPP_TASK_WAIT_DONE:
 		if t.Action != WEAPP_TASK_LOGIN {
-			return "", falcon.EINVAL
+			return "", core.EINVAL
 		}
 
 		sess, ok := t.Data.(*WeappSession)
 		if !ok {
-			return "", falcon.EINVAL
+			return "", core.EINVAL
 		}
 		c.SetSession("uid", sess.User.Id)
 		c.SetSession("token", sess.Token)
@@ -176,7 +176,7 @@ func GetTask(key string, c SetSession) (string, error) {
 	case WEAPP_TASK_FAIL:
 		return "fail", nil
 	default:
-		return "", falcon.EINVAL
+		return "", core.EINVAL
 	}
 
 }
@@ -191,7 +191,7 @@ func (p *weapp_t) delSession(key string) (*WeappSession, error) {
 	p.Lock()
 	defer p.Unlock()
 	if t, ok := p.sessions[key]; !ok {
-		return nil, falcon.ErrNoExits
+		return nil, core.ErrNoExits
 	} else {
 		delete(p.sessions, key)
 		return t, nil
@@ -201,7 +201,7 @@ func (p *weapp_t) getSession(key string) (*WeappSession, error) {
 	p.RLock()
 	defer p.RUnlock()
 	if t, ok := p.sessions[key]; !ok {
-		return nil, falcon.ErrNoExits
+		return nil, core.ErrNoExits
 	} else {
 		return t, nil
 	}
@@ -300,14 +300,14 @@ func WeappLogin(code, encrypt_data, iv string) (*WeappSession, error) {
 	}
 	glog.V(4).Infof("appuser %s", appuser)
 
-	if appuser.Watermark.Appid != wxappid {
+	if appuser.Watermark.Appid != _models.conf.WxAppId {
 		return nil, ErrInvalidAppid
 	}
 
 	now := time.Now().Unix()
 
 	s := &WeappSession{
-		Key:       falcon.RandString(32),
+		Key:       core.RandString(32),
 		Expires:   now + 3600,
 		AppUser:   &appuser,
 		Wxsession: session.Session,
@@ -316,16 +316,17 @@ func WeappLogin(code, encrypt_data, iv string) (*WeappSession, error) {
 	}
 
 	glog.V(4).Infof("find %s@weapp", s.AppUser.OpenId)
-	if user, err := SysOp.GetUserByUuid(s.AppUser.OpenId + "@weapp"); err == nil {
+	op := _models.sysOp
+	if user, err := op.GetUserByUuid(s.AppUser.OpenId + "@weapp"); err == nil {
 		glog.V(4).Infof("find %s(%d)", user.Name, user.Id)
 		if user.Muid > 0 {
-			if master, err := SysOp.GetUser(user.Muid); err == nil {
+			if master, err := op.GetUser(user.Muid); err == nil {
 				user = master
 			}
 		}
 		glog.V(4).Infof("login as %s(%d)", user.Name, user.Id)
 		s.User = user
-		s.Token = UserTokens(user.Id, user.Name, SysOp.O)
+		s.Token = UserTokens(user.Id, user.Name, op.O)
 	}
 
 	weapp.addSession(s)
@@ -337,9 +338,9 @@ func WeappLogin(code, encrypt_data, iv string) (*WeappSession, error) {
 //
 func GetWeappSession(code string) (*WxSession, error) {
 	var session WxSession
-	url := fmt.Sprintf("https://api.weixin.qq.com/sns/jscode2session?appid=%s&secret=%s&js_code=%s&grant_type=authorization_code", wxappid, wxappsecret, code)
+	url := fmt.Sprintf("https://api.weixin.qq.com/sns/jscode2session?appid=%s&secret=%s&js_code=%s&grant_type=authorization_code", _models.conf.WxAppId, _models.conf.WxAppSecret, code)
 
-	err := falcon.GetJson(url, &session, 30*time.Second)
+	err := core.GetJson(url, &session, 30*time.Second)
 
 	return &session, err
 }
@@ -360,7 +361,7 @@ type QrTask struct {
 
 func WeappAuthQr() (*QrTask, error) {
 	task := &WeappTask{
-		Key:     falcon.RandString(64),
+		Key:     core.RandString(64),
 		Action:  WEAPP_TASK_LOGIN,
 		States:  WEAPP_TASK_PENDING,
 		Expires: time.Now().Unix() + 60,
@@ -376,7 +377,7 @@ func WeappAuthQr() (*QrTask, error) {
 
 func WeappBindQr(uid int64) (*QrTask, error) {
 	task := &WeappTask{
-		Key:     falcon.RandString(64),
+		Key:     core.RandString(64),
 		Action:  WEAPP_TASK_BIND_USER,
 		States:  WEAPP_TASK_PENDING,
 		Data:    uid,
@@ -423,7 +424,7 @@ func WeappTaskAck(key string, sess *WeappSession) (interface{}, error) {
 		task.States = WEAPP_TASK_WAIT_DONE
 		task.Data = sess
 	default:
-		return nil, falcon.EINVAL
+		return nil, core.EINVAL
 	}
 	return nil, nil
 }
@@ -431,18 +432,19 @@ func WeappTaskAck(key string, sess *WeappSession) (interface{}, error) {
 func weappBind(uid int64, sess *WeappSession) (*User, error) {
 	var weapp_uid int64
 
-	user, err := GetUser(uid, SysOp.O)
+	op := _models.sysOp
+	user, err := GetUser(uid, op.O)
 	glog.V(4).Infof("weapp bind get user %d -> user %#v error %s", uid, user, err)
 	if err != nil {
 		return nil, err
 	}
 
-	if wuser, err := SysOp.GetUserByUuid(
+	if wuser, err := op.GetUserByUuid(
 		fmt.Sprintf("%s@weapp", sess.AppUser.OpenId)); err != nil {
 		// if user not exist
 
 		// create user from weapp userinfo
-		weapp_uid, err = SysOp.CreateUser(&UserApiAdd{
+		weapp_uid, err = op.CreateUser(&UserApiAdd{
 			Uuid:      fmt.Sprintf("%s@weapp", sess.AppUser.OpenId),
 			Name:      sess.AppUser.OpenId,
 			Cname:     sess.AppUser.NickName,
@@ -457,13 +459,13 @@ func weappBind(uid int64, sess *WeappSession) (*User, error) {
 		if wuser.Muid != 0 {
 			return nil, ErrBindedAlready
 		}
-		if users, err := SysOp.GetBindedUsers(wuser.Id); err == nil {
+		if users, err := op.GetBindedUsers(wuser.Id); err == nil {
 			if len(users) > 0 {
 				return nil, ErrBeBindedAlready
 			}
 		}
 		weapp_uid = wuser.Id
 	}
-	err = SysOp.BindUser(weapp_uid, user.Id)
+	err = op.BindUser(weapp_uid, user.Id)
 	return user, nil
 }

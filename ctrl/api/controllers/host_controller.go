@@ -9,8 +9,8 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/ctrl/api/models"
+	"github.com/yubo/falcon/lib/core"
 )
 
 // Operations about Hosts
@@ -120,7 +120,7 @@ func (c *HostController) UpdateHost() {
 	}
 
 	host := *p
-	falcon.Override(&host, &input)
+	core.Override(&host, &input)
 
 	if ret, err := op.UpdateHost(&host); err != nil {
 		c.SendMsg(400, err.Error())
@@ -270,7 +270,7 @@ func (c *HostController) CreateTagHost() {
 
 		if cnt, err := op.ChkTagHostCnt(rel.SrcTagId,
 			[]int64{rel.HostId}); err != nil || cnt != 1 {
-			c.SendMsg(400, falcon.EPERM)
+			c.SendMsg(400, core.EPERM)
 			return
 		}
 	}
@@ -313,7 +313,7 @@ func (c *HostController) CreateTagHosts() {
 
 		if cnt, err := op.ChkTagHostCnt(rel.SrcTagId,
 			rel.HostIds); err != nil || cnt != int64(len(rel.HostIds)) {
-			c.SendMsg(400, falcon.EPERM)
+			c.SendMsg(400, core.EPERM)
 			return
 		}
 

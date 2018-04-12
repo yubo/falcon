@@ -11,8 +11,8 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/golang/glog"
-	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/alarm"
+	"github.com/yubo/falcon/lib/core"
 	"golang.org/x/net/context"
 )
 
@@ -30,14 +30,14 @@ type rpcClient struct {
 	cli  alarm.AlarmClient
 }
 
-type ClientModule struct {
+type clientModule struct {
 	conn   *grpc.ClientConn
 	client alarm.AlarmClient
 	ctx    context.Context
 	cancel context.CancelFunc
 }
 
-func (p *ClientModule) put(events []*alarm.Event, timeout int) {
+func (p *clientModule) put(events []*alarm.Event, timeout int) {
 
 	statsInc(ST_TX_PUT_ITERS, 1)
 	statsInc(ST_TX_PUT_ITEMS, len(events))
@@ -52,7 +52,7 @@ func (p *ClientModule) put(events []*alarm.Event, timeout int) {
 	statsInc(ST_TX_PUT_ERR_ITEMS, int(len(events)-int(res.N)))
 }
 
-func (p *ClientModule) mainLoop(upstreamAddr string, eventChan chan *alarm.Event,
+func (p *clientModule) mainLoop(upstreamAddr string, eventChan chan *alarm.Event,
 	callTimeout, burstSize int) error {
 	if upstreamAddr == "stdout" {
 		go func() {
@@ -69,7 +69,7 @@ func (p *ClientModule) mainLoop(upstreamAddr string, eventChan chan *alarm.Event
 	}
 
 	go func() {
-		conn, _, err := falcon.DialRr(p.ctx, upstreamAddr, true)
+		conn, _, err := core.DialRr(p.ctx, upstreamAddr, true)
 		if err != nil {
 			glog.Fatalf("%s %v", MODULE_NAME, err)
 			return
@@ -106,27 +106,25 @@ func (p *ClientModule) mainLoop(upstreamAddr string, eventChan chan *alarm.Event
 	return nil
 }
 
-func (p *ClientModule) prestart(s *Service) error {
+func (p *clientModule) prestart(s *Service) error {
 	return nil
 }
 
-func (p *ClientModule) start(s *Service) (err error) {
+func (p *clientModule) start(s *Service) (err error) {
 	p.ctx, p.cancel = context.WithCancel(context.Background())
-	upstreamAddr := s.Conf.Configer.Str(C_ALARM_ADDR)
-	callTimeout, _ := s.Conf.Configer.Int(C_CALL_TIMEOUT)
 
-	if err := p.mainLoop(upstreamAddr, s.eventChan, callTimeout,
+	if err := p.mainLoop(s.Conf.AlarmAddr, s.eventChan, s.Conf.CallTimeout,
 		CLIENT_BURST_SIZE); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (p *ClientModule) stop(s *Service) error {
+func (p *clientModule) stop(s *Service) error {
 	p.cancel()
 	return nil
 }
 
-func (p *ClientModule) reload(s *Service) error {
+func (p *clientModule) reload(s *Service) error {
 	return nil
 }

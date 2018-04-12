@@ -9,11 +9,10 @@ import (
 	"crypto/tls"
 	"fmt"
 
-	"github.com/yubo/falcon"
-	"github.com/yubo/falcon/ctrl"
 	"github.com/yubo/falcon/ctrl/api/controllers"
 	"github.com/yubo/falcon/ctrl/api/models"
-	"gopkg.in/ldap.v2"
+	"github.com/yubo/falcon/lib/core"
+	ldap "gopkg.in/ldap.v2"
 )
 
 type ldapAuth struct {
@@ -34,13 +33,13 @@ func init() {
 	models.RegisterAuth(LDAP_NAME, &ldapAuth{})
 }
 
-func (p *ldapAuth) Init(conf *falcon.Configer) error {
-	p.debug = conf.DefaultBool(ctrl.C_DEV_MODE, false)
-	p.addr = conf.Str(ctrl.C_LDAP_ADDR)
-	p.baseDN = conf.Str(ctrl.C_LDAP_BASE_DN)
-	p.bindDN = conf.Str(ctrl.C_LDAP_BIND_DN)
-	p.bindPwd = conf.Str(ctrl.C_LDAP_BIND_PWD)
-	p.filter = conf.Str(ctrl.C_LDAP_FILTER)
+func (p *ldapAuth) Init(conf *core.Configer) error {
+	p.debug = conf.GetBoolDef("debug", false)
+	p.addr = conf.GetStr("addr")
+	p.baseDN = conf.GetStr("base_dn")
+	p.bindDN = conf.GetStr("bind_dn")
+	p.bindPwd = conf.GetStr("bind_pwd")
+	p.filter = conf.GetStr("filter")
 	return nil
 }
 
@@ -68,7 +67,7 @@ func (p *ldapAuth) AuthorizeUrl(c interface{}) string {
 }
 
 func (p *ldapAuth) LoginCb(c interface{}) (uuid string, err error) {
-	return "", falcon.EPERM
+	return "", core.EPERM
 }
 
 func (p *ldapAuth) LogoutCb(c interface{}) {

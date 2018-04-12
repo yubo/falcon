@@ -6,12 +6,7 @@
 package models
 
 import (
-	"encoding/json"
-	"fmt"
-
-	"github.com/golang/glog"
-	"github.com/yubo/falcon"
-	"github.com/yubo/falcon/ctrl"
+	"github.com/yubo/falcon/lib/core"
 	//"github.com/yubo/falcon/graph"
 	//"github.com/yubo/falcon/transfer"
 )
@@ -19,8 +14,8 @@ import (
 var (
 	// for Description
 	ModuleMap = map[string]map[string]string{
+	/*
 		"ctrl": ctrl.ConfDesc,
-		/*
 			"graph": map[string]string{
 				graph.C_DEBUG:                "bool",
 				graph.C_THRESHOLD:            "int",
@@ -96,7 +91,7 @@ var (
 				transfer.C_ALARM_SOLVE:            "string",
 				transfer.C_LEASETTL:               "int",
 			},
-		*/
+	*/
 	}
 	EtcdMap = map[string]map[string]string{
 	/*
@@ -180,6 +175,7 @@ var (
 )
 
 func (op *Operator) SetEtcdConfig(module string, conf map[string]string) error {
+	/* TODO
 	ks, ok := EtcdMap[module]
 	if !ok {
 		//skip miss hit
@@ -193,9 +189,12 @@ func (op *Operator) SetEtcdConfig(module string, conf map[string]string) error {
 		}
 	}
 	return ctrl.EtcdPuts(ekv)
+	*/
+	return nil
 }
 
 func (op *Operator) SetDbConfig(module string, conf map[string]string) error {
+	/* TODO
 	kv, _ := ctrl.GetDbConfig(op.O, module)
 	for k, v := range conf {
 		if v != "" {
@@ -210,12 +209,14 @@ func (op *Operator) SetDbConfig(module string, conf map[string]string) error {
 	_, err = op.O.Raw("INSERT INTO `kv`(`section`, `key`, `value`)"+
 		" VALUES (?,'config',?) ON DUPLICATE KEY UPDATE `value`=?",
 		module, s, s).Exec()
+	*/
 
-	return err
+	return nil
 }
 
-func (op *Operator) ConfigGet(module string) ([falcon.APP_CONF_SIZE]map[string]string, error) {
-	var c *falcon.Configer
+func (op *Operator) ConfigGet(module string) (map[string]interface{}, error) {
+	/* TODO
+	var c *core.Configer
 
 	switch module {
 	case "ctrl":
@@ -240,9 +241,12 @@ func (op *Operator) ConfigGet(module string) ([falcon.APP_CONF_SIZE]map[string]s
 	}
 
 	return c.Get(), nil
+	*/
+	return nil, nil
 }
 
-func (op *Operator) ConfigerGet(module string) (*falcon.Configer, error) {
+func (op *Operator) ConfigerGet(module string) (*core.Configer, error) {
+	/* TODO
 	var c *falcon.Configer
 
 	switch module {
@@ -268,9 +272,12 @@ func (op *Operator) ConfigerGet(module string) (*falcon.Configer, error) {
 	}
 
 	return c, nil
+	*/
+	return nil, nil
 }
 
 func (op *Operator) ConfigSet(module string, conf map[string]string) error {
+	/* TODO
 	switch module {
 	case "ctrl", "agent", "lb", "backend", "graph", "transfer":
 		//if module == "graph" {
@@ -286,10 +293,13 @@ func (op *Operator) ConfigSet(module string, conf map[string]string) error {
 	default:
 		return falcon.ErrNoModule
 	}
+	*/
+	return nil
 }
 
 func (op *Operator) OnlineGet(module string) ([]KeyValue, error) {
 
+	/* TODO
 	switch module {
 	case "ctrl", "agent", "lb", "backend", "graph", "transfer":
 		prefix := fmt.Sprintf("/open-falcon/%s/online/", module)
@@ -311,6 +321,8 @@ func (op *Operator) OnlineGet(module string) ([]KeyValue, error) {
 	default:
 		return nil, falcon.ErrNoModule
 	}
+	*/
+	return nil, nil
 
 }
 
@@ -326,7 +338,7 @@ func (op *Operator) ExpansionGet(module string) (ret *ExpansionStatus, err error
 	ret = &ExpansionStatus{}
 
 	if module != "graph" {
-		return nil, falcon.ErrUnsupported
+		return nil, core.ErrUnsupported
 	}
 
 	//if enable, err = ctrl.EtcdGet(EtcdMap["graph"][ctrl.C_MIGRATE_ENABLE]); err == nil && enable == "true" {

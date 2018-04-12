@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/lib/core"
 	"github.com/yubo/falcon/transfer"
 	"golang.org/x/net/context"
 )
@@ -67,7 +67,7 @@ func (p *ClientModule) txWorker(ch chan *PutRequest, upstream string,
 	}
 
 	go func() {
-		conn, _, err := falcon.DialRr(p.ctx, upstream, true)
+		conn, _, err := core.DialRr(p.ctx, upstream, true)
 		if err != nil {
 			return
 		}
@@ -120,15 +120,11 @@ func (p *ClientModule) prestart(agent *Agent) error {
 }
 
 func (p *ClientModule) start(agent *Agent) error {
-	conf := &agent.Conf.Configer
-
-	upstream := conf.Str(C_UPSTREAM)
-	callTimeout, _ := conf.Int(C_CALL_TIMEOUT)
-	burstSize, _ := conf.Int(C_BURST_SIZE)
 	p.ctx, p.cancel = context.WithCancel(context.Background())
 
-	if err := p.txWorker(agent.PutChan, upstream,
-		callTimeout, burstSize); err != nil {
+	c := agent.Conf
+	if err := p.txWorker(agent.PutChan, c.Upstream,
+		c.CallTimeout, c.Burstsize); err != nil {
 		return err
 	}
 

@@ -10,8 +10,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/yubo/falcon"
-	"github.com/yubo/falcon/agent/config"
+	"github.com/yubo/falcon/lib/core"
 	"github.com/yubo/falcon/transfer"
 	"golang.org/x/net/context"
 )
@@ -68,9 +67,9 @@ func statsGets() []uint64 {
 	return cnt
 }
 
-func (p *Agent) Stats(conf interface{}) (s string, err error) {
+func (p *Agent) Stats(conf *core.Configer) (s string, err error) {
 	ctx, _ := context.WithTimeout(context.Background(), time.Duration(200)*time.Millisecond)
-	conn, _, err := falcon.DialRr(ctx, conf.(*config.Agent).Configer.Str(C_API_ADDR), false)
+	conn, _, err := core.DialRr(ctx, conf.GetStr(fmt.Sprintf("%s.ApiAddr", MODULE_NAME)), false)
 	if err != nil {
 		return "", err
 	}

@@ -6,7 +6,9 @@
 package models
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -17,8 +19,9 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/yubo/falcon"
-	"github.com/yubo/falcon/ctrl"
+	"github.com/yubo/falcon/ctrl/stats"
+	"github.com/yubo/falcon/lib/core"
+	"github.com/yubo/falcon/transfer"
 )
 
 type Log struct {
@@ -252,7 +255,7 @@ func (op *Operator) RelCheck(sql string, args ...interface{}) (err error) {
 	}
 
 	if n > 0 {
-		return falcon.ErrInUse
+		return core.ErrInUse
 	}
 	return nil
 }
@@ -349,19 +352,17 @@ func (op *Operator) resetDb(file string) (interface{}, error) {
 
 func (op *Operator) ResetDb(populate bool) (interface{}, error) {
 
-	conf := &ctrl.Configure.Ctrl
-	file := conf.Str(ctrl.C_DB_SCHEMA)
-	if file == "" {
-		return "", fmt.Errorf("please config ctrl:dbSchema  file path")
+	if !_models.conf.DevMode {
+		return nil, errors.New("just for dev mode")
 	}
 
-	if ret, err := op.resetDb(file); err != nil {
+	if ret, err := op.resetDb(_models.conf.DbSchema); err != nil {
 		return ret, err
 	}
 
 	// reset cache
 	// ugly hack
-	InitCache(conf)
+	InitCache(_models.conf)
 
 	if populate {
 		return op.populate()
@@ -377,4 +378,22 @@ func iif(a bool, b, c interface{}) interface{} {
 	} else {
 		return c
 	}
+}
+
+func GetDps(cli transfer.TransferClient, req *transfer.GetRequest) (*transfer.GetResponse, error) {
+
+	stats.Inc(stats.ST_GET_ITERS, 1)
+	stats.Inc(stats.ST_GET_DPS, len(req.Keys))
+
+	glog.V(6).Infof("%s tx get %v", MODULE_NAME, len(req.Keys))
+
+	ctx, _ := context.WithTimeout(context.Background(),
+		time.Duration(_models.conf.CallTimeout)*time.Millisecond)
+	resp, err := cli.Get(ctx, req)
+	if err != nil {
+		stats.Inc(stats.ST_GET_ITERS_ERR, 1)
+	} else {
+		stats.Inc(stats.ST_GET_DPS_ERR, int(len(req.Keys)-len(resp.Data)))
+	}
+	return resp, err
 }

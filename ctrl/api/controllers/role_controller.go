@@ -10,8 +10,8 @@ import (
 	"strings"
 
 	"github.com/astaxie/beego"
-	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/ctrl/api/models"
+	"github.com/yubo/falcon/lib/core"
 )
 
 // Operations about Roles
@@ -121,7 +121,7 @@ func (c *RoleController) UpdateRole() {
 	}
 
 	role := *p
-	falcon.Override(&role, &input)
+	core.Override(&role, &input)
 
 	if ret, err := op.UpdateRole(&role); err != nil {
 		c.SendMsg(400, err.Error())

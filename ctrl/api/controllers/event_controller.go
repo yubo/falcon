@@ -10,8 +10,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/ctrl/api/models"
+	"github.com/yubo/falcon/lib/core"
 	"github.com/yubo/falcon/service/expr"
 )
 
@@ -188,7 +188,7 @@ func (c *EventController) UpdateEventTrigger() {
 	}
 
 	event := *p
-	falcon.Override(&event, &input)
+	core.Override(&event, &input)
 
 	if _, err := expr.Parse(input.Expr); err != nil {
 		c.SendMsg(400, fmt.Sprintf("expr parse failed: %s", err.Error()))

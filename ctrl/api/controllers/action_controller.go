@@ -9,10 +9,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/alarm"
 	"github.com/yubo/falcon/alarm/expr"
 	"github.com/yubo/falcon/ctrl/api/models"
+	"github.com/yubo/falcon/lib/core"
 )
 
 // Operations about action (trigger/filter)
@@ -154,7 +154,7 @@ func (c *ActionController) UpdateActionTrigger() {
 	}
 
 	action := *p
-	falcon.Override(&action, &input)
+	core.Override(&action, &input)
 	action.ActionFlag = actionTriggerAttrToFlag(input.Email, input.Sms, input.Script)
 
 	if _, err := expr.Parse(input.Expr); err != nil {

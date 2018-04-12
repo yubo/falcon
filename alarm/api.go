@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/lib/core"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -54,8 +54,8 @@ func (p *ApiModule) GetStatsName(ctx context.Context, in *Empty) (*StatsName, er
 }
 
 func (p *ApiModule) prestart(a *Alarm) error {
-	p.address = a.Conf.Configer.Str(C_API_ADDR)
-	p.disable = falcon.AddrIsDisable(p.address)
+	p.address = a.Conf.ApiAddr
+	p.disable = core.AddrIsDisable(p.address)
 	p.putEventChan = a.putEventChan
 
 	return nil
@@ -64,13 +64,13 @@ func (p *ApiModule) prestart(a *Alarm) error {
 func (p *ApiModule) start(a *Alarm) (err error) {
 
 	if p.disable {
-		glog.Info("%s api disable", MODULE_NAME)
+		glog.Infof("%s api disable", MODULE_NAME)
 		return nil
 	}
 
 	p.ctx, p.cancel = context.WithCancel(context.Background())
 
-	ln, err := net.Listen(falcon.CleanSockFile(falcon.ParseAddr(p.address)))
+	ln, err := net.Listen(core.CleanSockFile(core.ParseAddr(p.address)))
 	if err != nil {
 		return err
 	}

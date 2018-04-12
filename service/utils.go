@@ -14,7 +14,7 @@ import (
 	"strings"
 	"unsafe"
 
-	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/lib/core"
 	"github.com/yubo/falcon/lib/tsdb"
 	"github.com/yubo/gotool/list"
 )
@@ -100,15 +100,15 @@ func tagsMatch(pattern, tags string) bool {
 }
 
 func keySum64(p *tsdb.Key) uint64 {
-	return falcon.Sum64(p.Key)
+	return core.Sum64(p.Key)
 }
 
 func keySum32(p *tsdb.Key) uint32 {
-	return falcon.Sum32(p.Key)
+	return core.Sum32(p.Key)
 }
 
 func keyCsum(p *tsdb.Key) string {
-	return falcon.Md5sum(p.Key)
+	return core.Md5sum(p.Key)
 }
 
 // call before use item.Key
@@ -132,11 +132,11 @@ func keyAttr(p *tsdb.Key) (string, string, string, string, error) {
 	var err error
 	s := strings.Split(string(p.Key), "/")
 	if len(s) != 4 {
-		err = falcon.EINVAL
+		err = core.EINVAL
 	}
 
 	if _, ok := ItemType_value[s[3]]; !ok {
-		err = falcon.EINVAL
+		err = core.EINVAL
 	}
 	return s[0], s[1], s[2], s[3], err
 }

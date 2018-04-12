@@ -11,10 +11,11 @@ import (
 	"time"
 
 	"github.com/astaxie/beego/orm"
-	_ "github.com/go-sql-driver/mysql"
 	"github.com/golang/glog"
-	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/lib/core"
 	"golang.org/x/net/context"
+
+	_ "github.com/go-sql-driver/mysql"
 )
 
 const (
@@ -127,8 +128,8 @@ type TriggerModule struct {
 }
 
 func (p *TriggerModule) prestart(a *Alarm) error {
-	p.workerProcesses, _ = a.Conf.Configer.Int(C_WORKER_PROCESSES)
-	p.syncInterval, _ = a.Conf.Configer.Int(C_SYNC_INTERVAL)
+	p.workerProcesses = a.Conf.WorkerProcesses
+	p.syncInterval = a.Conf.SyncInterval
 	p.ctx, p.cancel = context.WithCancel(context.Background())
 	p.eventNodes = make(map[string]map[int64]*eventEntry)
 	p.lru = &a.lru
@@ -140,11 +141,9 @@ func (p *TriggerModule) prestart(a *Alarm) error {
 }
 
 func (p *TriggerModule) start(a *Alarm) (err error) {
-	dbmaxidle, _ := a.Conf.Configer.Int(C_DB_MAX_IDLE)
-	dbmaxconn, _ := a.Conf.Configer.Int(C_DB_MAX_CONN)
 
-	p.db, _, err = falcon.NewOrm("alarm_sync",
-		a.Conf.Configer.Str(C_SYNC_DSN), dbmaxidle, dbmaxconn)
+	p.db, _, err = core.NewOrm("alarm_sync",
+		a.Conf.SyncDsn, a.Conf.DbMaxIdle, a.Conf.DbMaxConn)
 	if err != nil {
 		return err
 	}
@@ -419,7 +418,7 @@ func (p *TriggerModule) createEvent(event *Event) error {
 	// check node
 	node := t.nodes[e.tagId]
 	if node == nil {
-		return falcon.ENONODE
+		return core.ENONODE
 	}
 
 	// add eventEntry

@@ -1,0 +1,49 @@
+{{- if .values.fool }}
+foo1: {{ .values.foo1 }}
+{{- end}}
+
+{{- if .values.foo2 }}
+foo2: {{ .values.foo2 }}
+{{- end}}
+
+fooo:
+  foo: bar
+{{- if .values.foos }}
+  foos: {{ toYaml .values.foos | nindent 4}}
+{{- end}}
+
+## values
+#foo2: v_bar2
+#
+#foos:
+#  - v_foo1
+#  - v_foo2
+#  - v_foo3
+
+## base
+#foo1: b_bar1
+#foo2: b_bar2
+#foo3: b_bar3
+#
+#foos:
+#  - b_foo1
+#  - b_foo2
+#  - b_foo3
+
+## output:
+
+#foo1: b_bar1
+#foo2: v_bar2
+#foo3: b_bar3
+
+#fooo:
+#  foo: bar
+#  foos:
+#    - v_foo1
+#    - v_foo2
+#    - v_foo3
+
+#foos:
+#  - b_foo1
+#  - b_foo2
+#  - b_foo3

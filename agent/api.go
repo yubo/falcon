@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/lib/core"
 	"github.com/yubo/falcon/transfer"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -57,7 +57,7 @@ func (p *ApiModule) Put(ctx context.Context, in *transfer.PutRequest) (*transfer
 
 func (p *ApiModule) Get(ctx context.Context, in *transfer.GetRequest) (*transfer.GetResponse,
 	error) {
-	return nil, falcon.ErrUnsupported
+	return nil, core.ErrUnsupported
 }
 
 func (p *ApiModule) GetStats(ctx context.Context, in *transfer.Empty) (*transfer.Stats,
@@ -71,7 +71,7 @@ func (p *ApiModule) GetStatsName(ctx context.Context, in *transfer.Empty) (*tran
 }
 
 func (p *ApiModule) prestart(agent *Agent) error {
-	p.disable = falcon.AddrIsDisable(agent.Conf.Configer.Str(C_API_ADDR))
+	p.disable = core.AddrIsDisable(agent.Conf.ApiAddr)
 	p.putChan = agent.PutChan
 	return nil
 }
@@ -83,9 +83,9 @@ func (p *ApiModule) start(agent *Agent) error {
 
 	p.ctx, p.cancel = context.WithCancel(context.Background())
 	p.endpoint = agent.Conf.Host
-	address := agent.Conf.Configer.Str(C_API_ADDR)
+	address := agent.Conf.ApiAddr
 
-	ln, err := net.Listen(falcon.CleanSockFile(falcon.ParseAddr(address)))
+	ln, err := net.Listen(core.CleanSockFile(core.ParseAddr(address)))
 	if err != nil {
 		return err
 	}
@@ -122,7 +122,7 @@ func (p *ApiModule) reload(agent *Agent) error {
 	p.stop(agent)
 
 	time.Sleep(time.Second)
-	p.disable = falcon.AddrIsDisable(agent.Conf.Configer.Str(C_API_ADDR))
+	p.disable = core.AddrIsDisable(agent.Conf.ApiAddr)
 
 	return p.start(agent)
 }

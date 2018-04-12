@@ -15,6 +15,10 @@ import (
 	"github.com/yubo/falcon/transfer"
 )
 
+func init() {
+	RegisterModule(&ApiMsgModule{})
+}
+
 const (
 	IPC_MQ_MODE = 0666
 	IPC_MQ_KEY  = 0x1234
@@ -29,7 +33,7 @@ type ApiMsgModule struct {
 }
 
 func (p *ApiMsgModule) prestart(agent *Agent) error {
-	p.disable = !agent.Conf.Configer.DefaultBool(C_IPC_ENABLE, false)
+	p.disable = !agent.Conf.IpcEnable
 	return nil
 }
 func (p *ApiMsgModule) start(agent *Agent) error {
@@ -71,7 +75,7 @@ func (p *ApiMsgModule) stop(agent *Agent) error {
 }
 func (p *ApiMsgModule) reload(agent *Agent) error {
 	p.stop(agent)
-	p.disable = !agent.Conf.Configer.DefaultBool(C_IPC_ENABLE, false)
+	p.disable = !agent.Conf.IpcEnable
 	return p.start(agent)
 }
 

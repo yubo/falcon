@@ -10,8 +10,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/yubo/falcon"
-	"github.com/yubo/falcon/ctrl"
+	"github.com/yubo/falcon/lib/core"
 )
 
 type Host struct {
@@ -120,6 +119,17 @@ func (op *Operator) DeleteHost(id int64) error {
  ************************ tag host *********************************************
  ******************************************************************************/
 
+type TagHostApiGet struct {
+	Id            int64  `json:"id"`
+	TagId         int64  `json:"tag_id"`
+	HostId        int64  `json:"host_id"`
+	TagName       string `json:"tag_name"`
+	HostName      string `json:"host_name"`
+	Pause         int64  `json:"pause"`
+	MaintainBegin int64  `json:"maintain_begin"`
+	MaintainEnd   int64  `json:"maintain_end"`
+}
+
 type TagHostApiAdd struct {
 	SrcTagId int64 `json:"src_tag_id"`
 	TagId    int64 `json:"tag_id"`
@@ -169,42 +179,23 @@ func tagHostSql(tagId int64, query string, deep bool) (where string, args []inte
 }
 
 func (op *Operator) GetTagHostCnt(tagId int64, query string, deep bool) (cnt int64, err error) {
-	var tag *Tag
-
 	//TODO: acl filter just for admin?
-	if ctrl.Hooks.GetTagHostCnt != nil {
-		tag, err = op.GetTag(tagId)
-		if err != nil {
-			return
-		}
-		return ctrl.Hooks.GetTagHostCnt(tag.Name, query, deep)
-	} else {
-		sql, sql_args := tagHostSql(tagId, query, deep)
-		err = op.O.Raw("SELECT count(*) FROM tag_host a left join host h on a.host_id = h.id left join tag t on a.tag_id = t.id "+sql, sql_args...).QueryRow(&cnt)
-		return
-	}
+	sql, sql_args := tagHostSql(tagId, query, deep)
+	err = op.O.Raw("SELECT count(*) FROM tag_host a left join host h on a.host_id = h.id left join tag t on a.tag_id = t.id "+sql, sql_args...).QueryRow(&cnt)
+	return
 }
 
 func (op *Operator) GetTagHost(tagId int64, query string, deep bool,
-	limit, offset int) (ret []*ctrl.TagHostApiGet, err error) {
-	var tag *Tag
+	limit, offset int) (ret []*TagHostApiGet, err error) {
 
-	if ctrl.Hooks.GetTagHost != nil {
-		tag, err = op.GetTag(tagId)
-		if err != nil {
-			return
-		}
-		return ctrl.Hooks.GetTagHost(tag.Name, query, deep, limit, offset)
-	} else {
-		sql, sql_args := tagHostSql(tagId, query, deep)
-		sql = "select a.id, a.tag_id as tag_id, a.host_id as host_id, h.name as host_name, h.pause as pause, t.name as tag_name from tag_host a left join host h on a.host_id = h.id left join tag t on a.tag_id = t.id " + sql + " ORDER BY h.name"
-		if limit > 0 {
-			sql += " LIMIT ? OFFSET ?"
-			sql_args = append(sql_args, limit, offset)
-		}
-		_, err = op.O.Raw(sql, sql_args...).QueryRows(&ret)
-		return
+	sql, sql_args := tagHostSql(tagId, query, deep)
+	sql = "select a.id, a.tag_id as tag_id, a.host_id as host_id, h.name as host_name, h.pause as pause, t.name as tag_name from tag_host a left join host h on a.host_id = h.id left join tag t on a.tag_id = t.id " + sql + " ORDER BY h.name"
+	if limit > 0 {
+		sql += " LIMIT ? OFFSET ?"
+		sql_args = append(sql_args, limit, offset)
 	}
+	_, err = op.O.Raw(sql, sql_args...).QueryRows(&ret)
+	return
 }
 
 func (op *Operator) CreateTagHost(rel *TagHostApiAdd) (id int64, err error) {
@@ -243,7 +234,7 @@ func (op *Operator) DeleteTagHost(rel *TagHostApiDel) (int64, error) {
 
 func (op *Operator) DeleteTagHosts(rel *TagHostsApiDel) (int64, error) {
 	if len(rel.HostIds) == 0 {
-		return 0, falcon.ErrEmpty
+		return 0, core.ErrEmpty
 	}
 	ids := array2sql(rel.HostIds)
 	res, err := op.O.Raw("DELETE FROM `tag_host` "+

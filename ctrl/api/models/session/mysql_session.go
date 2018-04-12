@@ -48,7 +48,6 @@ import (
 	"time"
 
 	"github.com/astaxie/beego/session"
-	"github.com/yubo/falcon/ctrl"
 	// import mysql driver
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -126,19 +125,21 @@ func (st *SessionStore) SessionRelease(w http.ResponseWriter) {
 type Provider struct {
 	maxlifetime int64
 	savePath    string
+	db          *sql.DB
 }
 
 // connect to mysql
 func (mp *Provider) connectInit() *sql.DB {
-	return ctrl.Orm.CtrlDb
+	return mp.db
 }
 
 // SessionInit init mysql session.
 // savepath is the connection string of mysql.
-func (mp *Provider) SessionInit(maxlifetime int64, savePath string) error {
+func (mp *Provider) SessionInit(maxlifetime int64, savePath string) (err error) {
 	mp.maxlifetime = maxlifetime
 	mp.savePath = savePath
-	return nil
+	mp.db, err = sql.Open("mysql", mp.savePath)
+	return
 }
 
 // SessionRead get mysql session by sid

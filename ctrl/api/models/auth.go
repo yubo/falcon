@@ -5,9 +5,7 @@
  */
 package models
 
-import (
-	"github.com/yubo/falcon"
-)
+import "github.com/yubo/falcon/lib/core"
 
 var (
 	allAuths = make(map[string]AuthInterface)
@@ -21,7 +19,7 @@ type Auth struct {
 }
 
 type AuthInterface interface {
-	Init(cf *falcon.Configer) error
+	Init(cf *core.Configer) error
 	Verify(c interface{}) (success bool, uuid string, err error)
 	AuthorizeUrl(ctx interface{}) string
 	LoginCb(ctx interface{}) (uuid string, err error)
@@ -30,7 +28,7 @@ type AuthInterface interface {
 
 func RegisterAuth(name string, p AuthInterface) error {
 	if _, ok := allAuths[name]; ok {
-		return falcon.ErrExist
+		return core.ErrExist
 	} else {
 		allAuths[name] = p
 		return nil

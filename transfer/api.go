@@ -9,14 +9,14 @@ import (
 	"net"
 
 	"github.com/golang/glog"
-	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/lib/core"
 	"github.com/yubo/falcon/service"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
 
-type ApiModule struct {
+type apiModule struct {
 	disable bool
 	ctx     context.Context
 	cancel  context.CancelFunc
@@ -25,7 +25,7 @@ type ApiModule struct {
 	shardmap []chan *reqPayload
 }
 
-func (p *ApiModule) Get(ctx context.Context,
+func (p *apiModule) Get(ctx context.Context,
 	in *GetRequest) (res *GetResponse, err error) {
 
 	var rs []*service.GetResponse
@@ -61,7 +61,7 @@ func (p *ApiModule) Get(ctx context.Context,
 	return
 }
 
-func (p *ApiModule) Put(ctx context.Context,
+func (p *apiModule) Put(ctx context.Context,
 	in *PutRequest) (res *PutResponse, err error) {
 
 	glog.V(5).Infof("%s rx put %v", MODULE_NAME, len(in.Data))
@@ -90,31 +90,31 @@ func (p *ApiModule) Put(ctx context.Context,
 	return
 }
 
-func (p *ApiModule) GetStats(ctx context.Context, in *Empty) (*Stats, error) {
+func (p *apiModule) GetStats(ctx context.Context, in *Empty) (*Stats, error) {
 	return &Stats{Counter: statsGets()}, nil
 }
 
-func (p *ApiModule) GetStatsName(ctx context.Context, in *Empty) (*StatsName, error) {
+func (p *apiModule) GetStatsName(ctx context.Context, in *Empty) (*StatsName, error) {
 	return &StatsName{CounterName: statsCounterName}, nil
 }
 
-func (p *ApiModule) prestart(transfer *Transfer) error {
+func (p *apiModule) prestart(transfer *Transfer) error {
 	p.shardmap = transfer.shardmap
 	return nil
 }
 
-func (p *ApiModule) start(transfer *Transfer) (err error) {
+func (p *apiModule) start(transfer *Transfer) (err error) {
 
 	if p.disable {
 		glog.Info(MODULE_NAME + "api disable")
 		return nil
 	}
 
-	p.address = transfer.Conf.Configer.Str(C_API_ADDR)
-	p.disable = falcon.AddrIsDisable(p.address)
+	p.address = transfer.Conf.ApiAddr
+	p.disable = core.AddrIsDisable(p.address)
 	p.ctx, p.cancel = context.WithCancel(context.Background())
 
-	ln, err := net.Listen(falcon.CleanSockFile(falcon.ParseAddr(p.address)))
+	ln, err := net.Listen(core.CleanSockFile(core.ParseAddr(p.address)))
 	if err != nil {
 		return err
 	}
@@ -138,7 +138,7 @@ func (p *ApiModule) start(transfer *Transfer) (err error) {
 	return nil
 }
 
-func (p *ApiModule) stop(transfer *Transfer) error {
+func (p *apiModule) stop(transfer *Transfer) error {
 	if p.disable {
 		return nil
 	}
@@ -146,6 +146,6 @@ func (p *ApiModule) stop(transfer *Transfer) error {
 	return nil
 }
 
-func (p *ApiModule) reload(transfer *Transfer) error {
+func (p *apiModule) reload(transfer *Transfer) error {
 	return nil
 }

@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/yubo/falcon/ctrl"
 	"github.com/yubo/falcon/transfer"
 )
 
@@ -73,7 +72,7 @@ func (op *Operator) GetEndpoint(qs []string, tags []string,
 	}
 
 	sql := fmt.Sprintf("select endpoint, id from endpoint WHERE %s LIMIT %d", strings.Join(sql2, " AND "), limit)
-	_, err = Db.Idx.Raw(sql, args...).QueryRows(&ret)
+	_, err = _models.db.Idx.Raw(sql, args...).QueryRows(&ret)
 	return
 }
 
@@ -91,7 +90,7 @@ func (op *Operator) GetEndpointCounter(query string, ids []string, limit int) (r
 	}
 	sql := fmt.Sprintf("select counter from endpoint_counter WHERE %s group by counter order by counter LIMIT %d",
 		strings.Join(sql2, " AND "), limit)
-	_, err = Db.Idx.Raw(sql, args...).QueryRows(&ret)
+	_, err = _models.db.Idx.Raw(sql, args...).QueryRows(&ret)
 	return
 }
 
@@ -106,5 +105,5 @@ func GetDataPoints(in *DataPointApiGet) (*transfer.GetResponse, error) {
 		req.Keys[i] = []byte(key)
 	}
 
-	return ctrl.GetDps(req)
+	return GetDps(_models.transferCli, req)
 }

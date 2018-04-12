@@ -102,7 +102,7 @@ func UserTokens(uid int64, username string, o orm.Ormer) (token int) {
 		tids []int64
 	)
 
-	if admin[username] {
+	if _models.admin[username] {
 		return SYS_F_A_TOKEN | SYS_F_O_TOKEN | SYS_F_R_TOKEN
 	}
 

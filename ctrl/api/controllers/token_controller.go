@@ -11,8 +11,8 @@ import (
 
 	"github.com/astaxie/beego"
 	"github.com/golang/glog"
-	"github.com/yubo/falcon"
 	"github.com/yubo/falcon/ctrl/api/models"
+	"github.com/yubo/falcon/lib/core"
 )
 
 // Operations about Tokens
@@ -123,7 +123,7 @@ func (c *TokenController) UpdateToken() {
 	}
 
 	token := *p
-	falcon.Override(&token, &input)
+	core.Override(&token, &input)
 
 	if ret, err := op.UpdateToken(&token); err != nil {
 		c.SendMsg(400, err.Error())

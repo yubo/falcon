@@ -11,7 +11,7 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/golang/glog"
-	"github.com/yubo/falcon"
+	"github.com/yubo/falcon/lib/core"
 	"github.com/yubo/falcon/lib/tsdb"
 	"github.com/yubo/falcon/service"
 	"golang.org/x/net/context"
@@ -32,7 +32,7 @@ const (
 	RPC_ACTION_GET
 )
 
-type ClientModule struct {
+type clientModule struct {
 	shardmap     []chan *reqPayload
 	serviceChans map[string]chan *reqPayload
 	clients      map[string]*rpcClient
@@ -42,18 +42,18 @@ type ClientModule struct {
 	cancel       context.CancelFunc
 }
 
-func (p *ClientModule) prestart(transfer *Transfer) error {
+func (p *clientModule) prestart(transfer *Transfer) error {
 	p.shardmap = transfer.shardmap
 	return nil
 }
 
-func (p *ClientModule) start(transfer *Transfer) (err error) {
-	conf := &transfer.Conf.Configer
+func (p *clientModule) start(transfer *Transfer) (err error) {
+	conf := transfer.Conf
 
 	p.serviceChans = make(map[string]chan *reqPayload)
 	p.clients = make(map[string]*rpcClient)
-	p.callTimeout, _ = conf.Int(C_CALL_TIMEOUT)
-	p.burstSize, _ = conf.Int(C_BURST_SIZE)
+	p.callTimeout = conf.CallTimeout
+	p.burstSize = conf.BurstSize
 
 	for shardId, addr := range transfer.Conf.ShardMap {
 		ch := p.serviceChans[addr]
@@ -69,7 +69,7 @@ func (p *ClientModule) start(transfer *Transfer) (err error) {
 
 	for _, c := range p.clients {
 		// FIXME: remove WithBlock, and reconnection when service online
-		c.conn, _, err = falcon.DialRr(p.ctx, c.addr, true)
+		c.conn, _, err = core.DialRr(p.ctx, c.addr, true)
 		if err != nil {
 			glog.Errorf("%s addr:%s err:%s\n",
 				MODULE_NAME, c.addr, err)
@@ -86,12 +86,12 @@ func (p *ClientModule) start(transfer *Transfer) (err error) {
 	return nil
 }
 
-func (p *ClientModule) stop(transfer *Transfer) error {
+func (p *clientModule) stop(transfer *Transfer) error {
 	p.cancel()
 	return nil
 }
 
-func (p *ClientModule) reload(transfer *Transfer) error {
+func (p *clientModule) reload(transfer *Transfer) error {
 	p.stop(transfer)
 	time.Sleep(time.Second)
 	p.prestart(transfer)
