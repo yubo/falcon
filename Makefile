@@ -15,7 +15,7 @@ all: $(EXEC_OUTPUT_PATH)/falcon
 	done
 
 $(EXEC_OUTPUT_PATH)/falcon: $(DEPENDS) cmd/falcon/*.go
-	go build -o $@ ./cmd/falcon
+	@export GOPATH=$(PWD)/gopath && go build -o $@ ./cmd/falcon
 
 $(EXEC_OUTPUT_PATH)/agent: $(DEPENDS) cmd/agent/*.go
 	@echo > $@
