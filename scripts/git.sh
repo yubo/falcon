@@ -2,7 +2,7 @@
 commit=$(git log -1 --pretty=%h)
 output='./gitlog.go'
 cat <<EOF > $output
-package falcon
+package main
 const (
 	COMMIT = "$commit"
 	CHANGELOG = \`

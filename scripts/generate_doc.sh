@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export GOPATH=${PWD}/gopath
+#export GOPATH=${PWD}/gopath
 src=${GOPATH}/src/github.com/yubo/falcon/ctrl/api/swagger/swagger.json
 dst=${GOPATH}/src/github.com/yubo/falcon/ctrl/ctrl.swagger.json
 
@@ -18,10 +18,10 @@ tempdir='tmp_doc'
 mkdir -p ${tempdir}/{tsdb,agent,alarm,service,transfer}
 cd  ${tempdir}
 cp -f ../lib/tsdb/tsdb.proto tsdb/tsdb.proto
-cp -f ../agent/agent.proto agent/agent.proto
-cp -f ../alarm/alarm.proto alarm/alarm.proto
-cp -f ../service/service.proto service/service.proto
-cp -f ../transfer/transfer.proto transfer/transfer.proto
+cp -f ../modules/agent/agent.proto agent/agent.proto
+cp -f ../modules/alarm/alarm.proto alarm/alarm.proto
+cp -f ../modules/service/service.proto service/service.proto
+cp -f ../modules/transfer/transfer.proto transfer/transfer.proto
 protodoc --directories="tsdb=service_message,agent=service_message,alarm=service_message,service=service_message,transfer=service_message" \
 	--title="falcon API Reference" \
 	--output="api_reference.md" \

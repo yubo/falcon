@@ -11,6 +11,9 @@ This is an experimental version, the official version, please refer to[open-falc
 ![](docs/img/falcon-overview.svg?raw=true)
 
 ## build & install
+```sh
+go get github.com/yubo/falcon
+```
 
 [qucik start](docs/quick_start.md)
 

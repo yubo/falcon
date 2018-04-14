@@ -1,0 +1,46 @@
+syntax = "proto3";
+option go_package = "github.com/yubo/falcon/modules/agent";
+package agent;
+
+import "google/api/annotations.proto";
+import "lib/tsdb/tsdb.proto";
+
+message DataPoint {
+	bytes key = 1;
+	tsdb.TimeValuePair value = 2; 
+}
+
+message DataPoints {
+	bytes key = 1;
+	repeated tsdb.TimeValuePair values = 2; 
+}
+
+
+message PutRequest {
+	repeated DataPoint data = 1;
+}
+
+message PutResponse {
+	int32  n = 1; // Actual number of objects success process
+}
+
+message Empty {
+}
+
+message Stats {
+	repeated uint64 counter = 1;
+}
+
+message StatsName {
+	repeated bytes counterName = 1;
+}
+
+service Agent {
+	rpc Put(PutRequest) returns (PutResponse) {
+		option (google.api.http) = {
+			post: "/v1.0/put"
+			body: "*"
+		};
+	}
+}
+

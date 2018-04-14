@@ -6,7 +6,6 @@ SWAGGER_DIR=dist/var/html/docs/swagger
 MODULES=falcon
 GOFILES=$(shell find . -name "*.go" -type f -not -path "./cmd*") gitlog.go
 DEPENDS=dist $(GOFILES) $(DOCFILES)
-#DEPENDS=dist $(GOFILES)
 
 all: $(EXEC_OUTPUT_PATH)/falcon
 	@for name in `find . -maxdepth 2 -name \*.swagger.json`; \
@@ -14,12 +13,12 @@ all: $(EXEC_OUTPUT_PATH)/falcon
 		cp -f "$$name" $(SWAGGER_DIR)/$$(basename "$$name"); \
 	done
 
-$(EXEC_OUTPUT_PATH)/falcon: $(DEPENDS) cmd/falcon/*.go
-	@export GOPATH=$(PWD)/gopath && go build -o $@ ./cmd/falcon
+$(EXEC_OUTPUT_PATH)/falcon: $(DEPENDS)
+	go build -o $@
 
-$(EXEC_OUTPUT_PATH)/agent: $(DEPENDS) cmd/agent/*.go
-	@echo > $@
-	@export GOPATH=$(PWD)/gopath && go build -o $@ ./cmd/agent
+#$(EXEC_OUTPUT_PATH)/agent: $(DEPENDS) cmd/agent/*.go
+#	@echo > $@
+#	@export GOPATH=$(PWD)/gopath && go build -o $@ ./cmd/agent
 
 gitlog.go:
 	./scripts/git.sh
@@ -62,7 +61,7 @@ coverage: $(DEPENDS)
 	curl -s https://codecov.io/bash | bash
 
 vendor:
-	./scripts/vendor.sh
+	govendor add +external
 
 doc:
 	./scripts/generate_doc.sh

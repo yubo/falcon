@@ -3,7 +3,7 @@
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
-package falcon
+package main
 
 const (
 	//C_ENABLE_DOCS             = "enabledocs"

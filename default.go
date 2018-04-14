@@ -3,7 +3,7 @@
  * Use of this source code is governed by a BSD-style
  * license that can be found in the LICENSE file.
  */
-package falcon
+package main
 
 const (
 	VERSION      = "0.0.3"
@@ -14,7 +14,7 @@ const (
 	//GAUGE       = "GAUGE"
 	//DERIVE      = "DERIVE"
 	//COUNTER     = "COUNTER"
-	MODULE_NAME = "\x1B[37m[FALCON]\x1B[0m"
+	//MODULE_NAME = "\x1B[37m[FALCON]\x1B[0m"
 )
 
 const (

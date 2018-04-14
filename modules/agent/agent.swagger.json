@@ -1,0 +1,92 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "modules/agent/agent.proto",
+    "version": "version not set"
+  },
+  "schemes": [
+    "http",
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/v1.0/put": {
+      "post": {
+        "operationId": "Put",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/agentPutResponse"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/agentPutRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Agent"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "agentDataPoint": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string",
+          "format": "byte"
+        },
+        "value": {
+          "$ref": "#/definitions/tsdbTimeValuePair"
+        }
+      }
+    },
+    "agentPutRequest": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/agentDataPoint"
+          }
+        }
+      }
+    },
+    "agentPutResponse": {
+      "type": "object",
+      "properties": {
+        "n": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
+    "tsdbTimeValuePair": {
+      "type": "object",
+      "properties": {
+        "timestamp": {
+          "type": "string",
+          "format": "int64"
+        },
+        "value": {
+          "type": "number",
+          "format": "double"
+        }
+      }
+    }
+  }
+}

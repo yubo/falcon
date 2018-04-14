@@ -1,6 +1,7 @@
-package falcon
+package main
+
 const (
-	COMMIT = "ec458c8"
+	COMMIT    = "ec458c8"
 	CHANGELOG = `
 - (ec458c8) feature: support grpc/grpc_gw api (HEAD -> master, origin/master, origin/HEAD)
 - (ac5fee6) feature: add agent/transfer/backend parse

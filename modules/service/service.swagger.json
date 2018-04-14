@@ -1,0 +1,157 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "modules/service/service.proto",
+    "version": "version not set"
+  },
+  "schemes": [
+    "http",
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/v1.0/stats": {
+      "get": {
+        "operationId": "GetStats",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/serviceStats"
+            }
+          }
+        },
+        "tags": [
+          "Service"
+        ]
+      }
+    },
+    "/v1.0/stats_name": {
+      "get": {
+        "operationId": "GetStatsName",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/serviceStatsName"
+            }
+          }
+        },
+        "tags": [
+          "Service"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "serviceCf": {
+      "type": "string",
+      "enum": [
+        "MIN",
+        "MAX",
+        "AVERAGE"
+      ],
+      "default": "MIN"
+    },
+    "serviceGetResponse": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/tsdbDataPoints"
+          }
+        }
+      }
+    },
+    "servicePutResponse": {
+      "type": "object",
+      "properties": {
+        "n": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
+    "serviceStats": {
+      "type": "object",
+      "properties": {
+        "counter": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uint64"
+          }
+        }
+      }
+    },
+    "serviceStatsName": {
+      "type": "object",
+      "properties": {
+        "counterName": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "byte"
+          }
+        }
+      }
+    },
+    "tsdbDataPoint": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/definitions/tsdbKey"
+        },
+        "value": {
+          "$ref": "#/definitions/tsdbTimeValuePair"
+        }
+      }
+    },
+    "tsdbDataPoints": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/definitions/tsdbKey"
+        },
+        "values": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/tsdbTimeValuePair"
+          }
+        }
+      }
+    },
+    "tsdbKey": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string",
+          "format": "byte"
+        },
+        "shardId": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
+    "tsdbTimeValuePair": {
+      "type": "object",
+      "properties": {
+        "timestamp": {
+          "type": "string",
+          "format": "int64"
+        },
+        "value": {
+          "type": "number",
+          "format": "double"
+        }
+      }
+    }
+  }
+}
