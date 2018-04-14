@@ -12,7 +12,7 @@ import (
 
 	"github.com/yubo/falcon/lib/ipc"
 	"github.com/yubo/falcon/lib/tsdb"
-	"github.com/yubo/falcon/transfer"
+	"github.com/yubo/falcon/modules/transfer"
 )
 
 func init() {

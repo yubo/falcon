@@ -57,7 +57,7 @@ parse:
 	$(EXEC_OUTPUT_PATH)/falcon -f ./etc/values.example.yaml -config ./etc/falcon.example.yaml parse 2>&1
 
 coverage: $(DEPENDS)
-	export GOPATH=$(PWD)/gopath && ./scripts/test_coverage.sh
+	./scripts/test_coverage.sh
 	curl -s https://codecov.io/bash | bash
 
 vendor:
