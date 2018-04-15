@@ -60,4 +60,5 @@ var (
 	EFMT              = errors.New("Invalid format") // custom
 	EALLOC            = errors.New("Allocation Failure")
 	ErrBalancerClosed = errors.New("grpc: balancer is closed")
+	EREACH            = errors.New("Destination address is unreachable")
 )

@@ -1,0 +1,81 @@
+sys:
+  log_level: 4
+  log_file: stdout
+  pid_file: {{ .values.root }}/run/falcon.pid
+
+ctrl:
+  disable: false
+  master_mode: true
+  mi_mode: false
+  dev_mode: true
+  beego_dev_mode: true	#default: false
+  bee_mode: true	#default: false
+  debug: 1
+  admin:
+    - test
+    - service-ocean@misso
+  #falcon:1234@tcp(localhost:3306)/falcon?loc=Local&parseTime=true
+  dsn: {{ .values.falcon_dsn }}
+  idx_dsn: {{ .values.index_dsn }}
+  alarm_dsn: {{ .values.alarm_dsn }}	
+  etcd_endpoints: {{ .values.etcd_endpoints }}
+  transfer_addr: {{ .values.transfer_addr}}
+  http_addr: {{ .values.ctrl_http_addr }}
+  session_gc_max_lifetime: 86400
+  session_cookie_lifetime: 86400
+  call_timeout: 5000
+  db_max_idle: 30
+  db_max_conn: 30
+  db_schema: {{ .values.db_schema }}
+  enable_docs: true
+  cache_module: [host,role,system,tag,user]
+  plugin_alarm: true
+  mi_norns_url: http://norns.dev/api/v1/tagstring/cop.xiaomi/hostinfos
+  mi_norns_interval: 5
+  auth_module:
+    - ldap
+    - misso
+    - github
+    - google
+  etcd_client:
+    endpoints:
+    username: adsf
+    password: asdf
+    cert_file: asdf
+    key_file: asdf
+    ca_file: abc 
+    lease_value: asdf
+    lease_key: /open-falcon/ctrl/online/test.dev
+    lease_ttl: 20
+  # models
+  tag_schema: cop,owt,pdl,servicegroup;service,jobgroup;job,sbs;mod;srv;grp;cluster;loc;idc;status;
+  http_rate_limit:
+    limit: 10
+    accuracy: 5
+    gc_timeout: 60000
+    gc_interval: 1000
+  wx_app_id: xxxx
+  wx_app_secret: xxxx
+  auth:
+    ldap:
+      debug: false
+      addr: localhost:389
+      base_dn: dc=xiaomi,dc=com
+      bind_dn: cn=admin,dc=xiaomi,dc=com
+      bind_pwd: "123456"
+      filter: "(&(objectClass=posixAccount)(cn=%s))"
+    fw:
+      client_id: "0c6eb7247bb4bc7ca16a"
+      client_secret: "7c75c029907af4f398a0e6338fcf9680c1138f64"
+      redirect_url: http://auth.dev.pt.xiaomi.com/v1.0/auth/callback/github
+    misso:
+      redirect_url: http://auth.dev.pt.xiaomi.com/v1.0/auth/callback/misso
+    github:
+      client_id: "0c6eb7247bb4bc7ca16a"
+      client_secret: "7c75c029907af4f398a0e6338fcf9680c1138f64"
+      redirect_url: http://auth.dev.pt.xiaomi.com/v1.0/auth/callback/github
+    google:
+      client_id: "781171109477-10tu51e8bs1s677na46oct6hdefpntpu.apps.googleusercontent.com"
+      client_secret: xpEoBFqkmI3KVN9pHt2VW-eN
+      redirect_url: http://auth.dev.pt.xiaomi.com/v1.0/auth/callback/google
+

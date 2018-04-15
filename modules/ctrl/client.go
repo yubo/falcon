@@ -22,6 +22,10 @@ func (p *clientModule) PreStart(ctrl *Ctrl) error {
 }
 
 func (p *clientModule) Start(ctrl *Ctrl) error {
+	if core.AddrIsDisable(ctrl.Conf.TransferAddr) {
+		return nil
+	}
+
 	conn, _, err := core.DialRr(context.Background(), ctrl.Conf.TransferAddr, true)
 	if err != nil {
 		return err
@@ -32,7 +36,10 @@ func (p *clientModule) Start(ctrl *Ctrl) error {
 }
 
 func (p *clientModule) Stop(ctrl *Ctrl) error {
-	p.conn.Close()
+	if ctrl.transferCli != nil {
+		p.conn.Close()
+	}
+	ctrl.transferCli = nil
 	return nil
 }
 

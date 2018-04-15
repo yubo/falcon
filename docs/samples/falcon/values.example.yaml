@@ -2,7 +2,7 @@ falcon_dsn: falcon:1234@tcp(localhost:3306)/falcon?loc=Local&parseTime=true
 index_dsn: falcon:1234@tcp(localhost:3306)/idx?loc=Local&parseTime=true
 alarm_dsn: falcon:1234@tcp(localhost:3306)/alarm?loc=Local&parseTime=true
 agent_addr: unix:var/run/agent.sock
-transfer_addr: unix:var/run/transfer.sock
+#transfer_addr: unix:var/run/transfer.sock
 service_addr: unix:var/run/service.sock
 alarm_addr: unix:var/run/alarm.sock
 emu_tpl_dir: /opt/falcon/var/emu_tpl

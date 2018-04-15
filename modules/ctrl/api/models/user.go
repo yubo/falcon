@@ -283,12 +283,14 @@ type TagRolesUsersApiAdd struct {
 	UserIds []int64 `json:"user_ids"`
 }
 
+type RoleUserPair struct {
+	RoleId int64 `json:"role_id"`
+	UserId int64 `json:"user_id"`
+}
+
 type TagRolesUsersApiDel struct {
-	TagId    int64 `json:"tag_id"`
-	RoleUser []struct {
-		RoleId int64 `json:"role_id"`
-		UserId int64 `json:"user_id"`
-	} `json:"role_user"`
+	TagId    int64          `json:"tag_id"`
+	RoleUser []RoleUserPair `json:"role_user"`
 }
 
 type TagRoleUserApiGet struct {

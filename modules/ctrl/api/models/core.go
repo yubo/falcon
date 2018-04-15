@@ -67,6 +67,7 @@ var (
 	//SysOp        *Operator
 )
 
+// called by (p *modelsModule) Start(c *Ctrl)
 func Init(configer *core.Configer, db *CtrlDb, cli *core.EtcdCli,
 	tCli transfer.TransferClient) error {
 	conf := &ModelsConfig{}
@@ -75,6 +76,12 @@ func Init(configer *core.Configer, db *CtrlDb, cli *core.EtcdCli,
 	}
 	conf.Configer = configer
 
+	_models = &Models{
+		db:          db,
+		conf:        conf,
+		etcdCli:     cli,
+		transferCli: tCli,
+	}
 	if err := InitConfig(conf); err != nil {
 		return err
 	}
@@ -83,12 +90,6 @@ func Init(configer *core.Configer, db *CtrlDb, cli *core.EtcdCli,
 	}
 	if err := InitCache(conf); err != nil {
 		return err
-	}
-	_models = &Models{
-		db:          db,
-		conf:        conf,
-		etcdCli:     cli,
-		transferCli: tCli,
 	}
 
 	op := &Operator{
@@ -129,9 +130,6 @@ func InitConfig(conf *ModelsConfig) error {
 	var err error
 
 	// set default
-	//conf.Agent.Set(falcon.APP_CONF_DEFAULT, config.ConfDefault["agent"])
-	//conf.Loadbalance.Set(fconPfig.APP_CONF_DEFAULT, config.ConfDefault["loadbalance"])
-	//conf.Backend.Set(falcon.APP_CONF_DEFAULT, config.ConfDefault["backend"])
 	_models.sysTagSchema, err = NewTagSchema(conf.TagSchema)
 
 	// admin
@@ -231,7 +229,8 @@ func PutEtcdConfig() error {
 			}
 		}
 	}
-	return _models.etcdCli.Puts(put)
+	_models.etcdCli.Puts(put)
+	return nil
 }
 
 // call by api /pub/config/ctrl

@@ -10,35 +10,44 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"sync/atomic"
 	"syscall"
 
 	"github.com/golang/glog"
-	"github.com/yubo/falcon"
-	"github.com/yubo/falcon/ctrl"
 	"github.com/yubo/falcon/lib/core"
+	"github.com/yubo/falcon/modules/ctrl"
 	"github.com/yubo/gotool/flags"
-
-	_ "github.com/go-sql-driver/mysql"
-	_ "github.com/yubo/falcon/ctrl/api/models/auth"
-	_ "github.com/yubo/falcon/ctrl/api/models/session"
-)
-
-var (
-	opts struct {
-		ConfigFile string
-		Module     string
-	}
 )
 
 const (
-	PROCESS_NAME = "falcon"
+	PROCESS_NAME = "falcon-ctrl"
+)
+
+type arrayString []string
+
+func (i *arrayString) String() string {
+	return strings.Join([]string(*i), ",")
+}
+
+func (i *arrayString) Set(value string) error {
+	*i = append(*i, value)
+	return nil
+}
+
+var (
+	opts struct {
+		ValueFiles arrayString
+		ConfigFile string
+		Module     string
+	}
 )
 
 func init() {
 	core.RegisterModule(&ctrl.Ctrl{})
 
 	flag.StringVar(&opts.ConfigFile, "config", fmt.Sprintf("./etc/%s.yaml", PROCESS_NAME), "app config file")
+	flag.Var(&opts.ValueFiles, "f", "app values file")
 	flags.CommandLine.Usage = fmt.Sprintf("Usage: %s COMMAND start|stop|reload|stats\n", os.Args[0])
 
 	flags.NewCommand("start", "start falcon", startHandle, flag.ExitOnError)
@@ -50,13 +59,18 @@ func init() {
 
 	flags.NewCommand("parse", "just parse falcon ConfigFile", parseHandle, flag.ExitOnError)
 	flags.NewCommand("help", "show help information", helpHandle, flag.ExitOnError)
-	flags.NewCommand("version", "show falcon version information", versionHandle, flag.ExitOnError)
-	flags.NewCommand("git", "show falcon git version information", gitHandle, flag.ExitOnError)
-	flags.NewCommand("changelog", "show falcon changelog information", changelogHandle, flag.ExitOnError)
 }
 
 func main() {
 	flags.Parse()
+
+	if len(opts.ValueFiles) == 0 {
+		opts.ValueFiles.Set("./etc/values.example.yaml")
+	}
+
+	flag.Lookup("logtostderr").Value.Set("true")
+	flag.Lookup("v").Value.Set("6")
+
 	if len(os.Args) == 1 {
 		startHandle(nil)
 	} else {
@@ -103,7 +117,7 @@ func signalNotify(p *core.Process) {
 
 /* handle */
 func startHandle(arg interface{}) {
-	app, err := core.NewProcess(opts.ConfigFile, falcon.BaseConf)
+	app, err := core.NewProcess(opts.ConfigFile, BaseConf, []string(opts.ValueFiles))
 	if err != nil {
 		glog.Fatal(err)
 	}
@@ -148,7 +162,7 @@ func startHandle(arg interface{}) {
 }
 
 func stopHandle(arg interface{}) {
-	app, err := core.NewProcess(opts.ConfigFile, falcon.BaseConf)
+	app, err := core.NewProcess(opts.ConfigFile, BaseConf, []string(opts.ValueFiles))
 	if err != nil {
 		glog.Fatal(err)
 	}
@@ -158,7 +172,7 @@ func stopHandle(arg interface{}) {
 }
 
 func reloadHandle(arg interface{}) {
-	app, err := core.NewProcess(opts.ConfigFile, falcon.BaseConf)
+	app, err := core.NewProcess(opts.ConfigFile, BaseConf, []string(opts.ValueFiles))
 	if err != nil {
 		glog.Fatal(err)
 	}
@@ -173,27 +187,15 @@ func helpHandle(arg interface{}) {
 }
 
 func parseHandle(arg interface{}) {
-	app, err := core.NewProcess(opts.ConfigFile, falcon.BaseConf)
+	app, err := core.NewProcess(opts.ConfigFile, BaseConf, []string(opts.ValueFiles))
 	if err != nil {
 		glog.Fatal(err)
 	}
 	fmt.Printf("%s\n", app.Configer)
 }
 
-func versionHandle(arg interface{}) {
-	fmt.Printf("%s\n", falcon.VERSION)
-}
-
-func gitHandle(arg interface{}) {
-	fmt.Println(falcon.COMMIT)
-}
-
-func changelogHandle(arg interface{}) {
-	fmt.Println(falcon.CHANGELOG)
-}
-
 func statsHandle(arg interface{}) {
-	app, err := core.NewProcess(opts.ConfigFile, falcon.BaseConf)
+	app, err := core.NewProcess(opts.ConfigFile, BaseConf, []string(opts.ValueFiles))
 	if err != nil {
 		glog.Fatal(err)
 	}

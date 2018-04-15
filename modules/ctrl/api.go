@@ -11,6 +11,7 @@ import (
 
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/orm"
+	"github.com/golang/glog"
 	"github.com/yubo/falcon/modules/ctrl/api/routers"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -30,7 +31,7 @@ func (p *apiModule) PreStart(c *Ctrl) error {
 		beego.BConfig.RunMode = beego.DEV
 		beego.BConfig.WebConfig.EnableDocs = true
 		beego.BConfig.WebConfig.DirectoryIndex = true
-		beego.BConfig.WebConfig.StaticDir["/v1.0/doc"] = "swagger"
+		beego.BConfig.WebConfig.StaticDir["/v1/doc"] = "swagger"
 	} else {
 		beego.BConfig.RunMode = beego.PROD
 	}
@@ -60,6 +61,7 @@ func (p *apiModule) Start(c *Ctrl) (err error) {
 		beego.BConfig.Listen.HTTPPort, _ = strconv.Atoi(addr[0])
 	}
 
+	glog.V(3).Infof("port %s dev %v", conf.HttpAddr, conf.BeeMode)
 	if err := p.beego.Start(conf.BeeMode); err != nil {
 		return err
 	}

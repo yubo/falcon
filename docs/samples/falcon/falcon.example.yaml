@@ -27,7 +27,7 @@ ctrl:
   db_max_conn: 30
   db_schema: {{ .values.db_schema }}
   enable_docs: true
-  cache_module: "host,role,system,tag,user"
+  cache_module: [host,role,system,tag,user]
   plugin_alarm: true
   mi_norns_url: http://norns.dev/api/v1/tagstring/cop.xiaomi/hostinfos
   mi_norns_interval: 5
@@ -38,7 +38,6 @@ ctrl:
     - google
   etcd_client:
     endpoints:
-      - asdf
     username: adsf
     password: asdf
     cert_file: asdf

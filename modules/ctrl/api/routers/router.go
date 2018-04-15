@@ -30,10 +30,10 @@ func Init(miMode_ bool) {
 
 	miMode = miMode_
 
-	beego.InsertFilter("/v1.0/*", beego.BeforeRouter, profileFilter)
-	beego.InsertFilter("/v1.0/*", beego.BeforeRouter, accessFilter)
+	beego.InsertFilter("/v1/*", beego.BeforeRouter, profileFilter)
+	beego.InsertFilter("/v1/*", beego.BeforeRouter, accessFilter)
 
-	ns := beego.NewNamespace("/v1.0",
+	ns := beego.NewNamespace("/v1",
 		beego.NSNamespace("/auth", beego.NSInclude(&controllers.AuthController{})),
 		beego.NSNamespace("/host", beego.NSInclude(&controllers.HostController{})),
 		beego.NSNamespace("/role", beego.NSInclude(&controllers.RoleController{})),

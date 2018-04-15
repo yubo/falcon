@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/yubo/falcon/lib/core"
 	"github.com/yubo/falcon/modules/transfer"
 )
 
@@ -95,6 +96,10 @@ func (op *Operator) GetEndpointCounter(query string, ids []string, limit int) (r
 }
 
 func GetDataPoints(in *DataPointApiGet) (*transfer.GetResponse, error) {
+	if _models.transferCli == nil {
+		return nil, core.EREACH
+	}
+
 	req := &transfer.GetRequest{
 		Start: in.Start,
 		End:   in.End,

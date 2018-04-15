@@ -120,7 +120,7 @@ func IndentLines(i int, lines string) (ret string) {
 }
 
 func AddrIsDisable(addr string) bool {
-	if addr == "" || addr == "disable" {
+	if addr == "" || addr == "disable" || addr == "<no value>" {
 		return true
 	}
 	return false
